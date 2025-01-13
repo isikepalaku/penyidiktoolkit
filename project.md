@@ -22,7 +22,7 @@
 │   │       ├── behavioralAgent.ts     # Behavioral analysis agent
 │   │       ├── witnessAgent.ts        # Witness statement agent
 │   │       ├── reportAgent.ts         # Report generation agent
-│   │       └── imageAgent.ts          # Image analysis agent
+│   │       └── imageAgent.ts          # Image analysis agent config & prompts
 │   │
 │   ├── hooks/
 │   │   └── useAgentForm.ts           # Custom hook for form management
@@ -32,7 +32,7 @@
 │   │   └── Reports.tsx               # Reports management page
 │   │
 │   ├── services/
-│   │   └── agentService.ts           # API integration services
+│   │   └── agentService.ts           # API & Gemini integration services
 │   │
 │   ├── types/
 │   │   └── index.ts                  # TypeScript type definitions
@@ -45,6 +45,8 @@
 ├── public/
 │   └── vite.svg                      # Vite logo
 │
+├── .env                              # Environment variables
+├── .env.example                      # Environment variables template
 ├── .gitignore                        # Git ignore configuration
 ├── eslint.config.js                  # ESLint configuration
 ├── package.json                      # Project dependencies
@@ -57,67 +59,122 @@
 
 ## Key Features
 
-1. Modular Agent System:
+1. AI Image Analysis:
+   - Integration with Google's Gemini Vision AI
+   - Advanced image analysis capabilities
+   - Multiple analysis modes (Standard & Forensic)
+   - Detailed visual analysis and text recognition
+   - Forensic insight extraction
+   - Customizable analysis prompts
+
+2. Modular Agent System:
    - Centralized agent configuration
    - Specialized forms per agent type
    - Extensible agent architecture
-   - Unified API integration
    - Custom hooks for state management
+   - Type-safe prompt management
 
-2. Form Components:
+3. Form Components:
    - Base form component for standard fields
    - Specialized forms for specific agents
    - File upload with preview
    - Dynamic form generation
    - Real-time validation
+   - Prompt type selection
 
-3. UI Components:
+4. UI Components:
    - Agent selection cards
    - Responsive sidebar
    - Loading animations
    - Result display with markdown support
    - Auto-sizing textarea
+   - Image preview functionality
 
-4. State Management:
+5. State Management:
    - Custom hooks for form logic
-   - Centralized API services
    - Type-safe state handling
    - Error management
    - Loading states
+   - File preview handling
 
-5. API Integration:
-   - Dedicated service layer
-   - Type-safe API calls
+6. API Integration:
+   - Gemini Vision AI integration
    - Error handling
    - File upload support
+   - Retry mechanisms
    - Response formatting
 
-6. Development Features:
+7. Environment Configuration:
+   - Secure API key management
+   - Environment-based configuration
+   - Example configuration templates
+
+## Development Features:
    - TypeScript for type safety
    - ESLint for code quality
    - Tailwind CSS for styling
    - Vite for fast development
    - Modular component structure
+   - Environment variable management
 
-## Backend Integration
+## Setup Instructions
 
-The application integrates with a FastAPI backend through endpoints:
-- `/v1/playground/agent/run`: For general agent analysis
-- `/v1/analyze-image`: For image analysis with file upload
-
-## Development Setup
-
-1. Install dependencies:
+1. Environment Setup:
    ```bash
-   npm install
+   # Copy environment template
+   cp .env.example .env
+   
+   # Fill in the required API keys:
+   # - VITE_API_KEY: For backend API
+   # - VITE_GEMINI_API_KEY: For Gemini Vision AI
+   # - VITE_API_URL: Backend URL
    ```
 
-2. Start development server:
+2. Install dependencies:
+   ```bash
+   npm install
+   
+   # Required packages for Gemini integration:
+   npm install @google/generative-ai
+   ```
+
+3. Development:
    ```bash
    npm run dev
    ```
 
-3. Build for production:
+4. Build for production:
    ```bash
    npm run build
    ```
+
+## Image Analysis Features
+
+1. Standard Analysis:
+   - Detailed object detection
+   - Text recognition
+   - Pattern identification
+   - Visual element analysis
+   - Context interpretation
+   - Investigative recommendations
+
+2. Forensic Analysis:
+   - Advanced metadata analysis
+   - Digital manipulation detection
+   - Technical quality assessment
+   - Critical detail observation
+   - Environmental context analysis
+   - Forensic investigation recommendations
+
+## API Integration
+
+The application integrates with two main services:
+1. Backend FastAPI:
+   - `/v1/playground/agent/run`: For general agent analysis
+   - `/v1/analyze-image`: For image analysis with file upload
+
+2. Google Gemini Vision AI:
+   - Direct integration for image analysis
+   - Advanced vision capabilities
+   - Custom prompt templates
+   - Specialized analysis modes

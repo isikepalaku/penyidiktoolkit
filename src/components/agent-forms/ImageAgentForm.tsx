@@ -1,8 +1,10 @@
 import React from 'react';
 import type { BaseAgentFormProps } from './BaseAgentForm';
+import { imagePrompts } from '../../data/agents/imageAgent';
 
-// Hilangkan agent dari destructuring karena tidak digunakan
-export const ImageAgentForm: React.FC<BaseAgentFormProps & { imagePreview: string | null }> = ({
+export const ImageAgentForm: React.FC<BaseAgentFormProps & { 
+  imagePreview: string | null 
+}> = ({
   formData,
   onInputChange,
   error,
@@ -11,6 +13,23 @@ export const ImageAgentForm: React.FC<BaseAgentFormProps & { imagePreview: strin
 }) => {
   return (
     <div className="space-y-6">
+      {/* Prompt Type Selection */}
+      <div>
+        <label htmlFor="prompt-type" className="block text-sm font-medium text-gray-700 mb-2">
+          Jenis Analisis
+        </label>
+        <select
+          id="prompt-type"
+          value={(formData.prompt_type as string) || 'default'}
+          onChange={(e) => onInputChange('prompt_type', e.target.value as keyof typeof imagePrompts)}
+          className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          <option value="default">Analisis Standar</option>
+          <option value="forensic">Analisis Forensik</option>
+        </select>
+      </div>
+
+      {/* Image Upload */}
       <div>
         <label htmlFor="field-image_file" className="block text-sm font-medium text-gray-700 mb-2">
           Upload Gambar
@@ -30,6 +49,7 @@ export const ImageAgentForm: React.FC<BaseAgentFormProps & { imagePreview: strin
         />
       </div>
 
+      {/* Image Preview */}
       {imagePreview && (
         <div className="mt-4 relative">
           <img
@@ -40,6 +60,7 @@ export const ImageAgentForm: React.FC<BaseAgentFormProps & { imagePreview: strin
         </div>
       )}
 
+      {/* Description Textarea */}
       <div>
         <label htmlFor="field-image_description" className="block text-sm font-medium text-gray-700 mb-2">
           Deskripsi Gambar (Opsional)
@@ -54,17 +75,21 @@ export const ImageAgentForm: React.FC<BaseAgentFormProps & { imagePreview: strin
         />
       </div>
 
+      {/* Error Display */}
       {error && (
         <div className="p-3 bg-red-100 text-red-700 rounded-lg">
           {error}
         </div>
       )}
 
+      {/* Submit Button */}
       <button
         type="submit"
-        disabled={isProcessing}
+        disabled={isProcessing || !formData.image_file}
         className={`w-full py-3 px-4 rounded-lg text-white font-medium ${
-          isProcessing ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'
+          isProcessing || !formData.image_file
+            ? 'bg-gray-400 cursor-not-allowed'
+            : 'bg-blue-600 hover:bg-blue-700'
         }`}
       >
         {isProcessing ? 'Memproses...' : 'Analisis Gambar'}

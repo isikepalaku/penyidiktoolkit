@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { FormData, FormDataValue } from '../types';
-import { submitImageAnalysis, submitAgentAnalysis } from '../services/agentService';
+import { submitImageAnalysis } from '../services/agentService';
+import { imagePrompts } from '../data/agents/imageAgent';
 
 interface UseAgentFormResult {
   formData: FormData;
@@ -51,27 +52,25 @@ export const useAgentForm = (): UseAgentFormResult => {
         if (!imageFile || !(imageFile instanceof File)) {
           throw new Error('Mohon pilih file gambar');
         }
+        
+        const promptType = (formData.prompt_type as keyof typeof imagePrompts) || 'default';
+        
         response = await submitImageAnalysis(
-          imageFile, 
-          typeof formData.image_description === 'string' ? formData.image_description : undefined
+          imageFile,
+          typeof formData.image_description === 'string' ? formData.image_description : undefined,
+          promptType
         );
       } else {
-        // Find the first non-empty string value in formData
-        const messageField = Object.entries(formData)
-          .find(([, value]) => typeof value === 'string' && value.length > 0);
-        
-        if (!messageField) {
-          throw new Error('Mohon isi deskripsi terlebih dahulu');
-        }
-        
-        // Use stream: false since backend returns JSON
-        response = await submitAgentAnalysis(messageField[1] as string, agentType, false);
+        throw new Error('Tipe agen tidak didukung');
       }
 
       setResult(response);
-      // Reset form after successful submission
-      setFormData({});
-      setImagePreview(null);
+      
+      // Don't reset form data or image preview after successful submission
+      // This allows user to keep the context while viewing results
+      // setFormData({});
+      // setImagePreview(null);
+      
     } catch (err) {
       console.error('Error details:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
