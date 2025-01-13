@@ -64,7 +64,8 @@ export const useAgentForm = (): UseAgentFormResult => {
           throw new Error('Mohon isi deskripsi terlebih dahulu');
         }
         
-        response = await submitAgentAnalysis(messageField[1] as string, agentType);
+        // Use stream: false since backend returns JSON
+        response = await submitAgentAnalysis(messageField[1] as string, agentType, false);
       }
 
       setResult(response);

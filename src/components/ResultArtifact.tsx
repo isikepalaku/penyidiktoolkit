@@ -52,6 +52,13 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
                 li: (props) => <li className="text-gray-700 leading-relaxed" {...props} />,
                 p: (props) => <p className="text-gray-700 leading-relaxed mb-4" {...props} />,
                 strong: (props) => <strong className="font-medium text-gray-900" {...props} />,
+                // Custom component for timestamp lines
+                span: (props) => {
+                  if (Array.isArray(props.children) && props.children.length > 0 && typeof props.children[0] === 'string' && props.children[0].match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)) {
+                    return <span className="text-sm text-gray-600 mb-2" {...props} />;
+                  }
+                  return <span {...props} />;
+                },
               }}
             >
               {content}
