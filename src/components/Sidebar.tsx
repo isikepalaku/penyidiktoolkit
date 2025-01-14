@@ -27,7 +27,7 @@ const Sidebar = () => {
       {/* Mobile Menu Button */}
       <button
         onClick={toggleSidebar}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-md bg-white shadow-lg"
+        className="lg:hidden fixed top-4 left-4 z-[60] p-2 rounded-md bg-white shadow-lg"
       >
         {isOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
@@ -35,14 +35,14 @@ const Sidebar = () => {
       {/* Overlay for mobile */}
       {isOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-[45]"
           onClick={toggleSidebar}
         />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full bg-white shadow-lg transition-transform duration-300 ease-in-out z-40
+        className={`fixed top-0 left-0 h-full bg-white shadow-lg transition-transform duration-300 ease-in-out z-[50]
           lg:translate-x-0 lg:w-64 w-64
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
@@ -77,7 +77,7 @@ const Sidebar = () => {
 
           {/* Footer */}
           <div className="p-4 border-t">
-            <p className="text-sm text-gray-600">© 2024 PHIData Indonesia</p>
+            <p className="text-sm text-gray-600"> 2024 PHIData Indonesia</p>
           </div>
         </div>
       </aside>

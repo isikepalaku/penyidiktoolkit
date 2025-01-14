@@ -94,23 +94,24 @@ export default function Reports() {
   if (selectedReport && selectedReportData) {
     return (
       <div className="p-6 lg:p-8">
-        <button
-          onClick={() => setSelectedReport(null)}
-          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-6"
-        >
-          <ArrowLeft size={20} />
-          Kembali ke Daftar Laporan
-        </button>
+        <header>
+          <div className="max-w-5xl mx-auto pl-14 pr-4 sm:pl-14 sm:pr-4 lg:pl-14 lg:pr-4 py-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <button 
+                onClick={() => setSelectedReport(null)} 
+                className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5 text-gray-500" />
+              </button>
+              <div>
+                <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 leading-7">{selectedReportData.name}</h1>
+                <p className="text-sm text-gray-500 mt-0.5">{selectedReportData.description}</p>
+              </div>
+            </div>
+          </div>
+        </header>
 
         <div className="max-w-3xl mx-auto">
-          <header className="mb-8">
-            <div className="flex items-center gap-3 mb-2">
-              {selectedReportData.icon}
-              <h1 className="text-3xl font-bold text-gray-900">{selectedReportData.name}</h1>
-            </div>
-            <p className="text-gray-600">{selectedReportData.description}</p>
-          </header>
-
           <form onSubmit={handleSubmit} className="space-y-6">
             {selectedReportData.fields.map(field => (
               <div key={field.id}>
@@ -155,9 +156,13 @@ export default function Reports() {
 
   return (
     <div className="p-6 lg:p-8">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Pembuatan Laporan</h1>
-        <p className="text-gray-600">Buat laporan otomatis untuk investigasi Anda</p>
+      <header>
+        <div className="max-w-5xl mx-auto pl-14 pr-4 sm:pl-14 sm:pr-4 lg:pl-14 lg:pr-4 py-4">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 leading-7">Pembuatan Laporan</h1>
+            <p className="text-sm text-gray-500 mt-0.5">Buat laporan otomatis untuk investigasi Anda</p>
+          </div>
+        </div>
       </header>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">

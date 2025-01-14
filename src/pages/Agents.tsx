@@ -67,20 +67,24 @@ export default function Agents() {
     return (
       <>
         <div className={`p-6 lg:p-8 transition-all duration-300 ${showArtifact ? 'lg:mr-[50%]' : ''}`}>
-          <button
-            onClick={handleBack}
-            className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-6"
-          >
-            <ArrowLeft size={20} />
-            Kembali ke Daftar Agen
-          </button>
+          <header>
+            <div className="max-w-5xl mx-auto pl-14 pr-4 sm:pl-14 sm:pr-4 lg:pl-14 lg:pr-4 py-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <button 
+                  onClick={handleBack} 
+                  className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <ArrowLeft className="w-5 h-5 text-gray-500" />
+                </button>
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 leading-7">{selectedAgentData.name}</h1>
+                  <p className="text-sm text-gray-500 mt-0.5">{selectedAgentData.description}</p>
+                </div>
+              </div>
+            </div>
+          </header>
 
           <div className="max-w-3xl mx-auto">
-            <header className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900">{selectedAgentData.name}</h1>
-              <p className="text-gray-600">{selectedAgentData.description}</p>
-            </header>
-
             <form onSubmit={handleFormSubmit}>
               {renderAgentForm()}
             </form>
@@ -110,9 +114,13 @@ export default function Agents() {
 
   return (
     <div className="p-6 lg:p-8">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Agen AI</h1>
-        <p className="text-gray-600">Pilih agen untuk menganalisis data kasus Anda</p>
+      <header>
+        <div className="max-w-5xl mx-auto pl-14 pr-4 sm:pl-14 sm:pr-4 lg:pl-14 lg:pr-4 py-4">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 leading-7">Agen AI</h1>
+            <p className="text-sm text-gray-500 mt-0.5">Pilih agen AI untuk membantu investigasi Anda</p>
+          </div>
+        </div>
       </header>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
