@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FormData, FormDataValue } from '../types';
-import { submitImageAnalysis } from '../services/agentService';
+import { submitImageAnalysis, submitAgentAnalysis } from '../services/agentService';
 import { imagePrompts } from '../data/agents/imageAgent';
 
 interface UseAgentFormResult {
@@ -61,7 +61,12 @@ export const useAgentForm = (): UseAgentFormResult => {
           promptType
         );
       } else {
-        throw new Error('Tipe agen tidak didukung');
+        // Handle non-image agents (including SPKT)
+        const message = formData.report;
+        if (typeof message !== 'string' || !message.trim()) {
+          throw new Error('Mohon isi laporan');
+        }
+        response = await submitAgentAnalysis(message, agentType);
       }
 
       setResult(response);

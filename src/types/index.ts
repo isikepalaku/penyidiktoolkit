@@ -6,6 +6,20 @@ export interface Field {
   accept?: string;
 }
 
+export type Priority = 'high' | 'medium' | 'low';
+export type Status = 'open' | 'in_progress' | 'closed';
+
+export interface Case {
+  id: string;
+  title: string;
+  description: string;
+  priority: Priority;
+  status: Status;
+  last_updated: string;
+  assigned_to?: string;
+  tags?: string[];
+}
+
 export interface Agent {
   id: string;
   name: string;

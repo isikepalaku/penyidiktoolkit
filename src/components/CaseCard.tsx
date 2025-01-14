@@ -1,6 +1,5 @@
-import React from 'react';
 import { Clock, AlertTriangle, CheckCircle } from 'lucide-react';
-import type { Case } from '../types';
+import type { Case } from '../types/index';
 
 export default function CaseCard({ case: caseData }: { case: Case }) {
   const getPriorityColor = () => {
