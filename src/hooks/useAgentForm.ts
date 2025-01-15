@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { FormData, FormDataValue } from '../types';
-import { submitImageAnalysis, submitAgentAnalysis } from '../services/agentService';
+import { submitImageAnalysis } from '../services/imageService';
+import { submitAgentAnalysis } from '../services/agentSpkt';
 import { imagePrompts } from '../data/agents/imageAgent';
 
 interface UseAgentFormResult {

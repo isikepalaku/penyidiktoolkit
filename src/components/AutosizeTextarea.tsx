@@ -45,6 +45,7 @@ const AutosizeTextarea = ({
       
       // Add scrollbar if content exceeds maxHeight
       textarea.style.overflowY = textarea.scrollHeight > maxHeight ? 'auto' : 'hidden';
+      textarea.style.overflowX = 'hidden'; // Prevent horizontal scroll
     }
   }, [minRows, maxRows]);
 
@@ -65,12 +66,14 @@ const AutosizeTextarea = ({
       value={value}
       onChange={handleInput}
       placeholder={placeholder}
-      className={`w-full resize-none overflow-hidden bg-white transition-all 
-        p-4 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-        font-sans text-base leading-relaxed placeholder-gray-400
+      className={`w-full max-w-full resize-none bg-white transition-all 
+        p-3 md:p-4 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+        text-sm md:text-base leading-relaxed placeholder-gray-400 box-border
         ${className}`}
       style={{
         minHeight: `${minRows * 24}px`, // Approximate line height
+        wordBreak: 'break-word',
+        whiteSpace: 'pre-wrap'
       }}
     />
   );

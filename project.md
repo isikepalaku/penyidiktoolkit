@@ -11,10 +11,14 @@
 │   │   ├── AgentCard.tsx              # Card component for displaying agents
 │   │   ├── AutosizeTextarea.tsx       # Reusable textarea component
 │   │   ├── CaseCard.tsx               # Card component for case display
+│   │   ├── ProgressSteps.tsx          # Progress indicator component
 │   │   ├── ResultArtifact.tsx         # Component for displaying analysis results
 │   │   ├── Sidebar.tsx                # Navigation sidebar component
 │   │   ├── ThinkingAnimation.tsx      # Loading animation component
 │   │   └── WorkflowCard.tsx           # Card component for workflow display
+│   │
+│   ├── config/
+│   │   └── env.ts                     # Environment configuration
 │   │
 │   ├── data/
 │   │   └── agents/
@@ -31,10 +35,14 @@
 │   │
 │   ├── pages/
 │   │   ├── Agents.tsx                # Main container for all agents
-│   │   └── Reports.tsx               # Reports management page
+│   │   ├── Reports.tsx               # Reports management page
+│   │   └── PencarianPutusan.tsx      # Court decisions search page
 │   │
 │   ├── services/
-│   │   └── agentService.ts           # API & Gemini integration services
+│   │   ├── imageService.ts           # API & Gemini integration services
+│   │   ├── agentSpkt.ts             # SPKT report analysis service
+│   │   ├── searchPutusanService.ts   # Court decisions search service
+│   │   └── supabase.ts              # Supabase client configuration
 │   │
 │   ├── types/
 │   │   └── index.ts                  # TypeScript type definitions
@@ -46,168 +54,94 @@
 │   ├── main.tsx                      # Application entry point
 │   ├── index.css                     # Global styles
 │   └── vite-env.d.ts                # Vite type declarations
-│
-├── public/
-│   └── vite.svg                      # Vite logo
-│
-├── index.html                        # Main HTML entry point
-├── README.md                         # Project documentation
-├── .env                              # Environment variables
-├── .env.example                      # Environment variables template
-├── .gitignore                        # Git ignore configuration
-├── eslint.config.js                  # ESLint configuration
-├── package.json                      # Project dependencies
-├── package-lock.json                 # Dependency lock file
-├── postcss.config.js                 # PostCSS configuration
-├── project.md                        # Project documentation
-├── tailwind.config.js                # Tailwind CSS configuration
-├── tsconfig.json                     # TypeScript configuration
-├── tsconfig.app.json                 # App TypeScript settings
-├── tsconfig.node.json                # Node TypeScript settings
-└── vite.config.ts                    # Vite configuration
+```
 
 ## Key Features
 
 1. Investigation Agents:
-   - SPKT Report Analysis:
-     * Kronologis kasus analysis
-     * Object, subject, locus, and tempus extraction
-     * Structured report generation
-   - Forensic Analysis:
-     * Evidence analysis
-     * Technical assessment
-     * Forensic recommendations
-   - Behavioral Analysis:
-     * Subject behavior patterns
-     * Psychological insights
-     * Behavioral recommendations
-   - Witness Statement Analysis:
-     * Statement credibility assessment
-     * Key information extraction
-     * Cross-reference suggestions
-   - Report Generation:
-     * Structured report creation
-     * Key findings summary
-     * Investigation recommendations
-   - Image Analysis:
-     * Integration with Google's Gemini Vision AI
-     * Visual evidence analysis
-     * Object and text detection
-     * Forensic insights
+   [Previous agents section remains the same...]
 
-2. Case Management:
-   - Case tracking and organization
-   - Priority levels (high, medium, low)
-   - Status tracking (open, in progress, closed)
-   - Case details and updates
-   - Assignment tracking
+2. Court Decisions Search:
+   - Semantic Search Integration:
+     * OpenAI embeddings for semantic similarity
+     * Vector search using Supabase pgvector
+     * Relevance scoring and ranking
+   - Search Features:
+     * Case chronology analysis
+     * Similarity-based matching
+     * Highlighted text matches
+     * Progressive search steps
+     * Fallback search with lower threshold
+   - Results Display:
+     * Case metadata presentation
+     * Relevance percentage
+     * Direct links to documents
+     * Tagged categories
+     * Matched text segments with highlights
 
-3. Form Components:
-   - Base form component for standard fields
-   - Specialized forms per agent type
-   - Dynamic form validation
-   - File upload with preview
-   - Auto-sizing text inputs
-   - Real-time error handling
+3. Case Management:
+   [Previous case management section remains the same...]
 
 4. UI Components:
-   - Agent selection cards
-   - Case display cards
-   - Workflow visualization
-   - Interactive sidebar navigation
-   - Loading animations
-   - Result display with formatting
-   - Image preview functionality
+   - Previous components plus:
+     * Progress Steps indicator
+     * Responsive search results cards
+     * Animated loading states
+     * Mobile-optimized layouts
 
 5. State Management:
-   - Custom form handling hooks
-   - Type-safe state management
-   - Error handling and display
-   - Loading state management
-   - File and preview handling
+   - Previous features plus:
+     * Search state management
+     * Progressive step tracking
+     * Error handling for searches
+     * Loading states for search operations
 
 6. API Integration:
-   - Backend FastAPI integration
-   - Gemini Vision AI integration
-   - Error handling and retries
-   - Stream processing
-   - Response formatting
+   - Previous integrations plus:
+     * OpenAI Embeddings API
+     * Supabase Vector Store
+     * Document similarity search
+     * File and metadata retrieval
 
 ## Environment Configuration
 
 Required environment variables:
 ```bash
-VITE_API_KEY=your-api-key           # Backend API key
-VITE_API_URL=http://localhost:8000  # Backend URL
-VITE_GEMINI_API_KEY=your-key        # Google Gemini API key
+# Previous environment variables plus:
+VITE_SUPABASE_URL=your-supabase-url
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+VITE_OPENAI_API_KEY=your-openai-key
 ```
-
-## Setup Instructions
-
-1. Clone and setup environment:
-   ```bash
-   # Copy environment template
-   cp .env.example .env
-   
-   # Configure environment variables
-   # Edit .env file with your API keys
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Development:
-   ```bash
-   npm run dev
-   ```
-
-4. Build for production:
-   ```bash
-   npm run build
-   ```
-
-## API Integration Details
-
-1. Backend FastAPI Endpoints:
-   - `/v1/playground/agent/run`:
-     * Method: POST
-     * Purpose: General agent analysis
-     * Parameters:
-       - message: Input text for analysis
-       - agent_id: Specific agent identifier
-       - stream: Enable/disable streaming response
-       - monitor: Enable/disable monitoring
-
-   - `/v1/analyze-image`:
-     * Method: POST
-     * Purpose: Image analysis
-     * Parameters:
-       - image_file: Image for analysis
-       - description: Optional image description
-       - prompt_type: Analysis mode
-
-2. Google Gemini Vision AI:
-   - Direct integration for image analysis
-   - Custom prompt templates
-   - Multiple analysis modes
-   - Advanced vision capabilities
 
 ## Type System
 
 Key TypeScript types:
-1. Agent Types:
-   - Base Agent interface
-   - ExtendedAgent with fields
-   - Agent field configurations
+1. Previous types plus:
+2. Document Types:
+   - LegalDocument interface
+   - DocumentMetadata interface
+   - SearchResult interface
+3. Search Related:
+   - OpenAIError interface
+   - SupabaseDocument interface
+   - ProgressStepsProps interface
 
-2. Case Management:
-   - Case interface with status
-   - Priority and Status types
-   - Assignment tracking
+## New Components
 
-3. Form Handling:
-   - FormData interface
-   - FormDataValue types
-   - Field configurations
+1. ProgressSteps:
+   - Visual step indicator
+   - Animated progress tracking
+   - Mobile responsive design
+   - Status indication (complete, current, pending)
+
+2. Court Decisions Search:
+   - Chronology input form
+   - Real-time search progress
+   - Results card with metadata
+   - Document preview and links
+
+3. Search Service:
+   - Vector embedding generation
+   - Similarity search implementation
+   - Results processing and formatting
+   - Error handling and fallbacks

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Users, FileText, Menu, X } from 'lucide-react';
+import { Users, FileText, Menu, X, Search } from 'lucide-react';
 
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -19,6 +19,11 @@ const Sidebar = () => {
       path: '/reports',
       icon: <FileText className="w-6 h-6" />,
       text: 'Laporan'
+    },
+    {
+      path: '/pencarian-putusan',
+      icon: <Search className="w-6 h-6" />,
+      text: 'Pencarian Putusan'
     }
   ];
 
@@ -42,9 +47,8 @@ const Sidebar = () => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full bg-white shadow-lg transition-transform duration-300 ease-in-out z-[50]
-          lg:translate-x-0 lg:w-64 w-64
-          ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed top-0 left-0 h-full bg-white shadow-lg transition-transform duration-300 ease-in-out z-[50] w-64
+          lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="flex flex-col h-full">
           {/* Logo/Header */}
