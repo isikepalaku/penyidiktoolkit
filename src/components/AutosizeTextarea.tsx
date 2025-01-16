@@ -35,19 +35,25 @@ const AutosizeTextarea = ({
       const paddingTop = parseInt(window.getComputedStyle(textarea).paddingTop);
       const paddingBottom = parseInt(window.getComputedStyle(textarea).paddingBottom);
       
-      // Calculate min and max heights
+      // Calculate min height only (remove maxHeight constraint initially)
       const minHeight = lineHeight * minRows + paddingTop + paddingBottom;
-      const maxHeight = lineHeight * maxRows + paddingTop + paddingBottom;
       
-      // Set new height
-      const newHeight = Math.min(Math.max(textarea.scrollHeight, minHeight), maxHeight);
+      // Set initial height to minHeight or scrollHeight, whichever is larger
+      let newHeight = Math.max(textarea.scrollHeight, minHeight);
+      
+      // Only apply maxHeight constraint if content exceeds minRows
+      if (value.length > 0) {
+        const maxHeight = lineHeight * maxRows + paddingTop + paddingBottom;
+        newHeight = Math.min(newHeight, maxHeight);
+      }
+      
       textarea.style.height = `${newHeight}px`;
       
-      // Add scrollbar if content exceeds maxHeight
-      textarea.style.overflowY = textarea.scrollHeight > maxHeight ? 'auto' : 'hidden';
+      // Add scrollbar only if content exceeds current height
+      textarea.style.overflowY = textarea.scrollHeight > newHeight ? 'auto' : 'hidden';
       textarea.style.overflowX = 'hidden'; // Prevent horizontal scroll
     }
-  }, [minRows, maxRows]);
+  }, [minRows, maxRows, value]);
 
   useEffect(() => {
     calculateHeight();

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Users, FileText, Menu, X, Search } from 'lucide-react';
+import { Users, FileText, PanelLeft, PanelRightClose, Search } from 'lucide-react';
 
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -32,9 +32,9 @@ const Sidebar = () => {
       {/* Mobile Menu Button */}
       <button
         onClick={toggleSidebar}
-        className="lg:hidden fixed top-4 left-4 z-[60] p-2 rounded-md bg-white shadow-lg"
+        className="lg:hidden fixed left-4 top-1/2 -translate-y-1/2 z-[60] p-2.5 rounded-lg bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-colors"
       >
-        {isOpen ? <X size={24} /> : <Menu size={24} />}
+        {isOpen ? <PanelRightClose size={20} /> : <PanelLeft size={20} />}
       </button>
 
       {/* Overlay for mobile */}

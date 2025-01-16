@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Search, BookOpen, FileText, ExternalLink } from 'lucide-react';
+import { Search, BookOpen, FileText, ExternalLink, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import AutosizeTextarea from '../components/AutosizeTextarea';
 import ThinkingAnimation from '../components/ThinkingAnimation';
 import { searchPutusan } from '../services/searchPutusanService';
@@ -7,6 +8,7 @@ import type { SearchResult } from '../types';
 import ProgressSteps from '../components/ProgressSteps';
 
 const PencarianPutusan = () => {
+  const navigate = useNavigate();
   const [kronologi, setKronologi] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -34,11 +36,19 @@ const PencarianPutusan = () => {
       await new Promise(resolve => setTimeout(resolve, 500));
       setCurrentStep(3);
       setSearchResults(results);
+      setKronologi('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan saat mencari putusan');
     } finally {
       setIsSearching(false);
     }
+  };
+
+  const handleReset = () => {
+    setKronologi('');
+    setSearchResults([]);
+    setError(null);
+    setCurrentStep(0);
   };
 
   const renderMatchedContent = (content: string) => (
@@ -48,6 +58,28 @@ const PencarianPutusan = () => {
   return (
     <div className="w-full overflow-x-hidden">
       <div className="container mx-auto max-w-5xl px-2 md:px-6 space-y-4 md:space-y-6">
+        <button
+          onClick={() => navigate('/')}
+          className="inline-flex items-center gap-2 px-4 py-2 text-gray-700 bg-white rounded-lg shadow-sm hover:bg-gray-50 transition-all duration-200 border border-gray-200 mt-4"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          <span className="font-medium">Kembali</span>
+        </button>
+
+        <header className="bg-gradient-to-r from-blue-50 to-blue-100/50 rounded-2xl">
+          <div className="px-6 py-8">
+            <div className="max-w-2xl">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="h-8 w-1 bg-blue-500 rounded-full"></div>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Pencarian Putusan Pengadilan</h1>
+              </div>
+              <p className="text-base md:text-lg text-gray-600 ml-11">
+                Temukan putusan pengadilan yang relevan dengan kasus Anda
+              </p>
+            </div>
+          </div>
+        </header>
+
         {/* Input Card */}
         <div className="bg-white rounded-lg shadow-md p-3 md:p-6 w-full">
           <div className="flex items-center gap-2 mb-4 md:mb-6">
@@ -64,24 +96,32 @@ const PencarianPutusan = () => {
                 onChange={setKronologi}
                 placeholder="Deskripsikan kronologi kasus Anda di sini..."
                 className="w-full max-w-full resize-none"
-                minRows={4}
-                maxRows={8}
+                minRows={3}
+                maxRows={12}
               />
             </div>
-            <button
-              onClick={handleSearch}
-              disabled={!kronologi || isSearching}
-              className={`w-full flex items-center justify-center px-4 py-2 rounded-lg 
-                ${!kronologi || isSearching 
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                  : 'bg-blue-600 text-white hover:bg-blue-700'} 
-                transition-colors`}
-            >
-              <span className="inline-flex items-center gap-2">
-                <Search className="w-4 h-4" />
-                <span>Cari Putusan Relevan</span>
-              </span>
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleSearch}
+                disabled={!kronologi || isSearching}
+                className={`flex-1 flex items-center justify-center px-4 py-2 rounded-lg 
+                  ${!kronologi || isSearching 
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                    : 'bg-blue-600 text-white hover:bg-blue-700'} 
+                  transition-colors`}
+              >
+                <span className="inline-flex items-center gap-2">
+                  <Search className="w-4 h-4" />
+                  <span>Cari Putusan Relevan</span>
+                </span>
+              </button>
+              <button
+                onClick={handleReset}
+                className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
+              >
+                Reset
+              </button>
+            </div>
           </div>
         </div>
 
