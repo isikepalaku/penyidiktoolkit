@@ -1,6 +1,6 @@
 import { Brain, User, TestTube, PieChart, Image, ClipboardList, FileText } from 'lucide-react';
 import type { Agent } from '../types/index';
-import { getTypeDisplay } from '../utils/agentUtils';
+import { getTypeDisplay } from '@/utils/utils';
 
 export default function AgentCard({ agent }: { agent: Agent }) {
   const getAgentIcon = () => {
