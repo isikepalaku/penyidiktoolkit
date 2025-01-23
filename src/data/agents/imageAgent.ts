@@ -22,6 +22,20 @@ B. Analisis Investigatif:
 
 Format hasil analisis harus terstruktur dan mudah dibaca.`,
   
+  text_extraction: `PENTING: Ekstrak dan format teks dari gambar dalam Bahasa Indonesia.
+
+Tugas:
+1. Identifikasi dan ekstrak SEMUA teks yang terlihat dalam gambar
+2. Pertahankan format dan struktur teks asli
+3. Perbaiki kesalahan OCR yang jelas
+4. Jika ada tabel, pertahankan struktur tabelnya
+5. Jika ada poin-poin atau daftar, pertahankan formatnya
+6. Abaikan watermark atau teks yang tidak relevan
+7. Fokus pada konten utama dokumen
+
+Berikan hasil dalam format yang bersih dan mudah dibaca.
+HANYA berikan teks yang diekstrak, TANPA analisis atau komentar tambahan.`,
+  
   forensic: `PENTING: Berikan analisis dalam Bahasa Indonesia yang formal dan profesional.
 
 Lakukan analisis forensik berikut:
