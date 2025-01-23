@@ -8,6 +8,10 @@
 │   │   ├── agent-forms/                # Folder for agent-specific forms
 │   │   │   ├── BaseAgentForm.tsx      # Base form component for agents
 │   │   │   └── ImageAgentForm.tsx     # Specialized form for image analysis
+│   │   ├── ui/                        # UI components
+│   │   │   ├── Modal.tsx              # Reusable modal component
+│   │   │   ├── label.tsx              # Label component for form elements
+│   │   │   └── select.tsx             # Select component for dropdowns
 │   │   ├── AgentCard.tsx              # Card component for displaying agents
 │   │   ├── AutosizeTextarea.tsx       # Reusable textarea component
 │   │   ├── CaseCard.tsx               # Card component for case display
@@ -103,6 +107,20 @@
      * Document similarity search
      * File and metadata retrieval
 
+## Components Overview
+
+1. UI Components:
+   - Modal: Reusable modal dialog for displaying detailed information
+   - Label: Form label component used in agent forms
+   - Select: Dropdown select component used in agent forms
+   - All UI components follow consistent styling and accessibility patterns
+
+2. Agent Forms:
+   - BaseAgentForm: Template for all agent-specific forms
+   - ImageAgentForm: Specialized form for image analysis
+     - Uses Label and Select components for form controls
+     - Custom image preview and analysis options
+
 ## Environment Configuration
 
 Required environment variables:
@@ -145,3 +163,16 @@ Key TypeScript types:
    - Similarity search implementation
    - Results processing and formatting
    - Error handling and fallbacks
+
+## Features
+
+1. Court Decisions Search (PencarianPutusan):
+   - Natural language search for relevant court decisions
+   - Real-time search progress tracking
+   - Interactive search results with metadata display
+   - Modal view for detailed document inspection
+   - Document content copying and downloading
+   - Mobile-responsive design
+
+2. Image Analysis:
+   [Previous image analysis section remains the same...]

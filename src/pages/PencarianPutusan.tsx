@@ -4,8 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import AutosizeTextarea from '../components/AutosizeTextarea';
 import ThinkingAnimation from '../components/ThinkingAnimation';
 import { searchPutusan } from '../services/searchPutusanService';
-import type { SearchResult } from '../types';
+import type { SearchResult, LegalDocument } from '../types';
 import ProgressSteps from '../components/ProgressSteps';
+import { Modal } from '../components/ui/Modal';
 
 const PencarianPutusan = () => {
   const navigate = useNavigate();
@@ -14,6 +15,8 @@ const PencarianPutusan = () => {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<LegalDocument | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
 
   const steps = [
     'Mulai pencarian putusan',
@@ -154,7 +157,11 @@ const PencarianPutusan = () => {
                 </h3>
                 {searchResults.map((result, index) => (
                   <div key={index} 
-                    className="bg-white rounded-lg shadow-sm border p-3 md:p-4 hover:shadow-md transition-shadow">
+                    onClick={() => {
+                      setSelectedDocument(result.document);
+                      setIsOpen(true);
+                    }}
+                    className="bg-white rounded-lg shadow-sm border p-3 md:p-4 hover:shadow-md transition-shadow cursor-pointer">
                     <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-3 md:gap-4">
                       <div className="flex-1">
                         <h4 className="font-medium text-blue-600 flex items-center gap-2 text-sm md:text-base">
@@ -243,6 +250,16 @@ const PencarianPutusan = () => {
               </div>
             )}
           </div>
+        )}
+        
+        {selectedDocument && isOpen && (
+          <Modal
+            document={selectedDocument}
+            onClose={() => {
+              setSelectedDocument(null);
+              setIsOpen(false);
+            }}
+          />
         )}
       </div>
     </div>
