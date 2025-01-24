@@ -32,7 +32,8 @@
 │   │       ├── behavioralAgent.ts     # Behavioral analysis agent
 │   │       ├── witnessAgent.ts        # Witness statement agent
 │   │       ├── reportAgent.ts         # Report generation agent
-│   │       └── imageAgent.ts          # Image analysis agent config & prompts
+│   │       ├── imageAgent.ts          # Image analysis agent config & prompts
+│   │       └── caseResearchAgent.ts   # Case research analysis agent
 │   │
 │   ├── hooks/
 │   │   └── useAgentForm.ts           # Custom hook for form management
@@ -45,11 +46,13 @@
 │   ├── services/
 │   │   ├── imageService.ts           # API & Gemini integration services
 │   │   ├── agentSpkt.ts             # SPKT report analysis service
+│   │   ├── agentCaseResearch.ts     # Case research analysis service
 │   │   ├── searchPutusanService.ts   # Court decisions search service
 │   │   └── supabase.ts              # Supabase client configuration
 │   │
 │   ├── types/
-│   │   └── index.ts                  # TypeScript type definitions
+│   │   ├── index.ts                  # TypeScript type definitions
+│   │   └── react-loading-indicators.d.ts  # React loading indicators type definitions
 │   │
 │   ├── utils/
 │   │   └── agentUtils.ts             # Utility functions for agents

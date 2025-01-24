@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import type { FormData, FormDataValue } from '../types';
 import { submitImageAnalysis } from '../services/imageService';
-import { submitAgentAnalysis } from '../services/agentSpkt';
+import { submitAgentAnalysis as submitSpktAnalysis } from '../services/agentSpkt';
+import { submitAgentAnalysis as submitCaseAnalysis } from '../services/agentCaseResearch';
 import { imagePrompts } from '../data/agents/imageAgent';
+import { agents } from '../data/agents';
 
 interface UseAgentFormResult {
   formData: FormData;
@@ -62,21 +64,37 @@ export const useAgentForm = (): UseAgentFormResult => {
           promptType
         );
       } else {
-        // Handle non-image agents (including SPKT)
-        const message = formData.report;
-        if (typeof message !== 'string' || !message.trim()) {
-          throw new Error('Mohon isi laporan');
+        // Handle non-image agents
+        const agent = agents.find(a => a.type === agentType);
+        if (!agent) {
+          throw new Error('Tipe agen tidak ditemukan');
         }
-        response = await submitAgentAnalysis(message, agentType);
+
+        // Get the first textarea field from the agent's fields
+        const textField = agent.fields.find(f => f.type === 'textarea');
+        if (!textField) {
+          throw new Error('Konfigurasi agen tidak valid');
+        }
+
+        const message = formData[textField.id] as string;
+        if (!message?.trim()) {
+          throw new Error(`Mohon isi ${textField.label.toLowerCase()}`);
+        }
+
+        // Use the appropriate service based on agent type
+        switch (agentType) {
+          case 'case_research':
+            response = await submitCaseAnalysis(message.trim(), agentType);
+            break;
+          case 'spkt':
+            response = await submitSpktAnalysis(message.trim(), agentType);
+            break;
+          default:
+            throw new Error('Tipe agen tidak dikenali');
+        }
       }
 
       setResult(response);
-      
-      // Don't reset form data or image preview after successful submission
-      // This allows user to keep the context while viewing results
-      // setFormData({});
-      // setImagePreview(null);
-      
     } catch (err) {
       console.error('Error details:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -90,7 +108,6 @@ export const useAgentForm = (): UseAgentFormResult => {
     setImagePreview(null);
     setError(null);
     setResult(null);
-    setIsProcessing(false);
   };
 
   return {
@@ -105,5 +122,3 @@ export const useAgentForm = (): UseAgentFormResult => {
     reset
   };
 };
-
-export default useAgentForm;

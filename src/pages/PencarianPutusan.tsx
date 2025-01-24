@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Search, BookOpen, FileText, ExternalLink, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AutosizeTextarea from '../components/AutosizeTextarea';
-import ThinkingAnimation from '../components/ThinkingAnimation';
 import { searchPutusan } from '../services/searchPutusanService';
 import type { SearchResult, LegalDocument } from '../types';
 import ProgressSteps from '../components/ProgressSteps';
@@ -139,8 +138,8 @@ const PencarianPutusan = () => {
             />
 
             {isSearching && (
-              <div className="flex flex-col items-center justify-center p-4 md:p-8">
-                <ThinkingAnimation />
+              <div className="flex flex-col items-center justify-center">
+                {/* Removed ThinkingAnimation component */}
               </div>
             )}
 

@@ -94,10 +94,8 @@ export default function Agents() {
             </form>
 
             {isProcessing && (
-              <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center">
-                <div className="bg-white p-6 rounded-xl shadow-lg">
-                  <ThinkingAnimation />
-                </div>
+              <div className="fixed inset-0 bg-white/50 backdrop-blur-sm flex items-center justify-center z-50">
+                <ThinkingAnimation />
               </div>
             )}
           </div>

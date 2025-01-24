@@ -3,19 +3,16 @@ const API_URL = "http://localhost:8000";
 
 export const submitAgentAnalysis = async (
     message: string,
-    agentType: string,
+    _agentType: string, // Not used since we always use web-search-agent
     stream: boolean = false
   ): Promise<string> => {
-    const agentId = getAgentId(agentType);
-    
     const payload = {
       message,
-      agent_id: agentId,
+      agent_id: 'web-search-agent',
       stream,
       monitor: false
     };
   
-    // Endpoint untuk SPKT dan agent lainnya
     const response = await fetch(`${API_URL}/v1/playground/agent/run`, {
       method: 'POST',
       headers: {
@@ -104,17 +101,4 @@ export const submitAgentAnalysis = async (
     }
   
     throw new Error('Format respon tidak dikenali');
-  };
-  
-  const getAgentId = (type: string): string => {
-    switch (type) {
-      case 'spkt':
-        return 'police-agent';
-      case 'image':
-        return 'gambar-agent';
-      case 'web_search':
-        return 'web-search-agent';
-      default:
-        throw new Error('Tipe agen tidak didukung');
-    }
   };

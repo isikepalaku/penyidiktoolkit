@@ -1,13 +1,40 @@
-const ThinkingAnimation = () => {
+import { useEffect, useState } from 'react';
+import { Mosaic } from 'react-loading-indicators';
+
+const ThinkingAnimation: React.FC = () => {
+  const [currentStep, setCurrentStep] = useState<number>(0);
+  const steps: string[] = [
+    'Mempersiapkan data',
+    'Menganalisis informasi',
+    'Menyusun hasil',
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentStep((prev) => (prev + 1) % steps.length);
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [steps.length]);
+
   return (
-    <div className="flex flex-col items-center justify-center">
-      <div className="flex items-center gap-1 mb-2">
-        <div className="w-2 h-2 rounded-full bg-blue-600 animate-bounce [animation-delay:-0.3s]"></div>
-        <div className="w-2 h-2 rounded-full bg-blue-600 animate-bounce [animation-delay:-0.15s]"></div>
-        <div className="w-2 h-2 rounded-full bg-blue-600 animate-bounce"></div>
+    <div className="flex flex-col items-center justify-center p-4">
+      <div className="scale-150"> {/* Scale up the loader for better visibility */}
+        <Mosaic 
+          color={[
+            "#2563EB", // blue-600 (primary blue)
+            "#33CC36", // vibrant green
+            "#B8CC33", // lime yellow
+            "#FCCA00"  // golden yellow
+          ]}
+          size="large"
+          text=""
+          speedPlus={0}
+          style={{ background: 'transparent' }}
+        />
       </div>
-      <p className="text-sm text-gray-500">
-        Sedang menganalisis data Anda...
+      <p className="text-sm text-gray-600 font-medium mt-6">
+        {steps[currentStep]}...
       </p>
     </div>
   );
