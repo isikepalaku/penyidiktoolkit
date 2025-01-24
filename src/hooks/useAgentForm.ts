@@ -3,6 +3,7 @@ import type { FormData, FormDataValue } from '../types';
 import { submitImageAnalysis } from '../services/imageService';
 import { submitAgentAnalysis as submitSpktAnalysis } from '../services/agentSpkt';
 import { submitAgentAnalysis as submitCaseAnalysis } from '../services/agentCaseResearch';
+import { submitAgentAnalysis as submitHoaxAnalysis } from '../services/agentHoaxChecker';
 import { imagePrompts } from '../data/agents/imageAgent';
 import { agents } from '../data/agents';
 
@@ -88,6 +89,9 @@ export const useAgentForm = (): UseAgentFormResult => {
             break;
           case 'spkt':
             response = await submitSpktAnalysis(message.trim(), agentType);
+            break;
+          case 'hoax_checker':
+            response = await submitHoaxAnalysis(message.trim(), agentType);
             break;
           default:
             throw new Error('Tipe agen tidak dikenali');

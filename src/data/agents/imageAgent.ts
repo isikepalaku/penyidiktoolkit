@@ -83,7 +83,7 @@ Format hasil analisis harus terstruktur dengan penekanan pada aspek forensik.`,
 };
 
 export const imageAgent: ExtendedAgent = {
-  id: '4',
+  id: 'img_001',
   name: 'Analisis Gambar',
   type: 'image',
   status: 'on',

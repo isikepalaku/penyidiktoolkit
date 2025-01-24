@@ -64,30 +64,32 @@ export const BaseAgentForm: React.FC<BaseAgentFormProps> = ({
                 maxRows={12}
                 className="shadow-sm"
               />
-              <div className="absolute right-3 bottom-3 flex items-center gap-2">
-                {isProcessingImage && (
-                  <div className="flex items-center gap-2 text-blue-600">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm">Memproses gambar...</span>
-                  </div>
-                )}
-                <label
-                  htmlFor={`image-upload-${field.id}`}
-                  className="cursor-pointer p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                  title="Upload gambar untuk ekstrak teks"
-                >
-                  <FileImage className="w-5 h-5 text-gray-500" />
-                  <input
-                    type="file"
-                    id={`image-upload-${field.id}`}
-                    ref={fileInputRef}
-                    className="hidden"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    disabled={isProcessingImage}
-                  />
-                </label>
-              </div>
+              {agent.type === 'spkt' && (
+                <div className="absolute right-3 bottom-3 flex items-center gap-2">
+                  {isProcessingImage && (
+                    <div className="flex items-center gap-2 text-blue-600">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span className="text-sm">Memproses gambar...</span>
+                    </div>
+                  )}
+                  <label
+                    htmlFor={`image-upload-${field.id}`}
+                    className="cursor-pointer p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                    title="Upload gambar untuk ekstrak teks"
+                  >
+                    <FileImage className="w-5 h-5 text-gray-500" />
+                    <input
+                      type="file"
+                      id={`image-upload-${field.id}`}
+                      ref={fileInputRef}
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={isProcessingImage}
+                    />
+                  </label>
+                </div>
+              )}
             </div>
           ) : (
             <input

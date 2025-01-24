@@ -1,4 +1,4 @@
-import { Brain, User, TestTube, PieChart, Image, ClipboardList, FileText } from 'lucide-react';
+import { Brain, User, PieChart, Image, FileText } from 'lucide-react';
 import type { Agent } from '../types/index';
 import { getTypeDisplay } from '@/utils/utils';
 
@@ -9,14 +9,10 @@ export default function AgentCard({ agent }: { agent: Agent }) {
         return <FileText className="text-green-500" size={24} />;
       case 'image':
         return <Image className="text-indigo-500" size={24} />;
-      case 'witness':
+      case 'case_research':
         return <User className="text-blue-500" size={24} />;
-      case 'behavioral':
+      case 'hoax_checker':
         return <Brain className="text-amber-500" size={24} />;
-      case 'forensic':
-        return <TestTube className="text-purple-500" size={24} />;
-      case 'report':
-        return <ClipboardList className="text-green-500" size={24} />;
       default:
         return <PieChart className="text-gray-500" size={24} />;
     }

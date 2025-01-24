@@ -3,17 +3,16 @@ const API_URL = "http://localhost:8000";
 
 export const submitAgentAnalysis = async (
     message: string,
-    _agentType: string, // Not used since we always use police-agent
+    _agentType: string, // Not used since we always use web-search-agent
     stream: boolean = false
   ): Promise<string> => {
     const payload = {
       message,
-      agent_id: 'police-agent',
+      agent_id: 'hoax-checker-agent',
       stream,
       monitor: false
     };
   
-    // Endpoint untuk SPKT dan agent lainnya
     const response = await fetch(`${API_URL}/v1/playground/agent/run`, {
       method: 'POST',
       headers: {

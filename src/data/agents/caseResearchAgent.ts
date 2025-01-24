@@ -1,7 +1,7 @@
 import type { ExtendedAgent } from '../../types';
 
 export const caseResearchAgent: ExtendedAgent = {
-  id: '6',
+  id: 'case_001',
   name: 'Penelitian Kasus',
   type: 'case_research',
   status: 'on',

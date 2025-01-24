@@ -1,7 +1,7 @@
 import type { ExtendedAgent } from '../../types';
 
 export const spktAgent: ExtendedAgent = {
-  id: '1',
+  id: 'spkt_001',
   name: 'Analisis Laporan SPKT',
   type: 'spkt',
   status: 'on',

@@ -28,12 +28,9 @@
 │   │   └── agents/
 │   │       ├── index.ts               # Exports all agent configurations
 │   │       ├── spktAgent.ts           # SPKT report analysis agent
-│   │       ├── forensicAgent.ts       # Forensic analysis agent
-│   │       ├── behavioralAgent.ts     # Behavioral analysis agent
-│   │       ├── witnessAgent.ts        # Witness statement agent
-│   │       ├── reportAgent.ts         # Report generation agent
-│   │       ├── imageAgent.ts          # Image analysis agent config & prompts
-│   │       └── caseResearchAgent.ts   # Case research analysis agent
+│   │       ├── caseResearchAgent.ts   # Case research analysis agent
+│   │       ├── hoaxCheckerAgent.ts    # Hoax verification agent config
+│   │       └── imageAgent.ts          # Image analysis agent config & prompts
 │   │
 │   ├── hooks/
 │   │   └── useAgentForm.ts           # Custom hook for form management
@@ -47,6 +44,7 @@
 │   │   ├── imageService.ts           # API & Gemini integration services
 │   │   ├── agentSpkt.ts             # SPKT report analysis service
 │   │   ├── agentCaseResearch.ts     # Case research analysis service
+│   │   ├── agentHoaxChecker.ts      # Hoax verification service
 │   │   ├── searchPutusanService.ts   # Court decisions search service
 │   │   └── supabase.ts              # Supabase client configuration
 │   │
@@ -66,7 +64,38 @@
 ## Key Features
 
 1. Investigation Agents:
-   [Previous agents section remains the same...]
+   - SPKT Report Analysis (ID: spkt_001)
+     * Analyzes police report narratives
+     * Extracts key case elements
+     * Structures information by objects, subjects, locus, and tempus
+     * Generates organized report summaries
+
+   - Case Research Analysis (ID: case_001)
+     * Conducts deep research on case details
+     * Identifies relevant legal precedents
+     * Analyzes case patterns and similarities
+     * Provides investigative recommendations
+
+   - Image Analysis (ID: img_001)
+     * Computer vision-based analysis
+     * Object and text detection
+     * Scene analysis and description
+     * Evidence documentation support
+     * Multiple analysis modes (default, text extraction)
+
+   - Hoax Checker (ID: hoax_001)
+     * Verifies information authenticity
+     * Cross-references with trusted sources
+     * Identifies potential misinformation
+     * Provides verification report
+
+   Common Features Across Agents:
+     * Unique ID system for clear identification
+     * Consistent API integration
+     * Real-time processing status
+     * Structured output format
+     * Error handling and validation
+     * Stream processing support
 
 2. Court Decisions Search:
    - Semantic Search Integration:
@@ -124,6 +153,32 @@
      - Uses Label and Select components for form controls
      - Custom image preview and analysis options
 
+## Implementation Details
+
+1. Agent Services:
+   - SPKT Analysis Service (agentSpkt.ts):
+     [Previous content remains...]
+
+   - Case Research Service (agentCaseResearch.ts):
+     [Previous content remains...]
+
+   - Hoax Checker Service (agentHoaxChecker.ts):
+     * Integration with AI model for content analysis
+     * Streaming response support for real-time feedback
+     * Error handling and validation
+     * Components:
+       - Content validation endpoint integration
+       - Source credibility checking
+       - Pattern matching for known hoax indicators
+       - Structured response formatting
+     * Dependencies:
+       - hoaxCheckerAgent.ts: Agent configuration and field definitions
+       - useAgentForm.ts: Form state management
+       - BaseAgentForm.tsx: UI component for input handling
+
+   - Image Analysis Service (imageService.ts):
+     [Previous content remains...]
+
 ## Environment Configuration
 
 Required environment variables:
@@ -179,3 +234,27 @@ Key TypeScript types:
 
 2. Image Analysis:
    [Previous image analysis section remains the same...]
+
+## Color Palette
+
+The application uses a dark theme with high contrast colors for better visibility and user experience:
+
+```css
+/* Color Variables */
+--color-primary-dark: #1D1616;    /* Dark background */
+--color-primary: #8E1616;         /* Primary accent color */
+--color-secondary: #D84040;       /* Secondary accent color */
+--color-light: #EEEEEE;          /* Light text and UI elements */
+
+/* Usage Examples */
+- Background: var(--color-primary-dark)
+- Headers and Important UI: var(--color-primary)
+- Interactive Elements: var(--color-secondary)
+- Text and Icons: var(--color-light)
+```
+
+This color scheme provides:
+- Strong contrast for better readability
+- Professional and modern appearance
+- Clear visual hierarchy
+- Consistent branding across the application

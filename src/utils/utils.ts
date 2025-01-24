@@ -13,6 +13,8 @@ export const getTypeDisplay = (type: string) => {
       return 'Gambar';
     case 'case_research':
       return 'Penelitian Kasus';
+    case 'hoax_checker':
+      return 'Pemeriksaan Hoax';
     default:
       return type;
   }
