@@ -85,13 +85,13 @@ export const useAgentForm = (): UseAgentFormResult => {
         // Use the appropriate service based on agent type
         switch (agentType) {
           case 'case_research':
-            response = await submitCaseAnalysis(message.trim(), agentType);
+            response = await submitCaseAnalysis(message.trim());
             break;
           case 'spkt':
-            response = await submitSpktAnalysis(message.trim(), agentType);
+            response = await submitSpktAnalysis(message.trim());
             break;
           case 'hoax_checker':
-            response = await submitHoaxAnalysis(message.trim(), agentType);
+            response = await submitHoaxAnalysis(message.trim());
             break;
           default:
             throw new Error('Tipe agen tidak dikenali');
@@ -100,8 +100,7 @@ export const useAgentForm = (): UseAgentFormResult => {
 
       setResult(response);
     } catch (err) {
-      console.error('Error details:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError(err instanceof Error ? err.message : 'Terjadi kesalahan yang tidak diketahui');
     } finally {
       setIsProcessing(false);
     }

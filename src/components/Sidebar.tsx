@@ -32,7 +32,7 @@ const Sidebar = () => {
       {/* Mobile Menu Button */}
       <button
         onClick={toggleSidebar}
-        className="lg:hidden fixed left-4 top-1/2 -translate-y-1/2 z-[60] p-2.5 rounded-lg bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-colors"
+        className="lg:hidden fixed left-4 top-4 z-[60] p-2.5 rounded-lg bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-colors"
       >
         {isOpen ? <PanelRightClose size={20} /> : <PanelLeft size={20} />}
       </button>
