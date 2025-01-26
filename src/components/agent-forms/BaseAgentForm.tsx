@@ -20,11 +20,15 @@ export const BaseAgentForm: React.FC<BaseAgentFormProps> = ({
   isProcessing
 }) => {
   const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    // Reset error state
+    setImageError(null);
 
     try {
       setIsProcessingImage(true);
@@ -37,6 +41,7 @@ export const BaseAgentForm: React.FC<BaseAgentFormProps> = ({
       }
     } catch (err) {
       console.error('Error processing image:', err);
+      setImageError(err instanceof Error ? err.message : 'Gagal memproses gambar');
     } finally {
       setIsProcessingImage(false);
       if (fileInputRef.current) {
@@ -88,6 +93,11 @@ export const BaseAgentForm: React.FC<BaseAgentFormProps> = ({
                       disabled={isProcessingImage}
                     />
                   </label>
+                </div>
+              )}
+              {imageError && (
+                <div className="text-red-500 text-sm mt-2">
+                  Error saat memproses gambar: {imageError}
                 </div>
               )}
             </div>

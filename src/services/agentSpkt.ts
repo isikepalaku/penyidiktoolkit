@@ -1,5 +1,11 @@
-const API_KEY = "phi-oHzWmyg4SJ6jOI29Fg15iQhABYWqhNeM-zmrNxbkgwo";
-const API_URL = "http://localhost:8000";
+import { env } from '@/config/env';
+
+const API_KEY = env.apiKey;
+
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
+
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const submitAgentAnalysis = async (
     message: string,
@@ -12,26 +18,67 @@ export const submitAgentAnalysis = async (
       stream,
       monitor: false
     };
-  
-    // Endpoint untuk SPKT dan agent lainnya
-    const response = await fetch(`${API_URL}/v1/playground/agent/run`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': stream ? 'text/event-stream' : 'application/json',
-        'X-API-Key': API_KEY,
-      },
-      body: JSON.stringify(payload)
-    });
-  
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Response headers:', response.headers);
-      console.error('Response details:', errorText);
-      throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+
+    let retries = 0;
+    
+    while (retries < MAX_RETRIES) {
+      try {
+        // Log request details for debugging
+        console.log('Making request to:', `/v1/playground/agent/run`);
+        console.log('With payload:', payload);
+
+        const response = await fetch(`/v1/playground/agent/run`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': stream ? 'text/event-stream' : 'application/json',
+            'X-API-Key': API_KEY,
+          },
+          body: JSON.stringify(payload)
+        });
+
+        // Log response status
+        console.log('Response status:', response.status);
+        console.log('Response type:', response.headers.get('content-type'));
+    
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Error response headers:', Object.fromEntries(response.headers.entries()));
+          console.error('Error response details:', errorText);
+          
+          // Only retry if it's a network error or 5xx server error
+          if (response.status >= 500 && retries < MAX_RETRIES - 1) {
+            retries++;
+            await wait(RETRY_DELAY * retries);
+            continue;
+          }
+          
+          throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+        }
+    
+        return await handleSSEResponse(response);
+      } catch (error) {
+        console.error('Error in submitAgentAnalysis:', error);
+        
+        // Retry on network errors
+        if (retries < MAX_RETRIES - 1 && 
+            (error instanceof TypeError || error instanceof Error && error.message.includes('Failed to fetch'))) {
+          retries++;
+          await wait(RETRY_DELAY * retries);
+          continue;
+        }
+
+        if (error instanceof TypeError && error.message === 'Failed to fetch') {
+          throw new Error('Tidak dapat terhubung ke API. Mohon periksa koneksi anda.');
+        } else if (error instanceof Error) {
+          throw error;
+        } else {
+          throw new Error('Terjadi kesalahan yang tidak diketahui');
+        }
+      }
     }
-  
-    return await handleSSEResponse(response);
+
+    throw new Error('Gagal terhubung ke API setelah beberapa percobaan');
   };
   
   const handleSSEResponse = async (response: Response): Promise<string> => {
@@ -40,6 +87,7 @@ export const submitAgentAnalysis = async (
     // Handle JSON response
     if (contentType?.includes('application/json')) {
       const responseText = await response.text();
+      console.log('Raw JSON response:', responseText);
       try {
         let parsedResponse = JSON.parse(responseText);
         
@@ -54,6 +102,7 @@ export const submitAgentAnalysis = async (
         throw new Error('Format respon tidak sesuai');
       } catch (error) {
         console.error('Error parsing JSON:', error);
+        console.error('Raw response that failed to parse:', responseText);
         throw new Error('Format respon tidak valid');
       }
     }
