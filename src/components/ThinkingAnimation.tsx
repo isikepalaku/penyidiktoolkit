@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Mosaic } from 'react-loading-indicators';
+import { LifeLine } from 'react-loading-indicators';
 
 const ThinkingAnimation: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<number>(0);
@@ -20,7 +20,7 @@ const ThinkingAnimation: React.FC = () => {
   return (
     <div className="flex flex-col items-center justify-center p-4">
       <div className="scale-150"> {/* Scale up the loader for better visibility */}
-        <Mosaic 
+        <LifeLine 
           color={[
             "#2563EB", // blue-600 (primary blue)
             "#33CC36", // vibrant green

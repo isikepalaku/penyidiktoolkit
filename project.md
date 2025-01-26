@@ -53,7 +53,7 @@
 │   │   └── react-loading-indicators.d.ts  # React loading indicators type definitions
 │   │
 │   ├── utils/
-│   │   └── agentUtils.ts             # Utility functions for agents
+│   │   └── utils.ts             # Utility functions for agents
 │   │
 │   ├── App.tsx                       # Main application component
 │   ├── main.tsx                      # Application entry point

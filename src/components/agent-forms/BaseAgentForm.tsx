@@ -64,7 +64,7 @@ export const BaseAgentForm: React.FC<BaseAgentFormProps> = ({
                 maxRows={12}
                 className="shadow-sm"
               />
-              {agent.type === 'spkt' && (
+              {(agent.type === 'spkt' || agent.type === 'hoax_checker') && (
                 <div className="absolute right-3 bottom-3 flex items-center gap-2">
                   {isProcessingImage && (
                     <div className="flex items-center gap-2 text-blue-600">
