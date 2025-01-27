@@ -96,7 +96,7 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
 
         <div ref={contentRef}>
           <div className="p-4 lg:p-6">
-            <div className="prose prose-sm lg:prose-base max-w-none px-2 lg:px-4">
+            <div className="prose prose-sm lg:prose-base max-w-none px-2 lg:px-4 prose-ul:list-disc prose-ul:pl-5 prose-li:text-gray-600 prose-p:text-gray-600 prose-p:leading-relaxed prose-strong:text-gray-800">
               <div className="space-y-4 pr-4">
                 <ReactMarkdown>{content}</ReactMarkdown>
               </div>

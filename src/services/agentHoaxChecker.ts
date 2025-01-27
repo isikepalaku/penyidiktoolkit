@@ -1,4 +1,7 @@
-const API_KEY = "phi-oHzWmyg4SJ6jOI29Fg15iQhABYWqhNeM-zmrNxbkgwo";
+import { env } from '@/config/env';
+
+const API_KEY = env.apiKey;
+const API_URL = env.apiUrl;
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
 
@@ -12,6 +15,7 @@ export const submitAgentAnalysis = async (
   while (retries <= MAX_RETRIES) {
     try {
       console.log(`Attempt ${retries + 1} of ${MAX_RETRIES + 1}`);
+      console.log('API URL:', API_URL);
       
       const payload = {
         message: message.trim(),
@@ -27,7 +31,7 @@ export const submitAgentAnalysis = async (
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'X-API-Key': API_KEY,
+          'X-API-Key': API_KEY
         },
         body: JSON.stringify(payload)
       });
@@ -85,8 +89,8 @@ export const submitAgentAnalysis = async (
     } catch (error) {
       console.error('Error in submitAgentAnalysis:', error);
       
-      if (error instanceof TypeError && retries < MAX_RETRIES) {
-        console.log(`Retrying after network error (attempt ${retries + 2} of ${MAX_RETRIES + 1})`);
+      if ((error instanceof TypeError || error instanceof Error) && retries < MAX_RETRIES) {
+        console.log(`Retrying after error (attempt ${retries + 2} of ${MAX_RETRIES + 1})`);
         retries++;
         await wait(RETRY_DELAY * retries);
         continue;

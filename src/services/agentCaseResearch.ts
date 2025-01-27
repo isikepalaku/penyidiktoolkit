@@ -1,4 +1,6 @@
-const API_KEY = "phi-oHzWmyg4SJ6jOI29Fg15iQhABYWqhNeM-zmrNxbkgwo";
+import { env } from '@/config/env';
+
+const API_KEY = env.apiKey;
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
 
@@ -27,7 +29,7 @@ export const submitAgentAnalysis = async (
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'X-API-Key': API_KEY,
+          'X-API-Key': API_KEY
         },
         body: JSON.stringify(payload)
       });
