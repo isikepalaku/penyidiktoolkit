@@ -15,6 +15,10 @@ export const getTypeDisplay = (type: string) => {
       return 'Penelitian Kasus';
     case 'hoax_checker':
       return 'Pemeriksaan Hoax';
+    case 'perkaba_chat':
+      return 'Chat Perkaba';
+    case 'perkaba_search':
+      return 'Pencarian Perkaba';
     default:
       return type;
   }

@@ -1,14 +1,16 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import path from 'path';
+import { resolve } from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import tsconfigPaths from 'vite-tsconfig-paths';
+import type { ProxyOptions } from 'vite';
 
 // Load environment variables
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = resolve(__filename, '..');
 
 // Log environment variables for debugging
 console.log('Environment variables loaded:', {
@@ -17,23 +19,26 @@ console.log('Environment variables loaded:', {
 });
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tsconfigPaths()],
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": resolve(__dirname, "./src"),
     },
   },
   server: {
     cors: {
       origin: '*',
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'X-API-Key', 'Accept'],
-      exposedHeaders: ['Content-Type', 'X-API-Key']
+      methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
+      exposedHeaders: ['Content-Type', 'Authorization'],
+      credentials: false,
+      maxAge: 86400,
     },
     proxy: {
+      // Localhost API proxies
       '/v1': {
         target: 'http://localhost:8000',
         changeOrigin: true,
@@ -48,12 +53,45 @@ export default defineConfig({
             proxyRes.headers['access-control-max-age'] = '86400';
           });
         }
-      },
+      } as ProxyOptions,
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
-        secure: false
-      }
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+        configure: (proxy) => {
+          proxy.on('error', (err) => {
+            console.log('Local API proxy error:', err);
+          });
+        }
+      } as ProxyOptions,
+      // Flowise API proxy - using a different path to avoid conflicts
+      '/flowise/': {
+        target: process.env.VITE_PERKABA_API_URL || 'http://147.79.70.246:3086',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+        rewrite: (path) => path.replace(/^\/flowise/, ''),
+        configure: (proxy) => {
+          proxy.on('error', (err) => {
+            console.log('Flowise proxy error:', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req) => {
+            console.log('Sending Flowise Request:', req.method, req.url);
+            // Add CORS headers to the proxy request
+            proxyReq.setHeader('Access-Control-Allow-Origin', '*');
+            proxyReq.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE');
+            proxyReq.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+          });
+          proxy.on('proxyRes', (proxyRes, req) => {
+            // Add CORS headers
+            proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+            proxyRes.headers['Access-Control-Allow-Methods'] = 'GET,HEAD,PUT,PATCH,POST,DELETE';
+            proxyRes.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
+            console.log('Received Flowise Response:', proxyRes.statusCode, req.url);
+          });
+        },
+      } as ProxyOptions
     }
   }
 });

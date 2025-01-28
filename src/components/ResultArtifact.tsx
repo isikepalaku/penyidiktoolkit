@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { X, Copy, Check, Printer } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 
@@ -40,11 +41,34 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
         .no-print {
           display: none !important;
         }
+        /* Ensure tables print well */
+        table {
+          break-inside: avoid;
+          width: 100%;
+          border-collapse: collapse;
+          margin: 1em 0;
+        }
+        th, td {
+          border: 1px solid #e5e7eb;
+          padding: 8px 12px;
+        }
+        th {
+          background-color: #f9fafb;
+        }
       }
     `,
   });
 
   const printRef = useCallback(() => contentRef.current, []);
+
+  // Process content to fix table formatting
+  const processContent = (rawContent: string) => {
+    // Fix table formatting by ensuring proper spacing
+    return rawContent.replace(
+      /\|(.*?)\|/g, 
+      (match) => match.replace(/\s*\|\s*/g, ' | ').trim()
+    );
+  };
 
   return (
     <>
@@ -96,15 +120,30 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
 
         <div ref={contentRef}>
           <div className="p-4 lg:p-6">
-            <div className="prose prose-sm lg:prose-base max-w-none px-2 lg:px-4 prose-ul:list-disc prose-ul:pl-5 prose-li:text-gray-600 prose-p:text-gray-600 prose-p:leading-relaxed prose-strong:text-gray-800">
+            <div className="prose prose-sm lg:prose-base max-w-none px-2 lg:px-4 
+              prose-headings:font-semibold prose-headings:text-gray-900
+              prose-ul:list-disc prose-ul:pl-5 
+              prose-ol:list-none prose-ol:pl-6
+              prose-ol:counter-reset-[section]
+              [&_ol>li]:relative [&_ol>li]:pl-6 [&_ol>li]:mb-2
+              [&_ol>li:before]:content-['-'] [&_ol>li:before]:absolute
+              [&_ol>li:before]:left-0 [&_ol>li:before]:top-0
+              [&_ol>li:before]:text-blue-500 [&_ol>li:before]:font-bold
+              prose-li:text-gray-600 prose-li:my-1
+              prose-p:text-gray-600 prose-p:leading-relaxed 
+              prose-strong:text-gray-800
+              [&_table]:w-full [&_table]:border-collapse [&_table]:my-4
+              [&_th]:border [&_th]:border-gray-300 [&_th]:bg-gray-50 [&_th]:p-3 [&_th]:text-left [&_th]:font-medium
+              [&_td]:border [&_td]:border-gray-300 [&_td]:p-3 [&_td]:align-top
+              [&_thead]:bg-gray-50">
               <div className="space-y-4 pr-4">
-                <ReactMarkdown>{content}</ReactMarkdown>
+                <ReactMarkdown 
+                  remarkPlugins={[remarkGfm]}
+                >{processContent(content)}</ReactMarkdown>
               </div>
             </div>
           </div>
         </div>
-
-        <div className="h-6 lg:h-8" />
       </div>
     </>
   );

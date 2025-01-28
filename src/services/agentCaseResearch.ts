@@ -15,24 +15,36 @@ export const submitAgentAnalysis = async (
     try {
       console.log(`Attempt ${retries + 1} of ${MAX_RETRIES + 1}`);
       
-      const payload = {
-        message: message.trim(),
-        agent_id: 'web_search_agent',
-        stream: false,
-        monitor: false
+      const formData = new FormData();
+      formData.append('message', message.trim());
+      formData.append('agent_id', 'web_search_agent');
+      formData.append('stream', 'false');
+      formData.append('monitor', 'false');
+      formData.append('session_id', 'string');
+      formData.append('user_id', 'string');
+
+      console.log('Sending request with FormData');
+
+      const headers: HeadersInit = {
+        'Accept': 'application/json',
+      };
+      
+      if (API_KEY) {
+        headers['X-API-Key'] = API_KEY;
+      }
+
+      console.log('Request headers:', headers);
+
+      const requestOptions: RequestInit = {
+        method: 'POST',
+        headers,
+        body: formData,
+        credentials: 'include' as RequestCredentials
       };
 
-      console.log('Sending request with payload:', payload);
+      console.log('Sending request to API proxy');
 
-      const response = await fetch('/v1/playground/agent/run', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'X-API-Key': API_KEY
-        },
-        body: JSON.stringify(payload)
-      });
+      const response = await fetch('/api/v1/playground/agent/run', requestOptions);
 
       console.log('Response status:', response.status);
       console.log('Response headers:', Object.fromEntries(response.headers.entries()));

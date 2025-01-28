@@ -1,4 +1,4 @@
-import { Brain, User, PieChart, Image, FileText } from 'lucide-react';
+import { Brain, User, PieChart, Image, FileText, MessageSquare, Search } from 'lucide-react';
 import type { Agent } from '../types/index';
 import { getTypeDisplay } from '@/utils/utils';
 
@@ -13,6 +13,10 @@ export default function AgentCard({ agent }: { agent: Agent }) {
         return <User className="text-blue-500" size={24} />;
       case 'hoax_checker':
         return <Brain className="text-amber-500" size={24} />;
+      case 'perkaba_chat':
+        return <MessageSquare className="text-purple-500" size={24} />;
+      case 'perkaba_search':
+        return <Search className="text-cyan-500" size={24} />;
       default:
         return <PieChart className="text-gray-500" size={24} />;
     }

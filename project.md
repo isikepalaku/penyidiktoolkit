@@ -11,7 +11,10 @@
 │   │   ├── ui/                        # UI components
 │   │   │   ├── Modal.tsx              # Reusable modal component
 │   │   │   ├── label.tsx              # Label component for form elements
-│   │   │   └── select.tsx             # Select component for dropdowns
+│   │   │   ├── select.tsx             # Select component for dropdowns
+│   │   │   ├── ChatInterface.tsx      # Chat interface for Flowise integration
+│   │   │   ├── AnimatedMessage.tsx    # Animated text display for chat messages
+│   │   │   ├── use-auto-resize-textarea.tsx  # Custom hook for textarea auto-resizing
 │   │   ├── AgentCard.tsx              # Card component for displaying agents
 │   │   ├── AutosizeTextarea.tsx       # Reusable textarea component
 │   │   ├── CaseCard.tsx               # Card component for case display
@@ -30,7 +33,8 @@
 │   │       ├── spktAgent.ts           # SPKT report analysis agent
 │   │       ├── caseResearchAgent.ts   # Case research analysis agent
 │   │       ├── hoaxCheckerAgent.ts    # Hoax verification agent config
-│   │       └── imageAgent.ts          # Image analysis agent config & prompts
+│   │       ├── imageAgent.ts          # Image analysis agent config & prompts
+│   │       ├── perkabaAgents.ts       # Perkaba chat agents configuration
 │   │
 │   ├── hooks/
 │   │   └── useAgentForm.ts           # Custom hook for form management
@@ -38,13 +42,15 @@
 │   ├── pages/
 │   │   ├── Agents.tsx                # Main container for all agents
 │   │   ├── Reports.tsx               # Reports management page
-│   │   └── PencarianPutusan.tsx      # Court decisions search page
+│   │   ├── PencarianPutusan.tsx      # Court decisions search page
+│   │   └── PerkabaChat.tsx           # Perkaba chat page
 │   │
 │   ├── services/
 │   │   ├── imageService.ts           # API & Gemini integration services
 │   │   ├── agentSpkt.ts             # SPKT report analysis service
 │   │   ├── agentCaseResearch.ts     # Case research analysis service
 │   │   ├── agentHoaxChecker.ts      # Hoax verification service
+│   │   ├── perkabaService.ts        # Flowise chat integration service
 │   │   ├── searchPutusanService.ts   # Court decisions search service
 │   │   └── supabase.ts              # Supabase client configuration
 │   │
@@ -89,6 +95,14 @@
      * Identifies potential misinformation
      * Provides verification report
 
+   - Perkaba Chat Integration:
+     * Real-time chat interface with Flowise
+     * Source document references
+     * Error handling and retry mechanisms
+     * Streaming response support
+     * CORS-enabled proxy configuration
+     * Secure API key management
+
    Common Features Across Agents:
      * Unique ID system for clear identification
      * Consistent API integration
@@ -120,6 +134,8 @@
 
 4. UI Components:
    - Previous components plus:
+     * Chat interface with typing indicators
+     * Source document display
      * Progress Steps indicator
      * Responsive search results cards
      * Animated loading states
@@ -127,6 +143,7 @@
 
 5. State Management:
    - Previous features plus:
+     * Chat message history
      * Search state management
      * Progressive step tracking
      * Error handling for searches
@@ -134,6 +151,7 @@
 
 6. API Integration:
    - Previous integrations plus:
+     * Flowise API integration
      * OpenAI Embeddings API
      * Supabase Vector Store
      * Document similarity search
@@ -145,6 +163,7 @@
    - Modal: Reusable modal dialog for displaying detailed information
    - Label: Form label component used in agent forms
    - Select: Dropdown select component used in agent forms
+   - ChatInterface: Real-time chat interface with Flowise integration
    - All UI components follow consistent styling and accessibility patterns
 
 2. Agent Forms:
@@ -152,6 +171,105 @@
    - ImageAgentForm: Specialized form for image analysis
      - Uses Label and Select components for form controls
      - Custom image preview and analysis options
+
+## Perkaba Chat Components
+
+### Core Components
+
+#### ChatInterface.tsx
+The main chat interface component that handles:
+- Message state management
+- Chat history display
+- Message submission and response handling
+- Auto-scrolling to latest messages
+- Loading states
+- Error handling
+- Source document display
+
+#### AnimatedMessage.tsx
+A component that provides animated text display for chat messages:
+- Uses ReactMarkdown for message formatting
+- Supports GitHub Flavored Markdown
+- Custom styling for lists and other markdown elements
+- Smooth text animation for bot responses
+
+### Utility Components and Hooks
+
+#### use-auto-resize-textarea.tsx
+A custom hook for textarea auto-resizing:
+- Dynamically adjusts textarea height based on content
+- Supports minimum and maximum height constraints
+- Handles window resize events
+- Memory efficient with cleanup on unmount
+
+### Data and Configuration
+
+#### perkabaAgents.ts
+Defines the available Perkaba agents:
+- Chat agent for general queries
+- Search agent for document analysis
+- Configurable fields for each agent
+- Status tracking for agent availability
+
+### Pages
+
+#### PerkabaChat.tsx
+The main page component for Perkaba chat functionality:
+- Agent selection interface
+- Form handling and submission
+- State management for selected agents
+- Conditional rendering of chat or search interfaces
+- Error and loading state management
+
+### Component Relationships
+```mermaid
+graph TD
+    A[PerkabaChat.tsx] --> B[ChatInterface.tsx]
+    B --> C[AnimatedMessage.tsx]
+    B --> D[use-auto-resize-textarea.tsx]
+    A --> E[perkabaAgents.ts]
+    C --> F[ReactMarkdown]
+```
+
+### Key Features
+1. **Real-time Chat**
+   - Animated message display
+   - Markdown support
+   - Auto-scrolling
+   - Message history
+
+2. **User Experience**
+   - Auto-resizing input
+   - Loading indicators
+   - Error handling
+   - Source document display
+
+3. **Agent System**
+   - Multiple agent types
+   - Configurable fields
+   - Status tracking
+   - Form validation
+
+4. **Styling**
+   - Tailwind CSS integration
+   - Custom list styling
+   - Responsive design
+   - Consistent typography
+
+### Usage Example
+```tsx
+// In your page component
+import ChatInterface from '../components/ChatInterface';
+
+function MyPage() {
+  return (
+    <div>
+      <h1>Perkaba Chat</h1>
+      <ChatInterface />
+    </div>
+  );
+}
+```
 
 ## Implementation Details
 
@@ -179,6 +297,20 @@
    - Image Analysis Service (imageService.ts):
      [Previous content remains...]
 
+   - Perkaba Chat Service (perkabaService.ts):
+     * Integration with Flowise API
+     * Real-time chat functionality
+     * Source document handling
+     * Components:
+       - Chat message handling
+       - Error management
+       - Response streaming
+       - Source document display
+     * Dependencies:
+       - ChatInterface.tsx: UI component
+       - env.ts: Environment configuration
+       - vite.config.ts: Proxy configuration
+
 ## Environment Configuration
 
 Required environment variables:
@@ -187,6 +319,8 @@ Required environment variables:
 VITE_SUPABASE_URL=your-supabase-url
 VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
 VITE_OPENAI_API_KEY=your-openai-key
+VITE_PERKABA_API_URL=your-flowise-url
+VITE_PERKABA_API_KEY=your-flowise-api-key
 ```
 
 ## Type System
@@ -201,6 +335,10 @@ Key TypeScript types:
    - OpenAIError interface
    - SupabaseDocument interface
    - ProgressStepsProps interface
+4. Chat Related:
+   - ChatResponse interface
+   - ChatRequest interface
+   - Message interface
 
 ## New Components
 
@@ -222,6 +360,12 @@ Key TypeScript types:
    - Results processing and formatting
    - Error handling and fallbacks
 
+4. Chat Interface:
+   - Real-time chat interface with Flowise integration
+   - Source document display
+   - Chat message handling
+   - Error management
+
 ## Features
 
 1. Court Decisions Search (PencarianPutusan):
@@ -235,26 +379,10 @@ Key TypeScript types:
 2. Image Analysis:
    [Previous image analysis section remains the same...]
 
-## Color Palette
-
-The application uses a dark theme with high contrast colors for better visibility and user experience:
-
-```css
-/* Color Variables */
---color-primary-dark: #1D1616;    /* Dark background */
---color-primary: #8E1616;         /* Primary accent color */
---color-secondary: #D84040;       /* Secondary accent color */
---color-light: #EEEEEE;          /* Light text and UI elements */
-
-/* Usage Examples */
-- Background: var(--color-primary-dark)
-- Headers and Important UI: var(--color-primary)
-- Interactive Elements: var(--color-secondary)
-- Text and Icons: var(--color-light)
-```
-
-This color scheme provides:
-- Strong contrast for better readability
-- Professional and modern appearance
-- Clear visual hierarchy
-- Consistent branding across the application
+3. Perkaba Chat Integration:
+   - Real-time chat interface with Flowise
+   - Source document references
+   - Error handling and retry mechanisms
+   - Streaming response support
+   - CORS-enabled proxy configuration
+   - Secure API key management

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Users, FileText, PanelLeft, PanelRightClose, Search } from 'lucide-react';
+import { Users, FileText, PanelLeft, PanelRightClose, Search, MessageSquare } from 'lucide-react';
 
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -14,6 +14,11 @@ const Sidebar = () => {
       path: '/',
       icon: <Users className="w-6 h-6" />,
       text: 'Agen AI'
+    },
+    {
+      path: '/perkaba-chat',
+      icon: <MessageSquare className="w-6 h-6" />,
+      text: 'Perkaba Chat'
     },
     {
       path: '/reports',
