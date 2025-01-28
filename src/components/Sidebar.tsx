@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Users, FileText, PanelLeft, PanelRightClose, Search, MessageSquare } from 'lucide-react';
+import { Users, FileText, PanelLeft, PanelRightClose, Search, MessageSquare, Home } from 'lucide-react';
+import logo from '../static/logo.svg';
 
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -12,22 +13,27 @@ const Sidebar = () => {
   const menuItems = [
     {
       path: '/',
-      icon: <Users className="w-6 h-6" />,
+      icon: <Home className="w-5 h-5" />,
+      text: 'Home'
+    },
+    {
+      path: '/agents',
+      icon: <Users className="w-5 h-5" />,
       text: 'Agen AI'
     },
     {
       path: '/perkaba-chat',
-      icon: <MessageSquare className="w-6 h-6" />,
+      icon: <MessageSquare className="w-5 h-5" />,
       text: 'Perkaba Chat'
     },
     {
       path: '/reports',
-      icon: <FileText className="w-6 h-6" />,
+      icon: <FileText className="w-5 h-5" />,
       text: 'Laporan'
     },
     {
       path: '/pencarian-putusan',
-      icon: <Search className="w-6 h-6" />,
+      icon: <Search className="w-5 h-5" />,
       text: 'Pencarian Putusan'
     }
   ];
@@ -37,7 +43,7 @@ const Sidebar = () => {
       {/* Mobile Menu Button */}
       <button
         onClick={toggleSidebar}
-        className="lg:hidden fixed left-4 top-4 z-[60] p-2.5 rounded-lg bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-colors"
+        className="lg:hidden fixed left-4 top-4 z-[60] p-2.5 rounded-lg bg-gradient-to-r from-indigo-950 to-slate-900 text-white shadow-lg hover:from-slate-900 hover:to-slate-950 transition-all"
       >
         {isOpen ? <PanelRightClose size={20} /> : <PanelLeft size={20} />}
       </button>
@@ -45,50 +51,68 @@ const Sidebar = () => {
       {/* Overlay for mobile */}
       {isOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-[45]"
+          className="lg:hidden fixed inset-0 bg-slate-900/60 z-[45] backdrop-blur-sm"
           onClick={toggleSidebar}
         />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full bg-white shadow-lg transition-transform duration-300 ease-in-out z-[50] w-64
-          lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        } lg:translate-x-0 fixed top-0 left-0 h-full w-64 bg-gradient-to-b from-indigo-950 to-slate-900 shadow-xl z-50 transition-transform duration-300 ease-in-out`}
       >
-        <div className="flex flex-col h-full">
-          {/* Logo/Header */}
-          <div className="p-6 border-b">
-            <h1 className="text-xl font-bold">Police Investigator</h1>
-          </div>
-
-          {/* Navigation */}
-          <nav className="flex-1 p-4">
-            <ul className="space-y-2">
-              {menuItems.map((item) => (
-                <li key={item.path}>
-                  <NavLink
-                    to={item.path}
-                    onClick={() => setIsOpen(false)}
-                    className={({ isActive }: { isActive: boolean }) =>
-                      `flex items-center space-x-3 p-3 rounded-lg transition-colors
-                      ${isActive 
-                        ? 'bg-blue-50 text-blue-700' 
-                        : 'text-gray-700 hover:bg-gray-100'}`
-                    }
-                  >
-                    {item.icon}
-                    <span>{item.text}</span>
-                  </NavLink>
-                </li>
-              ))}
-            </ul>
-          </nav>
-
-          {/* Footer */}
-          <div className="p-4 border-t">
-            <p className="text-sm text-gray-600"> 2024 PHIData Indonesia</p>
+        {/* Logo Container with Border */}
+        <div className="relative flex items-center justify-center py-6 border-b border-indigo-900/50">
+          <div className="absolute inset-0 bg-gradient-to-b from-indigo-900/20 to-transparent"></div>
+          <div className="relative p-3 rounded-2xl bg-gradient-to-br from-indigo-900/50 to-slate-900/50 ring-1 ring-white/10">
+            <img src={logo} alt="Logo" className="w-14 h-14" />
           </div>
         </div>
+
+        {/* Navigation */}
+        <nav className="px-3 py-6">
+          <ul className="space-y-1">
+            {menuItems.map((item) => (
+              <li key={item.path}>
+                <NavLink
+                  to={item.path}
+                  onClick={() => setIsOpen(false)}
+                >
+                  {({ isActive }: { isActive: boolean }) => (
+                    <div
+                      className={`group flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 ${
+                        isActive
+                          ? 'bg-gradient-to-r from-indigo-900/90 to-slate-800/90 text-white shadow-lg shadow-indigo-950/50 ring-1 ring-indigo-700/50'
+                          : 'text-slate-300 hover:bg-indigo-900/20 hover:text-white hover:ring-1 hover:ring-indigo-800/25'
+                      }`}
+                    >
+                      <span 
+                        className={`transition-all duration-200 ${
+                          isActive 
+                            ? 'text-indigo-400' 
+                            : 'group-hover:text-indigo-400'
+                        }`}
+                      >
+                        {item.icon}
+                      </span>
+                      <span className={`text-sm font-medium tracking-wide ${
+                        isActive 
+                          ? 'text-indigo-100' 
+                          : 'group-hover:text-indigo-100'
+                      }`}>
+                        {item.text}
+                      </span>
+                      {isActive && (
+                        <span className="ml-auto w-1 h-4 rounded-full bg-gradient-to-b from-indigo-400 to-indigo-600"></span>
+                      )}
+                    </div>
+                  )}
+                </NavLink>
+              </li>
+            ))}
+          </ul>
+        </nav>
       </aside>
     </>
   );

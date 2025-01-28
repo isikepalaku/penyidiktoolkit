@@ -3,6 +3,7 @@ import type { ExtendedAgent, FormData } from '../../types';
 import AutosizeTextarea from '../AutosizeTextarea';
 import { FileImage, Loader2 } from 'lucide-react';
 import { submitImageAnalysis } from '../../services/imageService';
+import { Label } from "@/components/ui/label";
 
 export interface BaseAgentFormProps {
   agent: ExtendedAgent;
@@ -54,13 +55,13 @@ export const BaseAgentForm: React.FC<BaseAgentFormProps> = ({
     <div className="space-y-6">
       {agent.fields.map((field) => (
         <div key={field.id}>
-          <label htmlFor={`field-${field.id}`} className="block text-sm font-medium text-gray-700 mb-2">
+          <Label htmlFor={field.id}>
             {field.label}
-          </label>
+          </Label>
           {field.type === 'textarea' ? (
-            <div className="relative">
+            <div className="relative mt-2">
               <AutosizeTextarea
-                id={`field-${field.id}`}
+                id={field.id}
                 name={field.id}
                 value={(formData[field.id] as string) || ''}
                 onChange={(value) => onInputChange(field.id, value)}
@@ -77,7 +78,7 @@ export const BaseAgentForm: React.FC<BaseAgentFormProps> = ({
                       <span className="text-sm">Memproses gambar...</span>
                     </div>
                   )}
-                  <label
+                  <Label
                     htmlFor={`image-upload-${field.id}`}
                     className="cursor-pointer p-2 rounded-lg hover:bg-gray-100 transition-colors"
                     title="Upload gambar untuk ekstrak teks"
@@ -92,7 +93,7 @@ export const BaseAgentForm: React.FC<BaseAgentFormProps> = ({
                       onChange={handleImageUpload}
                       disabled={isProcessingImage}
                     />
-                  </label>
+                  </Label>
                 </div>
               )}
               {imageError && (
@@ -103,12 +104,12 @@ export const BaseAgentForm: React.FC<BaseAgentFormProps> = ({
             </div>
           ) : (
             <input
-              id={`field-${field.id}`}
+              id={field.id}
               name={field.id}
               type="text"
               value={(formData[field.id] as string) || ''}
               onChange={(e) => onInputChange(field.id, e.target.value)}
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="mt-2 w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder={field.placeholder}
             />
           )}
@@ -123,15 +124,15 @@ export const BaseAgentForm: React.FC<BaseAgentFormProps> = ({
 
       <button
         type="submit"
-        disabled={isProcessing || isProcessingImage}
-        className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg 
-          ${isProcessing || isProcessingImage
-            ? 'bg-gray-300 cursor-not-allowed'
+        disabled={isProcessing}
+        className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white font-medium
+          ${isProcessing 
+            ? 'bg-blue-400 cursor-not-allowed' 
             : 'bg-blue-600 hover:bg-blue-700'
-          } text-white transition-colors`}
+          }`}
       >
-        {(isProcessing || isProcessingImage) && <Loader2 className="w-4 h-4 animate-spin" />}
-        {isProcessing ? 'Memproses...' : 'Proses'}
+        {isProcessing && <span className="animate-spin">⏳</span>}
+        {isProcessing ? 'Memproses...' : 'Kirim'}
       </button>
     </div>
   );

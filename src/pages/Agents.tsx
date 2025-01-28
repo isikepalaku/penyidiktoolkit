@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import AgentCard from '../components/AgentCard';
 import ThinkingAnimation from '../components/ThinkingAnimation';
 import ResultArtifact from '../components/ResultArtifact';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, CircuitBoard, Cpu } from 'lucide-react';
 import type { ExtendedAgent } from '../types';
 import { agents } from '../data/agents';
 import { BaseAgentForm } from '../components/agent-forms/BaseAgentForm';
@@ -132,7 +132,13 @@ export default function Agents() {
             <div className="max-w-2xl">
               <div className="flex items-center gap-3 mb-3">
                 <div className="h-8 w-1 bg-blue-500 rounded-full"></div>
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Agen AI</h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                  Agen AI
+                  <div className="inline-flex items-center gap-2 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 p-2 rounded-lg shadow-sm border border-slate-200/50 dark:border-slate-700/50">
+                    <Cpu className="w-5 h-5 text-blue-600 dark:text-blue-400" strokeWidth={1.5} />
+                    <CircuitBoard className="w-5 h-5 text-indigo-600 dark:text-indigo-400" strokeWidth={1.5} />
+                  </div>
+                </h1>
               </div>
               <p className="text-base md:text-lg text-gray-600 dark:text-gray-300 ml-11">
                 Pilih agen AI untuk membantu investigasi Anda

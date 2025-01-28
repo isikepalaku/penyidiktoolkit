@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
 import { User, Bot } from 'lucide-react';
-import { sendChatMessage } from '../services/perkabaService';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { AIInputWithLoading } from './ui/ai-input-with-loading';
@@ -18,7 +17,18 @@ interface Message {
   isAnimating?: boolean;
 }
 
-export default function ChatInterface() {
+interface ChatInterfaceProps {
+  sendMessage: (message: string) => Promise<{
+    text: string;
+    sourceDocuments?: Array<{
+      pageContent: string;
+      metadata: Record<string, string>;
+    }>;
+    error?: string;
+  }>;
+}
+
+export default function ChatInterface({ sendMessage }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -48,8 +58,8 @@ export default function ChatInterface() {
     setIsLoading(true);
 
     try {
-      const response = await sendChatMessage(userMessage.content);
-      
+      const response = await sendMessage(userMessage.content);
+
       if (response.error) {
         throw new Error(response.error);
       }
@@ -61,22 +71,23 @@ export default function ChatInterface() {
         sourceDocuments: response.sourceDocuments,
         isAnimating: true
       };
+
       setMessages(prev => [...prev, botMessage]);
 
-      // After animation is complete, mark it as done
+      // After a short delay, set isAnimating to false
       setTimeout(() => {
-        setMessages(prev => prev.map(msg => 
-          msg === botMessage ? { ...msg, isAnimating: false } : msg
-        ));
-      }, response.text.length * 50); // Adjust timing based on text length
+        setMessages(prev =>
+          prev.map(msg =>
+            msg === botMessage ? { ...msg, isAnimating: false } : msg
+          )
+        );
+      }, 50);
     } catch (error) {
-      console.error('Chat error:', error);
       const errorMessage: Message = {
-        content: error instanceof Error ? error.message : 'An unexpected error occurred',
+        content: error instanceof Error ? error.message : 'Maaf, terjadi kesalahan dalam memproses pesan Anda. Silakan coba lagi dalam beberapa saat.',
         type: 'bot',
         timestamp: new Date(),
-        error: true,
-        isAnimating: true
+        error: true
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
@@ -85,7 +96,7 @@ export default function ChatInterface() {
   };
 
   return (
-    <div className="flex flex-col h-[600px] bg-white rounded-lg shadow-lg border border-gray-200">
+    <div className="flex flex-col h-[600px]">
       {/* Chat container */}
       <div 
         ref={chatContainerRef}
@@ -186,7 +197,7 @@ export default function ChatInterface() {
       </div>
 
       {/* Input form */}
-      <div className="bg-white">
+      <div>
         <AIInputWithLoading
           onSubmit={handleSubmit}
           loadingDuration={3000}

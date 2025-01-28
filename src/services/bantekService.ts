@@ -7,23 +7,26 @@ interface ChatResponse {
   error?: string;
 }
 
-interface ChatMessage {
-  role: 'apiMessage' | 'userMessage';
-  content: string;
-}
-
 interface ChatRequest {
   question: string;
   sessionId?: string;
   memoryKey?: string;
-  history?: ChatMessage[];
+  history?: Array<{
+    role: 'apiMessage' | 'userMessage';
+    content: string;
+  }>;
 }
 
 // Store chat history in memory
 let chatHistory: ChatMessage[] = [];
 
+interface ChatMessage {
+  role: 'apiMessage' | 'userMessage';
+  content: string;
+}
+
 export const sendChatMessage = async (message: string): Promise<ChatResponse> => {
-  const chatflowId = '7a53d29e-fdcd-4791-8a94-c0062ee72f0e';
+  const chatflowId = '718f3ce5-32fd-4010-9508-decfbb7420ea'; // Different chatflow ID for Bantek
   const apiUrl = `/flowise/api/v1/prediction/${chatflowId}`;
 
   try {
@@ -40,7 +43,7 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
     };
 
     // Log the request details
-    console.group('Chat API Request');
+    console.group('Bantek Chat API Request');
     console.log('URL:', apiUrl);
     console.log('Request Body:', JSON.stringify(requestBody, null, 2));
     console.groupEnd();
@@ -55,7 +58,7 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
     });
 
     // Log the response details
-    console.group('Chat API Response');
+    console.group('Bantek Chat API Response');
     console.log('Status:', response.status);
     console.log('Status Text:', response.statusText);
     console.log('Headers:', Object.fromEntries(response.headers.entries()));
@@ -82,7 +85,7 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
     }
     
     // Log the successful response
-    console.group('Chat API Success');
+    console.group('Bantek Chat API Success');
     console.log('Response Data:', JSON.stringify(data, null, 2));
     console.log('Current History:', JSON.stringify(chatHistory, null, 2));
     console.groupEnd();
@@ -93,7 +96,7 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
     };
   } catch (err) {
     // Log the error details
-    console.group('Chat API Error');
+    console.group('Bantek Chat API Error');
     const error = err as Error;
     console.error('Error Type:', error.constructor.name);
     console.error('Error Message:', error.message);

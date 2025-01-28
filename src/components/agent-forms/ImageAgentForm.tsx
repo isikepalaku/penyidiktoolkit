@@ -39,12 +39,15 @@ export const ImageAgentForm: React.FC<BaseAgentFormProps & {
     <div className="space-y-6">
       {/* Prompt Type Selection */}
       <div className="space-y-2">
-        <Label htmlFor="prompt-type">Jenis Analisis</Label>
+        <Label htmlFor="prompt-type-select">Jenis Analisis</Label>
         <Select 
           value={(formData.prompt_type as string) || 'default'}
           onValueChange={(value) => onInputChange('prompt_type', value as keyof typeof imagePrompts)}
         >
-          <SelectTrigger className="ps-2 [&>span]:flex [&>span]:items-center [&>span]:gap-2 [&>span_[data-square]]:shrink-0">
+          <SelectTrigger 
+            id="prompt-type-select"
+            className="ps-2 [&>span]:flex [&>span]:items-center [&>span]:gap-2 [&>span_[data-square]]:shrink-0"
+          >
             <SelectValue placeholder="Pilih jenis analisis" />
           </SelectTrigger>
           <SelectContent className="[&_*[role=option]>span]:end-2 [&_*[role=option]>span]:start-auto [&_*[role=option]>span]:flex [&_*[role=option]>span]:items-center [&_*[role=option]>span]:gap-2 [&_*[role=option]]:pe-8 [&_*[role=option]]:ps-2">
@@ -119,12 +122,13 @@ export const ImageAgentForm: React.FC<BaseAgentFormProps & {
       <button
         type="submit"
         disabled={isProcessing || !formData.image_file}
-        className={`w-full py-3 px-4 rounded-lg text-white font-medium ${
-          isProcessing || !formData.image_file
-            ? 'bg-gray-400 cursor-not-allowed'
+        className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white font-medium
+          ${isProcessing 
+            ? 'bg-blue-400 cursor-not-allowed' 
             : 'bg-blue-600 hover:bg-blue-700'
-        }`}
+          }`}
       >
+        {isProcessing && <span className="animate-spin">⏳</span>}
         {isProcessing ? 'Memproses...' : 'Analisis Gambar'}
       </button>
     </div>

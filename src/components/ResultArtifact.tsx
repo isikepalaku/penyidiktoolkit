@@ -80,7 +80,7 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
       
       {/* Result panel with smooth slide-in animation */}
       <div className="fixed right-0 top-0 h-full lg:w-1/2 w-full bg-white border-l border-gray-200 overflow-auto z-40 shadow-xl animate-slide-left">
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center no-print">
+        <div className="p-4 flex justify-between items-center border-b border-gray-200 no-print">
           <h2 className="text-xl font-semibold text-gray-900">Hasil Analisis</h2>
           <div className="flex items-center gap-2">
             <button
