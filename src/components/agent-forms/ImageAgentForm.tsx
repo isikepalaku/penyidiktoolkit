@@ -29,46 +29,17 @@ const Square = ({ className, children }: { className?: string; children: React.R
 export const ImageAgentForm: React.FC<BaseAgentFormProps & { 
   imagePreview: string | null 
 }> = ({
+  agent,
   formData,
   onInputChange,
   error,
   isProcessing,
   imagePreview
 }) => {
+  const isImageProcessor = agent.type === 'image_processor';
+
   return (
     <div className="space-y-6">
-      {/* Prompt Type Selection */}
-      <div className="space-y-2">
-        <Label htmlFor="prompt-type-select">Jenis Analisis</Label>
-        <Select 
-          value={(formData.prompt_type as string) || 'default'}
-          onValueChange={(value) => onInputChange('prompt_type', value as keyof typeof imagePrompts)}
-        >
-          <SelectTrigger 
-            id="prompt-type-select"
-            className="ps-2 [&>span]:flex [&>span]:items-center [&>span]:gap-2 [&>span_[data-square]]:shrink-0"
-          >
-            <SelectValue placeholder="Pilih jenis analisis" />
-          </SelectTrigger>
-          <SelectContent className="[&_*[role=option]>span]:end-2 [&_*[role=option]>span]:start-auto [&_*[role=option]>span]:flex [&_*[role=option]>span]:items-center [&_*[role=option]>span]:gap-2 [&_*[role=option]]:pe-8 [&_*[role=option]]:ps-2">
-            <SelectGroup>
-              <SelectItem value="default">
-                <Square className="bg-blue-400/20 text-blue-500">
-                  <FileImage className="h-3 w-3" />
-                </Square>
-                <span className="truncate">Analisis Standar</span>
-              </SelectItem>
-              <SelectItem value="forensic">
-                <Square className="bg-purple-400/20 text-purple-500">
-                  <Microscope className="h-3 w-3" />
-                </Square>
-                <span className="truncate">Analisis Forensik</span>
-              </SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </div>
-
       {/* Image Upload */}
       <div>
         <Label htmlFor="field-image_file">Upload Gambar</Label>
@@ -98,18 +69,55 @@ export const ImageAgentForm: React.FC<BaseAgentFormProps & {
         </div>
       )}
 
-      {/* Description Textarea */}
-      <div>
-        <Label htmlFor="field-image_description">Deskripsi Gambar (Opsional)</Label>
-        <textarea
-          id="field-image_description"
-          name="image_description"
-          value={(formData.image_description as string) || ''}
-          onChange={(e) => onInputChange('image_description', e.target.value)}
-          placeholder="Berikan deskripsi tambahan tentang gambar..."
-          className="mt-2 w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px]"
-        />
-      </div>
+      {/* Only show these fields for regular image agent */}
+      {!isImageProcessor && (
+        <>
+          {/* Prompt Type Selection */}
+          <div className="space-y-2">
+            <Label htmlFor="prompt-type-select">Jenis Analisis</Label>
+            <Select 
+              value={(formData.prompt_type as string) || 'default'}
+              onValueChange={(value) => onInputChange('prompt_type', value as keyof typeof imagePrompts)}
+            >
+              <SelectTrigger 
+                id="prompt-type-select"
+                className="ps-2 [&>span]:flex [&>span]:items-center [&>span]:gap-2 [&>span_[data-square]]:shrink-0"
+              >
+                <SelectValue placeholder="Pilih jenis analisis" />
+              </SelectTrigger>
+              <SelectContent className="[&_*[role=option]>span]:end-2 [&_*[role=option]>span]:start-auto [&_*[role=option]>span]:flex [&_*[role=option]>span]:items-center [&_*[role=option]>span]:gap-2 [&_*[role=option]]:pe-8 [&_*[role=option]]:ps-2">
+                <SelectGroup>
+                  <SelectItem value="default">
+                    <Square className="bg-blue-400/20 text-blue-500">
+                      <FileImage className="h-3 w-3" />
+                    </Square>
+                    <span className="truncate">Analisis Standar</span>
+                  </SelectItem>
+                  <SelectItem value="forensic">
+                    <Square className="bg-purple-400/20 text-purple-500">
+                      <Microscope className="h-3 w-3" />
+                    </Square>
+                    <span className="truncate">Analisis Forensik</span>
+                  </SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Description Textarea */}
+          <div>
+            <Label htmlFor="field-image_description">Deskripsi Gambar (Opsional)</Label>
+            <textarea
+              id="field-image_description"
+              name="image_description"
+              value={(formData.image_description as string) || ''}
+              onChange={(e) => onInputChange('image_description', e.target.value)}
+              placeholder="Berikan deskripsi tambahan tentang gambar..."
+              className="mt-2 w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px]"
+            />
+          </div>
+        </>
+      )}
 
       {/* Error Display */}
       {error && (

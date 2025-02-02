@@ -4,6 +4,7 @@ import { submitImageAnalysis } from '../services/imageService';
 import { submitAgentAnalysis as submitSpktAnalysis } from '../services/agentSpkt';
 import { submitAgentAnalysis as submitCaseAnalysis } from '../services/agentCaseResearch';
 import { submitAgentAnalysis as submitHoaxAnalysis } from '../services/agentHoaxChecker';
+import { submitImageProcessorAnalysis } from '../services/imageProcessorService';
 import { imagePrompts } from '../data/agents/imageAgent';
 import { agents } from '../data/agents';
 
@@ -51,7 +52,14 @@ export const useAgentForm = (): UseAgentFormResult => {
     try {
       let response: string;
 
-      if (agentType === 'image') {
+      if (agentType === 'image_processor') {
+        const imageFile = formData.image_file;
+        if (!imageFile || !(imageFile instanceof File)) {
+          throw new Error('Mohon pilih file gambar');
+        }
+        
+        response = await submitImageProcessorAnalysis(imageFile);
+      } else if (agentType === 'image') {
         const imageFile = formData.image_file;
         if (!imageFile || !(imageFile instanceof File)) {
           throw new Error('Mohon pilih file gambar');

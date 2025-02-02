@@ -1,5 +1,5 @@
-import React from 'react';
 import { DotBackground } from '@/components/ui/DotBackground';
+import { TimelineDemo } from '@/components/ui/timeline.demo';
 
 export default function Home() {
   return (
@@ -8,16 +8,17 @@ export default function Home() {
         <div className="max-w-2xl">
           <div className="flex items-center gap-3 mb-3">
             <div className="h-8 w-1 bg-blue-500 rounded-full"></div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Home</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">RESERSE AI</h1>
           </div>
           <p className="text-base md:text-lg text-gray-600 dark:text-gray-300 ml-11 mb-8">
-            Selamat datang di Reserse AI Multi Agent
+            Timeline perkembangan tools Reserse AI Multi Agent
           </p>
         </div>
 
         {/* Content will be added here */}
         <div className="mt-8">
           {/* Your components will go here */}
+          <TimelineDemo />
         </div>
       </div>
     </DotBackground>

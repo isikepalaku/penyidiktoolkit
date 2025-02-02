@@ -57,6 +57,7 @@ export default function Agents() {
 
     switch (selectedAgentData.type) {
       case 'image':
+      case 'image_processor':
         return <ImageAgentForm {...commonProps} imagePreview={imagePreview} />;
       case 'hoax_checker':
       case 'case_research':
