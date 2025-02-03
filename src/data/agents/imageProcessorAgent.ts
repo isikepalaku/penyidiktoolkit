@@ -2,17 +2,17 @@ import type { ExtendedAgent } from '../../types';
 
 export const imageProcessorAgent: ExtendedAgent = {
   id: 'geo-image-agent',
-  name: 'Image Processor',
+  name: 'Pencari Lokasi dari Foto',
   type: 'image_processor',
   status: 'on',
-  description: 'Menganalisis gambar untuk investigasi dan ekstraksi informasi menggunakan AI.',
+  description: 'Menganalisis foto dan menentukan lokasi berdasarkan foto yang diberikan.',
   fields: [
     {
       id: 'image',
-      label: 'Upload Gambar',
+      label: 'Upload Foto',
       type: 'file',
       accept: 'image/*',
-      placeholder: 'Pilih file gambar untuk dianalisis...'
+      placeholder: 'Pilih file foto untuk dianalisis...'
     }
   ]
 };

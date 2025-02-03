@@ -11,16 +11,16 @@ export function TimelineDemo() {
   return (
     <Timeline>
       <TimelineItem status="done">
-        <TimelineHeading>Case Research Agent</TimelineHeading>
+        <TimelineHeading>Peneliti Hukum</TimelineHeading>
         <TimelineDot status="done" />
         <TimelineLine done />
         <TimelineContent>
-          Agen untuk melakukan penelitian kasus. Membantu investigasi dengan menganalisis dan mencari informasi terkait kasus.
+          Agen untuk melakukan penelitian hukum. Membantu menganalisis kasus secara Akademis.
         </TimelineContent>
       </TimelineItem>
       
       <TimelineItem status="done">
-        <TimelineHeading>Hoax Checker Agent</TimelineHeading>
+        <TimelineHeading>Pemeriksa Hoax</TimelineHeading>
         <TimelineDot status="done" />
         <TimelineLine done />
         <TimelineContent>
@@ -38,7 +38,7 @@ export function TimelineDemo() {
       </TimelineItem>
 
       <TimelineItem status="done">
-        <TimelineHeading>Bantek Agent</TimelineHeading>
+        <TimelineHeading>SOP Bantek</TimelineHeading>
         <TimelineDot status="done" />
         <TimelineLine done />
         <TimelineContent>
@@ -46,10 +46,10 @@ export function TimelineDemo() {
         </TimelineContent>
       </TimelineItem>
 
-      <TimelineItem>
-        <TimelineHeading>Image Processor Agent</TimelineHeading>
-        <TimelineDot status="current" />
-        <TimelineLine />
+      <TimelineItem status="done">
+        <TimelineHeading>Pencarian Lokasi dari Gambar</TimelineHeading>
+        <TimelineDot status="done" />
+        <TimelineLine done/>
         <TimelineContent>
           Agen khusus untuk menganalisis dan mencari lokasi berdasarkan gambar yang diberikan.
         </TimelineContent>
@@ -65,16 +65,16 @@ export function TimelineDemo() {
       </TimelineItem>
 
       <TimelineItem status="done">
-        <TimelineHeading>Search Putusan Agent</TimelineHeading>
+        <TimelineHeading>Pencari Putusan Peradilan</TimelineHeading>
         <TimelineDot status="done" />
         <TimelineLine done />
         <TimelineContent>
-          Agen untuk pencarian putusan pengadilan berdasarkan kasus. Membantu referensi kasus serupa.
+          Agen untuk pencarian putusan pengadilan berdasarkan kronologis kasus. Membantu referensi kasus serupa.
         </TimelineContent>
       </TimelineItem>
 
       <TimelineItem status="done">
-        <TimelineHeading>Wassidik Agent</TimelineHeading>
+        <TimelineHeading>SOP Wassidik</TimelineHeading>
         <TimelineDot status="done" />
         <TimelineLine done />
         <TimelineContent>
