@@ -63,6 +63,18 @@ export default defineConfig({
           proxy.on('error', (err) => {
             console.log('Local API proxy error:', err);
           });
+          proxy.on('proxyReq', (proxyReq) => {
+            proxyReq.setHeader('origin', 'http://localhost:8000');
+            proxyReq.setHeader('Access-Control-Allow-Origin', '*');
+            proxyReq.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE');
+            proxyReq.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+          });
+          proxy.on('proxyRes', (proxyRes) => {
+            proxyRes.headers['access-control-allow-origin'] = '*';
+            proxyRes.headers['access-control-allow-methods'] = 'GET,HEAD,PUT,PATCH,POST,DELETE';
+            proxyRes.headers['access-control-allow-headers'] = 'Content-Type, Authorization';
+            proxyRes.headers['access-control-max-age'] = '86400';
+          });
         }
       } as ProxyOptions,
       // Flowise API proxy - using a different path to avoid conflicts

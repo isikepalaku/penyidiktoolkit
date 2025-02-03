@@ -1,14 +1,14 @@
 import type { ExtendedAgent } from '../../types';
 
 export const imageProcessorAgent: ExtendedAgent = {
-  id: 'image-processor-agent',
+  id: 'geo-image-agent',
   name: 'Image Processor',
   type: 'image_processor',
   status: 'on',
   description: 'Menganalisis gambar untuk investigasi dan ekstraksi informasi menggunakan AI.',
   fields: [
     {
-      id: 'image_file',
+      id: 'image',
       label: 'Upload Gambar',
       type: 'file',
       accept: 'image/*',

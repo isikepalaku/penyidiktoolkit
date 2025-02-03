@@ -1,7 +1,19 @@
 import { env } from '@/config/env';
+import { imageProcessorAgent } from '@/data/agents/imageProcessorAgent';
+
+interface Message {
+  role: string;
+  content: string;
+}
+
+interface StreamEvent {
+  event: string;
+  content?: string;
+  messages?: Message[];
+}
 
 const API_KEY = env.apiKey;
-const MAX_RETRIES = 1; // Only retry once
+const MAX_RETRIES = 1;
 const RETRY_DELAY = 1000;
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -12,17 +24,14 @@ export const submitImageProcessorAnalysis = async (imageFile: File): Promise<str
   while (retries <= MAX_RETRIES) {
     try {
       console.log(`Attempt ${retries + 1} of ${MAX_RETRIES + 1}`);
-
+      
       const formData = new FormData();
-      formData.append('message', 'Please analyze the geographic location and details shown in this image.');
-      formData.append('agent_id', 'geo-expert-agent');
-      formData.append('stream', 'false');
-      formData.append('monitor', 'false');
+      formData.append('message', 'string');
+      formData.append('stream', 'true');
+      formData.append('monitor', 'false'); 
       formData.append('session_id', 'string');
       formData.append('user_id', 'string');
-      formData.append('files', imageFile);
-
-      console.log('Sending request with FormData');
+      formData.append('image', imageFile);
 
       const headers: HeadersInit = {
         'Accept': 'application/json'
@@ -32,8 +41,6 @@ export const submitImageProcessorAnalysis = async (imageFile: File): Promise<str
         headers['X-API-Key'] = API_KEY;
       }
 
-      console.log('Request headers:', headers);
-
       const requestOptions: RequestInit = {
         method: 'POST',
         headers,
@@ -41,35 +48,79 @@ export const submitImageProcessorAnalysis = async (imageFile: File): Promise<str
         credentials: 'include' as RequestCredentials
       };
 
-      console.log('Sending request to API proxy');
-
-      const response = await fetch('/api/v1/playground/agent/run', requestOptions);
-
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      const response = await fetch(`/v1/playground/agents/${imageProcessorAgent.id}/runs`, requestOptions);
 
       if (!response.ok) {
-        const errorData = await response.text();
-        console.error('Error response:', errorData);
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        
+        if (response.status >= 500 && retries < MAX_RETRIES) {
+          retries++;
+          await wait(RETRY_DELAY * retries);
+          continue;
+        }
+        
+        throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
       }
 
-      const data = await response.json();
-      console.log('Response data:', data);
+      const responseText = await response.text();
+      const events = responseText.split('}').map(event => {
+        if (!event.trim()) return null;
+        try {
+          return JSON.parse(event + '}') as StreamEvent;
+        } catch {
+          try {
+            return JSON.parse(event.trim() + '}') as StreamEvent;
+          } catch {
+            return null;
+          }
+        }
+      }).filter((event): event is StreamEvent => event !== null);
 
-      return data.response || data.result || '';
+      // Cari RunCompleted event
+      const completedEvent = events.find(event => event.event === 'RunCompleted');
+      if (completedEvent?.content) {
+        return completedEvent.content;
+      }
+
+      // Jika tidak ada RunCompleted, gabungkan semua RunResponse
+      const responseContent = events
+        .filter(event => event.event === 'RunResponse')
+        .map(event => event.content)
+        .filter((content): content is string => content !== undefined)
+        .join('');
+
+      if (responseContent) {
+        return responseContent;
+      }
+
+      // Jika masih tidak ada, coba ambil dari messages
+      const messagesEvent = events.find(event => event.messages && Array.isArray(event.messages) && event.messages.length > 0);
+      if (messagesEvent?.messages) {
+        const modelMessages = messagesEvent.messages
+          .filter((msg: Message) => msg.role === 'model')
+          .map((msg: Message) => msg.content);
+        
+        if (modelMessages.length > 0) {
+          return modelMessages[modelMessages.length - 1];
+        }
+      }
+
+      console.error('No valid content found in events:', events);
+      throw new Error('Tidak ada konten yang valid dari response');
 
     } catch (error) {
-      console.error(`Error in attempt ${retries + 1}:`, error);
+      console.error('Error in submitImageProcessorAnalysis:', error);
       
-      if (retries === MAX_RETRIES) {
-        throw new Error('Failed to process image after maximum retries');
+      if ((error instanceof TypeError || error instanceof Error) && retries < MAX_RETRIES) {
+        retries++;
+        await wait(RETRY_DELAY * retries);
+        continue;
       }
       
-      retries++;
-      await wait(RETRY_DELAY * retries);
+      throw error;
     }
   }
-
-  throw new Error('Failed to process image');
+  
+  throw new Error('Gagal setelah mencoba maksimum retries');
 };

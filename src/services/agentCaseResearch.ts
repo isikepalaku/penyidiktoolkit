@@ -44,7 +44,7 @@ export const submitAgentAnalysis = async (
 
       console.log('Sending request to API proxy');
 
-      const response = await fetch('/api/v1/playground/agent/run', requestOptions);
+      const response = await fetch('/api/v1/playground/agents/penyidik-polri-agent/runs', requestOptions);
 
       console.log('Response status:', response.status);
       console.log('Response headers:', Object.fromEntries(response.headers.entries()));
