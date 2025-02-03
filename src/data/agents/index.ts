@@ -3,6 +3,7 @@ import { caseResearchAgent } from './caseResearchAgent';
 import { imageAgent } from './imageAgent';
 import { hoaxCheckerAgent } from './hoaxCheckerAgent';
 import { imageProcessorAgent } from './imageProcessorAgent';
+import { modusKejahatanAgent } from './modusKejahatanAgent';
 import type { ExtendedAgent } from '../../types';
 
 export const agents: ExtendedAgent[] = [
@@ -10,7 +11,8 @@ export const agents: ExtendedAgent[] = [
   caseResearchAgent,
   imageAgent,
   hoaxCheckerAgent,
-  imageProcessorAgent
+  imageProcessorAgent,
+  modusKejahatanAgent
 ];
 
 export {
@@ -18,5 +20,6 @@ export {
   caseResearchAgent,
   imageAgent,
   hoaxCheckerAgent,
-  imageProcessorAgent
+  imageProcessorAgent,
+  modusKejahatanAgent
 };

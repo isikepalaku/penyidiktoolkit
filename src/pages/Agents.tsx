@@ -62,6 +62,7 @@ export default function Agents() {
       case 'hoax_checker':
       case 'case_research':
       case 'spkt':
+      case 'modus_kejahatan':
         return <BaseAgentForm {...commonProps} />;
       default:
         return null;

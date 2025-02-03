@@ -105,5 +105,6 @@ export default defineConfig({
         },
       } as ProxyOptions
     }
-  }
+  },
+  assetsInclude: ['**/*.svg'],
 });

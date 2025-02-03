@@ -1,4 +1,4 @@
-import { Brain, User, PieChart, Image, FileText, MessageSquare, Search, Database } from 'lucide-react';
+import { Brain, User, PieChart, Image, FileText, MessageSquare, Search, Database, Target, MapPin } from 'lucide-react';
 import type { Agent } from '../types/index';
 import { getTypeDisplay } from '@/utils/utils';
 
@@ -28,30 +28,36 @@ export default function AgentCard({ agent, bgColor = 'bg-white' }: AgentCardProp
         return <MessageSquare className="text-green-500" size={24} />;
       case 'emp_chat':
         return <Database className="text-amber-500" size={24} />;
+      case 'modus_kejahatan':
+        return <Target className="text-red-500" size={24} />;
+      case 'image_processor':
+        return <MapPin className="text-blue-500" size={24} />;
       default:
         return <PieChart className="text-gray-500" size={24} />;
     }
   };
 
   return (
-    <div className={`${bgColor} rounded-lg shadow-md p-6 hover:shadow-xl transition-all duration-300 border border-gray-100 group`}>
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-white/80 rounded-lg group-hover:bg-white transition-colors">
-            {getAgentIcon()}
+    <div className={`${bgColor} rounded-lg shadow-md p-6 hover:shadow-xl transition-all duration-300 border border-gray-100 group h-[200px] flex flex-col justify-between`}>
+      <div>
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white/80 rounded-lg group-hover:bg-white transition-colors">
+              {getAgentIcon()}
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 line-clamp-1">{agent.name}</h3>
           </div>
-          <h3 className="text-lg font-semibold text-gray-900">{agent.name}</h3>
+          <span className={`px-3 py-1 rounded-full text-sm ${
+            agent.status === 'on' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
+          }`}>
+            {agent.status === 'on' ? 'Siap' : 'Bekerja'}
+          </span>
         </div>
-        <span className={`px-3 py-1 rounded-full text-sm ${
-          agent.status === 'on' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
-        }`}>
-          {agent.status === 'on' ? 'Siap' : 'Bekerja'}
-        </span>
+        
+        <p className="text-gray-600 mb-3 line-clamp-2 text-sm">{agent.description}</p>
       </div>
       
-      <p className="text-gray-600 mb-4 line-clamp-2">{agent.description}</p>
-      
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 mt-auto">
         <span className="px-3 py-1 bg-white/80 text-blue-600 rounded-full text-sm font-medium">
           Analisis {getTypeDisplay(agent.type)}
         </span>

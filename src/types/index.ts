@@ -28,8 +28,29 @@ export interface Agent {
   description: string;
 }
 
-export interface ExtendedAgent extends Agent {
-  fields: Field[];
+export type AgentType = 
+  | 'spkt'
+  | 'case_research'
+  | 'image'
+  | 'hoax_checker'
+  | 'image_processor'
+  | 'modus_kejahatan';
+
+export interface ExtendedAgent {
+  id: string;
+  name: string;
+  type: AgentType;
+  status: 'on' | 'off';
+  description: string;
+  fields: AgentField[];
+}
+
+export interface AgentField {
+  id: string;
+  label: string;
+  type: 'text' | 'textarea' | 'file';
+  placeholder?: string;
+  accept?: string;
 }
 
 export type FormDataValue = string | File | null;

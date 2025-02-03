@@ -51,10 +51,28 @@ export const BaseAgentForm: React.FC<BaseAgentFormProps> = ({
     }
   };
 
+  // Fungsi untuk menentukan ukuran textarea berdasarkan tipe agen
+  const getTextareaSize = (agentType: string) => {
+    switch (agentType) {
+      case 'modus_kejahatan':
+        return {
+          minRows: 2,
+          maxRows: 3,
+          className: "w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm text-sm"
+        };
+      default:
+        return {
+          minRows: 3,
+          maxRows: 12,
+          className: "w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+        };
+    }
+  };
+
   return (
     <div className="space-y-6">
       {agent.fields.map((field) => (
-        <div key={field.id}>
+        <div key={field.id} className="space-y-2">
           <Label htmlFor={field.id}>
             {field.label}
           </Label>
@@ -66,9 +84,7 @@ export const BaseAgentForm: React.FC<BaseAgentFormProps> = ({
                 value={(formData[field.id] as string) || ''}
                 onChange={(value) => onInputChange(field.id, value)}
                 placeholder={field.placeholder}
-                minRows={3}
-                maxRows={12}
-                className="shadow-sm"
+                {...getTextareaSize(agent.type)}
               />
               {(agent.type === 'spkt' || agent.type === 'hoax_checker') && (
                 <div className="absolute right-3 bottom-3 flex items-center gap-2">
@@ -131,7 +147,7 @@ export const BaseAgentForm: React.FC<BaseAgentFormProps> = ({
             : 'bg-blue-600 hover:bg-blue-700'
           }`}
       >
-        {isProcessing && <span className="animate-spin">⏳</span>}
+        {isProcessing && <Loader2 className="w-4 h-4 animate-spin" />}
         {isProcessing ? 'Memproses...' : 'Kirim'}
       </button>
     </div>

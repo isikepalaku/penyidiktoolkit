@@ -7,6 +7,7 @@ import { submitAgentAnalysis as submitHoaxAnalysis } from '../services/agentHoax
 import { submitImageProcessorAnalysis } from '../services/imageProcessorService';
 import { imagePrompts } from '../data/agents/imageAgent';
 import { agents } from '../data/agents';
+import { submitModusKejahatanAnalysis } from '../services/agentModusKejahatan';
 
 interface UseAgentFormResult {
   formData: FormData;
@@ -73,13 +74,11 @@ export const useAgentForm = (): UseAgentFormResult => {
           promptType
         );
       } else {
-        // Handle non-image agents
         const agent = agents.find(a => a.type === agentType);
         if (!agent) {
           throw new Error('Tipe agen tidak ditemukan');
         }
 
-        // Get the first textarea field from the agent's fields
         const textField = agent.fields.find(f => f.type === 'textarea');
         if (!textField) {
           throw new Error('Konfigurasi agen tidak valid');
@@ -90,7 +89,6 @@ export const useAgentForm = (): UseAgentFormResult => {
           throw new Error(`Mohon isi ${textField.label.toLowerCase()}`);
         }
 
-        // Use the appropriate service based on agent type
         switch (agentType) {
           case 'case_research':
             response = await submitCaseAnalysis(message.trim());
@@ -100,6 +98,9 @@ export const useAgentForm = (): UseAgentFormResult => {
             break;
           case 'hoax_checker':
             response = await submitHoaxAnalysis(message.trim());
+            break;
+          case 'modus_kejahatan':
+            response = await submitModusKejahatanAnalysis(message.trim());
             break;
           default:
             throw new Error('Tipe agen tidak dikenali');
