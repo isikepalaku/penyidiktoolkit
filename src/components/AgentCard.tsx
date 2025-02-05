@@ -5,9 +5,10 @@ import { getTypeDisplay } from '@/utils/utils';
 interface AgentCardProps {
   agent: Agent;
   bgColor?: string;
+  className?: string;
 }
 
-export default function AgentCard({ agent, bgColor = 'bg-white' }: AgentCardProps) {
+export default function AgentCard({ agent, bgColor = 'bg-white', className = '' }: AgentCardProps) {
   const getAgentIcon = () => {
     switch (agent.type) {
       case 'spkt':
@@ -32,11 +33,45 @@ export default function AgentCard({ agent, bgColor = 'bg-white' }: AgentCardProp
         return <Target className="text-red-500" size={24} />;
       case 'image_processor':
         return <MapPin className="text-blue-500" size={24} />;
+      case 'undang_chat':
+        return <FileText className="text-blue-500" size={24} />;
+      case 'kuhp_chat':
+        return <FileText className="text-rose-500" size={24} />;
       default:
         return <PieChart className="text-gray-500" size={24} />;
     }
   };
 
+  // Render khusus untuk agen UU
+  if (agent.type === 'undang_chat' || agent.type === 'kuhp_chat') {
+    return (
+      <div className={`${bgColor} rounded-lg shadow-md p-6 hover:shadow-xl transition-all duration-300 border border-gray-100 group h-[200px] flex flex-col justify-between ${className}`}>
+        <div>
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/80 rounded-lg group-hover:bg-white transition-colors">
+                {getAgentIcon()}
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 line-clamp-1">{agent.name}</h3>
+            </div>
+            <span className={`px-3 py-1 rounded-full text-sm ${
+              agent.status === 'on' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
+            }`}>
+              {agent.status === 'on' ? 'Siap' : 'Bekerja'}
+            </span>
+          </div>
+          <p className="text-gray-600 mb-3 line-clamp-2 text-sm">{agent.description}</p>
+        </div>
+        <div className="flex items-center gap-2 mt-auto">
+          <span className="px-3 py-1 bg-white/80 text-blue-600 rounded-full text-sm font-medium">
+            {agent.type === 'undang_chat' ? 'UU P2SK' : 'KUHP'}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // Render untuk agen lainnya (tampilan original)
   return (
     <div className={`${bgColor} rounded-lg shadow-md p-6 hover:shadow-xl transition-all duration-300 border border-gray-100 group h-[200px] flex flex-col justify-between`}>
       <div>

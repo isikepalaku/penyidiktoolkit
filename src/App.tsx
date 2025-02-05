@@ -5,6 +5,7 @@ import Agents from './pages/Agents';
 import Reports from './pages/Reports';
 import PencarianPutusan from './pages/PencarianPutusan';
 import PerkabaChat from './pages/PerkabaChat';
+import UndangUndang from './pages/UndangUndang';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/agents" element={<Agents />} />
             <Route path="/perkaba-chat" element={<PerkabaChat />} />
+            <Route path="/undang-undang" element={<UndangUndang />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/pencarian-putusan" element={<PencarianPutusan />} />
           </Routes>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Users, FileText, PanelLeft, PanelRightClose, Search, MessageSquare, Home } from 'lucide-react';
+import { Users, FileText, PanelLeft, PanelRightClose, Search, MessageSquare, Home, Scale } from 'lucide-react';
 import logo from '../static/logo.svg';
 
 const Sidebar = () => {
@@ -25,6 +25,11 @@ const Sidebar = () => {
       path: '/perkaba-chat',
       icon: <MessageSquare className="w-5 h-5" />,
       text: 'Perkaba Chat'
+    },
+    {
+      path: '/undang-undang',
+      icon: <Scale className="w-5 h-5" />,
+      text: 'Ahli Undang-Undang'
     },
     {
       path: '/reports',

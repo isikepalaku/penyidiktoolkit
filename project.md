@@ -35,6 +35,7 @@
 │   │       ├── hoaxCheckerAgent.ts    # Hoax verification agent config
 │   │       ├── imageAgent.ts          # Image analysis agent config & prompts
 │   │       ├── perkabaAgents.ts       # Perkaba chat agents configuration
+│   │       └── undangAgent.ts         # Legal expert agent configuration
 │   │
 │   ├── hooks/
 │   │   └── useAgentForm.ts           # Custom hook for form management
@@ -43,7 +44,8 @@
 │   │   ├── Agents.tsx                # Main container for all agents
 │   │   ├── Reports.tsx               # Reports management page
 │   │   ├── PencarianPutusan.tsx      # Court decisions search page
-│   │   └── PerkabaChat.tsx           # Perkaba chat page
+│   │   ├── PerkabaChat.tsx           # Perkaba chat page
+│   │   └── UndangUndang.tsx          # Legal expert consultation page
 │   │
 │   ├── services/
 │   │   ├── imageService.ts           # API & Gemini integration services
@@ -52,6 +54,7 @@
 │   │   ├── agentHoaxChecker.ts      # Hoax verification service
 │   │   ├── perkabaService.ts        # Flowise chat integration service
 │   │   ├── searchPutusanService.ts   # Court decisions search service
+│   │   ├── undangService.ts         # Legal expert chat service
 │   │   └── supabase.ts              # Supabase client configuration
 │   │
 │   ├── types/
@@ -102,6 +105,16 @@
      * Streaming response support
      * CORS-enabled proxy configuration
      * Secure API key management
+
+   - Legal Expert (ID: undang_001)
+     * Real-time legal consultation
+     * Analysis of laws and regulations
+     * Interpretation of legal documents
+     * Reference to relevant laws
+     * Source document citations
+     * Legal precedent analysis
+     * Regulatory compliance guidance
+     * Legal terminology explanations
 
    Common Features Across Agents:
      * Unique ID system for clear identification
@@ -311,6 +324,20 @@ function MyPage() {
        - env.ts: Environment configuration
        - vite.config.ts: Proxy configuration
 
+   - Legal Expert Service (undangService.ts):
+     * Integration with Flowise API
+     * Real-time chat functionality
+     * Legal document reference handling
+     * Components:
+       - Chat message handling
+       - Error management
+       - Response streaming
+       - Source document display
+     * Dependencies:
+       - ChatInterface.tsx: UI component
+       - env.ts: Environment configuration
+       - vite.config.ts: Proxy configuration
+
 ## Environment Configuration
 
 Required environment variables:
@@ -386,3 +413,51 @@ Key TypeScript types:
    - Streaming response support
    - CORS-enabled proxy configuration
    - Secure API key management
+
+4. Legal Expert Integration:
+   - Real-time legal consultation interface
+   - Access to comprehensive legal database
+   - Document-based responses with citations
+   - Legal terminology explanations
+   - Regulatory compliance guidance
+   - Integration with existing chat system
+   - Mobile-responsive design
+   - Error handling and fallback mechanisms
+
+
+PROMPT :
+
+Buat agen baru dengan spesifikasi berikut:
+
+1. Nama Agen: [nama agen]
+2. Path Route: /[path-route]
+3. Icon: [nama icon dari lucide-react]
+4. Deskripsi: [deskripsi singkat agen]
+5. ChatflowId: [ID dari Flowise yang akan digunakan]
+
+Buatkan file-file berikut:
+1. Service file (src/services/[name]Service.ts)
+2. Page file (src/pages/[Name].tsx)
+3. Update di Sidebar.tsx
+4. Update di App.tsx
+5. Update project.md dengan:
+   - Tambahkan di Project Structure
+   - Tambahkan di Investigation Agents
+   - Tambahkan di Implementation Details
+   - Tambahkan di Features
+
+Pastikan:
+- Tidak menghapus fitur yang sudah ada
+- Mengikuti pola yang sama dengan agen-agen sebelumnya
+- Menggunakan komponen yang sudah ada (ChatInterface, AgentCard, dll)
+- Mempertahankan styling yang konsisten
+
+Buat agen baru dengan spesifikasi berikut:
+
+1. Nama Agen: Ahli Undang-Undang
+2. Path Route: /undang-undang
+3. Icon: Scale
+4. Deskripsi: Ajukan pertanyaan seputar Undang-Undang dan dapatkan jawaban berdasarkan peraturan yang berlaku
+5. ChatflowId: CHATFLOW_ID_AKAN_DIISI_NANTI
+
+[Sisanya akan mengikuti template di atas]
