@@ -24,9 +24,8 @@ let chatHistory: ChatMessage[] = [];
 
 export const sendChatMessage = async (message: string): Promise<ChatResponse> => {
   const chatflowId = 'ffa7dc02-dc42-4302-8058-5933e49f407e';
-  // Gunakan host baru yang sudah HTTPS
-  const baseUrl = import.meta.env.VITE_PERKABA_API_URL || 'https://flow.reserse.id';
-  const apiUrl = `${baseUrl}/api/v1/prediction/${chatflowId}`;
+  // Gunakan URL langsung tanpa proxy
+  const apiUrl = 'https://flow.reserse.id/api/v1/prediction/' + chatflowId;
 
   try {
     // Add user message to history
@@ -42,8 +41,7 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
 
     // Log request untuk debugging
     console.group('EMP Chat API Request');
-    console.log('Base URL:', baseUrl);
-    console.log('Full URL:', apiUrl);
+    console.log('API URL:', apiUrl);
     console.log('Request Body:', JSON.stringify(requestBody, null, 2));
     console.groupEnd();
 
@@ -51,11 +49,10 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Sec-Fetch-Site': 'cross-site',
-        'Sec-Fetch-Mode': 'cors'
+        'Accept': 'application/json'
       },
-      body: JSON.stringify(requestBody)
+      mode: 'cors',
+      credentials: 'include'
     });
 
     if (!response.ok) {
