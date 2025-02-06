@@ -24,7 +24,6 @@ let chatHistory: ChatMessage[] = [];
 
 export const sendChatMessage = async (message: string): Promise<ChatResponse> => {
   const chatflowId = 'ffa7dc02-dc42-4302-8058-5933e49f407e';
-  // Gunakan URL langsung tanpa proxy
   const apiUrl = 'https://flow.reserse.id/api/v1/prediction/' + chatflowId;
 
   try {
@@ -52,7 +51,8 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
         'Accept': 'application/json'
       },
       mode: 'cors',
-      credentials: 'include'
+      credentials: 'omit',
+      body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {
