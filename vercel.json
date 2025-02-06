@@ -1,0 +1,18 @@
+{
+  "rewrites": [
+    {
+      "source": "/flowise/:path*",
+      "destination": "http://147.79.70.246:3086/flowise/:path*"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/flowise/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,POST,OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
+      ]
+    }
+  ]
+} 
