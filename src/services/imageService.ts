@@ -8,7 +8,11 @@ if (!GEMINI_API_KEY) {
 }
 
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+// Update model fallback ke gemini-2.0-flash
+const models = {
+  primary: genAI.getGenerativeModel({ model: "gemini-1.5-flash" }),
+  fallback: genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" })
+};
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1 second
@@ -21,6 +25,7 @@ export const submitImageAnalysis = async (
   promptType: keyof typeof imagePrompts = 'default'
 ): Promise<string> => {
   let retries = 0;
+  let useFallbackModel = false;
   
   while (retries < MAX_RETRIES) {
     try {
@@ -62,8 +67,11 @@ export const submitImageAnalysis = async (
         }
       ];
 
+      // Pilih model berdasarkan status
+      const selectedModel = useFallbackModel ? models.fallback : models.primary;
+
       // Generate content using Gemini
-      const result = await model.generateContent(parts);
+      const result = await selectedModel.generateContent(parts);
       const response = await result.response;
       const analysisText = response.text();
 
@@ -76,9 +84,17 @@ export const submitImageAnalysis = async (
     } catch (error) {
       console.error('Error in submitImageAnalysis:', error);
       
-      if (retries < MAX_RETRIES - 1 && 
-          (error instanceof TypeError || 
-           error instanceof Error && error.message.includes('model'))) {
+      // Cek apakah error karena model overload
+      if (error instanceof Error && 
+          (error.message.includes('overloaded') || error.message.includes('503'))) {
+        if (!useFallbackModel) {
+          // Coba gunakan model fallback
+          useFallbackModel = true;
+          continue;
+        }
+      }
+      
+      if (retries < MAX_RETRIES - 1) {
         retries++;
         await wait(RETRY_DELAY * retries);
         continue;

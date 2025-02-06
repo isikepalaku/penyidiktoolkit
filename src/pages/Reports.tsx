@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, FileSpreadsheet, FileBarChart, FileCheck, ArrowLeft } from 'lucide-react';
+import { FileText, FileSpreadsheet, FileBarChart, FileCheck, ArrowLeft, Construction } from 'lucide-react';
 
 type ReportField = {
   id: string;
@@ -155,36 +155,62 @@ export default function Reports() {
   }
 
   return (
-    <div className="p-6 lg:p-8">
-      <header>
-        <div className="max-w-5xl mx-auto pl-14 pr-4 sm:pl-14 sm:pr-4 lg:pl-14 lg:pr-4 py-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 leading-7">Pembuatan Laporan</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Buat laporan otomatis untuk investigasi Anda</p>
+    <div className="relative min-h-screen bg-gray-100 dark:bg-gray-900">
+      {/* Overlay transparan */}
+      <div className="absolute inset-0 bg-white/80 dark:bg-black/80 backdrop-blur-sm z-20" />
+
+      {/* Konten utama */}
+      <div className="relative z-10 p-6 lg:p-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-8 w-1 bg-blue-500 rounded-full"></div>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
+                Laporan
+              </h1>
+            </div>
+            <p className="text-base md:text-lg text-gray-600 dark:text-gray-300 ml-11">
+              Kelola dan pantau laporan investigasi Anda
+            </p>
+          </div>
+
+          {/* Grid konten (bisa ditambahkan nanti) */}
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {reportTypes.map(report => (
+              <div 
+                key={report.id}
+                onClick={() => setSelectedReport(report.id)}
+                className="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-all cursor-pointer border border-gray-100"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="p-2 bg-gray-50 rounded-lg">
+                        {report.icon}
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900">{report.name}</h3>
+                    </div>
+                    <p className="text-gray-600">{report.description}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
-      </header>
+      </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
-        {reportTypes.map(report => (
-          <div 
-            key={report.id}
-            onClick={() => setSelectedReport(report.id)}
-            className="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-all cursor-pointer border border-gray-100"
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-gray-50 rounded-lg">
-                    {report.icon}
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900">{report.name}</h3>
-                </div>
-                <p className="text-gray-600">{report.description}</p>
-              </div>
-            </div>
-          </div>
-        ))}
+      {/* Pesan "Dalam Pengembangan" */}
+      <div className="absolute inset-0 flex items-center justify-center z-30">
+        <div className="text-center bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700">
+          <Construction className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            Dalam Pengembangan
+          </h2>
+          <p className="text-gray-600 dark:text-gray-300">
+            Fitur ini sedang dalam tahap pengembangan dan akan segera hadir. <br />
+            Terima kasih atas kesabaran Anda.
+          </p>
+        </div>
       </div>
     </div>
   );

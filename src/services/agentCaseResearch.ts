@@ -1,7 +1,7 @@
 import { env } from '@/config/env';
 
 const API_KEY = env.apiKey;
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 1;
 const RETRY_DELAY = 1000;
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -17,7 +17,7 @@ export const submitAgentAnalysis = async (
       
       const formData = new FormData();
       formData.append('message', message.trim());
-      formData.append('agent_id', 'web_search_agent');
+      formData.append('agent_id', 'penyidik-polri-agent');
       formData.append('stream', 'false');
       formData.append('monitor', 'false');
       formData.append('session_id', 'string');
