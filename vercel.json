@@ -1,17 +1,18 @@
 {
   "rewrites": [
     {
-      "source": "/flowise/:path*",
-      "destination": "http://147.79.70.246:3086/flowise/:path*"
+      "source": "/api/:path*",
+      "destination": "https://flow.reserse.id/api/:path*"
     }
   ],
   "headers": [
     {
-      "source": "/flowise/(.*)",
+      "source": "/api/(.*)",
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "*" },
         { "key": "Access-Control-Allow-Methods", "value": "GET,POST,OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" },
+        { "key": "Access-Control-Allow-Credentials", "value": "true" }
       ]
     }
   ]

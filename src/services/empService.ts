@@ -24,9 +24,9 @@ let chatHistory: ChatMessage[] = [];
 
 export const sendChatMessage = async (message: string): Promise<ChatResponse> => {
   const chatflowId = 'ffa7dc02-dc42-4302-8058-5933e49f407e';
-  // Gunakan environment variable untuk base URL
-  const baseUrl = import.meta.env.VITE_PERKABA_API_URL || 'http://147.79.70.246:3086';
-  const apiUrl = `${baseUrl}/flowise/api/v1/prediction/${chatflowId}`;
+  // Gunakan host baru yang sudah HTTPS
+  const baseUrl = import.meta.env.VITE_PERKABA_API_URL || 'https://flow.reserse.id';
+  const apiUrl = `${baseUrl}/api/v1/prediction/${chatflowId}`;
 
   try {
     // Add user message to history
@@ -51,7 +51,9 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'  // Tambahkan CORS header
+        'Access-Control-Allow-Origin': '*',
+        'Sec-Fetch-Site': 'cross-site',
+        'Sec-Fetch-Mode': 'cors'
       },
       body: JSON.stringify(requestBody)
     });
