@@ -79,7 +79,7 @@ export default defineConfig({
       } as ProxyOptions,
       // Flowise API proxy - using a different path to avoid conflicts
       '/flowise/': {
-        target: process.env.VITE_PERKABA_API_URL || 'http://147.79.70.246:3086',
+        target: process.env.VITE_PERKABA_API_URL || 'https://flow.reserse.id',
         changeOrigin: true,
         secure: false,
         ws: true,
