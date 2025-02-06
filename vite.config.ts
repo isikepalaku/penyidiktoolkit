@@ -19,6 +19,7 @@ console.log('Environment variables loaded:', {
 });
 
 export default defineConfig({
+  base: '/',
   plugins: [react(), tsconfigPaths()],
   optimizeDeps: {
     exclude: ['lucide-react'],
@@ -37,15 +38,21 @@ export default defineConfig({
       credentials: false,
       maxAge: 86400,
     },
+    watch: {
+      usePolling: true,
+    },
+    hmr: {
+      overlay: true,
+    },
     proxy: {
       // Localhost API proxies
       '/v1': {
-        target: 'https://localhost:8000',
+        target: process.env.VITE_API_URL || 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
         configure: (proxy) => {
           proxy.on('proxyReq', (proxyReq) => {
-            proxyReq.setHeader('origin', 'https://localhost:8000');
+            proxyReq.setHeader('origin', process.env.VITE_API_URL || 'http://localhost:8000');
           });
           proxy.on('proxyRes', (proxyRes) => {
             proxyRes.headers['access-control-allow-origin'] = '*';
@@ -55,7 +62,7 @@ export default defineConfig({
         }
       } as ProxyOptions,
       '/api': {
-        target: 'https://localhost:8000',
+        target: process.env.VITE_API_URL || 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, ''),
@@ -65,7 +72,7 @@ export default defineConfig({
             console.log('Local API proxy error:', err);
           });
           proxy.on('proxyReq', (proxyReq) => {
-            proxyReq.setHeader('origin', 'https://localhost:8000');
+            proxyReq.setHeader('origin', process.env.VITE_API_URL || 'http://localhost:8000');
             proxyReq.setHeader('Access-Control-Allow-Origin', '*');
             proxyReq.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE');
             proxyReq.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -107,12 +114,50 @@ export default defineConfig({
         },
       } as ProxyOptions
     },
-    host: '0.0.0.0',
-    port: 3000
+    host: true,
+    port: 3000,
+    strictPort: true,
   },
   preview: {
     host: '0.0.0.0',
-    port: 3000
+    port: 3000,
+    cors: true,
+    proxy: {
+      '/v1': {
+        target: process.env.VITE_API_URL || 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+        configure: (proxy) => {
+          proxy.on('error', (err) => {
+            console.error('Preview proxy error:', err);
+          });
+        }
+      },
+      '/api': {
+        target: process.env.VITE_API_URL || 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+        configure: (proxy) => {
+          proxy.on('error', (err) => {
+            console.error('Preview proxy error:', err);
+          });
+        }
+      },
+    }
   },
   assetsInclude: ['**/*.svg'],
+  build: {
+    sourcemap: true,
+    outDir: 'dist',
+    assetsDir: 'assets',
+    rollupOptions: {
+      output: {
+        manualChunks: undefined
+      }
+    }
+  },
+  define: {
+    'process.env': process.env
+  },
 });
