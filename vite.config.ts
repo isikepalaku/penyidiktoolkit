@@ -40,12 +40,12 @@ export default defineConfig({
     proxy: {
       // Localhost API proxies
       '/v1': {
-        target: 'http://localhost:8000',
+        target: 'https://localhost:8000',
         changeOrigin: true,
         secure: false,
         configure: (proxy) => {
           proxy.on('proxyReq', (proxyReq) => {
-            proxyReq.setHeader('origin', 'http://localhost:8000');
+            proxyReq.setHeader('origin', 'https://localhost:8000');
           });
           proxy.on('proxyRes', (proxyRes) => {
             proxyRes.headers['access-control-allow-origin'] = '*';
@@ -55,20 +55,22 @@ export default defineConfig({
         }
       } as ProxyOptions,
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'https://localhost:8000',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, ''),
         configure: (proxy) => {
+
           proxy.on('error', (err) => {
             console.log('Local API proxy error:', err);
           });
           proxy.on('proxyReq', (proxyReq) => {
-            proxyReq.setHeader('origin', 'http://localhost:8000');
+            proxyReq.setHeader('origin', 'https://localhost:8000');
             proxyReq.setHeader('Access-Control-Allow-Origin', '*');
             proxyReq.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE');
             proxyReq.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
           });
+
           proxy.on('proxyRes', (proxyRes) => {
             proxyRes.headers['access-control-allow-origin'] = '*';
             proxyRes.headers['access-control-allow-methods'] = 'GET,HEAD,PUT,PATCH,POST,DELETE';

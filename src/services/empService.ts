@@ -24,7 +24,11 @@ let chatHistory: ChatMessage[] = [];
 
 export const sendChatMessage = async (message: string): Promise<ChatResponse> => {
   const chatflowId = 'ffa7dc02-dc42-4302-8058-5933e49f407e';
-  const apiUrl = `/flowise/api/v1/prediction/${chatflowId}`; // Ubah ke format yang sama dengan perkabaService
+  // Gunakan URL lengkap di production (Vercel), proxy hanya untuk development
+  const baseUrl = import.meta.env.PROD 
+    ? (import.meta.env.VITE_PERKABA_API_URL || 'https://flow.reserse.id')
+    : '/flowise';
+  const apiUrl = `${baseUrl}/api/v1/prediction/${chatflowId}`;
 
   try {
     // Add user message to history
@@ -33,15 +37,16 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
       content: message
     });
 
-    // Prepare the request body with history
     const requestBody: ChatRequest = {
       question: message,
       history: chatHistory
     };
 
-    // Log the request details
+    // Log request details
     console.group('Chat API Request');
-    console.log('URL:', apiUrl);
+    console.log('Environment:', import.meta.env.PROD ? 'Production' : 'Development');
+    console.log('Base URL:', baseUrl);
+    console.log('Full URL:', apiUrl);
     console.log('Request Body:', JSON.stringify(requestBody, null, 2));
     console.groupEnd();
 
