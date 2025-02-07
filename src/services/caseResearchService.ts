@@ -1,14 +1,11 @@
 import { caseResearchAgent } from '@/data/agents/caseResearchAgent';
 
-// Gunakan URL tetap untuk case research
-const BASE_URL = 'https://api.reserse.id';
-
 export const submitCaseResearch = async (caseDescription: string): Promise<string> => {
   try {
-    const url = `${BASE_URL}/v1/playground/agents/${caseResearchAgent.id}/runs`;
+    // Gunakan path relatif, nginx akan handle proxy
+    const url = `/v1/playground/agents/${caseResearchAgent.id}/runs`;
 
     console.group('Case Research API Request');
-    console.log('Base URL:', BASE_URL);
     console.log('Full URL:', url);
     console.groupEnd();
 
