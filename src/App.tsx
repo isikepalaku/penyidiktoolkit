@@ -6,8 +6,16 @@ import Reports from './pages/Reports';
 import PencarianPutusan from './pages/PencarianPutusan';
 import PerkabaChat from './pages/PerkabaChat';
 import UndangUndang from './pages/UndangUndang';
+import { lazy, Suspense } from 'react';
+
+// Lazy load components
+const ImageProcessor = lazy(() => import('./components/ImageProcessor'));
+const EmpChat = lazy(() => import('./components/EmpChat'));
 
 function App() {
+  // Tambahkan loading fallback
+  const LoadingFallback = () => <div>Loading...</div>;
+
   return (
     <Router>
       <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -22,6 +30,11 @@ function App() {
             <Route path="/reports" element={<Reports />} />
             <Route path="/pencarian-putusan" element={<PencarianPutusan />} />
           </Routes>
+
+          {/* Wrap dengan Suspense */}
+          <Suspense fallback={<LoadingFallback />}>
+            <ImageProcessor />
+          </Suspense>
         </main>
       </div>
     </Router>
