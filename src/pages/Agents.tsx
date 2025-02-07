@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, lazy, Suspense } from 'react';
 import AgentCard from '../components/AgentCard';
 import ThinkingAnimation from '../components/ThinkingAnimation';
 import ResultArtifact from '../components/ResultArtifact';
@@ -8,6 +8,9 @@ import { agents } from '../data/agents';
 import { BaseAgentForm } from '../components/agent-forms/BaseAgentForm';
 import { ImageAgentForm } from '../components/agent-forms/ImageAgentForm';
 import { useAgentForm } from '../hooks/useAgentForm';
+
+// Lazy load ImageProcessor
+const ImageProcessor = lazy(() => import('../components/ImageProcessor'));
 
 export default function Agents() {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
@@ -68,6 +71,13 @@ export default function Agents() {
         return null;
     }
   };
+
+  // Loading spinner
+  const LoadingSpinner = () => (
+    <div className="flex items-center justify-center p-4">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+    </div>
+  );
 
   if (selectedAgent && selectedAgentData) {
     return (
@@ -161,6 +171,11 @@ export default function Agents() {
           ))}
         </div>
       </div>
+
+      {/* Image Processor dengan Suspense */}
+      <Suspense fallback={<LoadingSpinner />}>
+        <ImageProcessor />
+      </Suspense>
     </div>
   );
 }
