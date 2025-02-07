@@ -42,6 +42,7 @@ export interface ExtendedAgent {
   type: AgentType;
   status: 'on' | 'off';
   description: string;
+  baseUrl?: string;
   fields: AgentField[];
 }
 
