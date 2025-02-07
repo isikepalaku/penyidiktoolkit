@@ -19,7 +19,7 @@ interface StreamEvent {
 const API_KEY = env.apiKey;
 const MAX_RETRIES = 1;
 const RETRY_DELAY = 1000;
-const API_BASE_URL = env.apiUrl || 'https://api.reserse.id'; // Gunakan HTTPS API URL dari environment atau fallback ke production URL
+const API_BASE_URL = env.apiUrl || 'http://localhost:8000'; // Menggunakan localhost Docker container
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 

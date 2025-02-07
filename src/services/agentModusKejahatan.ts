@@ -3,6 +3,7 @@ import { env } from '@/config/env';
 const API_KEY = env.apiKey;
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
+const API_BASE_URL = env.apiUrl || 'http://localhost:8000';
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -44,8 +45,11 @@ export const submitModusKejahatanAnalysis = async (
         body: JSON.stringify(requestBody)
       };
 
-      // Kembali ke endpoint workflow yang bekerja
-      const response = await fetch('/v1/playground/workflows/analisis-modus-kejahatan/runs', requestOptions);
+      // Ubah URL fetch untuk menggunakan API_BASE_URL
+      const url = `${API_BASE_URL}/v1/playground/workflows/analisis-modus-kejahatan/runs`;
+      console.log('Sending request to:', url);
+      
+      const response = await fetch(url, requestOptions);
 
       if (!response.ok) {
         const errorText = await response.text();

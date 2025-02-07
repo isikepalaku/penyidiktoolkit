@@ -3,6 +3,7 @@ import { env } from '@/config/env';
 const API_KEY = env.apiKey;
 const MAX_RETRIES = 1;
 const RETRY_DELAY = 1000;
+const API_BASE_URL = env.apiUrl || 'http://localhost:8000';
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -41,9 +42,10 @@ export const submitAgentAnalysis = async (
         body: formData
       };
 
-      console.log('Sending request to API proxy');
+      const url = `${API_BASE_URL}/v1/playground/agents/penyidik-polri-agent/runs`;
+      console.log('Sending request to:', url);
 
-      const response = await fetch('/api/v1/playground/agents/penyidik-polri-agent/runs', requestOptions);
+      const response = await fetch(url, requestOptions);
 
       console.log('Response status:', response.status);
       console.log('Response headers:', Object.fromEntries(response.headers.entries()));

@@ -3,6 +3,7 @@ import { env } from '@/config/env';
 const API_KEY = env.apiKey;
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
+const API_BASE_URL = env.apiUrl || 'http://localhost:8000';
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -50,7 +51,10 @@ export const submitAgentAnalysis = async (
         body: formData
       };
 
-      const response = await fetch('/v1/playground/agents/hoax-checker-agent/runs', requestOptions);
+      const url = `${API_BASE_URL}/v1/playground/agents/hoax-checker-agent/runs`;
+      console.log('Sending request to:', url);
+      
+      const response = await fetch(url, requestOptions);
 
       console.group('Response Details');
       console.log('Status:', response.status);
