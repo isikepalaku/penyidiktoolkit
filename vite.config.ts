@@ -90,7 +90,11 @@ export default defineConfig(({ mode }) => {
       },
       treeshake: true,
       assetsInlineLimit: 4096,
-      sourcemap: mode === 'development'
+      sourcemap: mode === 'development',
+      commonjsOptions: {
+        include: [/node_modules/],
+        transformMixedEsModules: true
+      }
     },
     define: {
       'process.env': env
