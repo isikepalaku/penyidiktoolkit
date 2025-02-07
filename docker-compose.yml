@@ -4,15 +4,11 @@ services:
   app:
     build: .
     ports:
-      - "80:3000"
+      - "3000:3000"
     env_file:
       - .env
+    environment:
+      - VITE_API_URL=http://103.215.229.163:8000
     restart: unless-stopped
-    networks:
-      - app-network
-    volumes:
-      - ./dist:/app/dist
 
-networks:
-  app-network:
-    driver: bridge 
+# Hapus konfigurasi network karena tidak diperlukan 

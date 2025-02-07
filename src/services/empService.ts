@@ -24,10 +24,9 @@ let chatHistory: ChatMessage[] = [];
 
 export const sendChatMessage = async (message: string): Promise<ChatResponse> => {
   const chatflowId = 'ffa7dc02-dc42-4302-8058-5933e49f407e';
-  // Gunakan URL lengkap di production (Vercel), proxy hanya untuk development
-  const baseUrl = import.meta.env.PROD 
-    ? (import.meta.env.VITE_PERKABA_API_URL || 'https://flow.reserse.id')
-    : '/flowise';
+  
+  // Gunakan proxy path
+  const baseUrl = '/flowise';
   const apiUrl = `${baseUrl}/api/v1/prediction/${chatflowId}`;
 
   try {
@@ -69,6 +68,15 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
     if (!response.ok) {
       const text = await response.text();
       console.error('API Error Response:', text);
+      
+      // Handle specific error codes
+      if (response.status === 502) {
+        return {
+          text: 'Layanan Flowise sedang tidak tersedia. Mohon coba beberapa saat lagi.',
+          error: 'Bad Gateway'
+        };
+      }
+      
       throw new Error(`API Error: ${response.status} - ${text}`);
     }
 

@@ -38,8 +38,7 @@ export const submitAgentAnalysis = async (
       const requestOptions: RequestInit = {
         method: 'POST',
         headers,
-        body: formData,
-        credentials: 'include' as RequestCredentials
+        body: formData
       };
 
       console.log('Sending request to API proxy');

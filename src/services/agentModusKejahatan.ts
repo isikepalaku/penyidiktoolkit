@@ -35,8 +35,7 @@ export const submitModusKejahatanAnalysis = async (
       const requestOptions: RequestInit = {
         method: 'POST',
         headers,
-        body: JSON.stringify(requestBody),
-        credentials: 'include' as RequestCredentials
+        body: JSON.stringify(requestBody)
       };
 
       const response = await fetch('/v1/playground/workflows/analisis-modus-kejahatan/runs', requestOptions);

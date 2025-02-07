@@ -15,6 +15,7 @@ interface StreamEvent {
 const API_KEY = env.apiKey;
 const MAX_RETRIES = 1;
 const RETRY_DELAY = 1000;
+const API_BASE_URL = 'http://localhost:8000'; // Gunakan backend lokal
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -27,11 +28,23 @@ export const submitImageProcessorAnalysis = async (imageFile: File): Promise<str
       
       const formData = new FormData();
       formData.append('message', 'string');
+      formData.append('agent_id', imageProcessorAgent.id);
       formData.append('stream', 'true');
       formData.append('monitor', 'false'); 
       formData.append('session_id', 'string');
       formData.append('user_id', 'string');
       formData.append('image', imageFile);
+
+      console.log('FormData contents:', {
+        message: 'string',
+        agent_id: imageProcessorAgent.id,
+        stream: 'true',
+        monitor: 'false',
+        session_id: 'string',
+        user_id: 'string',
+        image: imageFile.name,
+        size: imageFile.size
+      });
 
       const headers: HeadersInit = {
         'Accept': 'application/json'
@@ -44,11 +57,17 @@ export const submitImageProcessorAnalysis = async (imageFile: File): Promise<str
       const requestOptions: RequestInit = {
         method: 'POST',
         headers,
-        body: formData,
-        credentials: 'include' as RequestCredentials
+        body: formData
       };
 
-      const response = await fetch(`/v1/playground/agents/${imageProcessorAgent.id}/runs`, requestOptions);
+      // Gunakan URL lengkap untuk debugging
+      const url = `${API_BASE_URL}/v1/playground/agents/${imageProcessorAgent.id}/runs`;
+      console.log('Sending request to:', url);
+
+      const response = await fetch(url, requestOptions);
+
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         const errorText = await response.text();
