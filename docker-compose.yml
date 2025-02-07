@@ -1,18 +1,30 @@
 version: '3.8'
 
 services:
-  app:
+  frontend:
     build: .
     ports:
       - "3000:3000"
-    env_file:
-      - .env
+    volumes:
+      - .:/app
+      - /app/node_modules
     environment:
+      - NODE_ENV=development
       - VITE_API_URL=https://api.reserse.id
-    restart: unless-stopped
-    networks:
-      - mynetwork  # Tambahkan network
+      - CHOKIDAR_USEPOLLING=true  # Untuk better hot reload di Docker
+    command: npm run dev
 
-networks:
-  mynetwork:
-    external: true  # Pastikan network tetap ada saat `docker compose down`
+  pgvector:
+    image: phidata/pgvector:16
+    environment:
+      - POSTGRES_DB=ai
+      - POSTGRES_USER=ai 
+      - POSTGRES_PASSWORD=ai
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - pgvolume:/var/lib/postgresql/data
+    ports:
+      - "5532:5432"
+
+volumes:
+  pgvolume: 
