@@ -1,8 +1,11 @@
 version: '3.8'
 
+name: penyidik-toolkit-dev
+
 services:
   frontend:
     build: .
+    container_name: penyidik-frontend
     ports:
       - "3000:3000"
     volumes:
@@ -10,30 +13,10 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
-      - VITE_API_URL=http://localhost:8000
-      - HOST=0.0.0.0
-    networks:
-      - app_network
-    depends_on:
-      - pgvector
-
-  pgvector:
-    image: phidata/pgvector:16
-    environment:
-      - POSTGRES_DB=ai
-      - POSTGRES_USER=ai 
-      - POSTGRES_PASSWORD=ai
-      - PGDATA=/var/lib/postgresql/data/pgdata
-    volumes:
-      - pgvolume:/var/lib/postgresql/data
-    ports:
-      - "5532:5432"
-    networks:
-      - app_network
-
-networks:
-  app_network:
-    driver: bridge
+      - VITE_API_URL=http://host.docker.internal:8000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
 
 volumes:
-  pgvolume: 
+  app-data: {} 

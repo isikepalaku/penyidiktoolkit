@@ -4,7 +4,6 @@ import { resolve } from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import tsconfigPaths from 'vite-tsconfig-paths';
-import type { IncomingMessage } from 'http';
 
 // Load environment variables
 dotenv.config();
@@ -30,32 +29,12 @@ export default defineConfig({
     },
   },
   server: {
-    cors: {
-      origin: '*',
-      methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'Origin', 'Accept'],
-      exposedHeaders: ['Content-Type', 'Authorization'],
-      credentials: false,
-    },
+    cors: true,
     proxy: {
       '/v1': {
-        target: 'http://localhost:8000',
+        target: process.env.VITE_API_URL || 'http://host.docker.internal:8000',
         changeOrigin: true,
-        secure: false,
-        ws: true,
-        configure: (proxy, _options) => {
-          proxy.on('error', (err, _req, _res) => {
-            console.log('proxy error', err);
-          });
-          proxy.on('proxyReq', (proxyReq, req: IncomingMessage & { body?: any }, _res) => {
-            if (req.body && typeof req.body === 'object') {
-              const bodyData = JSON.stringify(req.body);
-              proxyReq.setHeader('Content-Type', 'application/json');
-              proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
-              proxyReq.write(bodyData);
-            }
-          });
-        }
+        secure: false
       },
       '/api': {
         target: 'https://flow.reserse.id',
@@ -83,7 +62,7 @@ export default defineConfig({
     strictPort: true,
     allowedHosts: [
       'localhost',
-      '.reserse.id',  // Ini akan mengizinkan semua subdomain .reserse.id
+      '.reserse.id',
       '0.0.0.0'
     ]
   },
