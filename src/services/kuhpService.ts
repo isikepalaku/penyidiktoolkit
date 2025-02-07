@@ -49,7 +49,8 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_PERKABA_API_KEY}`
+        'Authorization': `Bearer ${import.meta.env.VITE_PERKABA_API_KEY}`,
+        'Accept': 'application/json'
       },
       body: JSON.stringify(requestBody)
     });
