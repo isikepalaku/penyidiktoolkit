@@ -23,6 +23,9 @@ export const submitModusKejahatanAnalysis = async (
         session_id: "string"
       };
 
+      console.group('Request Details');
+      console.log('Request Body:', requestBody);
+
       const headers: HeadersInit = {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
@@ -32,12 +35,16 @@ export const submitModusKejahatanAnalysis = async (
         headers['X-API-Key'] = API_KEY;
       }
 
+      console.log('Headers:', headers);
+      console.groupEnd();
+
       const requestOptions: RequestInit = {
         method: 'POST',
         headers,
         body: JSON.stringify(requestBody)
       };
 
+      // Kembali ke endpoint workflow yang bekerja
       const response = await fetch('/v1/playground/workflows/analisis-modus-kejahatan/runs', requestOptions);
 
       if (!response.ok) {

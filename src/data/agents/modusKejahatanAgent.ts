@@ -1,7 +1,7 @@
 import type { ExtendedAgent } from '../../types';
 
 export const modusKejahatanAgent: ExtendedAgent = {
-  id: 'modus_001',
+  id: 'modus-kejahatan-agent',
   name: 'Pencari Modus Kejahatan',
   type: 'modus_kejahatan',
   status: 'on',

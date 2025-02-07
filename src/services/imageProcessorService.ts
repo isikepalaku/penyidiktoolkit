@@ -1,15 +1,19 @@
 import { env } from '@/config/env';
 import { imageProcessorAgent } from '@/data/agents/imageProcessorAgent';
 
-interface Message {
-  role: string;
-  content: string;
-}
-
 interface StreamEvent {
   event: string;
-  content?: string;
-  messages?: Message[];
+  content: string;
+  content_type: string;
+  model: string;
+  run_id: string;
+  agent_id: string;
+  session_id: string;
+  created_at: number;
+  messages?: Array<{
+    role: string;
+    content: string;
+  }>;
 }
 
 const API_KEY = env.apiKey;
@@ -72,53 +76,53 @@ export const submitImageProcessorAnalysis = async (imageFile: File): Promise<str
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Error response:', errorText);
-        
-        if (response.status >= 500 && retries < MAX_RETRIES) {
-          retries++;
-          await wait(RETRY_DELAY * retries);
-          continue;
-        }
-        
         throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
       }
 
+      // Cek content type
+      const contentType = response.headers.get('content-type');
+      console.log('Content-Type:', contentType);
+
       const responseText = await response.text();
-      const events = responseText.split('}').map(event => {
-        if (!event.trim()) return null;
+      console.log('Raw response:', responseText);
+
+      // Split the response into individual JSON objects
+      const events = responseText.split('}{').map((event, index, array) => {
+        let jsonStr = event;
+        if (index > 0) jsonStr = '{' + jsonStr;
+        if (index < array.length - 1) jsonStr = jsonStr + '}';
         try {
-          return JSON.parse(event + '}') as StreamEvent;
-        } catch {
-          try {
-            return JSON.parse(event.trim() + '}') as StreamEvent;
-          } catch {
-            return null;
-          }
+          return JSON.parse(jsonStr) as StreamEvent;
+        } catch (e) {
+          console.error('Failed to parse event:', jsonStr);
+          return null;
         }
       }).filter((event): event is StreamEvent => event !== null);
 
-      // Cari RunCompleted event
+      // Find the RunCompleted event
       const completedEvent = events.find(event => event.event === 'RunCompleted');
       if (completedEvent?.content) {
         return completedEvent.content;
       }
 
-      // Jika tidak ada RunCompleted, gabungkan semua RunResponse
+      // If no RunCompleted, combine all RunResponse events
       const responseContent = events
         .filter(event => event.event === 'RunResponse')
         .map(event => event.content)
-        .filter((content): content is string => content !== undefined)
         .join('');
 
       if (responseContent) {
         return responseContent;
       }
 
-      // Jika masih tidak ada, coba ambil dari messages
-      const messagesEvent = events.find(event => event.messages && Array.isArray(event.messages) && event.messages.length > 0);
-      if (messagesEvent?.messages) {
-        const modelMessages = messagesEvent.messages
-          .filter((msg: Message) => msg.role === 'model')
-          .map((msg: Message) => msg.content);
+      // If still no content, try to get from the last event's messages
+      const lastEvent = events[events.length - 1];
+      const messages = lastEvent?.messages;
+      
+      if (messages && messages.length > 0) {
+        const modelMessages = messages
+          .filter(msg => msg.role === 'model')
+          .map(msg => msg.content);
         
         if (modelMessages.length > 0) {
           return modelMessages[modelMessages.length - 1];
@@ -126,7 +130,7 @@ export const submitImageProcessorAnalysis = async (imageFile: File): Promise<str
       }
 
       console.error('No valid content found in events:', events);
-      throw new Error('Tidak ada konten yang valid dari response');
+      return 'Tidak dapat memproses respons dari server';
 
     } catch (error) {
       console.error('Error in submitImageProcessorAnalysis:', error);
@@ -141,5 +145,5 @@ export const submitImageProcessorAnalysis = async (imageFile: File): Promise<str
     }
   }
   
-  throw new Error('Gagal setelah mencoba maksimum retries');
+  throw new Error('Failed after maximum retries');
 };

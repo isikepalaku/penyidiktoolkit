@@ -23,83 +23,70 @@ export const submitAgentAnalysis = async (
       formData.append('session_id', 'string');
       formData.append('user_id', 'string');
 
-      console.log('Sending request with FormData');
+      console.group('Request Details');
+      console.log('FormData:', {
+        message: message.trim(),
+        agent_id: 'hoax-checker-agent',
+        stream: 'false',
+        monitor: 'false',
+        session_id: 'string',
+        user_id: 'string'
+      });
 
       const headers: HeadersInit = {
-        'Accept': 'application/json',
+        'Accept': 'application/json'
       };
       
       if (API_KEY) {
         headers['X-API-Key'] = API_KEY;
       }
 
-      console.log('Request headers:', headers);
+      console.log('Headers:', headers);
+      console.groupEnd();
 
       const requestOptions: RequestInit = {
         method: 'POST',
         headers,
-        body: formData,
+        body: formData
       };
 
-      console.log('Sending request to API proxy');
+      const response = await fetch('/v1/playground/agents/hoax-checker-agent/runs', requestOptions);
 
-      const response = await fetch('/api/v1/playground/agents/hoax-checker-agent/runs', requestOptions);
-
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      console.group('Response Details');
+      console.log('Status:', response.status);
+      console.log('Status Text:', response.statusText);
+      console.log('Headers:', Object.fromEntries(response.headers.entries()));
+      console.groupEnd();
 
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Error response:', errorText);
-        
-        if (response.status >= 500 && retries < MAX_RETRIES) {
-          console.log(`Retrying after server error (attempt ${retries + 2} of ${MAX_RETRIES + 1})`);
-          retries++;
-          await wait(RETRY_DELAY * retries);
-          continue;
-        }
-        
         throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
       }
 
-      const contentType = response.headers.get('content-type');
-      console.log('Response content type:', contentType);
-
       const responseText = await response.text();
+      console.group('Response Content');
       console.log('Raw response:', responseText);
+      console.groupEnd();
 
       try {
-        if (!responseText) {
-          throw new Error('Empty response received');
-        }
-
-        let parsedResponse = JSON.parse(responseText);
+        const data = JSON.parse(responseText);
         
-        // Handle nested JSON string case
-        if (typeof parsedResponse === 'string' && parsedResponse.startsWith('{')) {
-          parsedResponse = JSON.parse(parsedResponse);
-        }
+        if (data.content) return data.content;
+        if (data.message) return data.message;
+        if (data.text) return data.text;
         
-        if (parsedResponse.content) {
-          return parsedResponse.content;
-        }
-
-        if (parsedResponse.message) {
-          return parsedResponse.message;
-        }
-
-        console.error('Unexpected response format:', parsedResponse);
-        throw new Error('Format respon tidak sesuai');
+        console.error('Unexpected response format:', data);
+        return 'Format respons tidak sesuai yang diharapkan';
       } catch (error) {
         console.error('Error parsing response:', error);
         console.error('Raw response was:', responseText);
-        throw new Error('Format respon tidak valid');
+        return responseText || 'Format respons tidak valid';
       }
     } catch (error) {
       console.error('Error in submitAgentAnalysis:', error);
       
       if ((error instanceof TypeError || error instanceof Error) && retries < MAX_RETRIES) {
-        console.log(`Retrying after error (attempt ${retries + 2} of ${MAX_RETRIES + 1})`);
         retries++;
         await wait(RETRY_DELAY * retries);
         continue;

@@ -38,28 +38,33 @@ export default defineConfig({
       maxAge: 86400,
     },
     proxy: {
-      '/flowise': {
-        target: 'https://flow.reserse.id',
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/flowise/, ''),
-        headers: {
-          'Host': 'flow.reserse.id'
-        }
-      },
       '/api': {
         target: 'https://flow.reserse.id',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, ''),
         headers: {
-          'Host': 'flow.reserse.id'
+          'Host': 'flow.reserse.id',
+          'Origin': 'https://flow.reserse.id'
+        }
+      },
+      '/flowise': {
+        target: 'https://flow.reserse.id',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/flowise/, ''),
+        headers: {
+          'Host': 'flow.reserse.id',
+          'Origin': 'https://flow.reserse.id'
         }
       },
       '/v1': {
         target: 'https://api.reserse.id',
         changeOrigin: true,
-        secure: false
+        secure: false,
+        headers: {
+          'Origin': 'https://api.reserse.id'
+        }
       }
     },
     watch: {
