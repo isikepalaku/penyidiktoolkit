@@ -3,11 +3,6 @@ const CHATFLOW_ID = '88ab6381-6ee6-47c1-8835-e2c057151e81'; // Gunakan ID yang s
 // Gunakan PERKABA_API_KEY seperti di empService
 const API_KEY = import.meta.env.VITE_PERKABA_API_KEY;
 
-// Import dengan type assertion jika type declarations tidak tersedia
-import imageCompression from 'browser-image-compression';
-// atau
-// const imageCompression = require('browser-image-compression') as any;
-
 export const submitImageProcessorAnalysis = async (imageFile: File): Promise<string> => {
   try {
     console.log('Starting image analysis with file:', {
@@ -20,13 +15,10 @@ export const submitImageProcessorAnalysis = async (imageFile: File): Promise<str
       throw new Error('File harus berupa gambar');
     }
 
-    // Tambahkan kompresi gambar sebelum upload
-    const compressedImage = await compressImage(imageFile);
-
     // Convert file to base64
     const base64Image = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
-      reader.readAsDataURL(compressedImage);
+      reader.readAsDataURL(imageFile);
       reader.onload = () => {
         console.log('File successfully converted to base64');
         resolve(reader.result as string);
@@ -44,8 +36,8 @@ export const submitImageProcessorAnalysis = async (imageFile: File): Promise<str
         {
           data: base64Image,
           type: "file",
-          name: compressedImage.name,
-          mime: compressedImage.type
+          name: imageFile.name,
+          mime: imageFile.type
         }
       ]
     };
@@ -108,36 +100,5 @@ export const submitImageProcessorAnalysis = async (imageFile: File): Promise<str
     }
 
     throw new Error(errorMessage);
-  }
-};
-
-// Tambahkan kompresi gambar sebelum upload
-const compressImage = async (file: File): Promise<File> => {
-  const options = {
-    maxSizeMB: 1,
-    maxWidthOrHeight: 1920,
-    useWebWorker: true,
-    fileType: file.type // Tambahkan file type untuk memastikan output yang benar
-  };
-  
-  try {
-    console.log('Starting image compression...');
-    console.log('Original file:', {
-      size: file.size / 1024 / 1024 + 'MB',
-      type: file.type
-    });
-
-    const compressedFile = await imageCompression(file, options);
-    
-    console.log('Compression complete:', {
-      originalSize: file.size / 1024 / 1024 + 'MB',
-      compressedSize: compressedFile.size / 1024 / 1024 + 'MB',
-      type: compressedFile.type
-    });
-
-    return compressedFile;
-  } catch (error) {
-    console.error('Image compression failed:', error);
-    return file;
   }
 };

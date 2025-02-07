@@ -28,8 +28,7 @@ export default defineConfig(({ mode }) => {
     base: '/',
     plugins: [react(), tsconfigPaths()],
     optimizeDeps: {
-      include: ['react', 'react-dom'],
-      exclude: ['@radix-ui/react-dialog']
+      exclude: ['lucide-react'],
     },
     resolve: {
       alias: {
@@ -76,28 +75,13 @@ export default defineConfig(({ mode }) => {
     },
     assetsInclude: ['**/*.svg'],
     build: {
-      minify: 'terser',
-      target: 'esnext',
+      sourcemap: true,
       outDir: 'dist',
       assetsDir: 'assets',
       rollupOptions: {
         output: {
-          manualChunks: (id) => {
-            if (id.includes('node_modules')) {
-              return 'vendor';
-            }
-            if (id.includes('components')) {
-              return 'components';
-            }
-          }
+          manualChunks: undefined
         }
-      },
-      treeshake: true,
-      assetsInlineLimit: 4096,
-      sourcemap: mode === 'development',
-      commonjsOptions: {
-        include: [/node_modules/],
-        transformMixedEsModules: true
       }
     },
     define: {
