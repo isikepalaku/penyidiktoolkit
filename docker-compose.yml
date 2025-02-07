@@ -6,17 +6,20 @@ services:
   frontend:
     build: .
     container_name: penyidik-frontend
-    ports:
-      - "3000:3000"
+    network_mode: "host"
     volumes:
       - .:/app
       - /app/node_modules
     environment:
       - NODE_ENV=development
-      - VITE_API_URL=http://host.docker.internal:8000
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    restart: unless-stopped
+      - VITE_API_URL=http://localhost:8000
+    restart: "no"
+    healthcheck:
+      disable: true
 
 volumes:
-  app-data: {} 
+  app-data: {}
+
+networks:
+  app-network:
+    driver: bridge 

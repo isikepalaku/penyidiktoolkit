@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import { fileURLToPath } from 'url';
@@ -17,72 +17,75 @@ console.log('Environment variables loaded:', {
   API_KEY: process.env.VITE_API_KEY ? '[REDACTED]' : 'undefined'
 });
 
-export default defineConfig({
-  base: '/',
-  plugins: [react(), tsconfigPaths()],
-  optimizeDeps: {
-    exclude: ['lucide-react'],
-  },
-  resolve: {
-    alias: {
-      "@": resolve(__dirname, "./src"),
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  console.log('Loaded environment:', {
+    VITE_API_URL: env.VITE_API_URL,
+    VITE_API_KEY: env.VITE_API_KEY ? '[REDACTED]' : undefined
+  });
+
+  return {
+    base: '/',
+    plugins: [react(), tsconfigPaths()],
+    optimizeDeps: {
+      exclude: ['lucide-react'],
     },
-  },
-  server: {
-    cors: true,
-    proxy: {
-      '/v1': {
-        target: process.env.VITE_API_URL || 'http://host.docker.internal:8000',
-        changeOrigin: true,
-        secure: false
-      },
-      '/api': {
-        target: 'https://flow.reserse.id',
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/api/, ''),
-      },
-      '/flowise': {
-        target: 'https://flow.reserse.id',
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/flowise/, ''),
+    resolve: {
+      alias: {
+        "@": resolve(__dirname, "./src"),
       },
     },
-    watch: {
-      usePolling: true,
+    server: {
+      cors: true,
+      port: 3000,
+      strictPort: true,
+      proxy: {
+        '/v1': {
+          target: env.VITE_API_URL || 'https://api.reserse.id',
+          changeOrigin: true,
+          secure: true,
+          ws: false,
+          rewrite: (path) => path
+        },
+        '/api': {
+          target: 'https://flow.reserse.id',
+          changeOrigin: true,
+          secure: true,
+          ws: false,
+          rewrite: (path) => path.replace(/^\/api/, '')
+        },
+        '/flowise': {
+          target: 'https://flow.reserse.id',
+          changeOrigin: true,
+          secure: true,
+          ws: false,
+          rewrite: (path) => path.replace(/^\/flowise/, '')
+        }
+      },
+      allowedHosts: [
+        'localhost',
+        '.reserse.id',
+        '0.0.0.0'
+      ]
     },
-    hmr: {
-      overlay: true,
-      clientPort: 3000,
-      host: '0.0.0.0'
+    preview: {
+      host: '0.0.0.0',
+      port: 3000,
+      cors: true,
     },
-    host: true,
-    port: 3000,
-    strictPort: true,
-    allowedHosts: [
-      'localhost',
-      '.reserse.id',
-      '0.0.0.0'
-    ]
-  },
-  preview: {
-    host: '0.0.0.0',
-    port: 3000,
-    cors: true,
-  },
-  assetsInclude: ['**/*.svg'],
-  build: {
-    sourcemap: true,
-    outDir: 'dist',
-    assetsDir: 'assets',
-    rollupOptions: {
-      output: {
-        manualChunks: undefined
+    assetsInclude: ['**/*.svg'],
+    build: {
+      sourcemap: true,
+      outDir: 'dist',
+      assetsDir: 'assets',
+      rollupOptions: {
+        output: {
+          manualChunks: undefined
+        }
       }
+    },
+    define: {
+      'process.env': env
     }
-  },
-  define: {
-    'process.env': process.env
-  },
+  };
 });

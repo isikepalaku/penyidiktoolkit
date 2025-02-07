@@ -3,7 +3,7 @@ import { z } from 'zod';
 // Define environment schema with most fields optional
 const envSchema = z.object({
   // Perkaba API settings
-  perkabaApiUrl: z.string().default('http://147.79.70.246:3086'),
+  perkabaApiUrl: z.string().default('https://flow.reserse.id'),
   perkabaApiKey: z.string().optional(),
 
   // Supabase settings
@@ -49,6 +49,12 @@ if (!parsed.success) {
 
 // Export the environment, with at least the default values
 export const env = parsed.success ? parsed.data : envSchema.parse({
-  perkabaApiUrl: 'http://147.79.70.246:3086',
+  perkabaApiUrl: 'https://flow.reserse.id',
   googleModelName: 'gemini-pro'
+});
+
+// Tambahkan logging untuk debug
+console.log('Environment config:', {
+  apiKey: process.env.VITE_API_KEY ? '[REDACTED]' : undefined,
+  apiUrl: process.env.VITE_API_URL
 });
