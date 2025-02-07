@@ -19,7 +19,7 @@ interface StreamEvent {
 const API_KEY = env.apiKey;
 const MAX_RETRIES = 1;
 const RETRY_DELAY = 1000;
-const API_BASE_URL = env.apiUrl || 'http://localhost:8000'; // Menggunakan localhost Docker container
+const API_BASE_URL = env.apiUrl || 'http://localhost:8000';
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -51,24 +51,23 @@ export const submitImageProcessorAnalysis = async (imageFile: File): Promise<str
       });
 
       const headers: HeadersInit = {
-        'Accept': 'application/json'
+        'Accept': 'application/json',
       };
       
       if (API_KEY) {
         headers['X-API-Key'] = API_KEY;
       }
 
-      const requestOptions: RequestInit = {
-        method: 'POST',
-        headers,
-        body: formData
-      };
-
-      // Gunakan URL lengkap untuk debugging
       const url = `${API_BASE_URL}/v1/playground/agents/${imageProcessorAgent.id}/runs`;
       console.log('Sending request to:', url);
 
-      const response = await fetch(url, requestOptions);
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: formData,
+        mode: 'cors',
+        credentials: 'same-origin'
+      });
 
       console.log('Response status:', response.status);
       console.log('Response headers:', Object.fromEntries(response.headers.entries()));

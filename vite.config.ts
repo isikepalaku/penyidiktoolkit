@@ -4,6 +4,7 @@ import { resolve } from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import tsconfigPaths from 'vite-tsconfig-paths';
+import type { IncomingMessage } from 'http';
 
 // Load environment variables
 dotenv.config();
@@ -30,31 +31,28 @@ export default defineConfig({
   },
   server: {
     cors: {
-      origin: [
-        'https://api.reserse.id',
-        'https://flow.reserse.id',
-        'https://app.reserse.id',
-        'http://localhost:3000',
-        'http://localhost:8000'
-      ],
+      origin: '*',
       methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'Origin', 'Accept'],
       exposedHeaders: ['Content-Type', 'Authorization'],
-      credentials: true,
-      preflightContinue: true,
-      optionsSuccessStatus: 204,
+      credentials: false,
     },
     proxy: {
       '/v1': {
-        target: 'https://api.reserse.id',
+        target: 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
+        ws: true,
         configure: (proxy, _options) => {
-          proxy.on('proxyReq', (proxyReq, req, _res) => {
-            // Preserve original headers
-            proxyReq.setHeader('Origin', req.headers.origin || 'https://app.reserse.id');
-            if (req.method === 'OPTIONS') {
-              proxyReq.setHeader('Access-Control-Request-Method', 'POST');
+          proxy.on('error', (err, _req, _res) => {
+            console.log('proxy error', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req: IncomingMessage & { body?: any }, _res) => {
+            if (req.body && typeof req.body === 'object') {
+              const bodyData = JSON.stringify(req.body);
+              proxyReq.setHeader('Content-Type', 'application/json');
+              proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+              proxyReq.write(bodyData);
             }
           });
         }
@@ -80,7 +78,7 @@ export default defineConfig({
       clientPort: 3000,
       host: '0.0.0.0'
     },
-    host: '0.0.0.0',
+    host: true,
     port: 3000,
     strictPort: true,
     allowedHosts: [

@@ -11,12 +11,11 @@ services:
     environment:
       - NODE_ENV=development
       - VITE_API_URL=http://localhost:8000
-      - CHOKIDAR_USEPOLLING=true
       - HOST=0.0.0.0
-      - VITE_CORS_ORIGIN=https://api.reserse.id,https://flow.reserse.id,https://app.reserse.id,http://localhost:8000
-    command: npm run dev
     networks:
       - app_network
+    depends_on:
+      - pgvector
 
   pgvector:
     image: phidata/pgvector:16
