@@ -32,7 +32,7 @@ export default defineConfig({
     cors: {
       origin: '*',
       methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
-      allowedHeaders: ['Content-Type', 'Authorization'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
       exposedHeaders: ['Content-Type', 'Authorization'],
       credentials: false,
       maxAge: 86400,
@@ -43,39 +43,35 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, ''),
-        headers: {
-          'Host': 'flow.reserse.id',
-          'Origin': 'https://flow.reserse.id'
-        }
       },
       '/flowise': {
         target: 'https://flow.reserse.id',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/flowise/, ''),
-        headers: {
-          'Host': 'flow.reserse.id',
-          'Origin': 'https://flow.reserse.id'
-        }
       },
       '/v1': {
         target: 'https://api.reserse.id',
         changeOrigin: true,
         secure: false,
-        headers: {
-          'Origin': 'https://api.reserse.id'
-        }
       }
     },
     watch: {
       usePolling: true,
     },
     hmr: {
-      overlay: true
+      overlay: true,
+      clientPort: 3000,
+      host: '0.0.0.0'
     },
-    host: true,
+    host: '0.0.0.0',
     port: 3000,
     strictPort: true,
+    allowedHosts: [
+      'localhost',
+      '.reserse.id',  // Ini akan mengizinkan semua subdomain .reserse.id
+      '0.0.0.0'
+    ]
   },
   preview: {
     host: '0.0.0.0',

@@ -11,8 +11,11 @@ services:
     environment:
       - NODE_ENV=development
       - VITE_API_URL=https://api.reserse.id
-      - CHOKIDAR_USEPOLLING=true  # Untuk better hot reload di Docker
+      - CHOKIDAR_USEPOLLING=true
+      - HOST=0.0.0.0
     command: npm run dev
+    networks:
+      - app_network
 
   pgvector:
     image: phidata/pgvector:16
@@ -25,6 +28,12 @@ services:
       - pgvolume:/var/lib/postgresql/data
     ports:
       - "5532:5432"
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
 
 volumes:
   pgvolume: 
