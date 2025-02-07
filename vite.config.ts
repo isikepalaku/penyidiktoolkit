@@ -41,24 +41,21 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       proxy: {
         '/v1': {
-          target: env.VITE_API_URL || 'https://api.reserse.id',
+          target: 'https://api.reserse.id',
           changeOrigin: true,
           secure: true,
-          ws: false,
           rewrite: (path) => path
         },
         '/api': {
           target: 'https://flow.reserse.id',
           changeOrigin: true,
           secure: true,
-          ws: false,
           rewrite: (path) => path.replace(/^\/api/, '')
         },
         '/flowise': {
           target: 'https://flow.reserse.id',
           changeOrigin: true,
           secure: true,
-          ws: false,
           rewrite: (path) => path.replace(/^\/flowise/, '')
         }
       },

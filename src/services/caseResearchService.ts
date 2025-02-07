@@ -31,14 +31,43 @@ export const submitCaseResearch = async (caseDescription: string): Promise<strin
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error('API Error Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+
+      if (response.status === 400) {
+        throw new Error('Bad Request: Periksa kembali input Anda');
+      }
+      if (response.status === 401) {
+        throw new Error('Unauthorized: API key tidak valid');
+      }
+      if (response.status === 403) {
+        throw new Error('Forbidden: Tidak memiliki akses');
+      }
+      
       throw new Error(`API Error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
+    console.group('Case Research API Success');
+    console.log('Response:', data);
+    console.groupEnd();
+
     return data.text || data.content || 'No response received';
 
   } catch (error) {
-    console.error('Case Research Error:', error);
+    console.group('Case Research API Error');
+    console.error('Error Type:', error instanceof Error ? error.constructor.name : 'Unknown');
+    console.error('Error Message:', error instanceof Error ? error.message : String(error));
+    console.groupEnd();
+
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      throw new Error('Network error: Tidak dapat terhubung ke server. Periksa koneksi Anda.');
+    }
+
     throw error;
   }
 }; 
