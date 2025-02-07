@@ -1,19 +1,7 @@
-import { env } from '@/config/env';
-import { imageProcessorAgent } from '@/data/agents/imageProcessorAgent';
-
-interface Message {
-  role: string;
-  content: string;
-}
-
-interface StreamEvent {
-  event: string;
-  content?: string;
-  messages?: Message[];
-}
-
-const API_KEY = env.apiKey;
-const API_BASE_URL = env.apiUrl || 'http://localhost:8000';
+// Gunakan chatflow ID dari Flowise
+const CHATFLOW_ID = '88ab6381-6ee6-47c1-8835-e2c057151e81'; // Gunakan ID yang sama dengan empService
+// Gunakan PERKABA_API_KEY seperti di empService
+const API_KEY = import.meta.env.VITE_PERKABA_API_KEY;
 
 export const submitImageProcessorAnalysis = async (imageFile: File): Promise<string> => {
   try {
@@ -27,111 +15,90 @@ export const submitImageProcessorAnalysis = async (imageFile: File): Promise<str
       throw new Error('File harus berupa gambar');
     }
 
-    const formData = new FormData();
-    formData.append('message', 'string');
-    formData.append('agent_id', imageProcessorAgent.id);
-    formData.append('stream', 'true');
-    formData.append('monitor', 'false');
-    formData.append('session_id', 'string');
-    formData.append('user_id', 'string');
-    formData.append('image', imageFile);
-
-    console.log('FormData contents:', {
-      message: 'string',
-      agent_id: imageProcessorAgent.id,
-      stream: 'true',
-      monitor: 'false',
-      session_id: 'string',
-      user_id: 'string',
-      image: imageFile.name,
-      size: imageFile.size
+    // Convert file to base64
+    const base64Image = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(imageFile);
+      reader.onload = () => {
+        console.log('File successfully converted to base64');
+        resolve(reader.result as string);
+      };
+      reader.onerror = error => {
+        console.error('Error reading file:', error);
+        reject(error);
+      };
     });
 
-    const headers: HeadersInit = {
-      'Accept': 'application/json'
+    // Format payload sesuai dokumentasi Flowise
+    const payload = {
+      question: "Can you describe the image?",
+      uploads: [
+        {
+          data: base64Image,
+          type: "file",
+          name: imageFile.name,
+          mime: imageFile.type
+        }
+      ]
     };
-    
-    if (API_KEY) {
-      headers['X-API-Key'] = API_KEY;
-    }
 
-    const url = `${API_BASE_URL}/v1/playground/agents/${imageProcessorAgent.id}/runs`;
-    console.log('Sending request to:', url);
+    // Gunakan proxy path seperti empService
+    const baseUrl = '/flowise';
+    const apiUrl = `${baseUrl}/api/v1/prediction/${CHATFLOW_ID}`;
 
-    const response = await fetch(url, {
+    // Log request details seperti empService
+    console.group('Image Analysis API Request');
+    console.log('Environment:', import.meta.env.PROD ? 'Production' : 'Development');
+    console.log('Base URL:', baseUrl);
+    console.log('Full URL:', apiUrl);
+    console.log('Payload Size:', JSON.stringify(payload).length);
+    console.groupEnd();
+
+    const response = await fetch(apiUrl, {
       method: 'POST',
-      headers,
-      body: formData
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_KEY}`
+      },
+      body: JSON.stringify(payload)
     });
 
-    console.log('Response received:', {
-      status: response.status,
-      statusText: response.statusText,
-      headers: Object.fromEntries(response.headers.entries())
-    });
+    // Log response seperti empService
+    console.group('Image Analysis API Response');
+    console.log('Status:', response.status);
+    console.log('Status Text:', response.statusText);
+    console.log('Headers:', Object.fromEntries(response.headers.entries()));
+    console.groupEnd();
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Error response details:', {
-        status: response.status,
-        statusText: response.statusText,
-        body: errorText,
-        headers: Object.fromEntries(response.headers.entries())
-      });
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const responseText = await response.text();
-    console.log('Raw response:', responseText);
-
-    const events = responseText.split('}').map(event => {
-      if (!event.trim()) return null;
-      try {
-        return JSON.parse(event + '}') as StreamEvent;
-      } catch {
-        try {
-          return JSON.parse(event.trim() + '}') as StreamEvent;
-        } catch {
-          return null;
-        }
-      }
-    }).filter((event): event is StreamEvent => event !== null);
-
-    const completedEvent = events.find(event => event.event === 'RunCompleted');
-    if (completedEvent?.content) {
-      return completedEvent.content;
-    }
-
-    const responseContent = events
-      .filter(event => event.event === 'RunResponse')
-      .map(event => event.content)
-      .filter((content): content is string => content !== undefined)
-      .join('');
-
-    if (responseContent) {
-      return responseContent;
-    }
-
-    const messagesEvent = events.find(event => event.messages && Array.isArray(event.messages) && event.messages.length > 0);
-    if (messagesEvent?.messages) {
-      const modelMessages = messagesEvent.messages
-        .filter(msg => msg.role === 'model')
-        .map(msg => msg.content);
+      console.error('API Error Response:', errorText);
       
-      if (modelMessages.length > 0) {
-        return modelMessages[modelMessages.length - 1];
+      if (response.status === 502) {
+        throw new Error('Layanan Flowise sedang tidak tersedia. Mohon coba beberapa saat lagi.');
       }
+      
+      throw new Error(`API Error: ${response.status} - ${errorText}`);
     }
 
-    console.error('No valid content found in events:', events);
-    throw new Error('Tidak ada konten yang valid dari response');
+    const data = await response.json();
+    console.group('Image Analysis API Success');
+    console.log('Response Data:', JSON.stringify(data, null, 2));
+    console.groupEnd();
+
+    return data.text || 'No response text received';
     
   } catch (error) {
+    console.group('Image Analysis API Error');
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-    console.error('Full error details:', {
-      message: errorMessage,
-      error
-    });
+    console.error('Error Type:', error instanceof Error ? error.constructor.name : 'Unknown');
+    console.error('Error Message:', errorMessage);
+    console.groupEnd();
+
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      throw new Error('Network error: Unable to connect to the Flowise service. Please check if the server is running and accessible.');
+    }
+
     throw new Error(errorMessage);
   }
 };
