@@ -30,14 +30,35 @@ export default defineConfig({
   },
   server: {
     cors: {
-      origin: '*',
-      methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
+      origin: [
+        'https://api.reserse.id',
+        'https://flow.reserse.id',
+        'https://app.reserse.id',
+        'http://localhost:3000',
+        'http://localhost:8000'
+      ],
+      methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'Origin', 'Accept'],
       exposedHeaders: ['Content-Type', 'Authorization'],
-      credentials: false,
-      maxAge: 86400,
+      credentials: true,
+      preflightContinue: true,
+      optionsSuccessStatus: 204,
     },
     proxy: {
+      '/v1': {
+        target: 'https://api.reserse.id',
+        changeOrigin: true,
+        secure: false,
+        configure: (proxy, _options) => {
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            // Preserve original headers
+            proxyReq.setHeader('Origin', req.headers.origin || 'https://app.reserse.id');
+            if (req.method === 'OPTIONS') {
+              proxyReq.setHeader('Access-Control-Request-Method', 'POST');
+            }
+          });
+        }
+      },
       '/api': {
         target: 'https://flow.reserse.id',
         changeOrigin: true,
@@ -50,11 +71,6 @@ export default defineConfig({
         secure: false,
         rewrite: (path) => path.replace(/^\/flowise/, ''),
       },
-      '/v1': {
-        target: 'https://api.reserse.id',
-        changeOrigin: true,
-        secure: false,
-      }
     },
     watch: {
       usePolling: true,
