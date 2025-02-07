@@ -15,7 +15,7 @@ interface StreamEvent {
 const API_KEY = env.apiKey;
 const MAX_RETRIES = 1;
 const RETRY_DELAY = 1000;
-const API_BASE_URL = 'http://localhost:8000'; // Gunakan backend lokal
+const API_BASE_URL = env.apiUrl || 'https://api.reserse.id'; // Gunakan HTTPS API URL dari environment atau fallback ke production URL
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
