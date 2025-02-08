@@ -14,9 +14,12 @@ services:
     environment:
       - NODE_ENV=development
       - VITE_API_URL=https://api.reserse.id
-    restart: "no"
     healthcheck:
       disable: true
+    labels:
+      - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.X-Frame-Options=DENY"
+      - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.X-Content-Type-Options=nosniff"
+      - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.X-XSS-Protection=1; mode=block"
 
 volumes:
   app-data: {}

@@ -45,7 +45,10 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: true,
           maxBodySize: '50mb',
-          timeout: 300000
+          timeout: 300000,
+          filter: (path) => {
+            return path.startsWith('/v1/playground/agents/');
+          }
         },
         '/api': {
           target: 'https://flow.reserse.id',
@@ -62,8 +65,8 @@ export default defineConfig(({ mode }) => {
       },
       allowedHosts: [
         'localhost',
-        '.reserse.id',
-        '0.0.0.0'
+        'api.reserse.id',
+        'flow.reserse.id'
       ]
     },
     preview: {
