@@ -43,7 +43,9 @@ export default defineConfig(({ mode }) => {
         '/v1': {
           target: 'https://api.reserse.id',
           changeOrigin: true,
-          secure: true
+          secure: true,
+          maxBodySize: '50mb',
+          timeout: 300000
         },
         '/api': {
           target: 'https://flow.reserse.id',
