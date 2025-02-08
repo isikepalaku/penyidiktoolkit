@@ -6,13 +6,14 @@ services:
   frontend:
     build: .
     container_name: penyidik-frontend
-    network_mode: "host"
+    ports:
+      - "3000:3000"
     volumes:
       - .:/app
       - /app/node_modules
     environment:
       - NODE_ENV=development
-      - VITE_API_URL=http://localhost:8000
+      - VITE_API_URL=https://api.reserse.id
     restart: "no"
     healthcheck:
       disable: true

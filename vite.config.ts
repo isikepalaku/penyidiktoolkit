@@ -43,8 +43,7 @@ export default defineConfig(({ mode }) => {
         '/v1': {
           target: 'https://api.reserse.id',
           changeOrigin: true,
-          secure: true,
-          rewrite: (path) => path
+          secure: true
         },
         '/api': {
           target: 'https://flow.reserse.id',

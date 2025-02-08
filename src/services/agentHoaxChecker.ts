@@ -3,9 +3,15 @@ import { env } from '@/config/env';
 const API_KEY = env.apiKey;
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
-const API_BASE_URL = env.apiUrl || 'http://localhost:8000';
-
+const API_BASE_URL = process.env.NODE_ENV === 'production' ? env.apiUrl : '';
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Create AbortController for timeout
+const createTimeoutController = (timeoutMs: number): { controller: AbortController; timeout: NodeJS.Timeout } => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  return { controller, timeout };
+};
 
 export const submitAgentAnalysis = async (
   message: string
@@ -15,27 +21,33 @@ export const submitAgentAnalysis = async (
   while (retries <= MAX_RETRIES) {
     try {
       console.log(`Attempt ${retries + 1} of ${MAX_RETRIES + 1}`);
-      
-      const formData = new FormData();
-      formData.append('message', message.trim());
-      formData.append('agent_id', 'hoax-checker-agent');
-      formData.append('stream', 'false');
-      formData.append('monitor', 'false');
-      formData.append('session_id', 'string');
-      formData.append('user_id', 'string');
 
+      // Ensure message is not empty and is a string
+      const trimmedMessage = message?.trim() || '';
+      if (!trimmedMessage) {
+        throw new Error('Message cannot be empty');
+      }
+
+      // Use URL parameters instead of FormData
+      // Convert parameters to URLSearchParams
+      const params = new URLSearchParams();
+      params.append('message', trimmedMessage);
+      params.append('agent_id', 'hoax-checker-agent');
+      params.append('stream', 'false');
+      params.append('monitor', 'false');
+      params.append('session_id', 'string');
+      params.append('user_id', 'string');
+
+      // Log request details
       console.group('Request Details');
-      console.log('FormData:', {
-        message: message.trim(),
-        agent_id: 'hoax-checker-agent',
-        stream: 'false',
-        monitor: 'false',
-        session_id: 'string',
-        user_id: 'string'
+      params.forEach((value, key) => {
+        console.log(`${key}:`, value);
       });
 
       const headers: HeadersInit = {
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Origin': window.location.origin
       };
       
       if (API_KEY) {
@@ -45,43 +57,67 @@ export const submitAgentAnalysis = async (
       console.log('Headers:', headers);
       console.groupEnd();
 
+      // Use relative URL in dev, full URL in production
+      const url = API_BASE_URL ? `${API_BASE_URL}/v1/playground/agents/hoax-checker-agent/runs` : '/v1/playground/agents/hoax-checker-agent/runs';
+      console.log('Sending request to:', url);
+
+      const { controller, timeout } = createTimeoutController(30000); // 30 second timeout
+      
       const requestOptions: RequestInit = {
         method: 'POST',
         headers,
-        body: formData
+        body: params.toString(),
+        signal: controller.signal
       };
 
-      const url = `${API_BASE_URL}/v1/playground/agents/hoax-checker-agent/runs`;
-      console.log('Sending request to:', url);
-      
       const response = await fetch(url, requestOptions);
+      clearTimeout(timeout);
 
-      console.group('Response Details');
-      console.log('Status:', response.status);
-      console.log('Status Text:', response.statusText);
-      console.log('Headers:', Object.fromEntries(response.headers.entries()));
-      console.groupEnd();
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Error response:', errorText);
+        
+        if (response.status >= 500 && retries < MAX_RETRIES) {
+          console.log(`Retrying after server error (attempt ${retries + 2} of ${MAX_RETRIES + 1})`);
+          retries++;
+          await wait(RETRY_DELAY * retries);
+          continue;
+        }
+        
         throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
       }
 
+      const contentType = response.headers.get('content-type');
+      console.log('Response content type:', contentType);
+
       const responseText = await response.text();
-      console.group('Response Content');
       console.log('Raw response:', responseText);
-      console.groupEnd();
 
       try {
-        const data = JSON.parse(responseText);
+        if (!responseText) {
+          throw new Error('Empty response received');
+        }
+
+        let parsedResponse = JSON.parse(responseText);
         
-        if (data.content) return data.content;
-        if (data.message) return data.message;
-        if (data.text) return data.text;
+        // Handle nested JSON string case
+        if (typeof parsedResponse === 'string' && parsedResponse.startsWith('{')) {
+          parsedResponse = JSON.parse(parsedResponse);
+        }
         
-        console.error('Unexpected response format:', data);
-        return 'Format respons tidak sesuai yang diharapkan';
+        if (parsedResponse.content) {
+          return parsedResponse.content;
+        }
+
+        if (parsedResponse.message) {
+          return parsedResponse.message;
+        }
+
+        console.error('Unexpected response format:', parsedResponse);
+        throw new Error('Format respon tidak sesuai');
       } catch (error) {
         console.error('Error parsing response:', error);
         console.error('Raw response was:', responseText);
