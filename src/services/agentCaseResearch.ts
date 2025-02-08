@@ -1,6 +1,6 @@
 import { env } from '@/config/env';
 
-const API_KEY = env.apiKey;
+const API_KEY = import.meta.env.VITE_API_KEY;
 const MAX_RETRIES = 1;
 const RETRY_DELAY = 1000;
 const API_BASE_URL = env.apiUrl || 'http://localhost:8000';

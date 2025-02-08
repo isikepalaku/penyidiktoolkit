@@ -11,7 +11,7 @@ interface StreamEvent {
   messages?: Message[];
 }
 
-const API_KEY = import.meta.env.VITE_PERKABA_API_KEY;
+const API_KEY = import.meta.env.VITE_API_KEY;
 const MAX_RETRIES = 1;
 const RETRY_DELAY = 1000;
 const API_BASE_URL = env.apiUrl || 'https://api.reserse.id';

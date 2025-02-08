@@ -1,6 +1,6 @@
 import { env } from '@/config/env';
 
-const API_KEY = env.apiKey;
+const API_KEY = import.meta.env.VITE_API_KEY;
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
 const API_BASE_URL = process.env.NODE_ENV === 'production' ? env.apiUrl : '';
