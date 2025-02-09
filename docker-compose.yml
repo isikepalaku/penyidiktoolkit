@@ -15,6 +15,8 @@ services:
       - VITE_API_URL=https://api.reserse.id
       - HOST=app.reserse.id
     restart: unless-stopped
+    volumes:
+      - nginx-cache:/var/cache/nginx
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
       interval: 30s
@@ -23,11 +25,11 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
           cpus: '0.5'
           memory: 512M
-        reservations:
-          cpus: '0.25'
-          memory: 256M
     logging:
       driver: "json-file"
       options:
@@ -43,6 +45,7 @@ services:
           - app.reserse.id
 
 volumes:
+  nginx-cache:
   app-data: {}
 
 networks:

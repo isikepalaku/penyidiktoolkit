@@ -156,6 +156,9 @@ From project.md:
 - Use resource hints (preconnect) for external APIs
 - Optimize build settings in vite.config.ts
 - Use immutable cache for versioned assets
+- Disable caching for API endpoints while keeping static asset caching
+- Use different cache strategies for different content types
+- Keep HTTP/2 benefits without affecting API responses
 
 ## Docker Deployment Lessons
 
@@ -167,6 +170,11 @@ From project.md:
 - Configure Docker networks with specific names and gateways
 - Clean up unused networks before redeploying
 - Use production-specific nginx configuration
+- Use npm ci for faster, reliable builds
+- Enable nginx caching for static assets
+- Configure proper resource limits for production
+- Use HTTP/2 for better performance
+- Enable brotli compression for better compression ratios
 
 # Scratchpad
 
