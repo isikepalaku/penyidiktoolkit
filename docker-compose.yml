@@ -1,21 +1,37 @@
 version: '3.8'
 
-name: penyidik-toolkit-dev
+name: penyidik-toolkit-prod
 
 services:
   frontend:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: penyidik-frontend
     ports:
       - "3000:3000"
-    volumes:
-      - .:/app
-      - /app/node_modules
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
       - VITE_API_URL=https://api.reserse.id
+    restart: unless-stopped
     healthcheck:
-      disable: true
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     labels:
       - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.X-Frame-Options=DENY"
       - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.X-Content-Type-Options=nosniff"
@@ -25,5 +41,9 @@ volumes:
   app-data: {}
 
 networks:
-  app-network:
-    driver: bridge 
+  default:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16 

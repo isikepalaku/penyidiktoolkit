@@ -29,6 +29,13 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), tsconfigPaths()],
     optimizeDeps: {
       exclude: ['lucide-react'],
+      include: [
+        'react',
+        'react-dom',
+        'react-router-dom',
+        '@radix-ui/react-slot',
+        'class-variance-authority'
+      ]
     },
     resolve: {
       alias: {
@@ -81,9 +88,29 @@ export default defineConfig(({ mode }) => {
       assetsDir: 'assets',
       rollupOptions: {
         output: {
-          manualChunks: undefined
+          manualChunks: {
+            'vendor': [
+              'react',
+              'react-dom',
+              'react-router-dom',
+              'lucide-react',
+              '@radix-ui/react-slot',
+              'class-variance-authority'
+            ],
+            'ui': [
+              '@/components/ui',
+            ],
+            'agents': [
+              '@/data/agents'
+            ]
+          },
+          chunkFileNames: 'assets/js/[name]-[hash].js',
+          entryFileNames: 'assets/js/[name]-[hash].js',
+          assetFileNames: 'assets/[ext]/[name]-[hash].[ext]'
         }
-      }
+      },
+      minify: 'esbuild',
+      target: 'esnext'
     },
     define: {
       'process.env': env
