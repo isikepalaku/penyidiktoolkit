@@ -38,7 +38,6 @@ services:
       - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.X-Content-Type-Options=nosniff"
       - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.X-XSS-Protection=1; mode=block"
     networks:
-      - penyidik-network
       penyidik-network:
         aliases:
           - app.reserse.id
