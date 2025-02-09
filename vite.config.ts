@@ -73,7 +73,8 @@ export default defineConfig(({ mode }) => {
       allowedHosts: [
         'localhost',
         'api.reserse.id',
-        'flow.reserse.id'
+        'flow.reserse.id',
+        'app.reserse.id'
       ]
     },
     preview: {

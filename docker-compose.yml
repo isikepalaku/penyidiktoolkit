@@ -36,14 +36,17 @@ services:
       - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.X-Frame-Options=DENY"
       - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.X-Content-Type-Options=nosniff"
       - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.X-XSS-Protection=1; mode=block"
+    networks:
+      - penyidik-network
 
 volumes:
   app-data: {}
 
 networks:
-  default:
+  penyidik-network:
+    name: penyidik-network
     driver: bridge
     ipam:
-      driver: default
       config:
-        - subnet: 172.20.0.0/16 
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1 

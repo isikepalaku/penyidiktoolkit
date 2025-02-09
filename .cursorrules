@@ -109,6 +109,7 @@ If needed, you can further use the `web_scraper.py` file to scrape the web page 
 - For flow.reserse.id, use VITE_PERKABA_API_KEY
 - Set appropriate file size limits (50MB) for image uploads in nginx and vite config
 - Use relative URLs with proxy in vite.config.ts instead of absolute URLs
+- Add all required domains to allowedHosts in vite.config.ts (api.reserse.id, flow.reserse.id, app.reserse.id)
 
 ## Security Lessons
 
@@ -160,7 +161,8 @@ From project.md:
 - Set resource limits to prevent container abuse
 - Use nginx:alpine as production base image
 - Enable logging rotation to prevent disk space issues
-- Configure proper networking with fixed subnets
+- Configure Docker networks with specific names and gateways
+- Clean up unused networks before redeploying
 - Use production-specific nginx configuration
 
 # Scratchpad
