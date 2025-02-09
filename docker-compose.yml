@@ -13,6 +13,7 @@ services:
     environment:
       - NODE_ENV=production
       - VITE_API_URL=https://api.reserse.id
+      - HOST=app.reserse.id
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
@@ -38,6 +39,9 @@ services:
       - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.X-XSS-Protection=1; mode=block"
     networks:
       - penyidik-network
+      penyidik-network:
+        aliases:
+          - app.reserse.id
 
 volumes:
   app-data: {}

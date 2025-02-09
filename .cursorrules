@@ -110,6 +110,9 @@ If needed, you can further use the `web_scraper.py` file to scrape the web page 
 - Set appropriate file size limits (50MB) for image uploads in nginx and vite config
 - Use relative URLs with proxy in vite.config.ts instead of absolute URLs
 - Add all required domains to allowedHosts in vite.config.ts (api.reserse.id, flow.reserse.id, app.reserse.id)
+- Configure allowedHosts in both server and preview mode
+- Use wildcard subdomain (.reserse.id) for broader access
+- Set proper hostname in docker and nginx configs
 
 ## Security Lessons
 
