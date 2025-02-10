@@ -4,6 +4,7 @@ import { imageAgent } from './imageAgent';
 import { hoaxCheckerAgent } from './hoaxCheckerAgent';
 import { imageProcessorAgent } from './imageProcessorAgent';
 import { modusKejahatanAgent } from './modusKejahatanAgent';
+import { crimeTrendAnalystAgent } from './crimeTrendAnalystAgent';
 import type { ExtendedAgent } from '../../types';
 
 export const agents: ExtendedAgent[] = [
@@ -12,7 +13,8 @@ export const agents: ExtendedAgent[] = [
   imageAgent,
   hoaxCheckerAgent,
   imageProcessorAgent,
-  modusKejahatanAgent
+  modusKejahatanAgent,
+  crimeTrendAnalystAgent
 ];
 
 export {
@@ -21,5 +23,6 @@ export {
   imageAgent,
   hoaxCheckerAgent,
   imageProcessorAgent,
-  modusKejahatanAgent
+  modusKejahatanAgent,
+  crimeTrendAnalystAgent
 };

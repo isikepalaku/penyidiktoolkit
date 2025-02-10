@@ -1,3 +1,5 @@
+import { LucideIcon } from 'lucide-react';
+
 export interface Field {
   id: string;
   label: string;
@@ -34,7 +36,8 @@ export type AgentType =
   | 'image'
   | 'hoax_checker'
   | 'image_processor'
-  | 'modus_kejahatan';
+  | 'modus_kejahatan'
+  | 'crime_trend_analyst';
 
 export interface ExtendedAgent {
   id: string;
@@ -44,6 +47,8 @@ export interface ExtendedAgent {
   description: string;
   baseUrl?: string;
   fields: AgentField[];
+  icon?: LucideIcon;
+  iconClassName?: string;
 }
 
 export interface AgentField {

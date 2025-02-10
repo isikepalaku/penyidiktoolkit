@@ -59,6 +59,8 @@ export default function Agents() {
       case 'image':
       case 'image_processor':
         return <ImageAgentForm {...commonProps} imagePreview={imagePreview} />;
+      case 'crime_trend_analyst':
+        return <BaseAgentForm {...commonProps} textareaHeight="h-32" />;
       case 'hoax_checker':
       case 'case_research':
       case 'spkt':

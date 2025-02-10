@@ -141,6 +141,11 @@ From project.md:
   - Add pre-wrap for code blocks and pre elements
   - Make tables scrollable horizontally
   - Use word-break and overflow-wrap for long content
+- Agent configuration best practices:
+  - Add descriptive icons that match agent functionality
+  - Use consistent color schemes for related agents
+  - Keep form heights appropriate for expected input length
+  - Include clear placeholder text in form fields
 
 ## Environment Configuration Lessons
 
@@ -198,6 +203,18 @@ From project.md:
 - Add chat-message class for consistent styling across components
 - Use TypeScript interfaces for better type safety and documentation
 - Remove unused imports to improve code cleanliness
+- Visual consistency:
+  - Use meaningful icons for each agent type
+  - Maintain consistent color schemes
+  - Adjust form sizes based on expected content
+  - Provide clear visual hierarchy
+- Agent icon implementation:
+  - Icons should be defined in AgentCard.tsx's getAgentIcon function
+  - Use Lucide icons consistently across all agents
+  - Follow color scheme patterns (e.g., indigo for analytics, blue for research)
+  - Keep icon size consistent (24px)
+  - Don't define icons in individual agent files
+  - Use proper icon that represents agent's function (e.g., BarChart3 for trend analysis)
 
 # Scratchpad
 
