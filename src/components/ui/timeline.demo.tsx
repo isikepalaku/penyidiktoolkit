@@ -11,6 +11,23 @@ export function TimelineDemo() {
   return (
     <Timeline>
       <TimelineItem status="done">
+        <TimelineHeading>Ahli KUHP 2023</TimelineHeading>
+        <TimelineDot status="done" />
+        <TimelineLine done />
+        <TimelineContent>
+          Agen ai yang memahami undang-undang mengenai Kitab Undang-Undang Hukum Pidana (KUHP) Nomor 1 Tahun 2023.
+        </TimelineContent>
+      </TimelineItem>
+        <TimelineItem status="done">
+        <TimelineHeading>Ahli UU P2SK 2023</TimelineHeading>
+        <TimelineDot status="done" />
+        <TimelineLine done />
+        <TimelineContent>
+          Agen ai yang memahami undang-undang mengenai Undang-undang (UU) Nomor 4 Tahun 2023 tentang Pengembangan dan Penguatan sektor jasa keuangan.
+        </TimelineContent>
+      </TimelineItem>
+      <TimelineItem status="done">
+
         <TimelineHeading>Peneliti Hukum</TimelineHeading>
         <TimelineDot status="done" />
         <TimelineLine done />
@@ -95,6 +112,14 @@ export function TimelineDemo() {
         <TimelineDot status="error" />
         <TimelineContent>
           Agen pembuat laporan ke pimpinan. Membantu menyusun dan mengorganisir laporan untuk disampaikan kepada pimpinan.
+        </TimelineContent>
+      </TimelineItem>
+
+      <TimelineItem status="done">
+        <TimelineHeading>Ahli ITE</TimelineHeading>
+        <TimelineDot status="done" />
+        <TimelineContent>
+        Agen AI yang dirancang untuk membantu memahami undang-undang mengenai Undang-undang (UU) Nomor 1 Tahun 2024.
         </TimelineContent>
       </TimelineItem>
     </Timeline>

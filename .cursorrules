@@ -136,6 +136,11 @@ From project.md:
   - AgentCard for agent display
   - BaseAgentForm for forms
 - Maintain consistent styling with Tailwind CSS
+- Handle chat message formatting:
+  - Use flex-wrap and min-w-0 to prevent overflow
+  - Add pre-wrap for code blocks and pre elements
+  - Make tables scrollable horizontally
+  - Use word-break and overflow-wrap for long content
 
 ## Environment Configuration Lessons
 
@@ -175,6 +180,24 @@ From project.md:
 - Configure proper resource limits for production
 - Use HTTP/2 for better performance
 - Enable brotli compression for better compression ratios
+
+## UI/UX Lessons
+
+- Handle long content in chat messages:
+  - Use flex-wrap for message containers
+  - Add min-w-0 to flex children to enable text truncation
+  - Make code blocks and pre elements wrap properly
+  - Enable horizontal scroll for tables
+  - Use proper word breaking for different content types
+- Consider different AI response formats:
+  - Code blocks
+  - Tables
+  - Long URLs
+  - Formatted text
+  - Lists and indentation
+- Add chat-message class for consistent styling across components
+- Use TypeScript interfaces for better type safety and documentation
+- Remove unused imports to improve code cleanliness
 
 # Scratchpad
 

@@ -4,6 +4,7 @@ import UndangChatInterface from '../components/UndangChatInterface';
 import { ArrowLeft } from 'lucide-react';
 import { sendChatMessage as sendUndangChatMessage } from '../services/undangService';
 import { sendChatMessage as sendKuhpChatMessage } from '../services/kuhpService';
+import { sendChatMessage as sendIteChatMessage } from '../services/iteService';
 import { DotBackground } from '@/components/ui/DotBackground';
 
 interface Agent {
@@ -34,6 +35,14 @@ export default function UndangUndang() {
       type: 'kuhp_chat',
       status: 'on',
       fields: []
+    },
+    {
+      id: 'ite_chat',
+      name: 'Ahli ITE',
+      description: 'agen AI yang dirancang untuk membantu memahami undang-undang mengenai Undang-undang (UU) Nomor 1 Tahun 2024',
+      type: 'ite_chat',
+      status: 'on',
+      fields: []
     }
   ];
 
@@ -51,6 +60,8 @@ export default function UndangUndang() {
         return <UndangChatInterface sendMessage={sendUndangChatMessage} />;
       case 'kuhp_chat':
         return <UndangChatInterface sendMessage={sendKuhpChatMessage} />;
+      case 'ite_chat':
+        return <UndangChatInterface sendMessage={sendIteChatMessage} />;
       default:
         return null;
     }
@@ -106,13 +117,17 @@ export default function UndangUndang() {
                       bgColor={
                         agent.type === 'undang_chat'
                           ? 'bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100'
-                          : 'bg-gradient-to-br from-rose-50 to-orange-50 hover:from-rose-100 hover:to-orange-100'
+                          : agent.type === 'kuhp_chat'
+                          ? 'bg-gradient-to-br from-rose-50 to-orange-50 hover:from-rose-100 hover:to-orange-100'
+                          : 'bg-gradient-to-br from-green-50 to-lime-50 hover:from-green-100 hover:to-lime-100'
                       }
                       className={`
                         border border-transparent
                         ${agent.type === 'undang_chat' 
                           ? 'hover:border-blue-200 hover:shadow-blue-100'
-                          : 'hover:border-rose-200 hover:shadow-rose-100'
+                          : agent.type === 'kuhp_chat'
+                          ? 'hover:border-rose-200 hover:shadow-rose-100'
+                          : 'hover:border-green-200 hover:shadow-green-100'
                         }
                         shadow-lg hover:shadow-xl transition-all duration-300
                         rounded-xl overflow-hidden

@@ -109,58 +109,62 @@ export default function UndangChatInterface({ sendMessage }: UndangChatInterface
                 message.type === 'bot' ? 'bg-gray-50' : ''
               }`}
             >
-              <div className="flex space-x-4">
-                <div className="flex-shrink-0">
-                  {message.type === 'user' ? (
-                    <div className="w-8 h-8 rounded-full bg-[#8E1616] flex items-center justify-center">
-                      <User className="w-5 h-5 text-white" />
-                    </div>
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-[#D84040] flex items-center justify-center">
-                      <Bot className="w-5 h-5 text-white" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1 space-y-2">
-                  <div className={`prose max-w-none ${
-                    message.error ? 'text-red-600' : 'text-gray-900'
-                  }`}>
-                    {message.type === 'user' ? (
-                      <ReactMarkdown 
-                        remarkPlugins={[remarkGfm]}
-                        className="text-base leading-relaxed prose-ul:list-disc prose-ul:pl-6 prose-ul:my-2 prose-li:my-0.5 prose-ol:list-decimal prose-ol:pl-6 prose-ol:my-2"
-                        components={{
-                          ul: ({ children }) => (
-                            <ul className="list-disc pl-6 my-2 space-y-1">{children}</ul>
-                          ),
-                          ol: ({ children }) => (
-                            <ol className="list-decimal pl-6 my-2 space-y-1">{children}</ol>
-                          ),
-                          li: ({ children }) => (
-                            <li className="my-0.5">{children}</li>
-                          ),
-                        }}
-                      >
-                        {message.content}
-                      </ReactMarkdown>
-                    ) : (
-                      <AnimatedMessage
-                        content={message.content}
-                        isAnimating={message.isAnimating || false}
-                        className="text-base leading-relaxed"
-                      />
-                    )}
-                  </div>
-                  {message.sourceDocuments && message.sourceDocuments.length > 0 && (
-                    <div className="mt-3 border border-gray-200 rounded-lg p-3 bg-white text-sm">
-                      <div className="flex flex-col space-y-2">
-                        <p className="text-[#8E1616] font-semibold">Informasi:</p>
-                        <div className="flex items-start gap-2">
-                          <span>Ai dapat memberikan informasi yang keliru, silahkan melakukan pengecekan ulang untuk memastikan keakuratan informasi.</span>
+              <div className="flex gap-4 flex-wrap">
+                <div className="flex-grow min-w-0">
+                  <div className="flex space-x-4">
+                    <div className="flex-shrink-0">
+                      {message.type === 'user' ? (
+                        <div className="w-8 h-8 rounded-full bg-[#8E1616] flex items-center justify-center">
+                          <User className="w-5 h-5 text-white" />
                         </div>
-                      </div>
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-[#D84040] flex items-center justify-center">
+                          <Bot className="w-5 h-5 text-white" />
+                        </div>
+                      )}
                     </div>
-                  )}
+                    <div className="flex-1 space-y-2">
+                      <div className={`prose max-w-none ${
+                        message.error ? 'text-red-600' : 'text-gray-900'
+                      }`}>
+                        {message.type === 'user' ? (
+                          <ReactMarkdown 
+                            remarkPlugins={[remarkGfm]}
+                            className="text-base leading-relaxed prose-ul:list-disc prose-ul:pl-6 prose-ul:my-2 prose-li:my-0.5 prose-ol:list-decimal prose-ol:pl-6 prose-ol:my-2"
+                            components={{
+                              ul: ({ children }) => (
+                                <ul className="list-disc pl-6 my-2 space-y-1">{children}</ul>
+                              ),
+                              ol: ({ children }) => (
+                                <ol className="list-decimal pl-6 my-2 space-y-1">{children}</ol>
+                              ),
+                              li: ({ children }) => (
+                                <li className="my-0.5">{children}</li>
+                              ),
+                            }}
+                          >
+                            {message.content}
+                          </ReactMarkdown>
+                        ) : (
+                          <AnimatedMessage
+                            content={message.content}
+                            isAnimating={message.isAnimating || false}
+                            className="text-base leading-relaxed"
+                          />
+                        )}
+                      </div>
+                      {message.sourceDocuments && message.sourceDocuments.length > 0 && (
+                        <div className="mt-3 border border-gray-200 rounded-lg p-3 bg-white text-sm">
+                          <div className="flex flex-col space-y-2">
+                            <p className="text-[#8E1616] font-semibold">Informasi:</p>
+                            <div className="flex items-start gap-2">
+                              <span>Ai dapat memberikan informasi yang keliru, silahkan melakukan pengecekan ulang untuk memastikan keakuratan informasi.</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

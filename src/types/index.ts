@@ -89,3 +89,11 @@ export interface SearchResult {
   relevanceScore: number;
   matchedSegments: string[];
 }
+
+export interface WorkflowStep {
+  id: string;
+  title: string;
+  description: string;
+  status: 'completed' | 'in_progress' | 'pending';
+  agent: string;
+}
