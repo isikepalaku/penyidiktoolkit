@@ -43,9 +43,10 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      cors: true,
+      host: '0.0.0.0',
       port: 3000,
       strictPort: true,
+      cors: true,
       proxy: {
         '/v1': {
           target: 'https://api.reserse.id',
@@ -70,25 +71,18 @@ export default defineConfig(({ mode }) => {
           rewrite: (path: string) => path.replace(/^\/flowise/, '')
         }
       },
-      allowedHosts: [
-        'localhost',
-        'api.reserse.id',
-        'flow.reserse.id',
-        'app.reserse.id',
-        '.reserse.id'
-      ]
+      watch: {
+        usePolling: true
+      },
+      hmr: {
+        clientPort: 3000
+      }
     },
     preview: {
       host: '0.0.0.0',
       port: 3000,
-      cors: true,
-      allowedHosts: [
-        'localhost',
-        'api.reserse.id',
-        'flow.reserse.id',
-        'app.reserse.id',
-        '.reserse.id'
-      ]
+      strictPort: true,
+      cors: true
     },
     assetsInclude: ['**/*.svg'],
     build: {
