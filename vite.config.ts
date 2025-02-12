@@ -53,7 +53,7 @@ export default defineConfig(({ mode }) => {
           secure: true,
           maxBodySize: '50mb',
           timeout: 300000,
-          filter: (path) => {
+          filter: (path: string) => {
             return path.startsWith('/v1/playground/agents/');
           }
         },
@@ -61,13 +61,13 @@ export default defineConfig(({ mode }) => {
           target: 'https://flow.reserse.id',
           changeOrigin: true,
           secure: true,
-          rewrite: (path) => path.replace(/^\/api/, '')
+          rewrite: (path: string) => path.replace(/^\/api/, '')
         },
         '/flowise': {
           target: 'https://flow.reserse.id',
           changeOrigin: true,
           secure: true,
-          rewrite: (path) => path.replace(/^\/flowise/, '')
+          rewrite: (path: string) => path.replace(/^\/flowise/, '')
         }
       },
       allowedHosts: [
@@ -104,10 +104,17 @@ export default defineConfig(({ mode }) => {
             'vendor': [
               'react',
               'react-dom',
-              'react-router-dom'
+              'react-router-dom',
+              'lucide-react',
+              '@radix-ui/react-slot',
+              'class-variance-authority'
             ],
             'ui': [
-              '@/components/ui/index.ts'
+              '@/components/ui/ai-input-with-loading',
+              '@/components/ui/button',
+              '@/components/ui/card',
+              '@/components/ui/label',
+              '@/components/ui/timeline'
             ]
           },
           chunkFileNames: 'assets/js/[name]-[hash].js',

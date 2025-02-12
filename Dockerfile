@@ -13,8 +13,11 @@ RUN npm ci
 COPY . .
 
 # Set environment variables untuk build
-ENV VITE_API_URL=https://api.reserse.id
 ENV NODE_ENV=production
+ENV VITE_API_URL=https://api.reserse.id
+ENV VITE_API_KEY=ag-wUJyLXzHxWyNMnzRXlPJjRNs4n18NZIbRrGpgxvYGSY
+ENV VITE_PERKABA_API_URL=https://flow.reserse.id
+ENV VITE_PERKABA_API_KEY=kzeL0g3LzjRzG9a0-jgbay441zTkAaGgC1mu0jVs330
 
 # Build the app
 RUN npm run build
