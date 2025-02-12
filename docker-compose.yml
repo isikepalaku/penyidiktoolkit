@@ -14,25 +14,12 @@ services:
       - NODE_ENV=production
       - VITE_API_URL=https://api.reserse.id
       - HOST=app.reserse.id
-    volumes:
-      - type: bind
-        source: ./nginx.conf
-        target: /etc/nginx/conf.d/default.conf
-        read_only: true
-      - type: volume
-        source: nginx-cache
-        target: /var/cache/nginx
-      - type: bind
-        source: ./ssl
-        target: /etc/nginx/ssl
-        read_only: true
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health || exit 1"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
       interval: 30s
-      timeout: 10s
+      timeout: 3s
       retries: 3
-      start_period: 40s
     deploy:
       resources:
         limits:
