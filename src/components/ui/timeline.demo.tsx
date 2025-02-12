@@ -7,7 +7,7 @@ import {
   TimelineLine,
 } from "@/components/ui/timeline";
 
-export function TimelineDemo() {
+export default function TimelineDemo() {
   return (
     <Timeline>
       <TimelineItem status="done">
