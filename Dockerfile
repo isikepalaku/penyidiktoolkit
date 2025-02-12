@@ -12,6 +12,10 @@ RUN npm ci
 # Copy project files
 COPY . .
 
+# Set environment variables untuk build
+ENV VITE_API_URL=https://api.reserse.id
+ENV NODE_ENV=production
+
 # Build the app
 RUN npm run build
 

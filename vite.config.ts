@@ -96,21 +96,18 @@ export default defineConfig(({ mode }) => {
       outDir: 'dist',
       assetsDir: 'assets',
       rollupOptions: {
+        input: {
+          main: resolve(__dirname, 'index.html'),
+        },
         output: {
           manualChunks: {
             'vendor': [
               'react',
               'react-dom',
-              'react-router-dom',
-              'lucide-react',
-              '@radix-ui/react-slot',
-              'class-variance-authority'
+              'react-router-dom'
             ],
             'ui': [
-              '@/components/ui',
-            ],
-            'agents': [
-              '@/data/agents'
+              '@/components/ui/index.ts'
             ]
           },
           chunkFileNames: 'assets/js/[name]-[hash].js',
