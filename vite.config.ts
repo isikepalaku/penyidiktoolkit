@@ -76,13 +76,27 @@ export default defineConfig(({ mode }) => {
       },
       hmr: {
         clientPort: 3000
-      }
+      },
+      allowedHosts: [
+        'localhost',
+        'api.reserse.id',
+        'flow.reserse.id',
+        'app.reserse.id',
+        '.reserse.id'
+      ]
     },
     preview: {
       host: '0.0.0.0',
       port: 3000,
       strictPort: true,
-      cors: true
+      cors: true,
+      allowedHosts: [
+        'localhost',
+        'api.reserse.id',
+        'flow.reserse.id',
+        'app.reserse.id',
+        '.reserse.id'
+      ]
     },
     assetsInclude: ['**/*.svg'],
     build: {
