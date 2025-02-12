@@ -43,10 +43,9 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      host: '0.0.0.0',
+      cors: true,
       port: 3000,
       strictPort: true,
-      cors: true,
       proxy: {
         '/v1': {
           target: 'https://api.reserse.id',
@@ -71,12 +70,6 @@ export default defineConfig(({ mode }) => {
           rewrite: (path: string) => path.replace(/^\/flowise/, '')
         }
       },
-      watch: {
-        usePolling: true
-      },
-      hmr: {
-        clientPort: 3000
-      },
       allowedHosts: [
         'localhost',
         'api.reserse.id',
@@ -88,7 +81,6 @@ export default defineConfig(({ mode }) => {
     preview: {
       host: '0.0.0.0',
       port: 3000,
-      strictPort: true,
       cors: true,
       allowedHosts: [
         'localhost',
@@ -104,9 +96,6 @@ export default defineConfig(({ mode }) => {
       outDir: 'dist',
       assetsDir: 'assets',
       rollupOptions: {
-        input: {
-          main: resolve(__dirname, 'index.html'),
-        },
         output: {
           manualChunks: {
             'vendor': [
@@ -118,11 +107,10 @@ export default defineConfig(({ mode }) => {
               'class-variance-authority'
             ],
             'ui': [
-              '@/components/ui/ai-input-with-loading',
-              '@/components/ui/button',
-              '@/components/ui/card',
-              '@/components/ui/label',
-              '@/components/ui/timeline'
+              '@/components/ui',
+            ],
+            'agents': [
+              '@/data/agents'
             ]
           },
           chunkFileNames: 'assets/js/[name]-[hash].js',
