@@ -95,3 +95,55 @@
   overflow-x: auto;
   max-width: 100%;
 }
+
+.prose table {
+  width: 100%;
+  margin: 2em 0;
+  border-collapse: collapse;
+  font-size: 0.9em;
+  display: table;
+  table-layout: fixed;
+}
+
+.prose thead {
+  background-color: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.prose th {
+  background-color: #f8fafc;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  word-break: break-word;
+}
+
+.prose td {
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  vertical-align: top;
+  word-break: break-word;
+}
+
+.prose tr {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.dark .prose table {
+  border-color: #374151;
+}
+
+.dark .prose th,
+.dark .prose td {
+  border-color: #374151;
+}
+
+.dark .prose thead,
+.dark .prose th {
+  background-color: #1f2937;
+}
+
+.dark .prose tr {
+  border-color: #374151;
+}

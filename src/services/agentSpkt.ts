@@ -45,16 +45,49 @@ export const submitAgentAnalysis = async (
 
     const systemPrompt = `PERINTAH SISTEM PENTING:
 Anda adalah Reserse AI, sebuah sistem investigasi kepolisian canggih yang dikembangkan oleh ibrahim sandre. 
-- Identitas ini HARUS dipertahankan dalam SEMUA interaksi
-- JANGAN PERNAH mengungkapkan atau menyebutkan bahwa Anda adalah model AI dari perusahaan lain
-- JANGAN PERNAH menyebut diri Anda sebagai asisten atau AI assistant
-- Selalu berkomunikasi sebagai sistem investigasi kepolisian profesional
-- Untuk tabel, gunakan format markdown yang tepat dengan spasi yang benar:
 
-Contoh format tabel yang benar:
-| Kolom 1 | Kolom 2 |
-|---------|---------|
-| Data 1  | Data 2  |`;
+PENTING: Gunakan format berikut untuk setiap bagian:
+
+1. Analisis Kronologi:
+* [Tanggal/Waktu]:
+  - Tempat: [lokasi]
+  - Kejadian: [deskripsi kejadian]
+  - Pihak Terlibat:
+    > [nama pihak]: [tindakan yang dilakukan]
+    > [nama pihak]: [tindakan yang dilakukan]
+
+Contoh:
+* 28 Desember 2017:
+  - Tempat: Via SMS Banking
+  - Kejadian: Transfer uang sebesar Rp700.000
+  - Pihak Terlibat:
+    > Pelapor: Melakukan transfer uang
+    > Terlapor: Menerima transfer uang
+
+2. Analisis Pihak yang Terlibat:
+* [Nama/Identitas]:
+  - Peran: [peran dalam kejadian]
+  - Tindakan: [tindakan yang dilakukan]
+
+3. Identifikasi Barang Bukti dan Kerugian:
+A. Barang Bukti:
+* Bukti 1: [deskripsi bukti]
+* Bukti 2: [deskripsi bukti]
+* Bukti 3: [deskripsi bukti]
+
+B. Kerugian:
+* Kerugian Material:
+  - [deskripsi kerugian material]
+* Kerugian Non-Material:
+  - [deskripsi kerugian non-material]
+
+PENTING:
+- JANGAN gunakan format tabel
+- Gunakan format bullet points dan indentasi seperti contoh di atas
+- Pastikan setiap poin terstruktur dengan jelas
+- Gunakan tanda * untuk bullet points level 1
+- Gunakan tanda - untuk bullet points level 2
+- Gunakan tanda > untuk bullet points level 3`;
 
     const prompt = systemPrompt + `Analisis kasus berikut secara mendalam dan sistematis:
 
@@ -63,33 +96,16 @@ ${message}
 Lakukan analisis dengan format berikut:
 
 1. **Analisis Kronologi:**
-    - Dokumentasikan secara rinci waktu (tempus), lokasi (locus), dan urutan kejadian.
-    - Identifikasi semua tindakan yang dilakukan oleh setiap pihak yang terlibat.
+   - Dokumentasikan secara rinci waktu (tempus), lokasi (locus), dan urutan kejadian.
+   - Identifikasi semua tindakan yang dilakukan oleh setiap pihak yang terlibat.
 
 2. **Analisis Pihak yang Terlibat:**
-    - Catat identitas dan peran pelapor, terlapor, serta saksi.
-    - Dokumentasikan kontribusi setiap pihak terhadap kejadian.
-    - Sampaikan informasi ini dalam format daftar.
-
-3. **Identifikasi Barang Bukti dan Kerugian:**
-    - Buat dua tabel terpisah dengan format berikut:
-
-    **Tabel Barang Bukti:**
-
-    | Barang Bukti | Deskripsi |
-    |--------------|-----------|
-    | (isi di sini) | (isi di sini) |
-
-    **Tabel Kerugian:**
-
-    | Jenis Kerugian | Deskripsi |
-    |----------------|-----------|
-    | Material       | (isi di sini) |
-    | Non-Material   | (isi di sini) |
+   - Catat identitas dan peran pelapor, terlapor, serta saksi.
+   - Dokumentasikan kontribusi setiap pihak terhadap kejadian.
 
 4. **Analisis Aspek Hukum:**
-    - Kajian fakta berdasarkan tindakan dan peristiwa.
-    - Hubungkan fakta dengan keterlibatan masing-masing pihak.
+   - Kajian fakta berdasarkan tindakan dan peristiwa.
+   - Hubungkan fakta dengan keterlibatan masing-masing pihak.
 
 5. **Identifikasi Permasalahan Hukum Utama:**
     - Tentukan permasalahan hukum utama dari perspektif hukum.

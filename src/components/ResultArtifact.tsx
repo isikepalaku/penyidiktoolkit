@@ -11,7 +11,36 @@ interface ResultArtifactProps {
 
 const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => {
   const [isCopied, setIsCopied] = useState(false);
+  const [showConfirmClose, setShowConfirmClose] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+
+  // Prevent scroll refresh
+  useEffect(() => {
+    const preventDefault = (e: TouchEvent) => {
+      e.preventDefault();
+    };
+
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('touchmove', preventDefault, { passive: false });
+
+    return () => {
+      document.body.style.overflow = 'auto';
+      document.removeEventListener('touchmove', preventDefault);
+    };
+  }, []);
+
+  const handleCloseClick = () => {
+    setShowConfirmClose(true);
+  };
+
+  const handleConfirmClose = () => {
+    setShowConfirmClose(false);
+    onClose();
+  };
+
+  const handleCancelClose = () => {
+    setShowConfirmClose(false);
+  };
 
   const handleCopy = async () => {
     try {
@@ -78,31 +107,42 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
 
   const printRef = useCallback(() => contentRef.current, []);
 
-  // Process content to fix table formatting
+  // Tambahkan fungsi untuk memperbaiki format tabel
   const processContent = (rawContent: string) => {
     let content = rawContent
       // Normalisasi line breaks
       .replace(/\r\n/g, '\n')
       .replace(/\n{3,}/g, '\n\n')
       
-      // Format headings dengan bold
-      .replace(/^\*\s+\*\*([^:]+):\*\*\s*(.*)/gm, '* **$1:** $2')
+      // Hapus semua garis horizontal yang tidak perlu
+      .replace(/\|[-\s|]+\|/g, '')
       
-      // Format nested lists dengan indentasi yang benar
+      // Perbaiki format tabel
+      .replace(
+        /Tabel[^|]*\|\s*([^|\n]+)\s*\|\s*([^|\n]+)\s*\|/g,
+        (_, header1, header2) => `\n| ${header1.trim()} | ${header2.trim()} |\n|---|---|\n`
+      )
+      
+      // Perbaiki baris data tabel
+      .replace(
+        /\|\s*([^|\n]+)\s*\|\s*([^|\n]+)\s*\|/g,
+        (_, col1, col2) => `| ${col1.trim()} | ${col2.trim()} |\n`
+      )
+      
+      // Tambahkan spasi yang benar di sekitar tabel
+      .replace(/([^\n])\n\|/g, '$1\n\n|')
+      .replace(/\|\n([^\n|])/g, '|\n\n$1')
+      
+      // Format lainnya tetap sama
+      .replace(/^\*\s+\*\*([^:]+):\*\*\s*(.*)/gm, '* **$1:** $2')
       .replace(/^(\*\s+[^\n]+\n)(?=\*\s+[^\n]+)/gm, '$1\n')
       .replace(/^\*\s+([^\n]+)(?=\n\*\s+[^\*])/gm, '* $1')
       .replace(/^\*\s+([^\n]+)(?=\n\s+\*)/gm, '* $1')
       .replace(/^(\s*)\*\s+([^\n]+)/gm, '$1* $2')
-      
-      // Format sub-bullets dengan indentasi
       .replace(/^(\*\s+\*\*[^:]+:\*\*[^\n]+)\n\*\s+/gm, '$1\n    * ')
       .replace(/^(\s+\*\s+[^\n]+)\n\*\s+/gm, '$1\n    * ')
-      
-      // Pastikan spacing yang konsisten
       .replace(/\n{2,}\*/g, '\n\n*')
       .replace(/\n{2,}\s+\*/g, '\n\n    *')
-      
-      // Tambahkan line breaks yang tepat
       .replace(/(\*\s+[^\n]+)\n(?=[^\s\*])/g, '$1\n\n')
       .trim();
 
@@ -122,25 +162,25 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
       {/* Blurred backdrop */}
       <div 
         className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 z-30"
-        onClick={onClose}
+        onClick={handleCloseClick}
       />
       
       {/* Result panel */}
       <div className="fixed right-0 top-0 h-full lg:w-1/2 w-full 
-        bg-white
-        border-l border-gray-200 
+        bg-white dark:bg-gray-900
+        border-l border-gray-200 dark:border-gray-800
         overflow-auto z-40 
         shadow-2xl 
         animate-slide-left">
         
-        {/* Header section - solid background */}
-        <div className="sticky top-0 z-50 bg-white p-4 
+        {/* Header section */}
+        <div className="sticky top-0 z-50 bg-white dark:bg-gray-900 p-4 
           flex justify-between items-center 
-          border-b border-gray-200 
+          border-b border-gray-200 dark:border-gray-800
           no-print
           shadow-sm"
         >
-          <h2 className="text-xl font-semibold text-gray-800">Hasil Analisis</h2>
+          <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">Hasil Analisis</h2>
           <div className="flex items-center gap-2">
             <button
               onClick={() => handlePrint(printRef)}
@@ -174,10 +214,10 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
               )}
             </button>
             <button
-              onClick={onClose}
+              onClick={handleCloseClick}
               className="p-1.5 rounded-lg transition-all duration-200
-                text-gray-500 hover:text-gray-700 
-                hover:bg-gray-100"
+                text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200
+                hover:bg-gray-100 dark:hover:bg-gray-800"
               title="Tutup"
             >
               <X size={20} />
@@ -247,6 +287,38 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
           </div>
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      {showConfirmClose && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-white dark:bg-gray-900 rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              Konfirmasi Tutup
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              Apakah Anda yakin ingin menutup hasil analisis? Data akan hilang setelah ditutup.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={handleCancelClose}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 
+                  bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 
+                  dark:hover:bg-gray-700 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleConfirmClose}
+                className="px-4 py-2 text-sm font-medium text-white 
+                  bg-red-600 rounded-lg hover:bg-red-700 
+                  transition-colors"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
