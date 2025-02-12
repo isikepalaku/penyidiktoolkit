@@ -6,7 +6,7 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: Dockerfile.prod
+      dockerfile: Dockerfile
     container_name: penyidik-frontend
     ports:
       - "3000:3000"
