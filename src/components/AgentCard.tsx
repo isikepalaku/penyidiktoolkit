@@ -1,4 +1,4 @@
-import { Brain, User, PieChart, Image, FileText, MessageSquare, Search, Database, Target, MapPin, BarChart3 } from 'lucide-react';
+import { Brain, User, PieChart, Image, FileText, MessageSquare, Search, Database, Target, MapPin, BarChart3, Scale, Gavel, BookOpen } from 'lucide-react';
 import type { Agent } from '../types/index';
 import { getTypeDisplay } from '@/utils/utils';
 
@@ -33,12 +33,16 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
         return <Target className="text-red-500" size={24} />;
       case 'image_processor':
         return <MapPin className="text-blue-500" size={24} />;
-      case 'undang_chat':
-        return <FileText className="text-blue-500" size={24} />;
-      case 'kuhp_chat':
-        return <FileText className="text-rose-500" size={24} />;
       case 'crime_trend_analyst':
         return <BarChart3 className="text-indigo-500" size={24} />;
+      case 'undang_chat':
+        return <Scale className="text-blue-500" size={24} />;
+      case 'kuhp_chat':
+        return <Gavel className="text-rose-500" size={24} />;
+      case 'ite_chat':
+        return <BookOpen className="text-green-500" size={24} />;
+      case 'fidusia_chat':
+        return <FileText className="text-indigo-500" size={24} />;
       default:
         return <PieChart className="text-gray-500" size={24} />;
     }

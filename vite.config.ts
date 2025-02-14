@@ -51,10 +51,8 @@ export default defineConfig(({ mode }) => {
           target: 'https://api.reserse.id',
           changeOrigin: true,
           secure: true,
-          maxBodySize: '50mb',
-          timeout: 300000,
-          filter: (path: string) => {
-            return path.startsWith('/v1/playground/agents/');
+          cookieDomainRewrite: {
+            '*': ''
           }
         },
         '/api': {

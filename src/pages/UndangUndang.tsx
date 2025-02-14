@@ -5,6 +5,7 @@ import { ArrowLeft } from 'lucide-react';
 import { sendChatMessage as sendUndangChatMessage } from '../services/undangService';
 import { sendChatMessage as sendKuhpChatMessage } from '../services/kuhpService';
 import { sendChatMessage as sendIteChatMessage } from '../services/iteService';
+import { sendChatMessage as sendFidusiaChatMessage } from '../services/fidusiaService';
 import { DotBackground } from '@/components/ui/DotBackground';
 
 interface Agent {
@@ -43,6 +44,14 @@ export default function UndangUndang() {
       type: 'ite_chat',
       status: 'on',
       fields: []
+    },
+    {
+      id: 'fidusia_chat',
+      name: 'Ahli Fidusia',
+      description: 'Agen AI yang membantu memahami Undang-Undang Jaminan Fidusia dan peraturan terkait',
+      type: 'fidusia_chat',
+      status: 'on',
+      fields: []
     }
   ];
 
@@ -62,6 +71,8 @@ export default function UndangUndang() {
         return <UndangChatInterface sendMessage={sendKuhpChatMessage} />;
       case 'ite_chat':
         return <UndangChatInterface sendMessage={sendIteChatMessage} />;
+      case 'fidusia_chat':
+        return <UndangChatInterface sendMessage={sendFidusiaChatMessage} />;
       default:
         return null;
     }
