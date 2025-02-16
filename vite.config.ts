@@ -46,6 +46,11 @@ export default defineConfig(({ mode }) => {
       cors: true,
       port: 3000,
       strictPort: true,
+      middlewareMode: false,
+      fs: {
+        strict: true,
+        allow: ['src']
+      },
       proxy: {
         '/v1': {
           target: 'https://api.reserse.id',
@@ -93,6 +98,10 @@ export default defineConfig(({ mode }) => {
       sourcemap: true,
       outDir: 'dist',
       assetsDir: 'assets',
+      cssCodeSplit: true,
+      modulePreload: {
+        polyfill: true
+      },
       rollupOptions: {
         output: {
           manualChunks: {
@@ -117,7 +126,9 @@ export default defineConfig(({ mode }) => {
         }
       },
       minify: 'esbuild',
-      target: 'esnext'
+      target: 'esnext',
+      reportCompressedSize: true,
+      chunkSizeWarningLimit: 1000
     },
     define: {
       'process.env': env

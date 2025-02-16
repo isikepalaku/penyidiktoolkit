@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { X, Copy, Check, Printer } from 'lucide-react';
@@ -11,8 +11,17 @@ interface ResultArtifactProps {
 
 const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => {
   const [isCopied, setIsCopied] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [processedContent, setProcessedContent] = useState('');
   const contentRef = useRef<HTMLDivElement>(null);
   const componentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setIsLoading(true);
+    const processed = processContent(content);
+    setProcessedContent(processed);
+    setIsLoading(false);
+  }, [content]);
 
   const handleCopy = async () => {
     try {
@@ -77,14 +86,17 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
 
   return (
     <>
-      <div 
-        className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[20]"
-        onClick={onClose}
-      />
+      {!isLoading && (
+        <div
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[20]"
+          onClick={onClose}
+        />
+      )}
       
-      <div className="fixed top-0 right-0 bottom-0 w-full lg:w-[50%] bg-white dark:bg-gray-900 shadow-xl z-[25]
-        flex flex-col h-[100dvh]"
-      >
+      {!isLoading && (
+        <div className="fixed top-0 right-0 bottom-0 w-full lg:w-[50%] bg-white dark:bg-gray-900 shadow-xl z-[25]
+          flex flex-col h-[100dvh] transition-transform duration-200 ease-out"
+        >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b dark:border-gray-800">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
@@ -120,13 +132,20 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
             <div ref={componentRef} className="prose dark:prose-invert max-w-none">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {processContent(content)}
-              </ReactMarkdown>
+              {isLoading ? (
+                <div className="flex justify-center items-center h-full">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900 dark:border-gray-100"></div>
+                </div>
+              ) : (
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {processedContent}
+                </ReactMarkdown>
+              )}
             </div>
           </div>
         </div>
       </div>
+      )}
     </>
   );
 };
