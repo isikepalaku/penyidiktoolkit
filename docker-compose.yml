@@ -17,7 +17,7 @@ services:
     restart: unless-stopped
     volumes:
       - .:/app
-      - /app/node_modules
+      - node_modules:/app/node_modules
     ulimits:
       nofile:
         soft: 65536
@@ -58,7 +58,7 @@ services:
           - app.reserse.id
 
 volumes:
-  /app/node_modules:
+  node_modules:
 
 networks:
   penyidik-network:
