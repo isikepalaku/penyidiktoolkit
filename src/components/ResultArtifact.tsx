@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { X, Copy, Check, Printer } from 'lucide-react';
@@ -13,14 +13,6 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
   const [isCopied, setIsCopied] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const componentRef = useRef<HTMLDivElement>(null);
-
-  // Prevent background scroll
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = 'auto';
-    };
-  }, []);
 
   const handleCopy = async () => {
     try {
@@ -90,8 +82,8 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
         onClick={onClose}
       />
       
-      <div className="fixed top-0 right-0 h-[100dvh] w-full lg:w-[50%] bg-white dark:bg-gray-900 shadow-xl z-50
-        flex flex-col"
+      <div className="fixed top-0 right-0 bottom-0 w-full lg:w-[50%] bg-white dark:bg-gray-900 shadow-xl z-50
+        flex flex-col overscroll-none"
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b dark:border-gray-800">
@@ -121,14 +113,16 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
         </div>
 
         {/* Content - Scrollable area */}
-        <div 
-          ref={contentRef}
-          className="flex-1 overflow-y-auto p-6"
-        >
-          <div ref={componentRef} className="prose dark:prose-invert max-w-none">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {processContent(content)}
-            </ReactMarkdown>
+        <div className="flex-1 overflow-hidden">
+          <div
+            ref={contentRef}
+            className="h-full overflow-y-auto touch-pan-y p-6"
+          >
+            <div ref={componentRef} className="prose dark:prose-invert max-w-none">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {processContent(content)}
+              </ReactMarkdown>
+            </div>
           </div>
         </div>
       </div>
