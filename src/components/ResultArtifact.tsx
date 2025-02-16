@@ -83,7 +83,7 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
       />
       
       <div className="fixed top-0 right-0 bottom-0 w-full lg:w-[50%] bg-white dark:bg-gray-900 shadow-xl z-[25]
-        flex flex-col overscroll-none"
+        flex flex-col h-[100dvh]"
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b dark:border-gray-800">
@@ -113,10 +113,11 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
         </div>
 
         {/* Content - Scrollable area */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1">
           <div
             ref={contentRef}
-            className="h-full overflow-y-auto touch-pan-y p-6"
+            className="h-full overflow-y-auto overscroll-contain touch-pan-y p-6 will-change-scroll"
+            style={{ WebkitOverflowScrolling: 'touch' }}
           >
             <div ref={componentRef} className="prose dark:prose-invert max-w-none">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
