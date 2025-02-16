@@ -9,6 +9,7 @@ import { imagePrompts } from '../data/agents/imageAgent';
 import { agents } from '../data/agents';
 import { submitModusKejahatanAnalysis } from '../services/agentModusKejahatan';
 import { submitCrimeTrendAnalysis } from '@/services/agentCrimeTrendAnalyst';
+import { submitAgentAnalysis as submitSentimentAnalysis } from '@/services/agentSentimentAnalyst';
 
 interface UseAgentFormResult {
   formData: FormData;
@@ -105,6 +106,9 @@ export const useAgentForm = (): UseAgentFormResult => {
             break;
           case 'crime_trend_analyst':
             response = await submitCrimeTrendAnalysis(message.trim());
+            break;
+          case 'sentiment_analyst':
+            response = await submitSentimentAnalysis(message.trim());
             break;
           default:
             throw new Error('Tipe agen tidak dikenali');

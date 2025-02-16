@@ -216,6 +216,74 @@ From project.md:
   - Don't define icons in individual agent files
   - Use proper icon that represents agent's function (e.g., BarChart3 for trend analysis)
 
+## Form Implementation Lessons
+
+### Form Display Pattern
+1. Agent Configuration:
+   - Define agent in src/data/agents/[agentName].ts
+   - Use ExtendedAgent interface
+   - Set proper id, name, type, status, and fields
+   - Use 'message' as field id for text inputs
+   - Use 'textarea' as const for type
+   - Export as named export for consistency
+
+2. Type Registration:
+   - Add agent type to AgentType union in types/index.ts
+   - Add agent ID to AGENT_IDS in utils.ts
+   - Add case in getAgentTypeFromId function
+   - Add case in getTypeDisplay function
+
+3. Form Rendering:
+   - Forms are rendered in Agents.tsx
+   - Use switch statement on selectedAgentData.type
+   - BaseAgentForm for text/textarea inputs
+   - ImageAgentForm for image inputs
+   - Add new agent type to appropriate case
+
+Example agent configuration:
+```typescript
+export const newAgent: ExtendedAgent = {
+  id: 'polri-new-agent',
+  name: 'New Agent',
+  description: 'Agent description',
+  type: 'new_agent',
+  status: 'on',
+  fields: [
+    {
+      id: 'message',
+      label: 'Input Label',
+      type: 'textarea' as const,
+      placeholder: 'Enter your text...'
+    }
+  ]
+};
+```
+
+Form rendering pattern in Agents.tsx:
+```typescript
+switch (selectedAgentData.type) {
+  case 'image':
+  case 'image_processor':
+    return <ImageAgentForm {...commonProps} />;
+  case 'crime_trend_analyst':
+    return <BaseAgentForm {...commonProps} textareaHeight="h-32" />;
+  case 'new_agent':  // Add new agent here
+  case 'hoax_checker':
+  case 'case_research':
+    return <BaseAgentForm {...commonProps} />;
+  default:
+    return null;
+}
+```
+
+### Common Mistakes to Avoid
+- Forgetting to add agent type to AgentType union
+- Using wrong field id (should be 'message' for text inputs)
+- Forgetting 'as const' for textarea type
+- Not adding agent to switch statement in Agents.tsx
+- Using default export instead of named export
+- Not updating AGENT_IDS and related functions in utils.ts
+
 # Scratchpad
 
 Current Task: Optimizing API Security and Performance

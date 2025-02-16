@@ -25,7 +25,7 @@ export interface Case {
 export interface Agent {
   id: string;
   name: string;
-  type: string;
+  type: AgentType;
   status: string;
   description: string;
 }
@@ -37,7 +37,17 @@ export type AgentType =
   | 'hoax_checker'
   | 'image_processor'
   | 'modus_kejahatan'
-  | 'crime_trend_analyst';
+  | 'crime_trend_analyst'
+  | 'sentiment_analyst'
+  | 'undang_chat'
+  | 'kuhp_chat'
+  | 'ite_chat'
+  | 'fidusia_chat'
+  | 'perkaba_chat'
+  | 'perkaba_search'
+  | 'bantek_chat'
+  | 'wassidik_chat'
+  | 'emp_chat';
 
 export interface ExtendedAgent {
   id: string;

@@ -11,6 +11,22 @@ export default function TimelineDemo() {
   return (
     <Timeline>
       <TimelineItem status="done">
+        <TimelineHeading>Analisis Sentimen</TimelineHeading>
+        <TimelineDot status="done" />
+        <TimelineLine done />
+        <TimelineContent>
+          Agen ai yang memahami analisis sentimen sebuah isu atau topik tertentu.
+        </TimelineContent>
+      </TimelineItem>
+      <TimelineItem status="done">
+        <TimelineHeading>Ahli UU Fidusia</TimelineHeading>
+        <TimelineDot status="done" />
+        <TimelineLine done />
+        <TimelineContent>
+          Agen ai yang memahami UU No. 42 Tahun 1999 tentang Jaminan Fidusia.
+        </TimelineContent>
+      </TimelineItem>
+      <TimelineItem status="done">
         <TimelineHeading>Ahli KUHP 2023</TimelineHeading>
         <TimelineDot status="done" />
         <TimelineLine done />
