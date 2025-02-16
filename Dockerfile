@@ -1,36 +1,26 @@
-# Stage 1 - Build
-FROM node:20-alpine AS builder
+# Base image
+FROM node:20-alpine
 
 # Set working directory
 WORKDIR /app
 
+# Set environment variables
+ENV NODE_ENV=production
+ENV HOST=0.0.0.0
+ENV PORT=3000
+
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies with clean cache
+RUN npm install && \
+    npm cache clean --force
 
 # Copy project files
 COPY . .
 
-# Build the app
-RUN npm run build
-
-# Stage 2 - Production
-FROM nginx:alpine
-
-# Copy built files
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Create cache directory with proper permissions
-RUN mkdir -p /var/cache/nginx && \
-    chown -R nginx:nginx /var/cache/nginx
-
 # Expose port
 EXPOSE 3000
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Start development server with host parameter
+CMD ["npm", "run", "dev", "--", "--host"]
