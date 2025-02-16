@@ -14,18 +14,11 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
   const contentRef = useRef<HTMLDivElement>(null);
   const componentRef = useRef<HTMLDivElement>(null);
 
-  // Prevent scroll refresh
+  // Prevent background scroll
   useEffect(() => {
-    const preventDefault = (e: TouchEvent) => {
-      e.preventDefault();
-    };
-
     document.body.style.overflow = 'hidden';
-    document.addEventListener('touchmove', preventDefault, { passive: false });
-
     return () => {
       document.body.style.overflow = 'auto';
-      document.removeEventListener('touchmove', preventDefault);
     };
   }, []);
 
@@ -97,8 +90,8 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
         onClick={onClose}
       />
       
-      <div className="fixed top-0 right-0 h-full w-full lg:w-[50%] bg-white dark:bg-gray-900 shadow-xl z-50 
-        overflow-hidden flex flex-col"
+      <div className="fixed top-0 right-0 h-[100dvh] w-full lg:w-[50%] bg-white dark:bg-gray-900 shadow-xl z-50
+        flex flex-col"
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b dark:border-gray-800">
