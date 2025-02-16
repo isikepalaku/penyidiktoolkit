@@ -302,3 +302,37 @@ Next Steps:
 - Monitor API usage and adjust rate limits if needed
 - Consider adding more security headers if required
 - Review and optimize file upload performance
+
+## Mobile UI Lessons
+
+### Scrollable Content in Fixed Containers
+1. Use flexbox layout for fixed position containers:
+   ```css
+   .container {
+     @apply fixed inset-0 flex flex-col;
+   }
+   ```
+2. Make content area scrollable:
+   ```css
+   .content {
+     @apply flex-1 overflow-y-auto;
+   }
+   ```
+3. Keep header fixed:
+   ```css
+   .header {
+     @apply flex items-center justify-between p-4 border-b;
+   }
+   ```
+4. Add backdrop overlay for mobile:
+   ```css
+   .overlay {
+     @apply fixed inset-0 bg-black/20 backdrop-blur-sm z-40 lg:hidden;
+   }
+   ```
+
+Common issues to avoid:
+- Double scrollbars
+- Content overflow on small screens
+- Non-scrollable content in fixed containers
+- Missing overlay for mobile interactions
