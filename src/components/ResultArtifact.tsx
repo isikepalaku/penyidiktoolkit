@@ -78,11 +78,11 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
   return (
     <>
       <div 
-        className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+        className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[20]"
         onClick={onClose}
       />
       
-      <div className="fixed top-0 right-0 bottom-0 w-full lg:w-[50%] bg-white dark:bg-gray-900 shadow-xl z-50
+      <div className="fixed top-0 right-0 bottom-0 w-full lg:w-[50%] bg-white dark:bg-gray-900 shadow-xl z-[25]
         flex flex-col overscroll-none"
       >
         {/* Header */}

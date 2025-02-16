@@ -48,7 +48,7 @@ const Sidebar = () => {
       {/* Mobile Menu Button */}
       <button
         onClick={toggleSidebar}
-        className="lg:hidden fixed left-4 top-4 z-[60] p-2.5 rounded-lg bg-gradient-to-r from-indigo-950 to-slate-900 text-white shadow-lg hover:from-slate-900 hover:to-slate-950 transition-all"
+        className="lg:hidden fixed left-4 top-4 z-[200] p-2.5 rounded-lg bg-gradient-to-r from-indigo-950 to-slate-900 text-white shadow-lg hover:from-slate-900 hover:to-slate-950 transition-all"
       >
         {isOpen ? <PanelRightClose size={20} /> : <PanelLeft size={20} />}
       </button>
@@ -56,7 +56,7 @@ const Sidebar = () => {
       {/* Overlay for mobile */}
       {isOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-slate-900/60 z-[45] backdrop-blur-sm"
+          className="lg:hidden fixed inset-0 bg-slate-900/60 z-[150] backdrop-blur-sm"
           onClick={toggleSidebar}
         />
       )}
@@ -65,7 +65,7 @@ const Sidebar = () => {
       <aside
         className={`${
           isOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0 fixed top-0 left-0 h-full w-64 bg-gradient-to-b from-indigo-950 to-slate-900 shadow-xl z-50 transition-transform duration-300 ease-in-out`}
+        } lg:translate-x-0 fixed top-0 left-0 h-full w-64 bg-gradient-to-b from-indigo-950 to-slate-900 shadow-xl z-[175] transition-transform duration-300 ease-in-out`}
       >
         {/* Logo Container with Border */}
         <div className="relative flex items-center justify-center py-6 border-b border-indigo-900/50">
