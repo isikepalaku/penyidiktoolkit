@@ -28,7 +28,6 @@ export default defineConfig(({ mode }) => {
     base: '/',
     plugins: [react(), tsconfigPaths()],
     optimizeDeps: {
-      exclude: ['lucide-react'],
       include: [
         'react',
         'react-dom',
@@ -46,10 +45,10 @@ export default defineConfig(({ mode }) => {
       cors: true,
       port: 3000,
       strictPort: true,
-      middlewareMode: false,
+      host: true,
       fs: {
-        strict: true,
-        allow: ['src']
+        strict: false,
+        allow: ['.', 'node_modules']
       },
       proxy: {
         '/v1': {
