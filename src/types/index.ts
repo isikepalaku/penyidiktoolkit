@@ -25,9 +25,17 @@ export interface Case {
 export interface Agent {
   id: string;
   name: string;
+  description: string;
   type: AgentType;
   status: string;
-  description: string;
+  icon?: string;
+  color?: string;
+  fields?: Array<{
+    id: string;
+    label: string;
+    type: string;
+    placeholder?: string;
+  }>;
 }
 
 export type AgentType = 
@@ -45,7 +53,7 @@ export type AgentType =
   | 'fidusia_chat'
   | 'perkaba_chat'
   | 'perkaba_search'
-  | 'bantek_chat'
+  | 'bantek_chat' 
   | 'wassidik_chat'
   | 'emp_chat';
 

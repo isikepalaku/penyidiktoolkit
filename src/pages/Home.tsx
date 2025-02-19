@@ -36,6 +36,26 @@ export default function Home() {
           </div>
         </div>
 
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 mb-8 shadow-md">
+          <h2 className="text-xl font-semibold mb-3 text-gray-800 dark:text-gray-200">
+            Tentang Reserse AI
+          </h2>
+          <p className="text-gray-600 dark:text-gray-300 mb-4">
+            Reserse AI adalah alat bantu analisis hukum dan penyelidikan yang menggunakan Agent AI dengan data Corpus hukum yang relevan. 
+            Sistem ini dirancang untuk membantu penyidik dalam menganalisis kasus dengan lebih efisien dan akurat.
+          </p>
+          <div className="space-y-2 text-gray-600 dark:text-gray-300">
+            <p>
+              Tujuan utama dari aplikasi ini adalah membangun sistem otomatisasi AI yang memiliki konteks dalam bekerja, 
+              sehingga dapat meminimalisir halusinasi dan memberikan analisis yang lebih akurat berdasarkan data hukum yang valid.
+            </p>
+            <p className="font-medium text-gray-700 dark:text-gray-200 mt-4">
+              Penting untuk diingat: AI tidak pernah menggantikan peran manusia dalam proses penyidikan. 
+              AI ditujukan sebagai alat bantu yang memudahkan pekerjaan.
+            </p>
+          </div>
+        </div>
+
         {/* Timeline content */}
         <div className="mt-4">
           <Suspense fallback={<LoadingPlaceholder />}>

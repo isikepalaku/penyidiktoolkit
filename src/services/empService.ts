@@ -71,6 +71,14 @@ export const sendChatMessage = async (message: string): Promise<{
           throw new Error('Terlalu banyak permintaan. Silakan tunggu beberapa saat sebelum mencoba lagi.');
         }
         
+        if (response.status === 401) {
+          throw new Error('Unauthorized: API key tidak valid');
+        }
+
+        if (response.status === 403) {
+          throw new Error('Forbidden: Tidak memiliki akses');
+        }
+        
         if (response.status >= 500 && retries < MAX_RETRIES) {
           retries++;
           await wait(RETRY_DELAY * retries);

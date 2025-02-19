@@ -7,15 +7,7 @@ import { sendChatMessage as sendBantekChatMessage } from '../services/bantekServ
 import { sendChatMessage as sendWassidikChatMessage } from '../services/wassidikService';
 import { sendChatMessage as sendEmpChatMessage } from '../services/empService';
 import { DotBackground } from '@/components/ui/DotBackground';
-
-interface Agent {
-  id: string;
-  name: string;
-  description: string;
-  type: string;
-  status: string;
-  fields: never[];
-}
+import { Agent, AgentType } from '@/types';
 
 export default function PerkabaChat() {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
@@ -25,33 +17,37 @@ export default function PerkabaChat() {
       id: 'perkaba_chat',
       name: 'SOP Lidik Sidik',
       description: 'Ajukan pertanyaan dan dapatkan informasi seputar SOP Lidik sidik berdasarkan Perkaba',
-      type: 'perkaba_chat',
+      type: 'perkaba_chat' as AgentType,
       status: 'on',
-      fields: []
+      icon: 'brain',
+      color: 'blue'
     },
     {
       id: 'bantek_chat',
       name: 'SOP Bantek',
       description: 'Ajukan pertanyaan seputar SOP bantuan teknis berdasarkan Perkaba',
-      type: 'bantek_chat',
+      type: 'bantek_chat' as AgentType,
       status: 'on',
-      fields: []
+      icon: 'brain',
+      color: 'blue'
     },
     {
       id: 'wassidik_chat',
       name: 'SOP Wassidik',
       description: 'Ajukan pertanyaan seputar pengawasan penyidikan Internal berdasarkan Perkaba',
-      type: 'wassidik_chat',
+      type: 'wassidik_chat' as AgentType,
       status: 'on',
-      fields: []
+      icon: 'brain',
+      color: 'blue'
     },
     {
       id: 'emp_chat',
       name: 'EMP',
       description: 'Ajukan pertanyaan seputar E-Manajemen Penyidikan (EMP) berdasarkan Perkaba',
-      type: 'emp_chat',
+      type: 'emp_chat' as AgentType,
       status: 'on',
-      fields: []
+      icon: 'brain',
+      color: 'blue'
     }
   ];
 
@@ -108,7 +104,7 @@ export default function PerkabaChat() {
                 <div className="flex items-center gap-3 mb-3">
                   <div className="h-8 w-1 bg-blue-500 rounded-full"></div>
                   <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
-                    Perkaba Polri Expert
+                    SOP Perkaba Polri 🫰
                   </h1>
                 </div>
                 <p className="text-base md:text-lg text-gray-600 ml-11">
