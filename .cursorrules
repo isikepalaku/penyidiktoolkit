@@ -284,6 +284,121 @@ switch (selectedAgentData.type) {
 - Using default export instead of named export
 - Not updating AGENT_IDS and related functions in utils.ts
 
+## Flowise API Integration Lessons
+
+### Memory & Session Management
+1. Gunakan `overrideConfig` untuk session dan memory:
+```typescript
+const requestBody = {
+  question: message,
+  overrideConfig: {
+    sessionId: currentSessionId,
+    memoryKey: currentSessionId
+  },
+  history: chatHistory
+};
+```
+
+2. Selalu inisialisasi session dengan pattern:
+```typescript
+let currentSessionId: string | null = null;
+
+// Generate or retrieve session ID
+if (!currentSessionId) {
+  currentSessionId = `session_${uuidv4()}`;
+  // Reset chat history when creating new session
+  chatHistory = [];
+}
+```
+
+3. Sediakan fungsi untuk mengelola session:
+```typescript
+// Clear history and session
+export const clearChatHistory = () => {
+  chatHistory = [];
+  currentSessionId = null;
+};
+
+// Initialize session
+export const initializeSession = () => {
+  if (!currentSessionId) {
+    currentSessionId = `session_${uuidv4()}`;
+    chatHistory = [];
+  }
+};
+```
+
+4. Pastikan history terkait dengan session yang sama
+5. Reset history saat membuat session baru
+6. Batasi jumlah history yang disimpan (MAX_HISTORY = 10)
+7. Gunakan UUID untuk generate session ID yang unik
+
+### Request Format
+1. Interface untuk request:
+```typescript
+interface ChatRequest {
+  question: string;
+  overrideConfig?: {
+    sessionId: string;
+    memoryKey: string;
+  };
+  history?: ChatMessage[];
+}
+```
+
+2. Headers yang diperlukan:
+```typescript
+headers: {
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${import.meta.env.VITE_PERKABA_API_KEY}`,
+  'Accept': 'application/json'
+}
+```
+
+### Logging Best Practices
+1. Log request details:
+```typescript
+console.group('Chat API Request');
+console.log('URL:', apiUrl);
+console.log('Session ID:', currentSessionId);
+console.log('Request Body:', JSON.stringify(requestBody, null, 2));
+console.groupEnd();
+```
+
+2. Log response details:
+```typescript
+console.group('Chat API Response');
+console.log('Status:', response.status);
+console.log('Status Text:', response.statusText);
+console.log('Headers:', Object.fromEntries(response.headers.entries()));
+console.groupEnd();
+```
+
+3. Log errors dengan detail:
+```typescript
+console.group('Chat API Error');
+console.error('Error Type:', error.constructor.name);
+console.error('Error Message:', error.message);
+console.error('Error Stack:', error.stack);
+console.groupEnd();
+```
+
+### Common Mistakes to Avoid
+1. Tidak menggunakan `overrideConfig` untuk session
+2. Tidak me-reset history saat membuat session baru
+3. Tidak menyimpan session ID
+4. Tidak mengirim history ke API
+5. Tidak membatasi jumlah history
+6. Tidak menangani error dengan proper
+7. Tidak mencatat session ID di logs
+
+### Service Pattern
+1. Semua chat service harus mengikuti pattern yang sama
+2. Gunakan interface yang konsisten
+3. Kelola session dan memory dengan cara yang sama
+4. Gunakan logging yang seragam
+5. Handle error dengan cara yang konsisten
+
 # Scratchpad
 
 Current Task: Optimizing API Security and Performance

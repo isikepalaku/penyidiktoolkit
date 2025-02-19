@@ -107,10 +107,16 @@ export const submitImageProcessorAnalysis = async (imageFile: File): Promise<str
           const errorText = await response.text();
           console.error('Error response:', errorText);
           
-          if (response.status >= 500 && retries < MAX_RETRIES) {
-            retries++;
-            await wait(RETRY_DELAY * retries);
-            continue;
+          if (response.status === 429) {
+            throw new Error('Terlalu banyak permintaan analisis gambar. Silakan tunggu beberapa saat sebelum mencoba lagi.');
+          }
+          
+          if (response.status === 401) {
+            throw new Error('Unauthorized: API key tidak valid');
+          }
+
+          if (response.status === 403) {
+            throw new Error('Forbidden: Tidak memiliki akses');
           }
           
           throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);

@@ -55,6 +55,10 @@ export const submitModusKejahatanAnalysis = async (
         const errorText = await response.text();
         console.error('Error response:', errorText);
         
+        if (response.status === 429) {
+          throw new Error('Terlalu banyak permintaan. Silakan tunggu beberapa saat sebelum mencoba lagi.');
+        }
+        
         if (response.status >= 500 && retries < MAX_RETRIES) {
           retries++;
           await wait(RETRY_DELAY * retries);

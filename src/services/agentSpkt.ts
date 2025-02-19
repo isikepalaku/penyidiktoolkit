@@ -132,7 +132,7 @@ Berikan analisis terstruktur dan terperinci untuk setiap poin di atas. Pastikan 
     for await (const chunk of result.stream) {
       const chunkText = chunk.text();
       fullResponse += chunkText;
-      console.log(chunkText); // Log each chunk as it arrives
+      console.log(chunkText);
     }
 
     if (!fullResponse) {
@@ -143,7 +143,18 @@ Berikan analisis terstruktur dan terperinci untuk setiap poin di atas. Pastikan 
 
   } catch (error) {
     console.error('Error in submitAgentAnalysis:', error);
+    
+    // Add rate limit error handling
     if (error instanceof Error) {
+      if (error.message.includes('429') || error.message.includes('rate limit')) {
+        throw new Error('Terlalu banyak permintaan analisis. Silakan tunggu beberapa saat sebelum mencoba lagi.');
+      }
+      if (error.message.includes('401')) {
+        throw new Error('Unauthorized: API key tidak valid');
+      }
+      if (error.message.includes('403')) {
+        throw new Error('Forbidden: Tidak memiliki akses');
+      }
       throw new Error(`Gagal menganalisis kasus: ${error.message}`);
     }
     throw new Error('Gagal menganalisis kasus. Silakan coba lagi.');

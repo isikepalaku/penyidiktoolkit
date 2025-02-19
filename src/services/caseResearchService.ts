@@ -1,9 +1,13 @@
 import { caseResearchAgent } from '@/data/agents/caseResearchAgent';
+import { env } from '@/config/env';
+
+const API_KEY = import.meta.env.VITE_API_KEY;
+const API_BASE_URL = env.apiUrl || 'http://localhost:8000';
 
 export const submitCaseResearch = async (caseDescription: string): Promise<string> => {
   try {
     // Gunakan path relatif, nginx akan handle proxy
-    const url = `/v1/playground/agents/${caseResearchAgent.id}/runs`;
+    const url = `${API_BASE_URL}/v1/playground/agents/${caseResearchAgent.id}/runs`;
 
     console.group('Case Research API Request');
     console.log('Full URL:', url);
@@ -14,7 +18,7 @@ export const submitCaseResearch = async (caseDescription: string): Promise<strin
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'X-API-Key': import.meta.env.VITE_API_KEY || ''
+        'X-API-Key': API_KEY || ''
       },
       body: JSON.stringify({
         message: caseDescription,
@@ -28,24 +32,21 @@ export const submitCaseResearch = async (caseDescription: string): Promise<strin
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('API Error Response:', {
-        status: response.status,
-        statusText: response.statusText,
-        body: errorText,
-        headers: Object.fromEntries(response.headers.entries())
-      });
-
-      if (response.status === 400) {
-        throw new Error('Bad Request: Periksa kembali input Anda');
+      console.error('Error response:', errorText);
+      
+      if (response.status === 429) {
+        throw new Error('Terlalu banyak permintaan. Silakan tunggu beberapa saat sebelum mencoba lagi.');
       }
+      
       if (response.status === 401) {
         throw new Error('Unauthorized: API key tidak valid');
       }
+
       if (response.status === 403) {
         throw new Error('Forbidden: Tidak memiliki akses');
       }
       
-      throw new Error(`API Error: ${response.status} - ${errorText}`);
+      throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
     }
 
     const data = await response.json();

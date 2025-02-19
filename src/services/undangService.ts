@@ -1,3 +1,5 @@
+import { v4 as uuidv4 } from 'uuid';
+
 interface ChatResponse {
   text: string;
   sourceDocuments?: Array<{
@@ -14,17 +16,27 @@ interface ChatMessage {
 
 interface ChatRequest {
   question: string;
-  sessionId?: string;
-  memoryKey?: string;
+  overrideConfig?: {
+    sessionId: string;
+    memoryKey: string;
+  };
   history?: ChatMessage[];
 }
 
-// Store chat history in memory
+// Store chat history and session in memory
 let chatHistory: ChatMessage[] = [];
+let currentSessionId: string | null = null;
 
 export const sendChatMessage = async (message: string): Promise<ChatResponse> => {
   const chatflowId = '717ee2ca-0d87-47ed-adec-e4de58517f4c';
   const apiUrl = `/flowise/api/v1/prediction/${chatflowId}`;
+
+  // Generate or retrieve session ID
+  if (!currentSessionId) {
+    currentSessionId = `session_${uuidv4()}`;
+    // Reset chat history when creating new session
+    chatHistory = [];
+  }
 
   try {
     // Add user message to history
@@ -33,15 +45,19 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
       content: message
     });
 
-    // Prepare the request body with history
     const requestBody: ChatRequest = {
       question: message,
+      overrideConfig: {
+        sessionId: currentSessionId,
+        memoryKey: currentSessionId
+      },
       history: chatHistory
     };
 
-    // Log the request details
+    // Log request details
     console.group('Chat API Request');
     console.log('URL:', apiUrl);
+    console.log('Session ID:', currentSessionId);
     console.log('Request Body:', JSON.stringify(requestBody, null, 2));
     console.groupEnd();
 
@@ -49,7 +65,8 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_PERKABA_API_KEY}`
+        'Authorization': `Bearer ${import.meta.env.VITE_PERKABA_API_KEY}`,
+        'Accept': 'application/json'
       },
       body: JSON.stringify(requestBody)
     });
@@ -75,7 +92,7 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
       content: data.text || 'No response text received'
     });
 
-    // Keep only the last N messages to prevent history from growing too large
+    // Keep only the last N messages
     const MAX_HISTORY = 10;
     if (chatHistory.length > MAX_HISTORY) {
       chatHistory = chatHistory.slice(-MAX_HISTORY);
@@ -116,7 +133,16 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
   }
 };
 
-// Add a function to clear chat history if needed
+// Add a function to clear chat history and session
 export const clearChatHistory = () => {
   chatHistory = [];
+  currentSessionId = null;
+};
+
+// Add function to persist session between page reloads
+export const initializeSession = () => {
+  if (!currentSessionId) {
+    currentSessionId = `session_${uuidv4()}`;
+    chatHistory = [];
+  }
 }; 

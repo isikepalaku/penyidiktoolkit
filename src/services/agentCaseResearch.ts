@@ -54,6 +54,18 @@ export const submitAgentAnalysis = async (
         const errorText = await response.text();
         console.error('Error response:', errorText);
         
+        if (response.status === 429) {
+          throw new Error('Terlalu banyak permintaan. Silakan tunggu beberapa saat sebelum mencoba lagi.');
+        }
+        
+        if (response.status === 401) {
+          throw new Error('Unauthorized: API key tidak valid');
+        }
+
+        if (response.status === 403) {
+          throw new Error('Forbidden: Tidak memiliki akses');
+        }
+        
         if (response.status >= 500 && retries < MAX_RETRIES) {
           console.log(`Retrying after server error (attempt ${retries + 2} of ${MAX_RETRIES + 1})`);
           retries++;

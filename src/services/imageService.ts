@@ -84,6 +84,10 @@ export const submitImageAnalysis = async (
     } catch (error) {
       console.error('Error in submitImageAnalysis:', error);
       
+      if (error instanceof Error && error.message.includes('429')) {
+        throw new Error('Terlalu banyak permintaan analisis gambar. Silakan tunggu beberapa saat sebelum mencoba lagi.');
+      }
+      
       // Cek apakah error karena model overload
       if (error instanceof Error && 
           (error.message.includes('overloaded') || error.message.includes('503'))) {

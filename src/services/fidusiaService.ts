@@ -1,4 +1,4 @@
-import { getOrCreateSessionData } from '@/utils/session';
+import { v4 as uuidv4 } from 'uuid';
 
 interface ChatResponse {
   text: string;
@@ -14,46 +14,65 @@ interface ChatMessage {
   content: string;
 }
 
-// Store chat history in memory
+interface ChatRequest {
+  question: string;
+  overrideConfig?: {
+    sessionId: string;
+    memoryKey: string;
+  };
+  history?: ChatMessage[];
+}
+
+// Store chat history and session in memory
 let chatHistory: ChatMessage[] = [];
+let currentSessionId: string | null = null;
 
 export const sendChatMessage = async (message: string): Promise<ChatResponse> => {
-  try {
-    // Get session and user data
-    const { sessionId, userId } = getOrCreateSessionData();
+  const chatflowId = '9463857c-27e9-443e-9b44-3d2feea1c8fe';
+  const apiUrl = `/flowise/api/v1/prediction/${chatflowId}`;
 
+  // Generate or retrieve session ID
+  if (!currentSessionId) {
+    currentSessionId = `session_${uuidv4()}`;
+    // Reset chat history when creating new session
+    chatHistory = [];
+  }
+
+  try {
     // Add user message to history
     chatHistory.push({
       role: 'userMessage',
       content: message
     });
 
-    // Prepare form data with session ID and user ID
-    const formData = new FormData();
-    formData.append('message', message);
-    formData.append('stream', 'false');
-    formData.append('monitor', 'false');
-    formData.append('session_id', sessionId);
-    formData.append('user_id', userId);
+    const requestBody: ChatRequest = {
+      question: message,
+      overrideConfig: {
+        sessionId: currentSessionId,
+        memoryKey: currentSessionId
+      },
+      history: chatHistory
+    };
 
-    // Log the request details
-    console.group('Fidusia Chat API Request');
-    console.log('Message:', message);
-    console.log('Session ID:', sessionId);
-    console.log('User ID:', userId);
+    // Log request details
+    console.group('Chat API Request');
+    console.log('URL:', apiUrl);
+    console.log('Session ID:', currentSessionId);
+    console.log('Request Body:', JSON.stringify(requestBody, null, 2));
     console.groupEnd();
 
-    const response = await fetch('/v1/playground/agents/fidusia-agent/runs', {
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
-        'Accept': 'application/json',
-        'X-API-Key': import.meta.env.VITE_API_KEY || ''
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_PERKABA_API_KEY}`,
+        'Accept': 'application/json'
       },
-      body: formData
+      body: JSON.stringify(requestBody)
     });
 
     // Log the response details
-    console.group('Fidusia Chat API Response');
+    console.group('Chat API Response');
     console.log('Status:', response.status);
     console.log('Status Text:', response.statusText);
     console.log('Headers:', Object.fromEntries(response.headers.entries()));
@@ -70,7 +89,7 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
     // Add API response to history
     chatHistory.push({
       role: 'apiMessage',
-      content: data.content || data.text || 'No response text received'
+      content: data.text || 'No response text received'
     });
 
     // Keep only the last N messages
@@ -80,18 +99,18 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
     }
     
     // Log the successful response
-    console.group('Fidusia Chat API Success');
+    console.group('Chat API Success');
     console.log('Response Data:', JSON.stringify(data, null, 2));
     console.log('Current History:', JSON.stringify(chatHistory, null, 2));
     console.groupEnd();
 
     return {
-      text: data.content || data.text || 'No response text received',
+      text: data.text || 'No response text received',
       sourceDocuments: data.sourceDocuments,
     };
   } catch (err) {
     // Log the error details
-    console.group('Fidusia Chat API Error');
+    console.group('Chat API Error');
     const error = err as Error;
     console.error('Error Type:', error.constructor.name);
     console.error('Error Message:', error.message);
@@ -101,7 +120,7 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
     // Handle network errors
     if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
       return {
-        text: 'Network error: Unable to connect to the chat service. Please check your connection.',
+        text: 'Network error: Unable to connect to the chat service. Please check if the Flowise server is running and accessible.',
         error: error.message
       };
     }
@@ -114,7 +133,16 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
   }
 };
 
-// Add a function to clear chat history if needed
+// Add a function to clear chat history and session
 export const clearChatHistory = () => {
   chatHistory = [];
+  currentSessionId = null;
+};
+
+// Add function to persist session between page reloads
+export const initializeSession = () => {
+  if (!currentSessionId) {
+    currentSessionId = `session_${uuidv4()}`;
+    chatHistory = [];
+  }
 }; 

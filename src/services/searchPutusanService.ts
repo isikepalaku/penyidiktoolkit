@@ -48,6 +48,13 @@ async function getEmbedding(query: string): Promise<number[]> {
   });
 
   if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Error response:', errorText);
+    
+    if (response.status === 429) {
+      throw new Error('Terlalu banyak permintaan API. Silakan tunggu beberapa saat sebelum mencoba lagi.');
+    }
+    
     const error = await response.json() as OpenAIError;
     throw new Error(`Failed to generate embedding: ${error.error?.message || 'Unknown error'}`);
   }
