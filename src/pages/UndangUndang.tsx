@@ -1,21 +1,13 @@
 import { useState } from 'react';
 import AgentCard from '../components/AgentCard';
-import UndangChatInterface from '../components/UndangChatInterface';
+import ChatInterface from '../components/ChatInterface';
 import { ArrowLeft } from 'lucide-react';
 import { sendChatMessage as sendUndangChatMessage } from '../services/undangService';
 import { sendChatMessage as sendKuhpChatMessage } from '../services/kuhpService';
 import { sendChatMessage as sendIteChatMessage } from '../services/iteService';
 import { sendChatMessage as sendFidusiaChatMessage } from '../services/fidusiaService';
 import { DotBackground } from '@/components/ui/DotBackground';
-
-interface Agent {
-  id: string;
-  name: string;
-  description: string;
-  type: string;
-  status: string;
-  fields: never[];
-}
+import { Agent, AgentType } from '@/types';
 
 export default function UndangUndang() {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
@@ -23,35 +15,39 @@ export default function UndangUndang() {
   const agents: Agent[] = [
     {
       id: 'undang_chat',
-      name: 'Ahli UU P2SK',
-      description: 'Membantu menjawab pertanyaan seputar UU No 4 Tahun 2023 tentang Pengembangan dan Penguatan sektor jasa keuangan',
-      type: 'undang_chat',
+      name: 'Undang-Undang',
+      description: 'Ajukan pertanyaan seputar Undang-Undang',
+      type: 'undang_chat' as AgentType,
       status: 'on',
-      fields: []
+      icon: 'brain',
+      color: 'blue'
     },
     {
       id: 'kuhp_chat',
-      name: 'Ahli KUHP',
-      description: 'Membantu menjawab pertanyaan seputar UU No 1 Tahun 2023 tentang Kitab Undang-Undang Hukum Pidana (KUHP)',
-      type: 'kuhp_chat',
+      name: 'KUHP',
+      description: 'Ajukan pertanyaan seputar KUHP',
+      type: 'kuhp_chat' as AgentType,
       status: 'on',
-      fields: []
+      icon: 'brain',
+      color: 'blue'
     },
     {
       id: 'ite_chat',
-      name: 'Ahli ITE',
-      description: 'agen AI yang dirancang untuk membantu memahami undang-undang mengenai Undang-undang (UU) Nomor 1 Tahun 2024',
-      type: 'ite_chat',
+      name: 'UU ITE',
+      description: 'Ajukan pertanyaan seputar UU ITE',
+      type: 'ite_chat' as AgentType,
       status: 'on',
-      fields: []
+      icon: 'brain',
+      color: 'blue'
     },
     {
       id: 'fidusia_chat',
-      name: 'Ahli Fidusia',
-      description: 'Agen AI yang membantu memahami Undang-Undang Jaminan Fidusia dan peraturan terkait',
-      type: 'fidusia_chat',
+      name: 'UU Fidusia',
+      description: 'Ajukan pertanyaan seputar UU Fidusia',
+      type: 'fidusia_chat' as AgentType,
       status: 'on',
-      fields: []
+      icon: 'brain',
+      color: 'blue'
     }
   ];
 
@@ -66,13 +62,13 @@ export default function UndangUndang() {
 
     switch (selectedAgentData.type) {
       case 'undang_chat':
-        return <UndangChatInterface sendMessage={sendUndangChatMessage} />;
+        return <ChatInterface sendMessage={sendUndangChatMessage} />;
       case 'kuhp_chat':
-        return <UndangChatInterface sendMessage={sendKuhpChatMessage} />;
+        return <ChatInterface sendMessage={sendKuhpChatMessage} />;
       case 'ite_chat':
-        return <UndangChatInterface sendMessage={sendIteChatMessage} />;
+        return <ChatInterface sendMessage={sendIteChatMessage} />;
       case 'fidusia_chat':
-        return <UndangChatInterface sendMessage={sendFidusiaChatMessage} />;
+        return <ChatInterface sendMessage={sendFidusiaChatMessage} />;
       default:
         return null;
     }

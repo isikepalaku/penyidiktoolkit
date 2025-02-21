@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { User, Bot } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { AIInputWithLoading } from './ui/ai-input-with-loading';
 import { AnimatedMessage } from './AnimatedMessage';
@@ -27,6 +27,56 @@ interface ChatInterfaceProps {
     error?: string;
   }>;
 }
+
+// Function to format tool calls
+const formatToolCall = (text: string) => {
+  if (!text.includes('Running:')) return text;
+
+  const parts = text.split('Running: ');
+  return parts.map((part, index) => {
+    if (index === 0) return part;
+
+    const toolMatch = part.match(/^(\w+)\((.*?)\)/);
+    if (!toolMatch) return part;
+
+    const [_, toolName, params] = toolMatch;
+    const restOfText = part.slice(toolMatch[0].length);
+
+    return `\`\`\`tool
+${toolName}(${params})
+\`\`\`${restOfText}`;
+  }).join('');
+};
+
+// Update the message rendering
+const renderMessage = (message: string): string => {
+  return formatToolCall(message);
+};
+
+// Update components definition with proper types
+const components: Components = {
+  ul: ({ children }) => (
+    <ul className="list-disc pl-6 my-2 space-y-1">{children}</ul>
+  ),
+  ol: ({ children }) => (
+    <ol className="list-decimal pl-6 my-2 space-y-1">{children}</ol>
+  ),
+  li: ({ children }) => (
+    <li className="my-0.5">{children}</li>
+  ),
+  code: ({ node, className, children, ...props }) => {
+    const isInline = node?.position?.start.line === node?.position?.end.line;
+    return isInline ? (
+      <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded" {...props}>
+        {children}
+      </code>
+    ) : (
+      <pre className="p-3 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-x-auto">
+        <code {...props}>{children}</code>
+      </pre>
+    );
+  }
+};
 
 export default function ChatInterface({ sendMessage }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -132,19 +182,9 @@ export default function ChatInterface({ sendMessage }: ChatInterfaceProps) {
                           <ReactMarkdown 
                             remarkPlugins={[remarkGfm]}
                             className="text-base leading-relaxed prose-ul:list-disc prose-ul:pl-6 prose-ul:my-2 prose-li:my-0.5 prose-ol:list-decimal prose-ol:pl-6 prose-ol:my-2"
-                            components={{
-                              ul: ({ children }) => (
-                                <ul className="list-disc pl-6 my-2 space-y-1">{children}</ul>
-                              ),
-                              ol: ({ children }) => (
-                                <ol className="list-decimal pl-6 my-2 space-y-1">{children}</ol>
-                              ),
-                              li: ({ children }) => (
-                                <li className="my-0.5">{children}</li>
-                              ),
-                            }}
+                            components={components}
                           >
-                            {message.content}
+                            {renderMessage(message.content)}
                           </ReactMarkdown>
                         ) : (
                           <AnimatedMessage
