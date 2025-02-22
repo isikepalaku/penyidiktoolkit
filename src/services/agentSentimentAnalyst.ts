@@ -3,12 +3,12 @@ import { env } from '@/config/env';
 const API_KEY = import.meta.env.VITE_API_KEY;
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
-const API_BASE_URL = env.apiUrl || 'http://localhost:8001';
+const API_BASE_URL = env.apiUrl || 'http://localhost:8000';
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const submitAgentAnalysis = async (
-  message: string
+  topic: string
 ): Promise<string> => {
   let retries = 0;
   
@@ -16,33 +16,38 @@ export const submitAgentAnalysis = async (
     try {
       console.log(`Attempt ${retries + 1} of ${MAX_RETRIES + 1}`);
       
-      const formData = new FormData();
-      formData.append('message', message.trim());
-      formData.append('agent_id', 'polri-sentiment-analyst');
-      formData.append('stream', 'false');
-      formData.append('monitor', 'false');
-      formData.append('session_id', 'string');
-      formData.append('user_id', 'string');
+      const requestBody = {
+        input: {
+          topic: topic.trim()
+        },
+        user_id: "string",
+        session_id: "string"
+      };
 
-      console.log('Sending request with FormData');
+      console.group('Request Details');
+      console.log('Request Body:', requestBody);
 
       const headers: HeadersInit = {
         'Accept': 'application/json',
+        'Content-Type': 'application/json'
       };
       
       if (API_KEY) {
         headers['X-API-Key'] = API_KEY;
       }
 
+      console.log('Headers:', headers);
+      console.groupEnd();
+
       const requestOptions: RequestInit = {
         method: 'POST',
         headers,
-        body: formData
+        body: JSON.stringify(requestBody)
       };
 
-      const url = `${API_BASE_URL}/v1/playground/agents/sentiment-team/runs`;
+      const url = `${API_BASE_URL}/v1/playground/workflows/sentiment-analysis-system/runs`;
       console.log('Sending request to:', url);
-
+      
       const response = await fetch(url, requestOptions);
 
       if (!response.ok) {
@@ -62,13 +67,38 @@ export const submitAgentAnalysis = async (
         throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
       }
 
-      const data = await response.json();
-      return data.content || data.message || 'No response received';
+      const responseText = await response.text();
 
+      try {
+        if (!responseText) {
+          throw new Error('Empty response received');
+        }
+
+        let parsedResponse = JSON.parse(responseText);
+        
+        if (typeof parsedResponse === 'string' && parsedResponse.startsWith('{')) {
+          parsedResponse = JSON.parse(parsedResponse);
+        }
+        
+        if (parsedResponse.content) {
+          return parsedResponse.content;
+        }
+
+        if (parsedResponse.message) {
+          return parsedResponse.message;
+        }
+
+        console.error('Unexpected response format:', parsedResponse);
+        throw new Error('Format respon tidak sesuai');
+      } catch (error) {
+        console.error('Error parsing response:', error);
+        console.error('Raw response was:', responseText);
+        throw new Error('Format respon tidak valid');
+      }
     } catch (error) {
       console.error('Error in submitAgentAnalysis:', error);
       
-      if (error instanceof TypeError && retries < MAX_RETRIES) {
+      if ((error instanceof TypeError || error instanceof Error) && retries < MAX_RETRIES) {
         retries++;
         await wait(RETRY_DELAY * retries);
         continue;

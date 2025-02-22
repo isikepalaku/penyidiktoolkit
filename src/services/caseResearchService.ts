@@ -2,7 +2,7 @@ import { caseResearchAgent } from '@/data/agents/caseResearchAgent';
 import { env } from '@/config/env';
 
 const API_KEY = import.meta.env.VITE_API_KEY;
-const API_BASE_URL = env.apiUrl || 'http://localhost:8001';
+const API_BASE_URL = env.apiUrl || 'http://localhost:8000';
 
 export const submitCaseResearch = async (caseDescription: string): Promise<string> => {
   try {

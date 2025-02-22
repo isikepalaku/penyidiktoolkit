@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 const API_KEY = import.meta.env.VITE_API_KEY;
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
-const API_BASE_URL = env.apiUrl || 'http://localhost:8001';
+const API_BASE_URL = env.apiUrl || 'http://localhost:8000';
 
 // Store session ID
 let currentSessionId: string | null = null;

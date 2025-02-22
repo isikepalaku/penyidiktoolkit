@@ -15,8 +15,8 @@ export default function UndangUndang() {
   const agents: Agent[] = [
     {
       id: 'undang_chat',
-      name: 'Undang-Undang',
-      description: 'Ajukan pertanyaan seputar Undang-Undang',
+      name: 'Sektor Jasa Keuangan',
+      description: 'Ajukan pertanyaan seputar Regulasi sektor jasa keuangan (p2sk)',
       type: 'undang_chat' as AgentType,
       status: 'on',
       icon: 'brain',
