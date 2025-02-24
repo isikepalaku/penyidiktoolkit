@@ -42,7 +42,7 @@ export default function UndangUndang() {
     },
     {
       id: 'tipidkor_chat',
-      name: 'Tindak Pidana Korupsi',
+      name: 'Ai Tipidkor',
       description: 'Agen ai untuk Penelitian tindak pidana korupsi secara khusus',
       type: 'tipidkor_chat' as AgentType,
       status: 'on',
