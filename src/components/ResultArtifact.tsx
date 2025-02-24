@@ -80,7 +80,7 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
 
   // Process content to fix table formatting
   const processContent = (rawContent: string) => {
-    let content = rawContent
+    const processedContent = rawContent
       // Normalisasi line breaks
       .replace(/\r\n/g, '\n')
       .replace(/\n{3,}/g, '\n\n')
@@ -90,7 +90,7 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
       
       // Format nested lists dengan indentasi yang benar
       .replace(/^(\*\s+[^\n]+\n)(?=\*\s+[^\n]+)/gm, '$1\n')
-      .replace(/^\*\s+([^\n]+)(?=\n\*\s+[^\*])/gm, '* $1')
+      .replace(/^\*\s+([^\n]+)(?=\n*\s+[^*])/gm, '* $1')
       .replace(/^\*\s+([^\n]+)(?=\n\s+\*)/gm, '* $1')
       .replace(/^(\s*)\*\s+([^\n]+)/gm, '$1* $2')
       
@@ -103,10 +103,10 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
       .replace(/\n{2,}\s+\*/g, '\n\n    *')
       
       // Tambahkan line breaks yang tepat
-      .replace(/(\*\s+[^\n]+)\n(?=[^\s\*])/g, '$1\n\n')
+      .replace(/(\*\s+[^\n]+)\n(?=[^\s*])/g, '$1\n\n')
       .trim();
 
-    return content;
+    return processedContent;
   };
 
   console.log('Logo exists:', !!document.querySelector('.watermark-image')); // Cek elemen watermark

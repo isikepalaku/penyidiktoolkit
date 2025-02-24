@@ -3,11 +3,24 @@ import AgentCard from '../components/AgentCard';
 import ThinkingAnimation from '../components/ThinkingAnimation';
 import ResultArtifact from '../components/ResultArtifact';
 import { ArrowLeft, CircuitBoard, Cpu } from 'lucide-react';
-import type { ExtendedAgent } from '../types';
+import type { ExtendedAgent, Agent } from '../types';
 import { agents } from '../data/agents';
 import { BaseAgentForm } from '../components/agent-forms/BaseAgentForm';
 import { ImageAgentForm } from '../components/agent-forms/ImageAgentForm';
 import { useAgentForm } from '../hooks/useAgentForm';
+
+// Convert ExtendedAgent to Agent type by omitting extended properties
+const toAgent = (extendedAgent: ExtendedAgent): Agent => {
+  const agentProps: Agent = {
+    id: extendedAgent.id,
+    name: extendedAgent.name,
+    description: extendedAgent.description,
+    type: extendedAgent.type,
+    status: extendedAgent.status,
+    fields: extendedAgent.fields
+  };
+  return agentProps;
+};
 
 export default function Agents() {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
@@ -154,7 +167,7 @@ export default function Agents() {
               onClick={() => setSelectedAgent(agent.id)}
               className="cursor-pointer transform transition-transform hover:scale-[1.02] active:scale-[0.98]"
             >
-              <AgentCard agent={agent} />
+              <AgentCard agent={toAgent(agent)} />
             </div>
           ))}
         </div>

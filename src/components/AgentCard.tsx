@@ -41,10 +41,10 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
         return <Gavel className="text-rose-500" size={24} />;
       case 'ite_chat':
         return <BookOpen className="text-green-500" size={24} />;
-      case 'fidusia_chat':
-        return <FileText className="text-indigo-500" size={24} />;
       case 'sentiment_analyst':
         return <TrendingUp className="text-purple-500" size={24} />;
+      case 'tipidkor_chat':
+        return <Scale className="text-indigo-500" size={24} />;
       default:
         return <PieChart className="text-gray-500" size={24} />;
     }
@@ -65,7 +65,7 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
             <span className={`px-3 py-1 rounded-full text-sm ${
               agent.status === 'on' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
             }`}>
-              {agent.status === 'on' ? 'Siap' : 'Bekerja'}
+              {agent.status === 'on' ? 'Online' : 'Bekerja'}
             </span>
           </div>
           <p className="text-gray-600 mb-3 line-clamp-2 text-sm">{agent.description}</p>
@@ -93,7 +93,7 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
           <span className={`px-3 py-1 rounded-full text-sm ${
             agent.status === 'on' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
           }`}>
-            {agent.status === 'on' ? 'Siap' : 'Bekerja'}
+            {agent.status === 'on' ? 'Online' : 'Bekerja'}
           </span>
         </div>
         

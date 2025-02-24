@@ -39,7 +39,7 @@ const formatToolCall = (text: string) => {
     const toolMatch = part.match(/^(\w+)\((.*?)\)/);
     if (!toolMatch) return part;
 
-    const [_, toolName, params] = toolMatch;
+    const [, toolName, params] = toolMatch;
     const restOfText = part.slice(toolMatch[0].length);
 
     return `\`\`\`tool
@@ -64,7 +64,7 @@ const components: Components = {
   li: ({ children }) => (
     <li className="my-0.5">{children}</li>
   ),
-  code: ({ node, className, children, ...props }) => {
+  code: ({ node, children, ...props }) => {
     const isInline = node?.position?.start.line === node?.position?.end.line;
     return isInline ? (
       <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded" {...props}>
@@ -197,9 +197,9 @@ export default function ChatInterface({ sendMessage }: ChatInterfaceProps) {
                       {message.sourceDocuments && message.sourceDocuments.length > 0 && (
                         <div className="mt-3 border border-gray-200 rounded-lg p-3 bg-white text-sm">
                           <div className="flex flex-col space-y-2">
-                            <p className="text-[#8E1616] font-semibold">Sumber Referensi:</p>
+                            <p className="text-[#8E1616] font-semibold">Informasi:</p>
                             <div className="flex items-start gap-2">
-                              <span>Perkaba Polri Polri Nomor 1 Tahun 2022 tentang Standar Operasional Prosedur (SOP) pelaksanaan penyidikan tindak pidana</span>
+                              <span>LLM kadang memberikan informasi yang keliru, lakukan verifikasi untuk akurasi data</span>
                               <a 
                                 href="https://celebesbot.com/pdf/LAMPIRANISOPLIDIKSIDIKPERKABA1THN2022TGL27DES2022.pdf" 
                                 target="_blank" 

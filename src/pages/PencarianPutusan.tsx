@@ -81,7 +81,7 @@ const PencarianPutusan = () => {
                   <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Pencarian Putusan Pengadilan</h1>
                 </div>
                 <p className="text-base md:text-lg text-gray-600 dark:text-gray-300 ml-11">
-                  Temukan putusan pengadilan yang relevan dengan kasus Anda
+                  Agen ai pencarian semantik, putusan pengadilan berdasarkan kronologi kasus. (Beta)
                 </p>
               </div>
             </div>

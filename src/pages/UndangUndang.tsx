@@ -15,8 +15,8 @@ export default function UndangUndang() {
   const agents: Agent[] = [
     {
       id: 'undang_chat',
-      name: 'Sektor Jasa Keuangan',
-      description: 'Ajukan pertanyaan seputar Regulasi sektor jasa keuangan (p2sk)',
+      name: 'Sektor jasa Keuangan (P2SK)',
+      description: 'Agen ai spesialisasi Undang-undang (UU) Nomor 4 Tahun 2023 tentang Pengembangan dan Penguatan sektor jasa keuangan',
       type: 'undang_chat' as AgentType,
       status: 'on',
       icon: 'brain',
@@ -25,7 +25,7 @@ export default function UndangUndang() {
     {
       id: 'kuhp_chat',
       name: 'KUHP',
-      description: 'Ajukan pertanyaan seputar KUHP',
+      description: 'Agen ai yang memiliki konteks seputar Undang-undang (UU) Nomor 1 Tahun 2023 tentang Kitab Undang-Undang Hukum Pidana (KUHP)',
       type: 'kuhp_chat' as AgentType,
       status: 'on',
       icon: 'brain',
@@ -41,10 +41,10 @@ export default function UndangUndang() {
       color: 'blue'
     },
     {
-      id: 'fidusia_chat',
-      name: 'UU Fidusia',
-      description: 'Ajukan pertanyaan seputar UU Fidusia',
-      type: 'fidusia_chat' as AgentType,
+      id: 'tipidkor_chat',
+      name: 'Tindak Pidana Korupsi',
+      description: 'Agen ai untuk Penelitian tindak pidana korupsi secara khusus',
+      type: 'tipidkor_chat' as AgentType,
       status: 'on',
       icon: 'brain',
       color: 'blue'
@@ -67,7 +67,7 @@ export default function UndangUndang() {
         return <ChatInterface sendMessage={sendKuhpChatMessage} />;
       case 'ite_chat':
         return <ChatInterface sendMessage={sendIteChatMessage} />;
-      case 'fidusia_chat':
+      case 'tipidkor_chat':
         return <ChatInterface sendMessage={sendFidusiaChatMessage} />;
       default:
         return null;

@@ -28,7 +28,7 @@ let chatHistory: ChatMessage[] = [];
 let currentSessionId: string | null = null;
 
 export const sendChatMessage = async (message: string): Promise<ChatResponse> => {
-  const chatflowId = '9463857c-27e9-443e-9b44-3d2feea1c8fe';
+  const chatflowId = '24a9975a-4a93-478f-8280-b16c57435b19';
   const apiUrl = `/flowise/api/v1/prediction/${chatflowId}`;
 
   // Generate or retrieve session ID
