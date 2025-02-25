@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { User, Bot } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { AIInputWithLoading } from './ui/ai-input-with-loading';
 import { AnimatedMessage } from './AnimatedMessage';
@@ -27,6 +27,70 @@ interface UndangChatInterfaceProps {
     error?: string;
   }>;
 }
+
+// Markdown components with responsive design
+const components: Components = {
+  // Tables with horizontal scroll on mobile
+  table: ({ children }) => (
+    <div className="overflow-x-auto max-w-full my-4">
+      <table className="min-w-full divide-y divide-gray-200 border border-gray-200">
+        {children}
+      </table>
+    </div>
+  ),
+  // Lists with proper spacing and nesting
+  ul: ({ children }) => (
+    <ul className="list-disc pl-4 md:pl-6 my-2 space-y-1 break-words">{children}</ul>
+  ),
+  ol: ({ children }) => (
+    <ol className="list-decimal pl-4 md:pl-6 my-2 space-y-1 break-words">{children}</ol>
+  ),
+  li: ({ children }) => (
+    <li className="my-0.5 break-words">{children}</li>
+  ),
+  // Proper code block formatting
+  code: ({ node, children, ...props }) => {
+    const isInline = node?.position?.start.line === node?.position?.end.line;
+    return isInline ? (
+      <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded break-words" {...props}>
+        {children}
+      </code>
+    ) : (
+      <div className="relative">
+        <pre className="p-3 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-x-auto whitespace-pre-wrap break-words">
+          <code {...props} className="break-words">
+            {children}
+          </code>
+        </pre>
+      </div>
+    );
+  },
+  // Ensure paragraphs break properly
+  p: ({ children }) => (
+    <p className="my-2 break-words whitespace-pre-wrap">{children}</p>
+  ),
+  // Proper heading scaling
+  h1: ({ children }) => (
+    <h1 className="text-xl md:text-2xl font-bold my-4 break-words">{children}</h1>
+  ),
+  h2: ({ children }) => (
+    <h2 className="text-lg md:text-xl font-bold my-3 break-words">{children}</h2>
+  ),
+  h3: ({ children }) => (
+    <h3 className="text-base md:text-lg font-bold my-2 break-words">{children}</h3>
+  ),
+  // Links should wrap properly
+  a: ({ children, href }) => (
+    <a 
+      href={href}
+      className="text-blue-600 hover:text-blue-800 break-all underline"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      {children}
+    </a>
+  ),
+};
 
 export default function UndangChatInterface({ sendMessage }: UndangChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -95,83 +159,69 @@ export default function UndangChatInterface({ sendMessage }: UndangChatInterface
   };
 
   return (
-    <div className="flex flex-col h-[600px]">
+    <div className="flex flex-col h-[600px] max-h-screen">
       {/* Chat container */}
       <div 
         ref={chatContainerRef}
-        className="flex-1 overflow-y-auto"
+        className="flex-1 overflow-y-auto overscroll-contain"
       >
         <div className="w-full">
           {messages.map((message, index) => (
             <div
               key={index}
-              className={`py-6 px-4 ${
+              className={`py-4 md:py-6 px-3 md:px-4 ${
                 message.type === 'bot' ? 'bg-gray-50' : ''
               }`}
             >
-              <div className="flex gap-4 flex-wrap">
-                <div className="flex-grow min-w-0">
-                  <div className="flex space-x-4">
-                    <div className="flex-shrink-0">
-                      {message.type === 'user' ? (
-                        <div className="w-8 h-8 rounded-full bg-[#8E1616] flex items-center justify-center">
-                          <User className="w-5 h-5 text-white" />
-                        </div>
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-[#D84040] flex items-center justify-center">
-                          <Bot className="w-5 h-5 text-white" />
-                        </div>
-                      )}
+              <div className="flex gap-3 md:gap-4">
+                <div className="flex-shrink-0">
+                  {message.type === 'user' ? (
+                    <div className="w-8 h-8 rounded-full bg-[#8E1616] flex items-center justify-center">
+                      <User className="w-5 h-5 text-white" />
                     </div>
-                    <div className="flex-1 space-y-2">
-                      <div className={`prose max-w-none ${
-                        message.error ? 'text-red-600' : 'text-gray-900'
-                      }`}>
-                        {message.type === 'user' ? (
-                          <ReactMarkdown 
-                            remarkPlugins={[remarkGfm]}
-                            className="text-base leading-relaxed prose-ul:list-disc prose-ul:pl-6 prose-ul:my-2 prose-li:my-0.5 prose-ol:list-decimal prose-ol:pl-6 prose-ol:my-2"
-                            components={{
-                              ul: ({ children }) => (
-                                <ul className="list-disc pl-6 my-2 space-y-1">{children}</ul>
-                              ),
-                              ol: ({ children }) => (
-                                <ol className="list-decimal pl-6 my-2 space-y-1">{children}</ol>
-                              ),
-                              li: ({ children }) => (
-                                <li className="my-0.5">{children}</li>
-                              ),
-                            }}
-                          >
-                            {message.content}
-                          </ReactMarkdown>
-                        ) : (
-                          <AnimatedMessage
-                            content={message.content}
-                            isAnimating={message.isAnimating || false}
-                            className="text-base leading-relaxed"
-                          />
-                        )}
-                      </div>
-                      {message.sourceDocuments && message.sourceDocuments.length > 0 && (
-                        <div className="mt-3 border border-gray-200 rounded-lg p-3 bg-white text-sm">
-                          <div className="flex flex-col space-y-2">
-                            <p className="text-[#8E1616] font-semibold">Informasi:</p>
-                            <div className="flex items-start gap-2">
-                              <span>Ai dapat memberikan informasi yang keliru, silahkan melakukan pengecekan ulang untuk memastikan keakuratan informasi.</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-[#D84040] flex items-center justify-center">
+                      <Bot className="w-5 h-5 text-white" />
                     </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0 space-y-2">
+                  <div className={`prose max-w-none chat-message break-words ${
+                    message.error ? 'text-red-600' : 'text-gray-900'
+                  }`}>
+                    {message.type === 'user' ? (
+                      <ReactMarkdown 
+                        remarkPlugins={[remarkGfm]}
+                        className="text-sm md:text-base leading-relaxed prose-pre:max-w-full prose-pre:overflow-x-auto"
+                        components={components}
+                      >
+                        {message.content}
+                      </ReactMarkdown>
+                    ) : (
+                      <AnimatedMessage
+                        content={message.content}
+                        isAnimating={message.isAnimating || false}
+                        className="text-sm md:text-base leading-relaxed break-words"
+                      />
+                    )}
                   </div>
+                  {message.sourceDocuments && message.sourceDocuments.length > 0 && (
+                    <div className="mt-3 border border-gray-200 rounded-lg p-3 bg-white text-xs md:text-sm">
+                      <div className="flex flex-col space-y-2">
+                        <p className="text-[#8E1616] font-semibold">Informasi:</p>
+                        <div className="flex items-start gap-2">
+                          <span>AI dapat memberikan informasi yang keliru, silahkan melakukan pengecekan ulang untuk memastikan keakuratan informasi.</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           ))}
           {isLoading && (
-            <div className="py-6 px-4 bg-gray-50">
-              <div className="flex space-x-4">
+            <div className="py-4 md:py-6 px-3 md:px-4 bg-gray-50">
+              <div className="flex space-x-3 md:space-x-4">
                 <div className="flex-shrink-0">
                   <div className="w-8 h-8 rounded-full bg-[#D84040] flex items-center justify-center">
                     <Bot className="w-5 h-5 text-white" />
@@ -192,14 +242,14 @@ export default function UndangChatInterface({ sendMessage }: UndangChatInterface
       </div>
 
       {/* Input form */}
-      <div>
+      <div className="mt-auto">
         <AIInputWithLoading
           onSubmit={handleSubmit}
           loadingDuration={3000}
           placeholder="Silahkan menulis pertanyaan Anda..."
-          className="px-4"
+          className="px-3 md:px-4"
         />
       </div>
     </div>
   );
-} 
+}

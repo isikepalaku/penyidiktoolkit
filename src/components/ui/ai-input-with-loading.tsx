@@ -66,12 +66,18 @@ export function AIInputWithLoading({
   };
 
   return (
-    <div className={cn("w-full py-4", className)}>
+    <div className={cn("w-full py-4", className)} onClick={(e) => e.stopPropagation()}>
       <div className="relative max-w-xl w-full mx-auto flex items-start flex-col gap-2">
         <Label htmlFor={id} className="sr-only">
           Pesan Chat
         </Label>
-        <div className="relative max-w-xl w-full mx-auto">
+        <div className="relative max-w-xl w-full mx-auto" onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            e.stopPropagation();
+            handleSubmit();
+          }
+        }}>
           <Textarea
             id={id}
             name="chat-message"
@@ -89,16 +95,14 @@ export function AIInputWithLoading({
               setInputValue(e.target.value);
               adjustHeight();
             }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSubmit();
-              }
-            }}
             disabled={submitted}
           />
           <button
-            onClick={handleSubmit}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleSubmit();
+            }}
             className={cn(
               "absolute right-3 top-1/2 -translate-y-1/2 rounded-xl py-1 px-1",
               submitted ? "bg-none" : "bg-black/5 dark:bg-white/5"
