@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { User, Bot } from 'lucide-react';
+import { User } from 'lucide-react';
 import ReactMarkdown, { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { AIInputWithLoading } from './ui/ai-input-with-loading';
 import { AnimatedMessage } from './AnimatedMessage';
+import { AnimatedBotIcon } from './ui/animated-bot-icon';
 
 interface Message {
   content: string;
@@ -30,7 +31,6 @@ interface UndangChatInterfaceProps {
 
 // Markdown components with responsive design
 const components: Components = {
-  // Tables with horizontal scroll on mobile
   table: ({ children }) => (
     <div className="overflow-x-auto max-w-full my-4">
       <table className="min-w-full divide-y divide-gray-200 border border-gray-200">
@@ -38,7 +38,6 @@ const components: Components = {
       </table>
     </div>
   ),
-  // Lists with proper spacing and nesting
   ul: ({ children }) => (
     <ul className="list-disc pl-4 md:pl-6 my-2 space-y-1 break-words">{children}</ul>
   ),
@@ -48,7 +47,6 @@ const components: Components = {
   li: ({ children }) => (
     <li className="my-0.5 break-words">{children}</li>
   ),
-  // Proper code block formatting
   code: ({ node, children, ...props }) => {
     const isInline = node?.position?.start.line === node?.position?.end.line;
     return isInline ? (
@@ -65,11 +63,9 @@ const components: Components = {
       </div>
     );
   },
-  // Ensure paragraphs break properly
   p: ({ children }) => (
     <p className="my-2 break-words whitespace-pre-wrap">{children}</p>
   ),
-  // Proper heading scaling
   h1: ({ children }) => (
     <h1 className="text-xl md:text-2xl font-bold my-4 break-words">{children}</h1>
   ),
@@ -79,7 +75,6 @@ const components: Components = {
   h3: ({ children }) => (
     <h3 className="text-base md:text-lg font-bold my-2 break-words">{children}</h3>
   ),
-  // Links should wrap properly
   a: ({ children, href }) => (
     <a 
       href={href}
@@ -160,7 +155,6 @@ export default function UndangChatInterface({ sendMessage }: UndangChatInterface
 
   return (
     <div className="flex flex-col h-[600px] max-h-screen">
-      {/* Chat container */}
       <div 
         ref={chatContainerRef}
         className="flex-1 overflow-y-auto overscroll-contain"
@@ -180,8 +174,8 @@ export default function UndangChatInterface({ sendMessage }: UndangChatInterface
                       <User className="w-5 h-5 text-white" />
                     </div>
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-[#D84040] flex items-center justify-center">
-                      <Bot className="w-5 h-5 text-white" />
+                    <div className="w-8 h-8 flex items-center justify-center">
+                      <AnimatedBotIcon />
                     </div>
                   )}
                 </div>
@@ -223,8 +217,8 @@ export default function UndangChatInterface({ sendMessage }: UndangChatInterface
             <div className="py-4 md:py-6 px-3 md:px-4 bg-gray-50">
               <div className="flex space-x-3 md:space-x-4">
                 <div className="flex-shrink-0">
-                  <div className="w-8 h-8 rounded-full bg-[#D84040] flex items-center justify-center">
-                    <Bot className="w-5 h-5 text-white" />
+                  <div className="w-8 h-8 flex items-center justify-center">
+                    <AnimatedBotIcon />
                   </div>
                 </div>
                 <div className="flex-1">
@@ -241,7 +235,6 @@ export default function UndangChatInterface({ sendMessage }: UndangChatInterface
         </div>
       </div>
 
-      {/* Input form */}
       <div className="mt-auto">
         <AIInputWithLoading
           onSubmit={handleSubmit}
