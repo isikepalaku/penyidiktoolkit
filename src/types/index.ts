@@ -55,7 +55,8 @@ export type AgentType =
   | 'perkaba_search'
   | 'bantek_chat' 
   | 'wassidik_chat'
-  | 'emp_chat';
+  | 'emp_chat'
+  | 'tipikor_analyst';
 
 export interface ExtendedAgent {
   id: string;

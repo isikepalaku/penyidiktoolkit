@@ -6,6 +6,7 @@ import { imageProcessorAgent } from './imageProcessorAgent';
 import { modusKejahatanAgent } from './modusKejahatanAgent';
 import crimeTrendAnalystAgent from './crimeTrendAnalystAgent';
 import sentimentAnalystAgent from './sentimentAnalystAgent';
+import tipikorAnalystAgent from './tipikorAnalystAgent';
 import type { ExtendedAgent } from '../../types';
 
 export const agents: ExtendedAgent[] = [
@@ -16,7 +17,8 @@ export const agents: ExtendedAgent[] = [
   imageProcessorAgent,
   modusKejahatanAgent,
   crimeTrendAnalystAgent,
-  sentimentAnalystAgent
+  sentimentAnalystAgent,
+  tipikorAnalystAgent
 ];
 
 export {
@@ -27,5 +29,6 @@ export {
   imageProcessorAgent,
   modusKejahatanAgent,
   crimeTrendAnalystAgent,
-  sentimentAnalystAgent
+  sentimentAnalystAgent,
+  tipikorAnalystAgent
 };

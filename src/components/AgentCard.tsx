@@ -45,6 +45,8 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
         return <TrendingUp className="text-purple-500" size={24} />;
       case 'tipidkor_chat':
         return <Scale className="text-indigo-500" size={24} />;
+      case 'tipikor_analyst':
+        return <Scale className="text-rose-600" size={24} />;
       default:
         return <PieChart className="text-gray-500" size={24} />;
     }

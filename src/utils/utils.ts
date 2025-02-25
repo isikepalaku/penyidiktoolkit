@@ -24,6 +24,8 @@ export const getTypeDisplay = (type: AgentType): string => {
       return 'Tren';
     case 'sentiment_analyst':
       return 'Sentimen';
+    case 'tipikor_analyst':
+      return 'Tipikor';
     default:
       return type;
   }
@@ -36,7 +38,8 @@ export const AGENT_IDS = {
   HOAX_CHECKER: 'hoax_001',
   IMAGE_PROCESSOR: 'geo-image-agent',
   MODUS_KEJAHATAN: 'modus_001',
-  SENTIMENT_ANALYST: 'polri-sentiment-analyst'
+  SENTIMENT_ANALYST: 'polri-sentiment-analyst',
+  TIPIKOR_ANALYST: 'polri-tipikor-analyst'
 } as const;
 
 export const isValidAgentId = (id: string): boolean => {
@@ -59,6 +62,8 @@ export const getAgentTypeFromId = (id: string): AgentType | null => {
       return 'modus_kejahatan';
     case AGENT_IDS.SENTIMENT_ANALYST:
       return 'sentiment_analyst';
+    case AGENT_IDS.TIPIKOR_ANALYST:
+      return 'tipikor_analyst';
     default:
       return null;
   }

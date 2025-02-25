@@ -10,6 +10,7 @@ import { agents } from '../data/agents';
 import { submitModusKejahatanAnalysis } from '../services/agentModusKejahatan';
 import { submitCrimeTrendAnalysis } from '@/services/agentCrimeTrendAnalyst';
 import { submitAgentAnalysis as submitSentimentAnalysis } from '@/services/agentSentimentAnalyst';
+import { submitAgentAnalysis as submitTipikorAnalysis } from '@/services/agentTipikorAnalyst';
 
 interface UseAgentFormResult {
   formData: FormData;
@@ -109,6 +110,9 @@ export const useAgentForm = (): UseAgentFormResult => {
             break;
           case 'sentiment_analyst':
             response = await submitSentimentAnalysis(message.trim());
+            break;
+          case 'tipikor_analyst':
+            response = await submitTipikorAnalysis(message.trim());
             break;
           default:
             throw new Error('Tipe agen tidak dikenali');

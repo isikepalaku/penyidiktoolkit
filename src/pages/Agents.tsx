@@ -79,6 +79,7 @@ export default function Agents() {
       case 'spkt':
       case 'modus_kejahatan':
       case 'sentiment_analyst':
+      case 'tipikor_analyst':
         return <BaseAgentForm {...commonProps} />;
       default:
         return null;
