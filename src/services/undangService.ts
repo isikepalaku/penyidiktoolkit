@@ -1,141 +1,136 @@
+import { env } from '@/config/env';
 import { v4 as uuidv4 } from 'uuid';
 
-interface ChatResponse {
+const API_KEY = import.meta.env.VITE_API_KEY;
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000;
+const API_BASE_URL = env.apiUrl || 'http://localhost:8000';
+
+// Store session ID
+let currentSessionId: string | null = null;
+
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const parseResponse = async (response: Response) => {
+  const text = await response.text();
+  try {
+    // First try to parse as JSON
+    return JSON.parse(text);
+  } catch (error) {
+    // If JSON parsing fails, handle text response
+    console.log('Response is not JSON, processing as text:', text);
+    console.error('JSON parse error:', error);
+    
+    // If the text contains multiple JSON objects, try to parse the first one
+    const jsonMatch = text.match(/\{.*?\}/);
+    if (jsonMatch) {
+      try {
+        return JSON.parse(jsonMatch[0]);
+      } catch (error) {
+        console.error('Failed to parse matched JSON:', error);
+      }
+    }
+    
+    // If all parsing fails, return text as content
+    return { content: text };
+  }
+};
+
+export const sendChatMessage = async (message: string): Promise<{
   text: string;
   sourceDocuments?: Array<{
     pageContent: string;
     metadata: Record<string, string>;
   }>;
   error?: string;
-}
-
-interface ChatMessage {
-  role: 'apiMessage' | 'userMessage';
-  content: string;
-}
-
-interface ChatRequest {
-  question: string;
-  overrideConfig?: {
-    sessionId: string;
-    memoryKey: string;
-  };
-  history?: ChatMessage[];
-}
-
-// Store chat history and session in memory
-let chatHistory: ChatMessage[] = [];
-let currentSessionId: string | null = null;
-
-export const sendChatMessage = async (message: string): Promise<ChatResponse> => {
-  const chatflowId = 'a7f89aae-8a0d-40fe-a874-2eb2db9664bf'; // This will be updated manually by user
-  const apiUrl = `/flowise/api/v1/prediction/${chatflowId}`;
+}> => {
+  let retries = 0;
 
   // Generate or retrieve session ID
   if (!currentSessionId) {
     currentSessionId = `session_${uuidv4()}`;
-    // Reset chat history when creating new session
-    chatHistory = [];
   }
+  
+  while (retries <= MAX_RETRIES) {
+    try {
+      console.log(`Attempt ${retries + 1} of ${MAX_RETRIES + 1}`);
+      
+      const formData = new FormData();
+      formData.append('message', message.trim());
+      formData.append('agent_id', 'p2sk-chat');
+      formData.append('stream', 'false');
+      formData.append('monitor', 'false');
+      formData.append('session_id', currentSessionId);
+      formData.append('user_id', currentSessionId);
 
-  try {
-    // Add user message to history
-    chatHistory.push({
-      role: 'userMessage',
-      content: message
-    });
+      console.log('Sending request with FormData:', {
+        message: message.trim(),
+        agent_id: 'p2sk-chat',
+        session_id: currentSessionId
+      });
 
-    const requestBody: ChatRequest = {
-      question: message,
-      overrideConfig: {
-        sessionId: currentSessionId,
-        memoryKey: currentSessionId
-      },
-      history: chatHistory
-    };
-
-    // Log request details
-    console.group('Chat API Request');
-    console.log('URL:', apiUrl);
-    console.log('Session ID:', currentSessionId);
-    console.log('Request Body:', JSON.stringify(requestBody, null, 2));
-    console.groupEnd();
-
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_PERKABA_API_KEY}`,
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify(requestBody)
-    });
-
-    // Log the response details
-    console.group('Chat API Response');
-    console.log('Status:', response.status);
-    console.log('Status Text:', response.statusText);
-    console.log('Headers:', Object.fromEntries(response.headers.entries()));
-    console.groupEnd();
-
-    if (!response.ok) {
-      const text = await response.text();
-      console.error('API Error Response:', text);
-      throw new Error(`API Error: ${response.status} - ${text}`);
-    }
-
-    const data = await response.json();
-    
-    // Add API response to history
-    chatHistory.push({
-      role: 'apiMessage',
-      content: data.text || 'No response text received'
-    });
-
-    // Keep only the last N messages
-    const MAX_HISTORY = 10;
-    if (chatHistory.length > MAX_HISTORY) {
-      chatHistory = chatHistory.slice(-MAX_HISTORY);
-    }
-    
-    // Log the successful response
-    console.group('Chat API Success');
-    console.log('Response Data:', JSON.stringify(data, null, 2));
-    console.log('Current History:', JSON.stringify(chatHistory, null, 2));
-    console.groupEnd();
-
-    return {
-      text: data.text || 'No response text received',
-      sourceDocuments: data.sourceDocuments,
-    };
-  } catch (err) {
-    // Log the error details
-    console.group('Chat API Error');
-    const error = err as Error;
-    console.error('Error Type:', error.constructor.name);
-    console.error('Error Message:', error.message);
-    console.error('Error Stack:', error.stack);
-    console.groupEnd();
-
-    // Handle network errors
-    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-      return {
-        text: 'Network error: Unable to connect to the chat service. Please check if the Flowise server is running and accessible.',
-        error: error.message
+      const headers: HeadersInit = {
+        'Accept': 'application/json',
       };
-    }
+      
+      if (API_KEY) {
+        headers['X-API-Key'] = API_KEY;
+      }
 
-    // Handle other errors
-    return {
-      text: 'Maaf, terjadi kesalahan dalam memproses pesan Anda. Silakan coba lagi dalam beberapa saat.',
-      error: error.message || 'Unknown error occurred'
-    };
+      const requestOptions: RequestInit = {
+        method: 'POST',
+        headers,
+        body: formData
+      };
+
+      const url = `${API_BASE_URL}/v1/playground/agents/p2sk-chat/runs`;
+      console.log('Sending request to:', url);
+
+      const response = await fetch(url, requestOptions);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        
+        if (response.status === 429) {
+          throw new Error('Terlalu banyak permintaan. Silakan tunggu beberapa saat sebelum mencoba lagi.');
+        }
+        
+        if (response.status >= 500 && retries < MAX_RETRIES) {
+          retries++;
+          await wait(RETRY_DELAY * retries);
+          continue;
+        }
+        
+        throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+      }
+
+      const data = await parseResponse(response);
+      console.log('Parsed response data:', data);
+
+      return {
+        text: data.content || data.message || 'No response received',
+        sourceDocuments: data.sourceDocuments
+      };
+
+    } catch (error) {
+      console.error('Error in sendChatMessage:', error);
+      
+      if (error instanceof TypeError && retries < MAX_RETRIES) {
+        retries++;
+        await wait(RETRY_DELAY * retries);
+        continue;
+      }
+      
+      throw error;
+    }
   }
+  
+  throw new Error('Failed after maximum retries');
 };
 
 // Add a function to clear chat history and session
 export const clearChatHistory = () => {
-  chatHistory = [];
   currentSessionId = null;
 };
 
@@ -143,6 +138,5 @@ export const clearChatHistory = () => {
 export const initializeSession = () => {
   if (!currentSessionId) {
     currentSessionId = `session_${uuidv4()}`;
-    chatHistory = [];
   }
 };
