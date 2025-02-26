@@ -6,6 +6,7 @@ import { sendChatMessage as sendUndangChatMessage } from '../services/undangServ
 import { sendChatMessage as sendKuhpChatMessage } from '../services/kuhpService';
 import { sendChatMessage as sendIteChatMessage } from '../services/iteService';
 import { sendChatMessage as sendFidusiaChatMessage } from '../services/fidusiaService';
+import { sendChatMessage as sendCiptakerjaChatMessage } from '../services/ciptakerjaService';
 import { DotBackground } from '@/components/ui/DotBackground';
 import { Agent, AgentType } from '@/types';
 
@@ -48,6 +49,15 @@ export default function UndangUndang() {
       status: 'on',
       icon: 'brain',
       color: 'blue'
+    },
+    {
+      id: 'ciptakerja_chat',
+      name: 'Cipta Kerja',
+      description: 'Agen ai spesialisasi UU Cipta Kerja untuk memahami regulasi ketenagakerjaan dan iklim usaha',
+      type: 'ciptakerja_chat' as AgentType,
+      status: 'on',
+      icon: 'brain',
+      color: 'blue'
     }
   ];
 
@@ -69,6 +79,8 @@ export default function UndangUndang() {
         return <ChatInterface sendMessage={sendIteChatMessage} />;
       case 'tipidkor_chat':
         return <ChatInterface sendMessage={sendFidusiaChatMessage} />;
+      case 'ciptakerja_chat':
+        return <ChatInterface sendMessage={sendCiptakerjaChatMessage} />;
       default:
         return null;
     }
@@ -126,6 +138,10 @@ export default function UndangUndang() {
                           ? 'bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100'
                           : agent.type === 'kuhp_chat'
                           ? 'bg-gradient-to-br from-rose-50 to-orange-50 hover:from-rose-100 hover:to-orange-100'
+                          : agent.type === 'ciptakerja_chat'
+                          ? 'bg-gradient-to-br from-slate-50 to-gray-50 hover:from-slate-100 hover:to-gray-100'
+                          : agent.type === 'ite_chat'
+                          ? 'bg-gradient-to-br from-cyan-50 to-sky-50 hover:from-cyan-100 hover:to-sky-100'
                           : 'bg-gradient-to-br from-green-50 to-lime-50 hover:from-green-100 hover:to-lime-100'
                       }
                       className={`
@@ -134,6 +150,10 @@ export default function UndangUndang() {
                           ? 'hover:border-blue-200 hover:shadow-blue-100'
                           : agent.type === 'kuhp_chat'
                           ? 'hover:border-rose-200 hover:shadow-rose-100'
+                          : agent.type === 'ciptakerja_chat'
+                          ? 'hover:border-slate-200 hover:shadow-slate-100'
+                          : agent.type === 'ite_chat'
+                          ? 'hover:border-cyan-200 hover:shadow-cyan-100'
                           : 'hover:border-green-200 hover:shadow-green-100'
                         }
                         shadow-lg hover:shadow-xl transition-all duration-300
@@ -149,4 +169,4 @@ export default function UndangUndang() {
       </div>
     </div>
   );
-} 
+}

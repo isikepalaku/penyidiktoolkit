@@ -56,7 +56,8 @@ export type AgentType =
   | 'bantek_chat' 
   | 'wassidik_chat'
   | 'emp_chat'
-  | 'tipikor_analyst';
+  | 'tipikor_analyst'
+  | 'ciptakerja_chat';
 
 export interface ExtendedAgent {
   id: string;

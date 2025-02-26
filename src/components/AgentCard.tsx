@@ -1,4 +1,4 @@
-import { Brain, User, PieChart, Image, FileText, MessageSquare, Search, Database, Target, MapPin, BarChart3, Scale, Gavel, BookOpen, TrendingUp } from 'lucide-react';
+import { Brain, User, PieChart, Image, FileText, MessageSquare, Search, Database, Target, MapPin, BarChart3, Scale, Gavel, BookOpen, TrendingUp, ScrollText } from 'lucide-react';
 import type { Agent } from '../types/index';
 import { getTypeDisplay } from '@/utils/utils';
 
@@ -47,13 +47,15 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
         return <Scale className="text-indigo-500" size={24} />;
       case 'tipikor_analyst':
         return <Scale className="text-rose-600" size={24} />;
+      case 'ciptakerja_chat':
+        return <ScrollText className="text-gray-700" size={24} />;
       default:
         return <PieChart className="text-gray-500" size={24} />;
     }
   };
 
   // Render khusus untuk agen UU
-  if (agent.type === 'undang_chat' || agent.type === 'kuhp_chat') {
+  if (agent.type === 'undang_chat' || agent.type === 'kuhp_chat' || agent.type === 'ciptakerja_chat') {
     return (
       <div className={`${bgColor} rounded-lg shadow-md p-6 hover:shadow-xl transition-all duration-300 border border-gray-100 group h-[200px] flex flex-col justify-between ${className}`}>
         <div>
@@ -74,7 +76,9 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
         </div>
         <div className="flex items-center gap-2 mt-auto">
           <span className="px-3 py-1 bg-white/80 text-blue-600 rounded-full text-sm font-medium">
-            {agent.type === 'undang_chat' ? 'UU P2SK' : 'KUHP'}
+            {agent.type === 'undang_chat' ? 'UU P2SK' : 
+             agent.type === 'kuhp_chat' ? 'KUHP' : 
+             'UU Cipta Kerja'}
           </span>
         </div>
       </div>
