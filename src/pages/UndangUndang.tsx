@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AgentCard from '../components/AgentCard';
 import ChatInterface from '../components/ChatInterface';
 import { ArrowLeft } from 'lucide-react';
@@ -12,6 +12,42 @@ import { Agent, AgentType } from '@/types';
 
 export default function UndangUndang() {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
+
+  // Prevent accidental navigation
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (selectedAgent) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    // Handle browser's back button
+    const handlePopState = (e: PopStateEvent) => {
+      if (selectedAgent) {
+        e.preventDefault();
+        if (window.confirm('Apakah Anda yakin ingin meninggalkan percakapan ini? Semua percakapan akan hilang.')) {
+          setSelectedAgent(null);
+        } else {
+          // Stay on the current page
+          window.history.pushState(null, '', window.location.pathname);
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+
+    // Add state to browser history when selecting an agent
+    if (selectedAgent) {
+      window.history.pushState(null, '', window.location.pathname);
+    }
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [selectedAgent]);
 
   const agents: Agent[] = [
     {
@@ -64,7 +100,9 @@ export default function UndangUndang() {
   const selectedAgentData = agents.find(agent => agent.id === selectedAgent);
 
   const handleBack = () => {
-    setSelectedAgent(null);
+    if (window.confirm('Apakah Anda yakin ingin kembali? Semua percakapan akan hilang.')) {
+      setSelectedAgent(null);
+    }
   };
 
   const renderContent = () => {

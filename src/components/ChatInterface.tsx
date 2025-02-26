@@ -112,22 +112,35 @@ const components: Components = {
 export default function ChatInterface({ sendMessage }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isComponentMounted, setIsComponentMounted] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
+  // Handle component mount
+  useEffect(() => {
+    setIsComponentMounted(true);
+  }, []);
+
   const scrollToBottom = () => {
-    if (chatContainerRef.current) {
-      const { scrollHeight, clientHeight } = chatContainerRef.current;
-      chatContainerRef.current.scrollTop = scrollHeight - clientHeight;
-    }
+    requestAnimationFrame(() => {
+      if (chatContainerRef.current) {
+        const { scrollHeight, clientHeight } = chatContainerRef.current;
+        chatContainerRef.current.scrollTo({
+          top: scrollHeight - clientHeight,
+          behavior: 'smooth'
+        });
+      }
+    });
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (isComponentMounted) {
+      scrollToBottom();
+    }
+  }, [messages, isComponentMounted]);
 
   const handleSubmit = async (inputMessage: string) => {
-    if (!inputMessage.trim() || isLoading) return;
+    if (!inputMessage.trim() || isLoading || !isComponentMounted) return;
 
     const userMessage: Message = {
       content: inputMessage.trim(),
@@ -155,12 +168,15 @@ export default function ChatInterface({ sendMessage }: ChatInterfaceProps) {
 
       setMessages(prev => [...prev, botMessage]);
 
+      // Delay animation to prevent layout shifts
       setTimeout(() => {
-        setMessages(prev =>
-          prev.map(msg =>
-            msg === botMessage ? { ...msg, isAnimating: false } : msg
-          )
-        );
+        if (isComponentMounted) {
+          setMessages(prev =>
+            prev.map(msg =>
+              msg === botMessage ? { ...msg, isAnimating: false } : msg
+            )
+          );
+        }
       }, 50);
     } catch (error) {
       const errorMessage: Message = {
@@ -175,9 +191,21 @@ export default function ChatInterface({ sendMessage }: ChatInterfaceProps) {
     }
   };
 
+  if (!isComponentMounted) {
+    return (
+      <div className="flex flex-col h-full min-h-[600px] items-center justify-center bg-gray-50">
+        <AnimatedBotIcon />
+        <p className="mt-4 text-gray-600">Memuat chat interface...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col h-[600px] max-h-screen">
-      <div ref={chatContainerRef} className="flex-1 overflow-y-auto overscroll-contain">
+    <div className="flex flex-col h-full min-h-[600px]">
+      <div 
+        ref={chatContainerRef} 
+        className="flex-1 overflow-y-auto overscroll-contain scroll-smooth"
+      >
         <div className="w-full">
           {messages.map((message, index) => (
             <div
@@ -260,6 +288,7 @@ export default function ChatInterface({ sendMessage }: ChatInterfaceProps) {
           loadingDuration={3000}
           placeholder="Ketik pesan Anda..."
           className="px-3 md:px-4"
+          disabled={!isComponentMounted || isLoading}
         />
       </div>
     </div>

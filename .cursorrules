@@ -147,6 +147,57 @@ From project.md:
   - Keep form heights appropriate for expected input length
   - Include clear placeholder text in form fields
 
+## Chat Agent Implementation Pattern
+
+When adding a new chat-based agent to the UndangUndang component, follow these steps:
+
+1. Create Service File (src/services/[agentName]Service.ts):
+ - Import env config and uuid
+ - Configure API constants (API_KEY, MAX_RETRIES, etc.)
+ - Implement session management
+ - Implement parseResponse function for handling responses
+ - Implement sendChatMessage with FormData and proper error handling
+ - Add clearChatHistory and initializeSession functions
+
+2. Update Types (src/types/index.ts):
+ - Add new agent type to AgentType union (e.g., 'ciptakerja_chat')
+
+3. Update Utils (src/utils/utils.ts):
+ - Add agent ID to AGENT_IDS constant
+ - Add case in getAgentTypeFromId function
+ - Don't add to getTypeDisplay if it's a chat agent (these use custom display names)
+
+4. Update Agent Card (src/components/AgentCard.tsx):
+ - Add case in getAgentIcon with appropriate Lucide icon
+ - Choose an icon that represents the agent's function
+ - Use consistent icon size (24px)
+ - Give icon an appropriate color
+
+5. Update UndangUndang Component (src/pages/UndangUndang.tsx):
+ - Import new service's sendChatMessage
+ - Add agent to agents array with proper configuration
+ - Add case in renderContent switch statement
+ - Configure card styling:
+   * Use professional color gradients
+   * Maintain visual hierarchy
+   * Ensure contrast and readability
+   * Keep consistent hover effects
+   * Match icon and colors to agent's purpose
+
+6. Follow Best Practices:
+ - Maintain consistent error handling
+ - Use proper session management
+ - Implement proper logging
+ - Follow API security guidelines
+ - Use professional color schemes appropriate for police applications
+ - Ensure visual consistency with existing agents
+
+Professional Color Scheme Examples:
+- Financial Services (P2SK): blue-indigo gradient (from-blue-50 to-indigo-50)
+- Criminal Law (KUHP): rose-orange gradient (from-rose-50 to-orange-50)
+- Technology Law (ITE): cyan-sky gradient (from-cyan-50 to-sky-50)
+- Labor Law (Cipta Kerja): slate-gray gradient (from-slate-50 to-gray-50)
+
 ## Environment Configuration Lessons
 
 - Use default values in env.ts for critical variables
@@ -451,3 +502,109 @@ Common issues to avoid:
 - Content overflow on small screens
 - Non-scrollable content in fixed containers
 - Missing overlay for mobile interactions
+- Premature component interaction before full load
+- Uncontrolled reloads due to state changes
+
+### Mobile Chat Performance
+1. Component Mount Handling:
+```typescript
+// Track component mount state
+const [isComponentMounted, setIsComponentMounted] = useState(false);
+
+useEffect(() => {
+  setIsComponentMounted(true);
+}, []);
+
+// Show loading state until component is ready
+if (!isComponentMounted) {
+  return <LoadingView />;
+}
+```
+
+2. Scroll Optimization:
+```typescript
+const scrollToBottom = () => {
+  requestAnimationFrame(() => {
+    if (containerRef.current) {
+      containerRef.current.scrollTo({
+        top: containerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  });
+};
+```
+
+3. Input Handling:
+```typescript
+<AIInputWithLoading
+  onSubmit={handleSubmit}
+  disabled={!isComponentMounted || isLoading}
+  placeholder="Ketik pesan Anda..."
+/>
+```
+
+4. State Management Best Practices:
+- Track component mount state
+- Disable interactions until fully loaded
+- Use smooth scrolling with requestAnimationFrame
+- Prevent multiple submissions while loading
+- Clear timeouts and listeners on unmount
+- Handle keyboard events properly
+- Show appropriate loading states
+
+Common issues to fix:
+- Premature form submissions
+- Scroll jumps during loading
+- Missing loading indicators
+- Unhandled component state changes
+- Memory leaks from timeouts/listeners
+
+### Mobile Navigation Protection
+1. Prevent accidental chat session loss:
+```typescript
+// Handle navigation events
+useEffect(() => {
+  const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+    if (activeChat) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  };
+
+  const handlePopState = (e: PopStateEvent) => {
+    if (activeChat) {
+      e.preventDefault();
+      if (confirm('Yakin ingin keluar? Percakapan akan hilang.')) {
+        setActiveChat(null);
+      } else {
+        window.history.pushState(null, '', window.location.pathname);
+      }
+    }
+  };
+
+  window.addEventListener('beforeunload', handleBeforeUnload);
+  window.addEventListener('popstate', handlePopState);
+
+  return () => {
+    window.removeEventListener('beforeunload', handleBeforeUnload);
+    window.removeEventListener('popstate', handlePopState);
+  };
+}, [activeChat]);
+```
+
+2. Always add confirmation for back actions:
+```typescript
+const handleBack = () => {
+  if (window.confirm('Yakin ingin kembali? Percakapan akan hilang.')) {
+    setActiveChat(null);
+  }
+};
+```
+
+Common issues to avoid:
+- Not handling browser back gesture/swipe
+- Missing confirmation dialog for session loss
+- Not managing browser history state properly
+- Not cleaning up event listeners
+- Not handling hardware back button on mobile
