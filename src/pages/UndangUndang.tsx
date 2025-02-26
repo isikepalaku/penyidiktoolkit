@@ -7,6 +7,7 @@ import { sendChatMessage as sendKuhpChatMessage } from '../services/kuhpService'
 import { sendChatMessage as sendIteChatMessage } from '../services/iteService';
 import { sendChatMessage as sendFidusiaChatMessage } from '../services/fidusiaService';
 import { sendChatMessage as sendCiptakerjaChatMessage } from '../services/ciptakerjaService';
+import { sendChatMessage as sendKesehatanChatMessage } from '../services/kesehatanService';
 import { DotBackground } from '@/components/ui/DotBackground';
 import { Agent, AgentType } from '@/types';
 
@@ -94,6 +95,15 @@ export default function UndangUndang() {
       status: 'on',
       icon: 'brain',
       color: 'blue'
+    },
+    {
+      id: 'kesehatan_chat',
+      name: 'UU Kesehatan',
+      description: 'Agen ai spesialisasi UNDANG-UNDANG REPUBLIK INDONESIA NOMOR 17 TAHUN 2023 TENTANG KESEHATAN',
+      type: 'kesehatan_chat' as AgentType,
+      status: 'on',
+      icon: 'brain',
+      color: 'green'
     }
   ];
 
@@ -119,6 +129,8 @@ export default function UndangUndang() {
         return <ChatInterface sendMessage={sendFidusiaChatMessage} />;
       case 'ciptakerja_chat':
         return <ChatInterface sendMessage={sendCiptakerjaChatMessage} />;
+      case 'kesehatan_chat':
+        return <ChatInterface sendMessage={sendKesehatanChatMessage} />;
       default:
         return null;
     }
@@ -180,6 +192,8 @@ export default function UndangUndang() {
                           ? 'bg-gradient-to-br from-slate-50 to-gray-50 hover:from-slate-100 hover:to-gray-100'
                           : agent.type === 'ite_chat'
                           ? 'bg-gradient-to-br from-cyan-50 to-sky-50 hover:from-cyan-100 hover:to-sky-100'
+                          : agent.type === 'kesehatan_chat'
+                          ? 'bg-gradient-to-br from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100'
                           : 'bg-gradient-to-br from-green-50 to-lime-50 hover:from-green-100 hover:to-lime-100'
                       }
                       className={`
@@ -192,6 +206,8 @@ export default function UndangUndang() {
                           ? 'hover:border-slate-200 hover:shadow-slate-100'
                           : agent.type === 'ite_chat'
                           ? 'hover:border-cyan-200 hover:shadow-cyan-100'
+                          : agent.type === 'kesehatan_chat'
+                          ? 'hover:border-emerald-200 hover:shadow-emerald-100'
                           : 'hover:border-green-200 hover:shadow-green-100'
                         }
                         shadow-lg hover:shadow-xl transition-all duration-300

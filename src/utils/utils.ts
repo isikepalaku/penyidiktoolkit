@@ -45,7 +45,8 @@ export const AGENT_IDS = {
   KUHP_CHAT: 'kuhp-chat',
   ITE_CHAT: 'ite-chat',
   TIPIDKOR_CHAT: 'tipidkor-chat',
-  CIPTAKERJA_CHAT: 'ciptakerja-chat'
+  CIPTAKERJA_CHAT: 'ciptakerja-chat',
+  KESEHATAN_CHAT: 'kesehatan-chat'
 } as const;
 
 export const isValidAgentId = (id: string): boolean => {
@@ -81,6 +82,8 @@ export const getAgentTypeFromId = (id: string): AgentType | null => {
       return 'tipidkor_chat';
     case AGENT_IDS.CIPTAKERJA_CHAT:
       return 'ciptakerja_chat';
+    case AGENT_IDS.KESEHATAN_CHAT:
+      return 'kesehatan_chat';
     default:
       return null;
   }

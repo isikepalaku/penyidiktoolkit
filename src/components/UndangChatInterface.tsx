@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { User } from 'lucide-react';
 import ReactMarkdown, { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -29,7 +29,6 @@ interface UndangChatInterfaceProps {
   }>;
 }
 
-// Markdown components with responsive design
 const components: Components = {
   table: ({ children }) => (
     <div className="overflow-x-auto max-w-full my-4">
@@ -84,25 +83,91 @@ const components: Components = {
     >
       {children}
     </a>
-  ),
+  )
 };
 
+const LoadingView = () => (
+  <div className="flex items-center justify-center h-full">
+    <div className="flex items-center space-x-2">
+      <div className="w-2 h-2 bg-[#D84040] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+      <div className="w-2 h-2 bg-[#D84040] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+      <div className="w-2 h-2 bg-[#D84040] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+    </div>
+  </div>
+);
+
 export default function UndangChatInterface({ sendMessage }: UndangChatInterfaceProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [isComponentMounted, setIsComponentMounted] = useState(false);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      const savedMessages = sessionStorage.getItem('chatMessages');
+      return savedMessages ? JSON.parse(savedMessages) : [];
+    } catch (error) {
+      console.error('Error loading saved messages:', error);
+      return [];
+    }
+  });
   const [isLoading, setIsLoading] = useState(false);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    if (chatContainerRef.current) {
-      const { scrollHeight, clientHeight } = chatContainerRef.current;
-      chatContainerRef.current.scrollTop = scrollHeight - clientHeight;
+  const scrollToBottom = useCallback(() => {
+    requestAnimationFrame(() => {
+      if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTo({
+          top: chatContainerRef.current.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      sessionStorage.setItem('chatMessages', JSON.stringify(messages));
     }
-  };
+  }, [messages]);
+
+  useEffect(() => {
+    setIsComponentMounted(true);
+    return () => {
+      setIsComponentMounted(false);
+    };
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, scrollToBottom]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (messages.length > 0) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    const handlePopState = (e: PopStateEvent) => {
+      if (messages.length > 0) {
+        e.preventDefault();
+        if (window.confirm('Yakin ingin keluar? Percakapan akan hilang.')) {
+          sessionStorage.removeItem('chatMessages');
+          setMessages([]);
+        } else {
+          window.history.pushState(null, '', window.location.pathname);
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [messages.length]);
 
   const handleSubmit = async (inputMessage: string) => {
     if (!inputMessage.trim() || isLoading) return;
@@ -152,6 +217,10 @@ export default function UndangChatInterface({ sendMessage }: UndangChatInterface
       setIsLoading(false);
     }
   };
+
+  if (!isComponentMounted) {
+    return <LoadingView />;
+  }
 
   return (
     <div className="flex flex-col h-[600px] max-h-screen">
@@ -238,6 +307,7 @@ export default function UndangChatInterface({ sendMessage }: UndangChatInterface
       <div className="mt-auto">
         <AIInputWithLoading
           onSubmit={handleSubmit}
+          disabled={!isComponentMounted || isLoading}
           loadingDuration={3000}
           placeholder="Silahkan menulis pertanyaan Anda..."
           className="px-3 md:px-4"
