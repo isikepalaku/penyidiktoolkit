@@ -4,7 +4,7 @@ import ReactMarkdown, { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { AIInputWithLoading } from './ui/ai-input-with-loading';
 import { AnimatedMessage } from './AnimatedMessage';
-import { AnimatedBotIcon } from './ui/animated-bot-icon';
+import StaticBotIcon from './ui/static-bot-icon';
 
 interface Message {
   content: string;
@@ -194,7 +194,7 @@ export default function ChatInterface({ sendMessage }: ChatInterfaceProps) {
   if (!isComponentMounted) {
     return (
       <div className="flex flex-col h-full min-h-[600px] items-center justify-center bg-gray-50">
-        <AnimatedBotIcon />
+        <StaticBotIcon />
         <p className="mt-4 text-gray-600">Memuat chat interface...</p>
       </div>
     );
@@ -222,7 +222,7 @@ export default function ChatInterface({ sendMessage }: ChatInterfaceProps) {
                     </div>
                   ) : (
                     <div className="w-8 h-8 flex items-center justify-center">
-                      <AnimatedBotIcon />
+                      <StaticBotIcon />
                     </div>
                   )}
                 </div>
@@ -265,7 +265,7 @@ export default function ChatInterface({ sendMessage }: ChatInterfaceProps) {
               <div className="flex space-x-3 md:space-x-4">
                 <div className="flex-shrink-0">
                   <div className="w-8 h-8 flex items-center justify-center">
-                    <AnimatedBotIcon />
+                    <StaticBotIcon />
                   </div>
                 </div>
                 <div className="flex-1">

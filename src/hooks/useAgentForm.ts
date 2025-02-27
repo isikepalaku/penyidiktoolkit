@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { FormData, FormDataValue } from '../types';
 import { submitImageAnalysis } from '../services/imageService';
 import { submitAgentAnalysis as submitSpktAnalysis } from '../services/agentSpkt';
@@ -24,12 +24,17 @@ interface UseAgentFormResult {
   reset: () => void;
 }
 
+const API_TIMEOUT = 60000; // 30 seconds timeout
+
 export const useAgentForm = (): UseAgentFormResult => {
   const [formData, setFormData] = useState<FormData>({});
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const timeoutRef = useRef<number | null>(null);
 
   const handleInputChange = (fieldId: string, value: FormDataValue) => {
     setFormData(prev => ({
@@ -49,9 +54,29 @@ export const useAgentForm = (): UseAgentFormResult => {
   };
 
   const handleSubmit = async (agentType: string) => {
+    // Clear any existing timeouts
+    if (timeoutRef.current) {
+      window.clearTimeout(timeoutRef.current);
+    }
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
     setIsProcessing(true);
     setError(null);
     setResult(null);
+
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
+    // Set timeout
+    timeoutRef.current = window.setTimeout(() => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      setError('Permintaan timeout setelah 30 detik. Silakan coba lagi.');
+      setIsProcessing(false);
+    }, API_TIMEOUT);
 
     try {
       let response: string;
@@ -119,15 +144,33 @@ export const useAgentForm = (): UseAgentFormResult => {
         }
       }
 
+      // Clear timeout since request completed successfully
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+      }
+
       setResult(response);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Terjadi kesalahan yang tidak diketahui');
+      // Don't set error if it was caused by the timeout
+      if (err instanceof Error && err.name !== 'AbortError') {
+        setError(err instanceof Error ? err.message : 'Terjadi kesalahan yang tidak diketahui');
+      }
     } finally {
       setIsProcessing(false);
+      abortControllerRef.current = null;
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+      }
     }
   };
 
   const reset = () => {
+    if (timeoutRef.current) {
+      window.clearTimeout(timeoutRef.current);
+    }
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
     setFormData({});
     setImagePreview(null);
     setError(null);
