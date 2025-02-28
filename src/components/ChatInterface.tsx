@@ -201,12 +201,12 @@ export default function ChatInterface({ sendMessage }: ChatInterfaceProps) {
   }
 
   return (
-    <div className="flex flex-col h-full min-h-[600px]">
-      <div 
-        ref={chatContainerRef} 
-        className="flex-1 overflow-y-auto overscroll-contain scroll-smooth"
+    <div className="flex flex-col h-full min-h-[600px] max-h-screen relative">
+      <div
+        ref={chatContainerRef}
+        className="flex-1 overflow-y-auto overscroll-contain scroll-smooth pb-20 md:pb-24"
       >
-        <div className="w-full">
+        <div className="w-full mb-safe">
           {messages.map((message, index) => (
             <div
               key={index}
@@ -282,14 +282,16 @@ export default function ChatInterface({ sendMessage }: ChatInterfaceProps) {
         </div>
       </div>
 
-      <div className="mt-auto">
-        <AIInputWithLoading
-          onSubmit={handleSubmit}
-          loadingDuration={3000}
-          placeholder="Ketik pesan Anda..."
-          className="px-3 md:px-4"
-          disabled={!isComponentMounted || isLoading}
-        />
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-2 md:p-3 shadow-lg safe-area-bottom">
+        <div className="max-w-5xl mx-auto">
+          <AIInputWithLoading
+            onSubmit={handleSubmit}
+            loadingDuration={3000}
+            placeholder="Ketik pesan Anda..."
+            className="px-2 md:px-4"
+            disabled={!isComponentMounted || isLoading}
+          />
+        </div>
       </div>
     </div>
   );

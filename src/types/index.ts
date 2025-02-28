@@ -38,7 +38,7 @@ export interface Agent {
   }>;
 }
 
-export type AgentType = 
+export type AgentType =
   | 'spkt'
   | 'case_research'
   | 'image'
@@ -53,12 +53,13 @@ export type AgentType =
   | 'tipidkor_chat'
   | 'perkaba_chat'
   | 'perkaba_search'
-  | 'bantek_chat' 
+  | 'bantek_chat'
   | 'wassidik_chat'
   | 'emp_chat'
   | 'tipikor_analyst'
   | 'ciptakerja_chat'
-  | 'kesehatan_chat';
+  | 'kesehatan_chat'
+  | 'penyidik_chat';
 
 export interface ExtendedAgent {
   id: string;

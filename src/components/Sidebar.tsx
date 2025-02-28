@@ -11,36 +11,41 @@ const Sidebar = () => {
   };
 
   const menuItems = [
-    {
-      path: '/',
-      icon: <Home className="w-5 h-5" />,
-      text: 'Home'
-    },
-    {
-      path: '/agents',
-      icon: <Users className="w-5 h-5" />,
-      text: 'Agen AI'
-    },
-    {
-      path: '/perkaba-chat',
-      icon: <MessageSquare className="w-5 h-5" />,
-      text: 'Perkaba Chat'
-    },
-    {
-      path: '/undang-undang',
-      icon: <Scale className="w-5 h-5" />,
-      text: 'Ahli Undang-Undang'
-    },
-    {
-      path: '/reports',
-      icon: <FileText className="w-5 h-5" />,
-      text: 'Laporan'
-    },
-    {
-      path: '/pencarian-putusan',
-      icon: <Search className="w-5 h-5" />,
-      text: 'Pencarian Putusan'
-    }
+      {
+        path: '/',
+        icon: <Home className="w-5 h-5" />,
+        text: 'Home'
+      },
+      {
+        path: '/agents',
+        icon: <Users className="w-5 h-5" />,
+        text: 'Agen AI'
+      },
+      {
+        path: '/perkaba-chat',
+        icon: <MessageSquare className="w-5 h-5" />,
+        text: 'Perkaba Chat'
+      },
+      {
+        path: '/penyidik-ai',
+        icon: <Search className="w-5 h-5" />,
+        text: 'Penyidik AI'
+      },
+      {
+        path: '/undang-undang',
+        icon: <Scale className="w-5 h-5" />,
+        text: 'Ahli Undang-Undang'
+      },
+      {
+        path: '/reports',
+        icon: <FileText className="w-5 h-5" />,
+        text: 'Laporan'
+      },
+      {
+        path: '/pencarian-putusan',
+        icon: <Search className="w-5 h-5" />,
+        text: 'Pencarian Putusan'
+      }
   ];
 
   return (

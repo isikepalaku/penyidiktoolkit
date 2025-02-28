@@ -51,6 +51,8 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
         return <ScrollText className="text-gray-700" size={24} />;
       case 'kesehatan_chat':
         return <Heart className="text-emerald-500" size={24} />;
+      case 'penyidik_chat':
+        return <Search className="text-purple-500" size={24} />;
       default:
         return <PieChart className="text-gray-500" size={24} />;
     }

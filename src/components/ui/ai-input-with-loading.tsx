@@ -68,8 +68,8 @@ export function AIInputWithLoading({
   };
 
   return (
-    <div className={cn("w-full py-4", className)} onClick={(e) => e.stopPropagation()}>
-      <div className="relative max-w-xl w-full mx-auto flex items-start flex-col gap-2">
+    <div className={cn("w-full py-2 md:py-4", className)} onClick={(e) => e.stopPropagation()}>
+      <div className="relative w-full mx-auto flex items-start flex-col gap-1 md:gap-2">
         <Label htmlFor={id} className="sr-only">
           Pesan Chat
         </Label>
@@ -85,10 +85,11 @@ export function AIInputWithLoading({
             name="chat-message"
             placeholder={placeholder}
             className={cn(
-              "max-w-xl bg-black/5 dark:bg-white/5 w-full rounded-3xl pl-6 pr-10 py-4",
+              "max-w-xl bg-black/5 dark:bg-white/5 w-full rounded-2xl md:rounded-3xl pl-4 md:pl-6 pr-12 py-3 md:py-4",
               "placeholder:text-black/70 dark:placeholder:text-white/70",
               "border-none ring-black/30 dark:ring-white/30",
               "text-black dark:text-white resize-none text-wrap leading-[1.2]",
+              "text-base md:text-base",
               disabled && "opacity-50 cursor-not-allowed",
               `min-h-[${minHeight}px]`
             )}
@@ -109,9 +110,11 @@ export function AIInputWithLoading({
               handleSubmit();
             }}
             className={cn(
-              "absolute right-3 top-1/2 -translate-y-1/2 rounded-xl py-1 px-1",
-              submitted || disabled ? "bg-none" : "bg-black/5 dark:bg-white/5",
-              disabled && "opacity-50 cursor-not-allowed"
+              "absolute right-2 md:right-3 top-1/2 -translate-y-1/2 rounded-xl p-2 md:p-2.5",
+              "transition-colors touch-manipulation",
+              submitted || disabled ? "bg-none" : "bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10",
+              disabled && "opacity-50 cursor-not-allowed",
+              "active:scale-95"
             )}
             type="button"
             disabled={submitted || disabled}
@@ -119,20 +122,20 @@ export function AIInputWithLoading({
           >
             {submitted ? (
               <div
-                className="w-4 h-4 bg-black dark:bg-white rounded-sm animate-spin transition duration-700"
+                className="w-5 h-5 md:w-4 md:h-4 bg-black dark:bg-white rounded-sm animate-spin transition duration-700"
                 style={{ animationDuration: "3s" }}
               />
             ) : (
               <CornerRightUp
                 className={cn(
-                  "w-4 h-4 transition-opacity dark:text-white",
-                  inputValue && !disabled ? "opacity-100" : "opacity-30"
+                  "w-5 h-5 md:w-4 md:h-4 transition-opacity dark:text-white",
+                  inputValue && !disabled ? "opacity-100" : "opacity-40"
                 )}
               />
             )}
           </button>
         </div>
-        <p className="pl-4 h-4 text-xs mx-auto text-black/70 dark:text-white/70">
+        <p className="pl-3 md:pl-4 h-4 text-[10px] md:text-xs mx-auto text-black/70 dark:text-white/70 font-medium">
           {submitted ? "AI sedang berpikir..." : disabled ? "Memuat..." : "Siap mengirim!"}
         </p>
       </div>

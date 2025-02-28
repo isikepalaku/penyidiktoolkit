@@ -223,18 +223,18 @@ export default function UndangChatInterface({ sendMessage }: UndangChatInterface
   }
 
   return (
-    <div className="flex flex-col h-[600px] max-h-screen">
-      <div 
+    <div className="flex flex-col h-[600px] max-h-screen relative">
+      <div
         ref={chatContainerRef}
-        className="flex-1 overflow-y-auto overscroll-contain"
+        className="flex-1 overflow-y-auto overscroll-contain scroll-smooth pb-20 md:pb-24"
       >
-        <div className="w-full">
+        <div className="w-full mb-safe">
           {messages.map((message, index) => (
             <div
               key={index}
-              className={`py-4 md:py-6 px-3 md:px-4 ${
+              className={`py-3 md:py-6 px-3 md:px-4 ${
                 message.type === 'bot' ? 'bg-gray-50' : ''
-              }`}
+              } ${message.type === 'user' ? 'bg-transparent' : ''}`}
             >
               <div className="flex gap-3 md:gap-4">
                 <div className="flex-shrink-0">
@@ -269,11 +269,11 @@ export default function UndangChatInterface({ sendMessage }: UndangChatInterface
                     )}
                   </div>
                   {message.sourceDocuments && message.sourceDocuments.length > 0 && (
-                    <div className="mt-3 border border-gray-200 rounded-lg p-3 bg-white text-xs md:text-sm">
-                      <div className="flex flex-col space-y-2">
-                        <p className="text-[#8E1616] font-semibold">Informasi:</p>
-                        <div className="flex items-start gap-2">
-                          <span>AI dapat memberikan informasi yang keliru, silahkan melakukan pengecekan ulang untuk memastikan keakuratan informasi.</span>
+                    <div className="mt-2 md:mt-3 border border-gray-200 rounded-lg p-2.5 md:p-3 bg-white text-[11px] md:text-sm">
+                      <div className="flex flex-col gap-1.5 md:gap-2">
+                        <p className="text-[#8E1616] font-medium md:font-semibold">Informasi:</p>
+                        <div className="flex items-start">
+                          <span className="leading-snug">AI dapat memberikan informasi yang keliru, silahkan melakukan pengecekan ulang untuk memastikan keakuratan informasi.</span>
                         </div>
                       </div>
                     </div>
@@ -283,8 +283,8 @@ export default function UndangChatInterface({ sendMessage }: UndangChatInterface
             </div>
           ))}
           {isLoading && (
-            <div className="py-4 md:py-6 px-3 md:px-4 bg-gray-50">
-              <div className="flex space-x-3 md:space-x-4">
+            <div className="py-3 md:py-6 px-3 md:px-4 bg-gray-50">
+              <div className="flex items-start gap-3 md:gap-4">
                 <div className="flex-shrink-0">
                   <div className="w-8 h-8 flex items-center justify-center">
                     <AnimatedBotIcon />
@@ -304,14 +304,16 @@ export default function UndangChatInterface({ sendMessage }: UndangChatInterface
         </div>
       </div>
 
-      <div className="mt-auto">
-        <AIInputWithLoading
-          onSubmit={handleSubmit}
-          disabled={!isComponentMounted || isLoading}
-          loadingDuration={3000}
-          placeholder="Silahkan menulis pertanyaan Anda..."
-          className="px-3 md:px-4"
-        />
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-2 md:p-3 shadow-lg safe-area-bottom">
+        <div className="max-w-5xl mx-auto">
+          <AIInputWithLoading
+            onSubmit={handleSubmit}
+            disabled={!isComponentMounted || isLoading}
+            loadingDuration={3000}
+            placeholder="Silahkan menulis pertanyaan Anda..."
+            className="px-2 md:px-4"
+          />
+        </div>
       </div>
     </div>
   );
