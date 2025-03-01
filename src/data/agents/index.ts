@@ -19,8 +19,7 @@ export const agents: ExtendedAgent[] = [
   modusKejahatanAgent,
   crimeTrendAnalystAgent,
   sentimentAnalystAgent,
-  tipikorAnalystAgent,
-  penyidikAiAgent
+  tipikorAnalystAgent
 ];
 
 export {
