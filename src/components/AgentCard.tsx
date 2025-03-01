@@ -1,4 +1,4 @@
-import { Brain, User, PieChart, Image, FileText, MessageSquare, Search, Database, Target, MapPin, BarChart3, Scale, Gavel, BookOpen, TrendingUp, ScrollText, Heart } from 'lucide-react';
+import { PieChart, Search, BarChart3, Scale, TrendingUp } from 'lucide-react';
 import type { Agent } from '../types/index';
 import { getTypeDisplay } from '@/utils/utils';
 
@@ -12,45 +12,45 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
   const getAgentIcon = () => {
     switch (agent.type) {
       case 'spkt':
-        return <FileText className="text-green-500" size={24} />;
+        return <img src="/img/ai.svg" alt="laporan polisi" className="w-6 h-6" />;
       case 'image':
-        return <Image className="text-indigo-500" size={24} />;
+        return <img src="/img/vision.svg" alt="laporan polisi" className="w-6 h-6" />;
       case 'case_research':
-        return <User className="text-blue-500" size={24} />;
+        return <img src="/img/google-scholar.svg" alt="Google Scholar" className="w-6 h-6" />;
       case 'hoax_checker':
-        return <Brain className="text-amber-500" size={24} />;
+        return <img src="/img/news.svg" alt="ai hoax" className="w-6 h-6" />;
       case 'perkaba_chat':
-        return <MessageSquare className="text-purple-500" size={24} />;
+        return <img src="/img/pdf.svg" alt="perkaba ai" className="w-6 h-6" />;
       case 'perkaba_search':
-        return <Search className="text-cyan-500" size={24} />;
+        return <img src="/img/pdf.svg" alt="perkaba ai" className="w-6 h-6" />;
       case 'bantek_chat':
-        return <MessageSquare className="text-blue-500" size={24} />;
+        return <img src="/img/pdf.svg" alt="perkaba ai" className="w-6 h-6" />;
       case 'wassidik_chat':
-        return <MessageSquare className="text-green-500" size={24} />;
+        return <img src="/img/pdf.svg" alt="perkaba ai" className="w-6 h-6" />;
       case 'emp_chat':
-        return <Database className="text-amber-500" size={24} />;
+        return <img src="/img/pdf.svg" alt="perkaba ai" className="w-6 h-6" />;
       case 'modus_kejahatan':
-        return <Target className="text-red-500" size={24} />;
+        return <img src="/img/moduskejahatan.svg" alt="Modus Kejahatab" className="w-6 h-6" />;
       case 'image_processor':
-        return <MapPin className="text-blue-500" size={24} />;
+        return <img src="/img/maps.svg" alt="Google Scholar" className="w-6 h-6" />;
       case 'crime_trend_analyst':
         return <BarChart3 className="text-indigo-500" size={24} />;
       case 'undang_chat':
-        return <Scale className="text-blue-500" size={24} />;
+        return <img src="/img/book.svg" alt="Google Scholar" className="w-6 h-6" />;
       case 'kuhp_chat':
-        return <Gavel className="text-rose-500" size={24} />;
+        return <img src="/img/book.svg" alt="Google Scholar" className="w-6 h-6" />;
       case 'ite_chat':
-        return <BookOpen className="text-green-500" size={24} />;
+        return <img src="/img/book.svg" alt="Google Scholar" className="w-6 h-6" />;
       case 'sentiment_analyst':
         return <TrendingUp className="text-purple-500" size={24} />;
       case 'tipidkor_chat':
         return <Scale className="text-indigo-500" size={24} />;
       case 'tipikor_analyst':
-        return <Scale className="text-rose-600" size={24} />;
+        return <img src="/img/chrome.svg" alt="ai hoax" className="w-6 h-6" />;
       case 'ciptakerja_chat':
-        return <ScrollText className="text-gray-700" size={24} />;
+        return <img src="/img/book.svg" alt="Google Scholar" className="w-6 h-6" />;
       case 'kesehatan_chat':
-        return <Heart className="text-emerald-500" size={24} />;
+        return <img src="/img/book.svg" alt="Google Scholar" className="w-6 h-6" />;
       case 'penyidik_chat':
         return <Search className="text-purple-500" size={24} />;
       default:

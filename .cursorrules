@@ -266,6 +266,11 @@ Professional Color Scheme Examples:
   - Keep icon size consistent (24px)
   - Don't define icons in individual agent files
   - Use proper icon that represents agent's function (e.g., BarChart3 for trend analysis)
+  - For custom SVG icons:
+    * Place SVG files in public/img directory
+    * Reference in img src with absolute path from public (e.g., "/img/google-scholar.svg")
+    * Keep original SVG colors if they match the design
+    * Maintain consistent size with w-6 h-6 classes (24px)
 
 ## Form Implementation Lessons
 

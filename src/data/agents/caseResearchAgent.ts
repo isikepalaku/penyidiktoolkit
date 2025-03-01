@@ -3,7 +3,7 @@ import type { ExtendedAgent } from '../../types';
 export const caseResearchAgent: ExtendedAgent = {
   id: 'case_001',
   name: 'Penelitian Kasus',
-  description: 'Membantu menganalisis dan meneliti kasus berdasarkan data historis',
+  description: 'Analisis kasus menggunakan LLM dengan data pencarian Google Scholar mendalam',
   type: 'case_research',
   status: 'on',
   fields: [
