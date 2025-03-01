@@ -3,9 +3,11 @@ import AgentCard from '../components/AgentCard';
 import ChatInterface from '../components/ChatInterface';
 import { ArrowLeft } from 'lucide-react';
 import { sendChatMessage as sendPenyidikChatMessage } from '../services/penyidikService';
+import { sendChatMessage as sendTipidkorChatMessage } from '../services/tipidkorService';
 import { DotBackground } from '@/components/ui/DotBackground';
 import { Agent } from '@/types';
 import { penyidikAiAgent } from '@/data/agents/penyidikAiAgent';
+import { tipidkorAiAgent } from '@/data/agents/tipidkorAiAgent';
 
 export default function PenyidikAi() {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
@@ -46,15 +48,26 @@ export default function PenyidikAi() {
     };
   }, [selectedAgent]);
 
-  const agents: Agent[] = [{
-    id: penyidikAiAgent.id,
-    name: penyidikAiAgent.name,
-    description: penyidikAiAgent.description,
-    type: penyidikAiAgent.type,
-    status: penyidikAiAgent.status,
-    color: 'purple',
-    icon: 'brain'
-  }];
+  const agents: Agent[] = [
+    {
+      id: penyidikAiAgent.id,
+      name: penyidikAiAgent.name,
+      description: penyidikAiAgent.description,
+      type: penyidikAiAgent.type,
+      status: penyidikAiAgent.status,
+      color: 'purple',
+      icon: 'brain'
+    },
+    {
+      id: tipidkorAiAgent.id,
+      name: tipidkorAiAgent.name,
+      description: tipidkorAiAgent.description,
+      type: tipidkorAiAgent.type,
+      status: tipidkorAiAgent.status,
+      color: 'blue',
+      icon: 'shield'
+    }
+  ];
 
   const selectedAgentData = agents.find(agent => agent.id === selectedAgent);
 
@@ -70,6 +83,8 @@ export default function PenyidikAi() {
     switch (selectedAgentData.type) {
       case 'penyidik_chat':
         return <ChatInterface sendMessage={sendPenyidikChatMessage} />;
+      case 'tipidkor_chat':
+        return <ChatInterface sendMessage={sendTipidkorChatMessage} />;
       default:
         return null;
     }
@@ -122,13 +137,20 @@ export default function PenyidikAi() {
                   >
                     <AgentCard 
                       agent={agent}
-                      bgColor="bg-gradient-to-br from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100"
-                      className="
+                      bgColor={
+                        agent.type === 'tipidkor_chat'
+                          ? "bg-gradient-to-br from-blue-50 to-sky-50 hover:from-blue-100 hover:to-sky-100"
+                          : "bg-gradient-to-br from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100"
+                      }
+                      className={`
                         border border-transparent
-                        hover:border-purple-200 hover:shadow-purple-100
+                        ${agent.type === 'tipidkor_chat' 
+                          ? 'hover:border-blue-200 hover:shadow-blue-100'
+                          : 'hover:border-purple-200 hover:shadow-purple-100'
+                        }
                         shadow-lg hover:shadow-xl transition-all duration-300
                         rounded-xl overflow-hidden
-                      "
+                      `}
                     />
                   </div>
                 ))}
