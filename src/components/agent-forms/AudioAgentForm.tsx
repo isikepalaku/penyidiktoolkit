@@ -14,6 +14,7 @@ import { FileAudio, BarChart2 } from "lucide-react";
 import ReCAPTCHA from "react-google-recaptcha";
 
 const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 const Square = ({ className, children }: { className?: string; children: React.ReactNode }) => (
   <span
@@ -40,19 +41,76 @@ export const AudioAgentForm: React.FC<AudioAgentFormProps> = ({
   const [audioPreview, setAudioPreview] = React.useState<string | null>(null);
   const [isCaptchaVerified, setIsCaptchaVerified] = React.useState(false);
   const recaptchaRef = React.useRef<ReCAPTCHA>(null);
+  const audioRef = React.useRef<HTMLAudioElement>(null);
 
-  const handleFileChange = (file: File | null) => {
-    if (!file) {
-      onInputChange('audio_file', null);
-      setAudioPreview(null);
-      return;
+  const validateFile = (file: File): string | null => {
+    if (file.size > MAX_FILE_SIZE) {
+      return `File terlalu besar. Maksimal ukuran file adalah ${formatFileSize(MAX_FILE_SIZE)}`;
     }
 
-    // Create audio preview URL
-    const previewUrl = URL.createObjectURL(file);
-    setAudioPreview(previewUrl);
-    onInputChange('audio_file', file);
-    onInputChange('error', null);
+    const validTypes = ['audio/mp3', 'audio/wav', 'audio/m4a', 'audio/mpeg'];
+    if (!validTypes.includes(file.type)) {
+      return 'Format file tidak didukung. Gunakan MP3, WAV, atau M4A';
+    }
+
+    return null;
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
+  };
+
+  const handleFileChange = async (file: File | null) => {
+    try {
+      // Clean up previous preview
+      if (audioPreview) {
+        URL.revokeObjectURL(audioPreview);
+        setAudioPreview(null);
+      }
+
+      if (!file) {
+        onInputChange('audio_file', null);
+        return;
+      }
+
+      // Validate file
+      const error = validateFile(file);
+      if (error) {
+        onInputChange('error', error);
+        onInputChange('audio_file', null);
+        return;
+      }
+
+      // Create new preview safely
+      const previewUrl = URL.createObjectURL(file);
+      
+      // Test if audio can be loaded
+      const audio = new Audio(previewUrl);
+      await new Promise((resolve, reject) => {
+        audio.onloadedmetadata = resolve;
+        audio.onerror = () => reject(new Error('File audio tidak dapat diputar'));
+        
+        // Set timeout for loading
+        setTimeout(() => reject(new Error('Timeout saat memuat file audio')), 5000);
+      });
+
+      setAudioPreview(previewUrl);
+      onInputChange('audio_file', file);
+      onInputChange('error', null);
+
+    } catch (err) {
+      console.error('Error handling audio file:', err);
+      onInputChange('error', err instanceof Error ? err.message : 'Gagal memproses file audio');
+      onInputChange('audio_file', null);
+      if (audioPreview) {
+        URL.revokeObjectURL(audioPreview);
+        setAudioPreview(null);
+      }
+    }
   };
 
   const handleCaptchaChange = (token: string | null) => {
@@ -94,15 +152,26 @@ export const AudioAgentForm: React.FC<AudioAgentFormProps> = ({
             isDisabled && "opacity-50 cursor-not-allowed"
           )}
         />
+        <p className="mt-1 text-sm text-gray-500">
+          Maksimal ukuran file: {formatFileSize(MAX_FILE_SIZE)}. Format yang didukung: MP3, WAV, M4A
+        </p>
       </div>
 
       {/* Audio Preview */}
       {audioPreview && (
         <div className="mt-4">
           <audio 
+            ref={audioRef}
             controls 
             src={audioPreview}
             className="w-full max-w-2xl"
+            onError={() => {
+              onInputChange('error', 'Gagal memutar file audio');
+              if (audioPreview) {
+                URL.revokeObjectURL(audioPreview);
+                setAudioPreview(null);
+              }
+            }}
           >
             Browser Anda tidak mendukung pemutaran audio.
           </audio>
