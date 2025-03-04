@@ -54,8 +54,8 @@ const renderMessage = (message: string): string => {
 
 const components: Components = {
   table: ({ children }) => (
-    <div className="overflow-x-auto max-w-full my-4">
-      <table className="min-w-full divide-y divide-gray-200 border border-gray-200">
+    <div className="w-full my-4">
+      <table className="min-w-full divide-y divide-gray-200 border border-gray-200 break-words">
         {children}
       </table>
     </div>
@@ -77,8 +77,8 @@ const components: Components = {
       </code>
     ) : (
       <div className="relative">
-        <pre className="p-3 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-x-auto whitespace-pre-wrap break-words">
-          <code {...props} className="break-words">
+        <pre className="p-3 bg-gray-100 dark:bg-gray-800 rounded-lg whitespace-pre-wrap break-words">
+          <code {...props}>
             {children}
           </code>
         </pre>
@@ -204,9 +204,9 @@ export default function ChatInterface({ sendMessage }: ChatInterfaceProps) {
     <div className="flex flex-col h-full min-h-[600px] max-h-screen relative">
       <div
         ref={chatContainerRef}
-        className="flex-1 overflow-y-auto overscroll-contain scroll-smooth pb-20 md:pb-24"
+        className="flex-1 overflow-y-auto pb-32"
       >
-        <div className="w-full mb-safe">
+        <div className="w-full mb-safe space-y-2">
           {messages.map((message, index) => (
             <div
               key={index}

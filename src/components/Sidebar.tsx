@@ -37,9 +37,9 @@ const Sidebar = () => {
         text: 'Ahli Undang-Undang'
       },
       {
-        path: '/reports',
+        path: '/toolkit',
         icon: <FileText className="w-5 h-5" />,
-        text: 'Laporan'
+        text: 'Toolkit'
       },
       {
         path: '/pencarian-putusan',

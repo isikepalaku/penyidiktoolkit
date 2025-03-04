@@ -239,12 +239,15 @@ Professional Color Scheme Examples:
 
 ## UI/UX Lessons
 
-- Handle long content in chat messages:
-  - Use flex-wrap for message containers
-  - Add min-w-0 to flex children to enable text truncation
-  - Make code blocks and pre elements wrap properly
-  - Enable horizontal scroll for tables
-  - Use proper word breaking for different content types
+- Handle chat interface layout:
+  - Use flex-wrap and min-w-0 for message containers to prevent overflow
+  - Avoid nested scrollbars by using whitespace-pre-wrap and break-words
+  - Use single scrollable container at the top level with proper bottom padding (pb-32)
+  - Keep input area fixed at bottom with position: fixed
+  - Let content flow naturally with proper word breaking
+  - Keep tables and code blocks within container width
+  - Use space-y utilities for consistent message spacing
+  - Ensure enough bottom padding to prevent content from being hidden under input area
 - Consider different AI response formats:
   - Code blocks
   - Tables

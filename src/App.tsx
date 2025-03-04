@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Home from './pages/Home';
 import Agents from './pages/Agents';
-import Reports from './pages/Reports';
+import Toolkit from './pages/Toolkit';
 import PencarianPutusan from './pages/PencarianPutusan';
 import PerkabaChat from './pages/PerkabaChat';
 import UndangUndang from './pages/UndangUndang';
@@ -21,7 +21,7 @@ function App() {
             <Route path="/perkaba-chat" element={<PerkabaChat />} />
             <Route path="/undang-undang" element={<UndangUndang />} />
             <Route path="/penyidik-ai" element={<PenyidikAi />} />
-            <Route path="/reports" element={<Reports />} />
+            <Route path="/toolkit" element={<Toolkit />} />
             <Route path="/pencarian-putusan" element={<PencarianPutusan />} />
           </Routes>
         </main>

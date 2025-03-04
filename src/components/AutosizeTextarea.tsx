@@ -1,68 +1,49 @@
-import { useEffect, useRef, useCallback, ChangeEvent } from 'react';
+import React from 'react';
 
-interface AutosizeTextareaProps {
+export interface AutosizeTextareaProps {
+  id?: string;
+  name?: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
-  className?: string;
   minRows?: number;
   maxRows?: number;
-  id?: string;
-  name?: string;
+  className?: string;
+  disabled?: boolean;
 }
 
-const AutosizeTextarea = ({
+const AutosizeTextarea: React.FC<AutosizeTextareaProps> = ({
+  id,
+  name,
   value,
   onChange,
   placeholder,
-  className = '',
   minRows = 3,
-  maxRows = 8,
-  id,
-  name
-}: AutosizeTextareaProps) => {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  
-  const calculateHeight = useCallback(() => {
-    if (textareaRef.current) {
-      const textarea = textareaRef.current;
-      
-      // Reset height to get the correct scrollHeight
-      textarea.style.height = 'auto';
-      
-      // Calculate line height from computed styles
-      const lineHeight = parseInt(window.getComputedStyle(textarea).lineHeight);
-      const paddingTop = parseInt(window.getComputedStyle(textarea).paddingTop);
-      const paddingBottom = parseInt(window.getComputedStyle(textarea).paddingBottom);
-      
-      // Calculate min height only (remove maxHeight constraint initially)
-      const minHeight = lineHeight * minRows + paddingTop + paddingBottom;
-      
-      // Set initial height to minHeight or scrollHeight, whichever is larger
-      let newHeight = Math.max(textarea.scrollHeight, minHeight);
-      
-      // Only apply maxHeight constraint if content exceeds minRows
-      if (value.length > 0) {
-        const maxHeight = lineHeight * maxRows + paddingTop + paddingBottom;
-        newHeight = Math.min(newHeight, maxHeight);
-      }
-      
-      textarea.style.height = `${newHeight}px`;
-      
-      // Add scrollbar only if content exceeds current height
-      textarea.style.overflowY = textarea.scrollHeight > newHeight ? 'auto' : 'hidden';
-      textarea.style.overflowX = 'hidden'; // Prevent horizontal scroll
-    }
-  }, [minRows, maxRows, value]);
+  maxRows = 12,
+  className = '',
+  disabled = false
+}) => {
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
-    calculateHeight();
-  }, [value, minRows, maxRows, calculateHeight]);
+  React.useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
 
-  const handleInput = (e: ChangeEvent<HTMLTextAreaElement>) => {
-    onChange(e.target.value);
-    calculateHeight();
-  };
+    // Reset height to auto to get the correct scrollHeight
+    textarea.style.height = 'auto';
+
+    // Calculate line height from computed styles
+    const computedStyle = window.getComputedStyle(textarea);
+    const lineHeight = parseInt(computedStyle.lineHeight);
+    
+    // Calculate min and max heights
+    const minHeight = minRows * lineHeight;
+    const maxHeight = maxRows * lineHeight;
+
+    // Set new height based on content
+    const newHeight = Math.min(Math.max(textarea.scrollHeight, minHeight), maxHeight);
+    textarea.style.height = `${newHeight}px`;
+  }, [value, minRows, maxRows]);
 
   return (
     <textarea
@@ -70,16 +51,15 @@ const AutosizeTextarea = ({
       id={id}
       name={name}
       value={value}
-      onChange={handleInput}
+      onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className={`w-full max-w-full resize-none bg-white transition-all 
-        p-3 md:p-4 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-        text-sm md:text-base leading-relaxed placeholder-gray-400 box-border
-        ${className}`}
+      className={className}
+      disabled={disabled}
       style={{
-        minHeight: `${minRows * 24}px`, // Approximate line height
-        wordBreak: 'break-word',
-        whiteSpace: 'pre-wrap'
+        resize: 'none',
+        overflow: 'hidden',
+        minHeight: `${minRows * 1.5}em`,
+        maxHeight: `${maxRows * 1.5}em`,
       }}
     />
   );

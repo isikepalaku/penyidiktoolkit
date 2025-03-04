@@ -7,11 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 
 export interface BaseAgentFormProps {
-  agent: ExtendedAgent;
+  agent?: ExtendedAgent;
   formData: FormData;
   onInputChange: (fieldId: string, value: FormDataValue) => void;
   error: string | null;
   isProcessing: boolean;
+  isDisabled?: boolean;
   textareaHeight?: string;
 }
 
@@ -21,6 +22,7 @@ export function BaseAgentForm({
   onInputChange, 
   error, 
   isProcessing,
+  isDisabled,
   textareaHeight = 'h-64'
 }: BaseAgentFormProps) {
   const [isProcessingImage, setIsProcessingImage] = useState(false);
@@ -39,7 +41,7 @@ export function BaseAgentForm({
       const extractedText = await submitImageAnalysis(file, undefined, 'text_extraction');
       
       // Find the first textarea field
-      const textareaField = agent.fields.find(field => field.type === 'textarea');
+      const textareaField = agent?.fields.find(field => field.type === 'textarea');
       if (textareaField) {
         onInputChange(textareaField.id, extractedText || '');
       }
@@ -55,7 +57,7 @@ export function BaseAgentForm({
   };
 
   // Fungsi untuk menentukan ukuran textarea berdasarkan tipe agen
-  const getTextareaSize = (agentType: string) => {
+  const getTextareaSize = (agentType?: string) => {
     switch (agentType) {
       case 'modus_kejahatan':
         return {
@@ -74,9 +76,9 @@ export function BaseAgentForm({
 
   return (
     <div className="space-y-4">
-      {agent.fields.map(field => (
+      {agent?.fields.map(field => (
         <div key={field.id}>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             {field.label}
           </label>
           {field.type === 'textarea' ? (
@@ -87,6 +89,7 @@ export function BaseAgentForm({
                 value={(formData[field.id] as string) || ''}
                 onChange={(value) => onInputChange(field.id, value)}
                 placeholder={field.placeholder}
+                disabled={isDisabled}
                 {...getTextareaSize(agent.type)}
               />
               {(agent.type === 'spkt' || agent.type === 'hoax_checker') && (
@@ -99,7 +102,7 @@ export function BaseAgentForm({
                   )}
                   <Label
                     htmlFor={`image-upload-${field.id}`}
-                    className="cursor-pointer p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                    className={`cursor-pointer p-2 rounded-lg hover:bg-gray-100 transition-colors ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                     title="Upload gambar untuk ekstrak teks"
                   >
                     <FileImage className="w-5 h-5 text-gray-500" />
@@ -110,7 +113,7 @@ export function BaseAgentForm({
                       className="hidden"
                       accept="image/*"
                       onChange={handleImageUpload}
-                      disabled={isProcessingImage}
+                      disabled={isProcessingImage || isDisabled}
                     />
                   </Label>
                 </div>
@@ -128,7 +131,8 @@ export function BaseAgentForm({
               value={formData[field.id] as string || ''}
               onChange={(e) => onInputChange(field.id, e.target.value)}
               placeholder={field.placeholder}
-              className={`w-full ${textareaHeight} p-3 border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent`}
+              disabled={isDisabled}
+              className={`w-full ${textareaHeight} p-3 border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             />
           )}
         </div>
@@ -142,8 +146,8 @@ export function BaseAgentForm({
 
       <Button
         type="submit"
-        disabled={isProcessing}
-        className="w-full"
+        disabled={isProcessing || isDisabled}
+        className={`w-full ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         {isProcessing ? (
           <>
