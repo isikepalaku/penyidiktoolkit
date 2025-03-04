@@ -75,45 +75,53 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
   const printRef = useCallback(() => contentRef.current, []);
 
   const processContent = (rawContent: string) => {
-    // Add title if not present
-    let contentWithTitle = rawContent;
-    if (rawContent.includes('[Pembicara') && !rawContent.startsWith('# Hasil Transkripsi')) {
-      contentWithTitle = '# Hasil Transkripsi\n\n' + rawContent;
-    }
-
     // Check if content contains speaker markers
-    if (contentWithTitle.includes('[Pembicara')) {
+    if (rawContent.includes('[Pembicara')) {
       // Split content into sections (transcript and metadata if present)
-      const [transcript, ...rest] = contentWithTitle.split(/\n(?=Metadata)/);
+      const [transcript, ...rest] = rawContent.split(/\n(?=Metadata)/);
 
       // Format transcript with reduced spacing
       const formattedTranscript = transcript
         .split(/(\[Pembicara \d+\]:)/)
         .map((part, index) => {
           if (part.match(/^\[Pembicara \d+\]:$/)) {
-            // Add single line break before speaker marker (except first)
             return index > 0 ? `\n${part} ` : `${part} `;
           }
           return part;
         })
         .join('')
         .trim()
-        // Ensure consistent single line breaks between exchanges
         .replace(/\n{2,}/g, '\n');
 
       // Format metadata if present
       const metadata = rest.length > 0 
         ? '\n\n## Metadata\n\n' + rest[0]
-            .replace(/^\s*Metadata\s*\n*/i, '')  // Remove duplicate Metadata header
-            .replace(/\[([^\]]+)\]/g, '**$1**')  // Convert brackets to bold
+            .replace(/^\s*Metadata\s*\n*/i, '')
+            .replace(/\[([^\]]+)\]/g, '**$1**')
             .trim()
         : '';
 
-      return `${formattedTranscript}${metadata}`;
+      return `# Hasil Transkripsi\n\n${formattedTranscript}${metadata}`;
     }
 
-    // For non-transcript content (e.g., sentiment analysis)
-    return contentWithTitle
+    // For case analysis content, preserve numbered lists and structure
+    if (rawContent.match(/^\d+\./m)) {
+      return rawContent
+        .replace(/\r\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        // Add proper spacing for numbered lists
+        .replace(/^(\d+\.)\s*/gm, '$1 ')
+        // Add newlines before and after numbered lists
+        .replace(/(\n\d+\.)(?!\n\d)/g, '\n\n$1')
+        .replace(/(\n\d+\.[^\n]+)(?!\n\d+\.)/g, '$1\n')
+        // Handle nested content under numbered items
+        .replace(/^(\d+\.[^\n]+)\n([^\d\n][^\n]+)/gm, '$1\n\n$2')
+        .replace(/^([^\d\n][^\n]+)\n(\d+\.)/gm, '$1\n\n$2')
+        .trim();
+    }
+
+    // For other content types (e.g., sentiment analysis)
+    return rawContent
       .replace(/\r\n/g, '\n')
       .replace(/\n{3,}/g, '\n\n')
       .replace(/^\*\s+\*\*([^:]+):\*\*\s*(.*)/gm, '* **$1:** $2')
@@ -125,7 +133,7 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
       .replace(/^(\s+\*\s+[^\n]+)\n\*\s+/gm, '$1\n    * ')
       .replace(/\n{2,}\*/g, '\n\n*')
       .replace(/\n{2,}\s+\*/g, '\n\n    *')
-      .replace(/(\*\s+[^\n]+)\n(?=[^\s*])/g, '$1\n')
+      .replace(/(\*\s+[^\n]+)\n(?=[^\s*])/g, '$1\n\n')
       .trim();
   };
 
@@ -224,26 +232,25 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
               prose-h3:text-lg prose-h3:mt-5 prose-h3:mb-2
               prose-h3:text-gray-700
               prose-h3:font-bold
-              prose-p:text-gray-700 prose-p:leading-relaxed prose-p:my-1
-              prose-ul:my-1 prose-ul:list-none prose-ul:pl-0
+              prose-p:text-gray-700 prose-p:leading-relaxed prose-p:my-2
+              prose-p:whitespace-pre-wrap
+              prose-ol:my-4 prose-ol:pl-6
+              prose-ol:list-decimal
+              [&_ol>li]:mb-4 [&_ol>li]:pl-2
+              [&_ol>li>p]:my-2
+              prose-ul:my-2 prose-ul:list-none prose-ul:pl-0
               [&_ul>li]:relative [&_ul>li]:pl-5 [&_ul>li]:mb-2
               [&_ul>li:before]:content-['*'] 
               [&_ul>li:before]:absolute 
               [&_ul>li:before]:left-0
               [&_ul>li:before]:text-gray-500
-              [&_ul>li>ul]:mt-2 [&_ul>li>ul]:ml-4 [&_ul>li>ul]:mb-0
+              [&_ul>li>ul]:mt-2 [&_ul>li>ul]:ml-4
               [&_ul>li>ul>li]:relative [&_ul>li>ul>li]:pl-5 [&_ul>li>ul>li]:mb-1
               [&_ul>li>ul>li:before]:content-['*']
               [&_ul>li>ul>li:before]:absolute
               [&_ul>li>ul>li:before]:left-0
               [&_ul>li>ul>li:before]:text-gray-500
-              prose-strong:text-gray-900 prose-strong:font-bold
-              [&_p+ul]:mt-2
-              [&_ul+p]:mt-4
-              [&_li>p]:my-0
-              [&_li>p+ul]:mt-2
-              whitespace-pre-wrap
-              leading-normal"
+              prose-strong:text-gray-900 prose-strong:font-bold"
             >
               <div>
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>

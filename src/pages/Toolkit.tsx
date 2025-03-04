@@ -3,7 +3,8 @@ import { FileAudio, ArrowLeft } from 'lucide-react';
 import { processAudioTranscript } from '../services/audioTranscriptService';
 import { AudioAgentForm } from '@/components/agent-forms/AudioAgentForm';
 import ResultArtifact from '@/components/ResultArtifact';
-import type { FormData, FormDataValue } from '@/types';
+import type { FormDataValue } from '@/types';
+import type { AudioFormData } from '@/types/audio';
 import type { AudioPromptType } from '@/data/agents/audioAgent';
 
 type ToolType = {
@@ -24,7 +25,7 @@ const toolTypes: ToolType[] = [
 
 export default function Toolkit() {
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<AudioFormData>({
     audio_file: null,
     task_type: 'transcribe'
   });
@@ -34,14 +35,15 @@ export default function Toolkit() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedTool || !formData.audio_file || isProcessing || result) return;
+    if (!selectedTool || !formData.audio_file) return;
 
     setIsProcessing(true);
     setError(null);
+    setResult(null);
 
     try {
       const response = await processAudioTranscript({
-        audio: formData.audio_file as File,
+        audio: formData.audio_file,
         task_type: formData.task_type as AudioPromptType
       });
 
@@ -63,25 +65,10 @@ export default function Toolkit() {
       return;
     }
     
-    // Jika mengubah file atau task, reset hasil sebelumnya
-    if (fieldId === 'audio_file' || fieldId === 'task_type') {
-      setResult(null);
-    }
-    
     setFormData(prev => ({
       ...prev,
       [fieldId]: value
     }));
-  };
-
-  const resetForm = () => {
-    setSelectedTool(null);
-    setFormData({
-      audio_file: null,
-      task_type: 'transcribe'
-    });
-    setResult(null);
-    setError(null);
   };
 
   const selectedToolData = toolTypes.find(tool => tool.id === selectedTool);
@@ -93,7 +80,15 @@ export default function Toolkit() {
           <div className="max-w-5xl mx-auto pl-14 pr-4 sm:pl-14 sm:pr-4 lg:pl-14 lg:pr-4 py-4">
             <div className="flex items-center gap-2 sm:gap-3">
               <button 
-                onClick={resetForm}
+                onClick={() => {
+                  setSelectedTool(null);
+                  setFormData({
+                    audio_file: null,
+                    task_type: 'transcribe'
+                  });
+                  setResult(null);
+                  setError(null);
+                }}
                 className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 <ArrowLeft className="w-5 h-5 text-gray-500" />
@@ -106,32 +101,15 @@ export default function Toolkit() {
           </div>
         </header>
 
-        <div className="max-w-3xl mx-auto relative">
+        <div className="max-w-3xl mx-auto">
           <form onSubmit={handleSubmit} className="space-y-6">
             <AudioAgentForm
               formData={formData}
               onInputChange={handleInputChange}
               error={error}
               isProcessing={isProcessing}
-              isDisabled={!!result} // Disable form ketika ada hasil
+              isDisabled={!!result}
             />
-
-            {error && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-                {error}
-              </div>
-            )}
-
-            {result && (
-              <div className="absolute inset-0 bg-white/50 backdrop-blur-sm flex items-center justify-center z-10">
-                <button
-                  onClick={() => setResult(null)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Proses Audio Baru
-                </button>
-              </div>
-            )}
           </form>
         </div>
 

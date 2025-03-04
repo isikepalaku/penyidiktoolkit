@@ -8,18 +8,28 @@ if (!GEMINI_API_KEY) {
 }
 
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-// Update model fallback ke gemini-2.0-flash
-const models = {
-  primary: genAI.getGenerativeModel({ model: "gemini-2.0-flash" }),
-  fallback: genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" })
-};
+const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-const MAX_RETRIES = 3;
-const RETRY_DELAY = 1000; // 1 second
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB (Gemini limit)
 
-const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+// Supported audio MIME types and extensions
+export const SUPPORTED_AUDIO_TYPES = [
+  'audio/mpeg',
+  'audio/mp3',
+  'audio/wav',
+  'audio/wave',
+  'audio/x-wav',
+  'audio/m4a',
+  'audio/x-m4a',
+  'audio/mp4',
+  'audio/aac',
+  'video/mp4',  // Some mobile devices use this for audio
+  'application/octet-stream'  // Fallback type
+];
 
+export const SUPPORTED_EXTENSIONS = ['.mp3', '.wav', '.m4a'];
+
+// Types for the transcript response
 interface TranscriptResponse {
   text: string;
   error?: string;
@@ -32,134 +42,115 @@ interface TranscriptRequest {
 }
 
 /**
- * Process audio file for transcription
+ * Check if file type is supported
  */
-export const processAudioTranscript = async (request: TranscriptRequest): Promise<TranscriptResponse> => {
-  let retries = 0;
-  let useFallbackModel = false;
-
-  while (retries < MAX_RETRIES) {
-    try {
-      // Validate audio file
-      if (!request.audio) {
-        throw new Error('No audio file provided');
-      }
-
-      // Validate file size
-      if (!validateFileSize(request.audio)) {
-        throw new Error(`File size exceeds limit of ${formatFileSize(MAX_FILE_SIZE)}`);
-      }
-
-      // Validate file type
-      if (!isSupportedFormat(request.audio)) {
-        throw new Error('Invalid audio format. Supported formats: MP3, WAV, M4A');
-      }
-
-      // Convert audio to base64
-      const audioBase64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          if (typeof reader.result === 'string') {
-            resolve(reader.result);
-          } else {
-            reject(new Error('Failed to convert audio to base64'));
-          }
-        };
-        reader.onerror = () => reject(new Error('Failed to read audio file'));
-        reader.readAsDataURL(request.audio);
-      });
-
-      // Get selected prompt
-      const prompt = getAudioPrompt(request.task_type || 'transcribe');
-
-      // Convert base64 to data for Gemini
-      const base64Data = audioBase64.split(',')[1];
-
-      // Create parts array for Gemini
-      const parts = [
-        { text: prompt },
-        {
-          inlineData: {
-            mimeType: request.audio.type,
-            data: base64Data
-          }
-        }
-      ];
-
-      // Pilih model berdasarkan status
-      const selectedModel = useFallbackModel ? models.fallback : models.primary;
-
-      // Generate content using Gemini
-      const result = await selectedModel.generateContent(parts);
-      const response = await result.response;
-      const text = response.text();
-
-      if (!text) {
-        throw new Error('No transcription result from model');
-      }
-
-      return {
-        text,
-        success: true
-      };
-
-    } catch (error) {
-      console.error('Error in processAudioTranscript:', error);
-
-      if (error instanceof Error && error.message.includes('429')) {
-        throw new Error('Terlalu banyak permintaan. Silakan tunggu beberapa saat sebelum mencoba lagi.');
-      }
-
-      // Cek apakah error karena model overload
-      if (error instanceof Error && 
-          (error.message.includes('overloaded') || error.message.includes('503'))) {
-        if (!useFallbackModel) {
-          // Coba gunakan model fallback
-          useFallbackModel = true;
-          continue;
-        }
-      }
-
-      if (retries < MAX_RETRIES - 1) {
-        retries++;
-        await wait(RETRY_DELAY * retries);
-        continue;
-      }
-
-      if (error instanceof TypeError && error.message === 'Failed to fetch') {
-        return {
-          text: '',
-          error: 'Tidak dapat terhubung ke layanan AI. Mohon periksa koneksi anda.',
-          success: false
-        };
-      } else if (error instanceof Error) {
-        return {
-          text: '',
-          error: `Gagal memproses audio: ${error.message}`,
-          success: false
-        };
-      } else {
-        return {
-          text: '',
-          error: 'Terjadi kesalahan yang tidak diketahui',
-          success: false
-        };
-      }
-    }
+export const isSupportedFormat = (file: File): boolean => {
+  // Check MIME type
+  if (SUPPORTED_AUDIO_TYPES.includes(file.type)) {
+    return true;
   }
 
-  return {
-    text: '',
-    error: 'Gagal terhubung ke layanan AI setelah beberapa percobaan',
-    success: false
-  };
+  // Check file extension
+  const extension = '.' + file.name.split('.').pop()?.toLowerCase();
+  return SUPPORTED_EXTENSIONS.includes(extension);
 };
 
 /**
- * Validate file size
+ * Converts a File object to base64 string
  */
-export const validateFileSize = (file: File): boolean => {
-  return file.size <= MAX_FILE_SIZE;
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      const base64String = reader.result as string;
+      // Remove the data URL prefix (e.g., "data:audio/mp3;base64,")
+      resolve(base64String.split(',')[1]);
+    };
+    reader.onerror = error => reject(error);
+  });
+};
+
+/**
+ * Process audio using inline data
+ */
+const processAudio = async (file: File, prompt: string): Promise<string> => {
+  console.log('Processing audio file using inline data');
+
+  try {
+    const base64Audio = await fileToBase64(file);
+    console.log('Audio converted to base64, sending to model...');
+
+    const result = await model.generateContent([
+      { text: prompt },
+      {
+        inlineData: {
+          mimeType: file.type || 'audio/mpeg',
+          data: base64Audio
+        }
+      }
+    ]);
+
+    const response = await result.response;
+    console.log('Received response from model');
+    
+    return response.text();
+
+  } catch (error) {
+    console.error('Error in processAudio:', error);
+    throw error;
+  }
+};
+
+/**
+ * Process audio file for transcription
+ */
+export const processAudioTranscript = async (request: TranscriptRequest): Promise<TranscriptResponse> => {
+  try {
+    console.log('Processing audio request:', {
+      filename: request.audio.name,
+      type: request.audio.type,
+      size: formatFileSize(request.audio.size)
+    });
+
+    // Validate file size
+    if (request.audio.size > MAX_FILE_SIZE) {
+      throw new Error(`File terlalu besar. Maksimal ukuran file adalah ${formatFileSize(MAX_FILE_SIZE)}`);
+    }
+
+    // Validate format
+    if (!isSupportedFormat(request.audio)) {
+      throw new Error('Format file tidak didukung. Gunakan MP3, WAV, atau M4A');
+    }
+
+    // Get the appropriate prompt
+    const prompt = getAudioPrompt(request.task_type || 'transcribe');
+
+    // Process the audio
+    const text = await processAudio(request.audio, prompt);
+
+    return {
+      text,
+      success: true
+    };
+
+  } catch (error) {
+    console.error('Audio transcript error:', error);
+
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      return {
+        text: '',
+        error: 'Tidak dapat terhubung ke layanan AI. Mohon periksa koneksi anda dan pastikan file audio tidak rusak.',
+        success: false
+      };
+    }
+
+    return {
+      text: '',
+      error: error instanceof Error ? error.message : 'Terjadi kesalahan saat memproses audio',
+      success: false
+    };
+  }
 };
 
 /**
@@ -171,19 +162,4 @@ export const formatFileSize = (bytes: number): string => {
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
-};
-
-/**
- * Get supported audio formats
- */
-export const getSupportedFormats = (): string[] => {
-  return ['mp3', 'wav', 'm4a'];
-};
-
-/**
- * Check if a file type is supported
- */
-export const isSupportedFormat = (file: File): boolean => {
-  const supportedTypes = ['audio/mp3', 'audio/wav', 'audio/m4a', 'audio/mpeg'];
-  return supportedTypes.includes(file.type);
 };

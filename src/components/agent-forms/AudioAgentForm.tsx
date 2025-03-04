@@ -11,6 +11,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { cn } from "@/utils/utils";
 import { FileAudio, BarChart2 } from "lucide-react";
+import { isSupportedFormat, formatFileSize } from '@/services/audioTranscriptService';
+import type { AudioFormData } from '@/types/audio';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -27,7 +29,9 @@ const Square = ({ className, children }: { className?: string; children: React.R
   </span>
 );
 
-type AudioAgentFormProps = Omit<BaseAgentFormProps, 'agent'>;
+type AudioAgentFormProps = Omit<BaseAgentFormProps, 'agent' | 'formData'> & {
+  formData: AudioFormData;
+};
 
 export const AudioAgentForm: React.FC<AudioAgentFormProps> = ({
   formData,
@@ -38,26 +42,18 @@ export const AudioAgentForm: React.FC<AudioAgentFormProps> = ({
 }) => {
   const [audioPreview, setAudioPreview] = React.useState<string | null>(null);
   const audioRef = React.useRef<HTMLAudioElement>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const validateFile = (file: File): string | null => {
     if (file.size > MAX_FILE_SIZE) {
       return `File terlalu besar. Maksimal ukuran file adalah ${formatFileSize(MAX_FILE_SIZE)}`;
     }
 
-    const validTypes = ['audio/mp3', 'audio/wav', 'audio/m4a', 'audio/mpeg'];
-    if (!validTypes.includes(file.type)) {
+    if (!isSupportedFormat(file)) {
       return 'Format file tidak didukung. Gunakan MP3, WAV, atau M4A';
     }
 
     return null;
-  };
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
   };
 
   const handleFileChange = async (file: File | null) => {
@@ -72,6 +68,12 @@ export const AudioAgentForm: React.FC<AudioAgentFormProps> = ({
         onInputChange('audio_file', null);
         return;
       }
+
+      console.log('Selected file:', {
+        name: file.name,
+        type: file.type,
+        size: formatFileSize(file.size)
+      });
 
       // Validate file
       const error = validateFile(file);
@@ -109,6 +111,13 @@ export const AudioAgentForm: React.FC<AudioAgentFormProps> = ({
     }
   };
 
+  // Function to trigger file input click
+  const handleUploadClick = () => {
+    if (!isDisabled && !isProcessing) {
+      fileInputRef.current?.click();
+    }
+  };
+
   React.useEffect(() => {
     // Cleanup preview URL when component unmounts
     return () => {
@@ -123,26 +132,43 @@ export const AudioAgentForm: React.FC<AudioAgentFormProps> = ({
       {/* Audio Upload */}
       <div>
         <Label htmlFor="field-audio_file">Upload Audio</Label>
-        <input
-          id="field-audio_file"
-          name="audio_file"
-          type="file"
-          accept="audio/mp3,audio/wav,audio/m4a"
-          onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
-          disabled={isDisabled || isProcessing}
+        <div 
+          onClick={handleUploadClick}
           className={cn(
-            "mt-2 block w-full text-sm text-gray-500",
-            "file:mr-4 file:py-2 file:px-4",
-            "file:rounded-md file:border-0",
-            "file:text-sm file:font-semibold",
-            "file:bg-blue-50 file:text-blue-700",
-            "hover:file:bg-blue-100",
-            isDisabled && "opacity-50 cursor-not-allowed"
+            "mt-2 p-4 border-2 border-dashed rounded-lg",
+            !isDisabled && !isProcessing ? "cursor-pointer hover:border-blue-500 hover:bg-blue-50/50" : "cursor-not-allowed",
+            "transition-colors",
+            isDisabled && "opacity-50"
           )}
-        />
-        <p className="mt-1 text-sm text-gray-500">
-          Maksimal ukuran file: {formatFileSize(MAX_FILE_SIZE)}. Format yang didukung: MP3, WAV, M4A
-        </p>
+        >
+          <input
+            ref={fileInputRef}
+            id="field-audio_file"
+            name="audio_file"
+            type="file"
+            accept="audio/mp3,audio/wav,audio/m4a,audio/mpeg,audio/wave,audio/x-wav,audio/x-m4a,audio/mp4,audio/aac,video/mp4"
+            onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
+            disabled={isDisabled || isProcessing}
+            className="hidden"
+            capture="user"
+          />
+          <div className="flex flex-col items-center gap-2">
+            <FileAudio className="w-8 h-8 text-blue-500" />
+            <div className="text-sm text-gray-600 text-center">
+              {formData.audio_file ? (
+                <span className="text-blue-600 font-medium">
+                  {formData.audio_file.name}
+                </span>
+              ) : (
+                <>
+                  <span className="font-medium">Klik untuk upload</span> atau rekam
+                  <br />
+                  MP3, WAV, M4A (max. {formatFileSize(MAX_FILE_SIZE)})
+                </>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Audio Preview */}
@@ -170,7 +196,7 @@ export const AudioAgentForm: React.FC<AudioAgentFormProps> = ({
       <div className="space-y-2">
         <Label htmlFor="task-type-select">Jenis Tugas</Label>
         <Select 
-          value={(formData.task_type as string) || 'transcribe'}
+          value={formData.task_type}
           onValueChange={(value) => onInputChange('task_type', value)}
           disabled={isDisabled || isProcessing}
         >
