@@ -11,9 +11,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { cn } from "@/utils/utils";
 import { FileAudio, BarChart2 } from "lucide-react";
-import ReCAPTCHA from "react-google-recaptcha";
 
-const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 const Square = ({ className, children }: { className?: string; children: React.ReactNode }) => (
@@ -39,8 +37,6 @@ export const AudioAgentForm: React.FC<AudioAgentFormProps> = ({
   isDisabled
 }) => {
   const [audioPreview, setAudioPreview] = React.useState<string | null>(null);
-  const [isCaptchaVerified, setIsCaptchaVerified] = React.useState(false);
-  const recaptchaRef = React.useRef<ReCAPTCHA>(null);
   const audioRef = React.useRef<HTMLAudioElement>(null);
 
   const validateFile = (file: File): string | null => {
@@ -111,14 +107,6 @@ export const AudioAgentForm: React.FC<AudioAgentFormProps> = ({
         setAudioPreview(null);
       }
     }
-  };
-
-  const handleCaptchaChange = (token: string | null) => {
-    setIsCaptchaVerified(!!token);
-  };
-
-  const handleExpired = () => {
-    setIsCaptchaVerified(false);
   };
 
   React.useEffect(() => {
@@ -214,18 +202,6 @@ export const AudioAgentForm: React.FC<AudioAgentFormProps> = ({
         </Select>
       </div>
 
-      {/* ReCAPTCHA */}
-      {formData.audio_file && !isDisabled && (
-        <div className="flex justify-center">
-          <ReCAPTCHA
-            ref={recaptchaRef}
-            sitekey={RECAPTCHA_SITE_KEY || ''}
-            onChange={handleCaptchaChange}
-            onExpired={handleExpired}
-          />
-        </div>
-      )}
-
       {/* Error Display */}
       {error && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
@@ -236,10 +212,10 @@ export const AudioAgentForm: React.FC<AudioAgentFormProps> = ({
       {/* Submit Button */}
       <button
         type="submit"
-        disabled={isProcessing || isDisabled || !formData.audio_file || !isCaptchaVerified}
+        disabled={isProcessing || isDisabled || !formData.audio_file}
         className={cn(
           "w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white font-medium",
-          (isProcessing || isDisabled || !isCaptchaVerified)
+          (isProcessing || isDisabled)
             ? "bg-gray-400 cursor-not-allowed"
             : "bg-blue-600 hover:bg-blue-700",
           isDisabled && "opacity-50"
