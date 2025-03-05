@@ -102,8 +102,9 @@ const PencarianPutusan = () => {
                   value={kronologi}
                   onChange={setKronologi}
                   placeholder="Deskripsikan kronologi kasus Anda di sini..."
-                  className="w-full max-w-full resize-none"
-                  minRows={3}
+                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm min-h-[150px]"
+                  minRows={5}
+                  maxRows={15}
                 />
               </div>
 
