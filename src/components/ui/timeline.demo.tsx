@@ -11,6 +11,22 @@ export default function TimelineDemo() {
   return (
     <div className="w-full h-[500px] overflow-y-auto border rounded-md p-4 bg-background">
       <Timeline>
+      <TimelineItem status="done">
+          <TimelineHeading>Agen Dokpol</TimelineHeading>
+          <TimelineDot status="done" />
+          <TimelineLine done />
+          <TimelineContent>
+            Prototype Agen Ai menganalisis gambar pada bidang kedokteran forensik
+          </TimelineContent>
+        </TimelineItem>
+      <TimelineItem status="done">
+          <TimelineHeading>Analisis Audio</TimelineHeading>
+          <TimelineDot status="done" />
+          <TimelineLine done />
+          <TimelineContent>
+            Agen ai mengekstrak file audio menjadi teks dan melakukan analisis sentimen.
+          </TimelineContent>
+        </TimelineItem>
         <TimelineItem status="done">
           <TimelineHeading>Analisis Sentimen</TimelineHeading>
           <TimelineDot status="done" />
@@ -20,11 +36,11 @@ export default function TimelineDemo() {
           </TimelineContent>
         </TimelineItem>
         <TimelineItem status="done">
-          <TimelineHeading>Ahli UU Fidusia</TimelineHeading>
+          <TimelineHeading>Penyidik Ditreskrimsus</TimelineHeading>
           <TimelineDot status="done" />
           <TimelineLine done />
           <TimelineContent>
-            Agen ai yang memahami UU No. 42 Tahun 1999 tentang Jaminan Fidusia.
+            Prototype Agen ai pada bidang tindak pidana khsusus seperti Industri perdagangan, Tindak pidana Korupsi dll.
           </TimelineContent>
         </TimelineItem>
         <TimelineItem status="done">
@@ -80,11 +96,11 @@ export default function TimelineDemo() {
         </TimelineItem>
 
         <TimelineItem status="done">
-          <TimelineHeading>Pencarian Lokasi dari Gambar</TimelineHeading>
+          <TimelineHeading>Pencarian Geo Lokasi dari Gambar</TimelineHeading>
           <TimelineDot status="done" />
           <TimelineLine done/>
           <TimelineContent>
-            Agen khusus untuk menganalisis dan mencari lokasi berdasarkan gambar yang diberikan.
+            Agen khusus untuk menganalisis dan mencari prediksi tempat berdasarkan geolokasi.
           </TimelineContent>
         </TimelineItem>
 
