@@ -6,8 +6,8 @@ export const audioPrompts = {
 - Pembagian paragraf yang jelas
 - Tanda baca yang tepat
 - Pembicara yang berbeda diberi label dengan format:
-  [Speaker 1]: teks
-  [Speaker 2]: teks
+  [Pembicara 1]: teks
+  [Pembicara 2]: teks
 
 Output dalam format Markdown:
 
