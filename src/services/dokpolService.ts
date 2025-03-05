@@ -18,6 +18,90 @@ const API_BASE_URL = env.apiUrl || 'https://api.reserse.id';
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+// Fungsi untuk mengompres gambar sebelum dikirim
+const compressImage = async (file: File, maxSizeMB: number = 1): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        
+        // Jika gambar terlalu besar, kurangi ukurannya
+        const MAX_WIDTH = 1600;
+        const MAX_HEIGHT = 1600;
+        
+        if (width > MAX_WIDTH) {
+          height = Math.round(height * (MAX_WIDTH / width));
+          width = MAX_WIDTH;
+        }
+        
+        if (height > MAX_HEIGHT) {
+          width = Math.round(width * (MAX_HEIGHT / height));
+          height = MAX_HEIGHT;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Gagal membuat konteks canvas'));
+          return;
+        }
+        
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Mulai dengan kualitas tinggi dan turunkan jika masih terlalu besar
+        const quality = 0.9;
+        let compressedFile: File | null = null;
+        
+        const compressWithQuality = (q: number) => {
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                reject(new Error('Gagal mengompres gambar'));
+                return;
+              }
+              
+              compressedFile = new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now()
+              });
+              
+              // Jika masih terlalu besar dan kualitas masih bisa diturunkan
+              if (compressedFile.size > maxSizeMB * 1024 * 1024 && q > 0.5) {
+                // Coba lagi dengan kualitas lebih rendah
+                compressWithQuality(q - 0.1);
+              } else {
+                console.log(`Gambar berhasil dikompresi: ${(compressedFile.size / (1024 * 1024)).toFixed(2)}MB dengan kualitas ${q.toFixed(1)}`);
+                resolve(compressedFile);
+              }
+            },
+            'image/jpeg',
+            q
+          );
+        };
+        
+        compressWithQuality(quality);
+      };
+      
+      img.onerror = () => {
+        reject(new Error('Gagal memuat gambar'));
+      };
+    };
+    
+    reader.onerror = () => {
+      reject(new Error('Gagal membaca file'));
+    };
+  });
+};
+
 export const submitDokpolAnalysis = async (imageFile: File): Promise<string> => {
   try {
     // Validasi ukuran file (50MB dalam bytes)
@@ -31,7 +115,7 @@ export const submitDokpolAnalysis = async (imageFile: File): Promise<string> => 
       throw new Error('File harus berupa gambar');
     }
 
-    console.group('Image Upload Details');
+    console.group('Image Upload Details (Original)');
     console.log('File:', {
       name: imageFile.name,
       type: imageFile.type,
@@ -39,6 +123,27 @@ export const submitDokpolAnalysis = async (imageFile: File): Promise<string> => 
       lastModified: new Date(imageFile.lastModified).toISOString()
     });
     console.groupEnd();
+    
+    // Kompres gambar jika ukurannya lebih dari 1MB
+    let fileToUpload = imageFile;
+    if (imageFile.size > 1 * 1024 * 1024) {
+      try {
+        console.log('Mengompres gambar...');
+        fileToUpload = await compressImage(imageFile, 1); // Kompres ke maksimal 1MB
+        
+        console.group('Image Upload Details (Compressed)');
+        console.log('File:', {
+          name: fileToUpload.name,
+          type: fileToUpload.type,
+          size: `${(fileToUpload.size / (1024 * 1024)).toFixed(2)}MB`,
+          lastModified: new Date(fileToUpload.lastModified).toISOString()
+        });
+        console.groupEnd();
+      } catch (compressError) {
+        console.error('Gagal mengompres gambar:', compressError);
+        console.log('Melanjutkan dengan file asli');
+      }
+    }
 
     let retries = 0;
     
@@ -52,14 +157,14 @@ export const submitDokpolAnalysis = async (imageFile: File): Promise<string> => 
         formData.append('monitor', 'false'); 
         formData.append('session_id', 'string');
         formData.append('user_id', 'string');
-        formData.append('files', imageFile);
+        formData.append('files', fileToUpload);
 
-        console.group('Image Upload Details');
+        console.group('Image Upload Details (Final)');
         console.log('File:', {
-          name: imageFile.name,
-          type: imageFile.type,
-          size: imageFile.size,
-          lastModified: new Date(imageFile.lastModified).toISOString()
+          name: fileToUpload.name,
+          type: fileToUpload.type,
+          size: fileToUpload.size,
+          lastModified: new Date(fileToUpload.lastModified).toISOString()
         });
 
         console.log('FormData contents:', {

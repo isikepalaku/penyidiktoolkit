@@ -75,12 +75,25 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
   const printRef = useCallback(() => contentRef.current, []);
 
   const processContent = (rawContent: string) => {
-    // Check if content contains speaker markers
-    if (rawContent.includes('[Pembicara')) {
-      // Split content into sections (transcript and metadata if present)
-      const [transcript, ...rest] = rawContent.split(/\n(?=Metadata)/);
+    // Handle medical analysis markdown content
+    if (rawContent.startsWith('Tentu, berikut adalah analisis gambar medis')) {
+      return rawContent
+        .replace(/\r\n/g, '\n') // Normalize line endings
+        .replace(/\n{3,}/g, '\n\n') // Reduce excessive newlines
+        .replace(/^(#{1,6} .+)/gm, '$1\n') // Add spacing after headers
+        .replace(/^(\d+\.\s+.+)\n(?=\d+\.)/gm, '$1\n\n') // Add spacing between numbered sections
+        .replace(/^(\*{3} \d+\. .+ \*{3})/gm, '$1\n') // Format ### numbered headers
+        .replace(/^([^-*].+)\n(?=\*{3} \d+\.)/gm, '$1\n\n') // Add spacing before headers
+        .replace(/(\*\*[^:]+:\*\*)(?!\s)/g, '$1 ') // Ensure colon spacing after bold headers
+        .replace(/^(\s{4}\*)/gm, '    *') // Fix nested list indentation
+        .replace(/(\d+\.)\s+/g, '$1 ') // Normalize numbered list spacing
+        .replace(/(\n)(?=[^\n])/g, '$1') // Remove trailing newlines
+        .trim();
+    }
 
-      // Format transcript with reduced spacing
+    // Preserve original processing for other content types
+    if (rawContent.includes('[Pembicara')) {
+      const [transcript, ...rest] = rawContent.split(/\n(?=Metadata)/);
       const formattedTranscript = transcript
         .split(/(\[Pembicara \d+\]:)/)
         .map((part, index) => {
@@ -92,8 +105,7 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
         .join('')
         .trim()
         .replace(/\n{2,}/g, '\n');
-
-      // Format metadata if present
+      
       const metadata = rest.length > 0 
         ? '\n\n## Metadata\n\n' + rest[0]
             .replace(/^\s*Metadata\s*\n*/i, '')
@@ -104,36 +116,14 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
       return `# Hasil Transkripsi\n\n${formattedTranscript}${metadata}`;
     }
 
-    // For case analysis content, preserve numbered lists and structure
-    if (rawContent.match(/^\d+\./m)) {
-      return rawContent
-        .replace(/\r\n/g, '\n')
-        .replace(/\n{3,}/g, '\n\n')
-        // Add proper spacing for numbered lists
-        .replace(/^(\d+\.)\s*/gm, '$1 ')
-        // Add newlines before and after numbered lists
-        .replace(/(\n\d+\.)(?!\n\d)/g, '\n\n$1')
-        .replace(/(\n\d+\.[^\n]+)(?!\n\d+\.)/g, '$1\n')
-        // Handle nested content under numbered items
-        .replace(/^(\d+\.[^\n]+)\n([^\d\n][^\n]+)/gm, '$1\n\n$2')
-        .replace(/^([^\d\n][^\n]+)\n(\d+\.)/gm, '$1\n\n$2')
-        .trim();
-    }
-
-    // For other content types (e.g., sentiment analysis)
     return rawContent
       .replace(/\r\n/g, '\n')
       .replace(/\n{3,}/g, '\n\n')
-      .replace(/^\*\s+\*\*([^:]+):\*\*\s*(.*)/gm, '* **$1:** $2')
-      .replace(/^(\*\s+[^\n]+\n)(?=\*\s+[^\n]+)/gm, '$1\n')
-      .replace(/^\*\s+([^\n]+)(?=\n*\s+[^*])/gm, '* $1')
-      .replace(/^\*\s+([^\n]+)(?=\n\s+\*)/gm, '* $1')
-      .replace(/^(\s*)\*\s+([^\n]+)/gm, '$1* $2')
-      .replace(/^(\*\s+\*\*[^:]+:\*\*[^\n]+)\n\*\s+/gm, '$1\n    * ')
-      .replace(/^(\s+\*\s+[^\n]+)\n\*\s+/gm, '$1\n    * ')
-      .replace(/\n{2,}\*/g, '\n\n*')
-      .replace(/\n{2,}\s+\*/g, '\n\n    *')
-      .replace(/(\*\s+[^\n]+)\n(?=[^\s*])/g, '$1\n\n')
+      .replace(/^(\d+\.)\s*/gm, '$1 ')
+      .replace(/(\n\d+\.)(?!\n\d)/g, '\n\n$1')
+      .replace(/(\n\d+\.[^\n]+)(?!\n\d+\.)/g, '$1\n')
+      .replace(/^(\d+\.[^\n]+)\n([^\d\n][^\n]+)/gm, '$1\n\n$2')
+      .replace(/^([^\d\n][^\n]+)\n(\d+\.)/gm, '$1\n\n$2')
       .trim();
   };
 
