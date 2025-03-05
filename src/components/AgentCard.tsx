@@ -34,7 +34,7 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
       case 'image_processor':
         return <img src="/img/maps.svg" alt="Google Scholar" className="w-6 h-6" />;
       case 'medical_image':
-        return <img src="/img/police.svg" alt="Dokpol Medis" className="w-6 h-6" />;
+        return <img src="/img/dokpol.svg" alt="Dokpol Medis" className="w-6 h-6" />;
       case 'crime_trend_analyst':
         return <BarChart3 className="text-indigo-500" size={24} />;
       case 'undang_chat':
