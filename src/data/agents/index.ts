@@ -8,18 +8,19 @@ import crimeTrendAnalystAgent from './crimeTrendAnalystAgent';
 import sentimentAnalystAgent from './sentimentAnalystAgent';
 import tipikorAnalystAgent from './tipikorAnalystAgent';
 import { penyidikAiAgent } from './penyidikAiAgent';
+import { dokpolAgent } from './dokpolAgent';
 import type { ExtendedAgent } from '../../types';
 
 export const agents: ExtendedAgent[] = [
   spktAgent,
   caseResearchAgent,
-  imageAgent,
   hoaxCheckerAgent,
   imageProcessorAgent,
   modusKejahatanAgent,
   crimeTrendAnalystAgent,
   sentimentAnalystAgent,
-  tipikorAnalystAgent
+  tipikorAnalystAgent,
+  dokpolAgent
 ];
 
 export {
@@ -32,5 +33,6 @@ export {
   crimeTrendAnalystAgent,
   sentimentAnalystAgent,
   tipikorAnalystAgent,
-  penyidikAiAgent
+  penyidikAiAgent,
+  dokpolAgent
 };

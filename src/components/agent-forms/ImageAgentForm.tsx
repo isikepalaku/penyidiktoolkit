@@ -1,6 +1,8 @@
 import React from 'react';
 import type { BaseAgentFormProps } from './BaseAgentForm';
+import type { ExtendedAgent } from '../../types';
 import { imagePrompts } from '../../data/agents/imageAgent';
+import { AlertTriangle, FileImage, Microscope, Camera } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -11,7 +13,15 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/utils/utils";
-import { FileImage, Microscope } from "lucide-react";
+
+// Maximum file size (10MB)
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+const formatFileSize = (bytes: number): string => {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+};
 
 const Square = ({ className, children }: { className?: string; children: React.ReactNode }) => (
   <span
@@ -36,26 +46,124 @@ export const ImageAgentForm: React.FC<BaseAgentFormProps & {
   isProcessing,
   imagePreview
 }) => {
-  const isImageProcessor = agent.type === 'image_processor';
+  const isImageProcessor = agent?.type === 'image_processor' || agent?.type === 'medical_image';
+  const extendedAgent = agent as ExtendedAgent;
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  
+  const validateFile = (file: File): string | null => {
+    if (file.size > MAX_FILE_SIZE) {
+      return `File terlalu besar. Maksimal ukuran file adalah ${formatFileSize(MAX_FILE_SIZE)}`;
+    }
+    
+    if (!file.type.startsWith('image/')) {
+      return 'Format file tidak didukung. Gunakan format gambar seperti JPG, PNG, atau GIF';
+    }
+    
+    return null;
+  };
+  
+  const handleFileChange = (file: File | null) => {
+    try {
+      if (!file) {
+        onInputChange('image_file', null);
+        return;
+      }
+      
+      console.log('Selected file:', {
+        name: file.name,
+        type: file.type,
+        size: formatFileSize(file.size)
+      });
+      
+      // Validate file
+      const validationError = validateFile(file);
+      if (validationError) {
+        onInputChange('error', validationError);
+        onInputChange('image_file', null);
+        return;
+      }
+      
+      onInputChange('image_file', file);
+      onInputChange('error', null);
+    } catch (err) {
+      console.error('Error handling image file:', err);
+      onInputChange('error', err instanceof Error ? err.message : 'Gagal memproses file gambar');
+      onInputChange('image_file', null);
+    }
+  };
+  
+  // Function to trigger file input click
+  const handleUploadClick = (captureMode?: string) => {
+    if (!isProcessing) {
+      if (fileInputRef.current) {
+        if (captureMode) {
+          fileInputRef.current.setAttribute('capture', captureMode);
+        } else {
+          fileInputRef.current.removeAttribute('capture');
+        }
+        fileInputRef.current.click();
+      }
+    }
+  };
 
   return (
     <div className="space-y-6">
+      {/* Warning Message */}
+      {extendedAgent.warning && (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-md flex items-start gap-2">
+          <AlertTriangle className="text-amber-500 h-5 w-5 mt-0.5 flex-shrink-0" />
+          <p className="text-amber-700 text-sm">{extendedAgent.warning}</p>
+        </div>
+      )}
+      
       {/* Image Upload */}
       <div>
         <Label htmlFor="field-image_file">Upload Gambar</Label>
-        <input
-          id="field-image_file"
-          name="image_file"
-          type="file"
-          accept="image/*"
-          onChange={(e) => onInputChange('image_file', e.target.files?.[0] || null)}
-          className="mt-2 block w-full text-sm text-gray-500
-            file:mr-4 file:py-2 file:px-4
-            file:rounded-md file:border-0
-            file:text-sm file:font-semibold
-            file:bg-blue-50 file:text-blue-700
-            hover:file:bg-blue-100"
-        />
+        <div 
+          onClick={() => handleUploadClick()}
+          className={cn(
+            "mt-2 p-6 border-2 border-dashed rounded-lg",
+            !isProcessing ? "cursor-pointer hover:border-blue-500 hover:bg-blue-50/50" : "cursor-not-allowed",
+            "transition-colors"
+          )}
+        >
+          <input
+            ref={fileInputRef}
+            id="field-image_file"
+            name="image_file"
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
+            disabled={isProcessing}
+            className="hidden"
+          />
+          <div className="flex flex-col items-center gap-3">
+            {formData.image_file ? (
+              <div className="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full">
+                <FileImage className="w-8 h-8 text-blue-600" />
+              </div>
+            ) : (
+              <div className="flex items-center justify-center w-16 h-16 bg-blue-50 rounded-full">
+                <Camera className="w-8 h-8 text-blue-500" />
+              </div>
+            )}
+            
+            <div className="text-sm text-gray-600 text-center">
+              {formData.image_file && formData.image_file instanceof File ? (
+                <span className="text-blue-600 font-medium">
+                  {formData.image_file.name}
+                </span>
+              ) : (
+                <>
+                  <span className="font-medium">Klik untuk upload</span> atau ambil foto
+                  <br />
+                  JPG, PNG, GIF (max. {formatFileSize(MAX_FILE_SIZE)})
+                </>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Image Preview */}
@@ -64,8 +172,14 @@ export const ImageAgentForm: React.FC<BaseAgentFormProps & {
           <img
             src={imagePreview}
             alt="Preview"
-            className="w-full max-w-2xl h-auto rounded-lg shadow-lg"
+            className="w-full max-w-2xl h-auto rounded-lg shadow-md border border-gray-200"
           />
+          {formData.image_file && formData.image_file instanceof File && (
+            <div className="mt-1 text-xs text-gray-500 flex items-center gap-1">
+              <FileImage className="w-3 h-3" />
+              {formData.image_file.name} ({formatFileSize(formData.image_file.size)})
+            </div>
+          )}
         </div>
       )}
 
@@ -121,7 +235,7 @@ export const ImageAgentForm: React.FC<BaseAgentFormProps & {
 
       {/* Error Display */}
       {error && (
-        <div className="p-3 bg-red-100 text-red-700 rounded-lg">
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
           {error}
         </div>
       )}

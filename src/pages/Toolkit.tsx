@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { FileAudio, ArrowLeft } from 'lucide-react';
+import { FileAudio, ArrowLeft, Image } from 'lucide-react';
 import { processAudioTranscript } from '../services/audioTranscriptService';
 import { AudioAgentForm } from '@/components/agent-forms/AudioAgentForm';
+import { ImageAgentForm } from '@/components/agent-forms/ImageAgentForm';
 import ResultArtifact from '@/components/ResultArtifact';
 import type { FormDataValue } from '@/types';
 import type { AudioFormData } from '@/types/audio';
 import type { AudioPromptType } from '@/data/agents/audioAgent';
+import { imageAgent } from '../data/agents/imageAgent';
+import { submitImageAnalysis } from '../services/imageService';
 
 type ToolType = {
   id: string;
@@ -20,38 +23,59 @@ const toolTypes: ToolType[] = [
     name: 'Audio Processor',
     description: 'Transkripsi dan analisis audio dengan teknologi AI',
     icon: <FileAudio size={24} className="text-blue-500" />
+  },
+  {
+    id: imageAgent.id,
+    name: imageAgent.name,
+    description: imageAgent.description,
+    icon: <Image size={24} className="text-green-500" />
   }
 ];
 
 export default function Toolkit() {
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
-  const [formData, setFormData] = useState<AudioFormData>({
+  const [audioFormData, setAudioFormData] = useState<AudioFormData>({
     audio_file: null,
     task_type: 'transcribe'
   });
+  const [imageFormData, setImageFormData] = useState({
+    image_file: null as File | null,
+    image_description: '',
+    prompt_type: 'default' as const
+  });
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedTool || !formData.audio_file) return;
+    if (!selectedTool) return;
 
     setIsProcessing(true);
     setError(null);
     setResult(null);
 
     try {
-      const response = await processAudioTranscript({
-        audio: formData.audio_file,
-        task_type: formData.task_type as AudioPromptType
-      });
+      if (selectedTool === 'transcript' && audioFormData.audio_file) {
+        const response = await processAudioTranscript({
+          audio: audioFormData.audio_file,
+          task_type: audioFormData.task_type as AudioPromptType
+        });
 
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to process audio');
+        if (!response.success) {
+          throw new Error(response.error || 'Failed to process audio');
+        }
+
+        setResult(response.text);
+      } else if (selectedTool === imageAgent.id && imageFormData.image_file) {
+        const text = await submitImageAnalysis(
+          imageFormData.image_file,
+          imageFormData.image_description,
+          imageFormData.prompt_type
+        );
+        setResult(text);
       }
-
-      setResult(response.text);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
@@ -64,11 +88,22 @@ export default function Toolkit() {
       setError(value as string);
       return;
     }
-    
-    setFormData(prev => ({
-      ...prev,
-      [fieldId]: value
-    }));
+
+    if (selectedTool === 'transcript') {
+      setAudioFormData(prev => ({
+        ...prev,
+        [fieldId]: value
+      }));
+    } else if (selectedTool === imageAgent.id) {
+      if (fieldId === 'image_file' && value instanceof File) {
+        const previewUrl = URL.createObjectURL(value);
+        setImagePreview(previewUrl);
+      }
+      setImageFormData(prev => ({
+        ...prev,
+        [fieldId]: value
+      }));
+    }
   };
 
   const selectedToolData = toolTypes.find(tool => tool.id === selectedTool);
@@ -82,10 +117,16 @@ export default function Toolkit() {
               <button 
                 onClick={() => {
                   setSelectedTool(null);
-                  setFormData({
+                  setAudioFormData({
                     audio_file: null,
                     task_type: 'transcribe'
                   });
+                  setImageFormData({
+                    image_file: null,
+                    image_description: '',
+                    prompt_type: 'default'
+                  });
+                  setImagePreview(null);
                   setResult(null);
                   setError(null);
                 }}
@@ -103,13 +144,24 @@ export default function Toolkit() {
 
         <div className="max-w-3xl mx-auto">
           <form onSubmit={handleSubmit} className="space-y-6">
-            <AudioAgentForm
-              formData={formData}
-              onInputChange={handleInputChange}
-              error={error}
-              isProcessing={isProcessing}
-              isDisabled={!!result}
-            />
+            {selectedTool === 'transcript' ? (
+              <AudioAgentForm
+                formData={audioFormData}
+                onInputChange={handleInputChange}
+                error={error}
+                isProcessing={isProcessing}
+                isDisabled={!!result}
+              />
+            ) : selectedTool === imageAgent.id ? (
+              <ImageAgentForm
+                agent={imageAgent}
+                formData={imageFormData}
+                onInputChange={handleInputChange}
+                error={error}
+                isProcessing={isProcessing}
+                imagePreview={imagePreview}
+              />
+            ) : null}
           </form>
         </div>
 

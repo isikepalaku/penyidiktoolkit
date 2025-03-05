@@ -5,6 +5,7 @@ import { submitAgentAnalysis as submitSpktAnalysis } from '../services/agentSpkt
 import { submitAgentAnalysis as submitCaseAnalysis } from '../services/agentCaseResearch';
 import { submitAgentAnalysis as submitHoaxAnalysis } from '../services/agentHoaxChecker';
 import { submitImageProcessorAnalysis } from '../services/imageProcessorService';
+import { submitDokpolAnalysis } from '../services/dokpolService';
 import { imagePrompts } from '../data/agents/imageAgent';
 import { agents } from '../data/agents';
 import { submitModusKejahatanAnalysis } from '../services/agentModusKejahatan';
@@ -80,14 +81,18 @@ export const useAgentForm = (): UseAgentFormResult => {
 
     try {
       let response: string;
-
-      if (agentType === 'image_processor') {
+      if (agentType === 'image_processor' || agentType === 'medical_image') {
         const imageFile = formData.image_file;
         if (!imageFile || !(imageFile instanceof File)) {
           throw new Error('Mohon pilih file gambar');
         }
-        
-        response = await submitImageProcessorAnalysis(imageFile);
+
+        // Determine which service to use based on the agent type
+        if (agentType === 'medical_image') {
+          response = await submitDokpolAnalysis(imageFile);
+        } else {
+          response = await submitImageProcessorAnalysis(imageFile);
+        }
       } else if (agentType === 'image') {
         const imageFile = formData.image_file;
         if (!imageFile || !(imageFile instanceof File)) {

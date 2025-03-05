@@ -18,6 +18,8 @@ export const getTypeDisplay = (type: AgentType): string => {
       return 'Hoax';
     case 'image_processor':
       return 'Lokasi';
+    case 'medical_image':
+      return 'Medis';
     case 'modus_kejahatan':
       return 'Modus';
     case 'crime_trend_analyst':
@@ -37,6 +39,7 @@ export const AGENT_IDS = {
   IMAGE: 'img_001',
   HOAX_CHECKER: 'hoax_001',
   IMAGE_PROCESSOR: 'geo-image-agent',
+  MEDICAL_IMAGE: 'dokpol_001',
   MODUS_KEJAHATAN: 'modus_001',
   SENTIMENT_ANALYST: 'polri-sentiment-analyst',
   TIPIKOR_ANALYST: 'polri-tipikor-analyst',
@@ -66,6 +69,8 @@ export const getAgentTypeFromId = (id: string): AgentType | null => {
       return 'hoax_checker';
     case AGENT_IDS.IMAGE_PROCESSOR:
       return 'image_processor';
+    case AGENT_IDS.MEDICAL_IMAGE:
+      return 'medical_image';
     case AGENT_IDS.MODUS_KEJAHATAN:
       return 'modus_kejahatan';
     case AGENT_IDS.SENTIMENT_ANALYST:

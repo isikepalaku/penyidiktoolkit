@@ -44,6 +44,7 @@ export type AgentType =
   | 'image'
   | 'hoax_checker'
   | 'image_processor'
+  | 'medical_image'
   | 'modus_kejahatan'
   | 'crime_trend_analyst'
   | 'sentiment_analyst'
@@ -71,6 +72,7 @@ export interface ExtendedAgent {
   fields: AgentField[];
   icon?: LucideIcon;
   iconClassName?: string;
+  warning?: string;
 }
 
 export interface AgentField {

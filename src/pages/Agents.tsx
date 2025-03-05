@@ -57,18 +57,53 @@ export default function Agents() {
     setShowArtifact(false);
   };
 
-  // Navigation protection
+  // Enhanced navigation protection for both desktop and mobile
   useEffect(() => {
+    // Handle page refreshes and tab closing
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isProcessing) {
+      if (isProcessing || result) {
         e.preventDefault();
         e.returnValue = '';
+        return '';
       }
     };
 
+    // Handle back button/gesture navigation
+    const handlePopState = (e: PopStateEvent) => {
+      if (isProcessing || result) {
+        // Prevent the default action
+        e.preventDefault();
+        
+        // Push a new state to prevent the back action
+        window.history.pushState(null, '', window.location.pathname);
+        
+        // Show a confirmation dialog
+        const confirmed = window.confirm(
+          'Berhenti sekarang akan menghilangkan hasil dan percakapan Anda. Yakin ingin keluar?'
+        );
+        
+        // If confirmed, manually navigate back to agent selection
+        if (confirmed) {
+          setSelectedAgent(null);
+          reset();
+          setShowArtifact(false);
+        }
+      }
+    };
+
+    // When component mounts, add a history entry to enable back navigation handling
+    window.history.pushState(null, '', window.location.pathname);
+
+    // Register event handlers
     window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [isProcessing]);
+    window.addEventListener('popstate', handlePopState);
+    
+    // Clean up event listeners on unmount
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [isProcessing, result, reset]);
 
   const renderAgentForm = () => {
     if (!selectedAgentData) return null;
@@ -84,6 +119,7 @@ export default function Agents() {
     switch (selectedAgentData.type) {
       case 'image':
       case 'image_processor':
+      case 'medical_image':
         return <ImageAgentForm {...commonProps} imagePreview={imagePreview} />;
       case 'crime_trend_analyst':
         return <BaseAgentForm {...commonProps} textareaHeight="h-32" />;

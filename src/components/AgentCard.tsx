@@ -1,9 +1,9 @@
-import { PieChart, Search, BarChart3, Scale, TrendingUp } from 'lucide-react';
-import type { Agent } from '../types/index';
+import { PieChart, Search, BarChart3, Scale, TrendingUp, AlertTriangle } from 'lucide-react';
+import type { Agent, ExtendedAgent } from '../types/index';
 import { getTypeDisplay } from '@/utils/utils';
 
 interface AgentCardProps {
-  agent: Agent;
+  agent: Agent | ExtendedAgent;
   bgColor?: string;
   className?: string;
 }
@@ -33,6 +33,8 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
         return <img src="/img/moduskejahatan.svg" alt="Modus Kejahatab" className="w-6 h-6" />;
       case 'image_processor':
         return <img src="/img/maps.svg" alt="Google Scholar" className="w-6 h-6" />;
+      case 'medical_image':
+        return <img src="/img/police.svg" alt="Dokpol Medis" className="w-6 h-6" />;
       case 'crime_trend_analyst':
         return <BarChart3 className="text-indigo-500" size={24} />;
       case 'undang_chat':
@@ -76,7 +78,15 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
               {agent.status === 'on' ? 'Online' : 'Bekerja'}
             </span>
           </div>
-          <p className="text-gray-600 mb-3 line-clamp-2 text-sm">{agent.description}</p>
+        <p className="text-gray-600 mb-3 line-clamp-2 text-sm">{agent.description}</p>
+        
+        {/* Display warning if exists */}
+        {'warning' in agent && agent.warning && (
+          <div className="mt-1 p-2 bg-amber-50 border border-amber-200 rounded-md flex items-start gap-2">
+            <AlertTriangle className="text-amber-500 h-4 w-4 mt-0.5 flex-shrink-0" />
+            <p className="text-amber-700 text-xs">{agent.warning}</p>
+          </div>
+        )}
         </div>
         <div className="flex items-center gap-2 mt-auto">
           <span className="px-3 py-1 bg-white/80 text-blue-600 rounded-full text-sm font-medium">
@@ -109,6 +119,14 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
         </div>
         
         <p className="text-gray-600 mb-3 line-clamp-2 text-sm">{agent.description}</p>
+        
+        {/* Display warning if exists */}
+        {'warning' in agent && agent.warning && (
+          <div className="mt-1 p-2 bg-amber-50 border border-amber-200 rounded-md flex items-start gap-2">
+            <AlertTriangle className="text-amber-500 h-4 w-4 mt-0.5 flex-shrink-0" />
+            <p className="text-amber-700 text-xs">{agent.warning}</p>
+          </div>
+        )}
       </div>
       
       <div className="flex items-center gap-2 mt-auto">

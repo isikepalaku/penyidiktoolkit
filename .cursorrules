@@ -451,6 +451,58 @@ console.groupEnd();
 6. Tidak menangani error dengan proper
 7. Tidak mencatat session ID di logs
 
+## Image Processor Agent Pattern
+
+### Adding New Image Processor Agent
+1. Service File (src/services/[agentName]Service.ts):
+   - Copy structure from existing image processor service
+   - Update endpoint path (/v1/playground/agents/[endpoint-name]/runs)
+   - Customize message for specific use case
+   - Keep error handling and response parsing consistent
+
+2. Agent Configuration (src/data/agents/[agentName]Agent.ts):
+   - Use ExtendedAgent interface
+   - Set type: 'image_processor'
+   - Define standard image file field
+   - Keep configuration minimal for image processors
+
+3. Integration:
+   - Add to agents array in index.ts
+   - Add to named exports
+   - Use existing ImageAgentForm component
+   - Handle in useAgentForm hook with proper agent ID check
+
+Example Agent Setup:
+```typescript
+// Service endpoint pattern
+const url = `/v1/playground/agents/[specific-purpose]-image-agent/runs`;
+
+// Agent configuration pattern
+export const newAgent: ExtendedAgent = {
+  id: 'newagent_001',
+  name: 'Agent Name',
+  type: 'image_processor',
+  status: 'on',
+  description: 'Specific purpose description',
+  fields: [
+    {
+      id: 'image_file',
+      label: 'Upload Gambar',
+      type: 'file',
+      placeholder: 'Pilih file gambar...',
+      accept: 'image/*'
+    }
+  ]
+};
+```
+
+Common Mistakes:
+- Using wrong endpoint path format
+- Not maintaining consistent error handling
+- Forgetting to add service import to useAgentForm
+- Not checking agent ID in handleSubmit
+- Duplicating image handling logic instead of reusing
+
 ### Service Pattern
 1. Semua chat service harus mengikuti pattern yang sama
 2. Gunakan interface yang konsisten
