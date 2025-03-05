@@ -23,7 +23,7 @@ export function BaseAgentForm({
   error, 
   isProcessing,
   isDisabled,
-  textareaHeight = 'h-64'
+  textareaHeight = 'min-h-[250px]'
 }: BaseAgentFormProps) {
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
@@ -61,15 +61,15 @@ export function BaseAgentForm({
     switch (agentType) {
       case 'modus_kejahatan':
         return {
-          minRows: 2,
-          maxRows: 3,
-          className: "w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm text-sm"
+          minRows: 3,
+          maxRows: 6,
+          className: `w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm text-sm ${textareaHeight}`
         };
       default:
         return {
-          minRows: 3,
-          maxRows: 12,
-          className: "w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+          minRows: 6,
+          maxRows: 15,
+          className: `w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm ${textareaHeight}`
         };
     }
   };
@@ -132,7 +132,7 @@ export function BaseAgentForm({
               onChange={(e) => onInputChange(field.id, e.target.value)}
               placeholder={field.placeholder}
               disabled={isDisabled}
-              className={`w-full ${textareaHeight} p-3 border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`w-full p-3 border rounded-lg bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             />
           )}
         </div>

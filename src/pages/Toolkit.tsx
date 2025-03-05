@@ -9,6 +9,7 @@ import type { AudioFormData } from '@/types/audio';
 import type { AudioPromptType } from '@/data/agents/audioAgent';
 import { imageAgent } from '../data/agents/imageAgent';
 import { submitImageAnalysis } from '../services/imageService';
+import { DotBackground } from '@/components/ui/DotBackground';
 
 type ToolType = {
   id: string;
@@ -110,73 +111,75 @@ export default function Toolkit() {
 
   if (selectedTool && selectedToolData) {
     return (
-      <div className="p-6 lg:p-8">
-        <header>
-          <div className="max-w-5xl mx-auto pl-14 pr-4 sm:pl-14 sm:pr-4 lg:pl-14 lg:pr-4 py-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <button 
-                onClick={() => {
-                  setSelectedTool(null);
-                  setAudioFormData({
-                    audio_file: null,
-                    task_type: 'transcribe'
-                  });
-                  setImageFormData({
-                    image_file: null,
-                    image_description: '',
-                    prompt_type: 'default'
-                  });
-                  setImagePreview(null);
-                  setResult(null);
-                  setError(null);
-                }}
-                className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5 text-gray-500" />
-              </button>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 leading-7">{selectedToolData.name}</h1>
-                <p className="text-sm text-gray-500 mt-0.5">{selectedToolData.description}</p>
+      <DotBackground className="min-h-screen">
+        <div className="p-6 lg:p-8">
+          <header>
+            <div className="max-w-5xl mx-auto pl-14 pr-4 sm:pl-14 sm:pr-4 lg:pl-14 lg:pr-4 py-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <button 
+                  onClick={() => {
+                    setSelectedTool(null);
+                    setAudioFormData({
+                      audio_file: null,
+                      task_type: 'transcribe'
+                    });
+                    setImageFormData({
+                      image_file: null,
+                      image_description: '',
+                      prompt_type: 'default'
+                    });
+                    setImagePreview(null);
+                    setResult(null);
+                    setError(null);
+                  }}
+                  className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <ArrowLeft className="w-5 h-5 text-gray-500" />
+                </button>
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 leading-7">{selectedToolData.name}</h1>
+                  <p className="text-sm text-gray-500 mt-0.5">{selectedToolData.description}</p>
+                </div>
               </div>
             </div>
+          </header>
+
+          <div className="max-w-3xl mx-auto">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {selectedTool === 'transcript' ? (
+                <AudioAgentForm
+                  formData={audioFormData}
+                  onInputChange={handleInputChange}
+                  error={error}
+                  isProcessing={isProcessing}
+                  isDisabled={!!result}
+                />
+              ) : selectedTool === imageAgent.id ? (
+                <ImageAgentForm
+                  agent={imageAgent}
+                  formData={imageFormData}
+                  onInputChange={handleInputChange}
+                  error={error}
+                  isProcessing={isProcessing}
+                  imagePreview={imagePreview}
+                />
+              ) : null}
+            </form>
           </div>
-        </header>
 
-        <div className="max-w-3xl mx-auto">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {selectedTool === 'transcript' ? (
-              <AudioAgentForm
-                formData={audioFormData}
-                onInputChange={handleInputChange}
-                error={error}
-                isProcessing={isProcessing}
-                isDisabled={!!result}
-              />
-            ) : selectedTool === imageAgent.id ? (
-              <ImageAgentForm
-                agent={imageAgent}
-                formData={imageFormData}
-                onInputChange={handleInputChange}
-                error={error}
-                isProcessing={isProcessing}
-                imagePreview={imagePreview}
-              />
-            ) : null}
-          </form>
+          {result && (
+            <ResultArtifact 
+              content={result}
+              onClose={() => setResult(null)}
+            />
+          )}
         </div>
-
-        {result && (
-          <ResultArtifact 
-            content={result}
-            onClose={() => setResult(null)}
-          />
-        )}
-      </div>
+      </DotBackground>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+    <DotBackground className="min-h-screen">
       <div className="p-6 lg:p-8">
         <div className="max-w-6xl mx-auto">
           <div className="mb-8">
@@ -214,6 +217,6 @@ export default function Toolkit() {
           </div>
         </div>
       </div>
-    </div>
+    </DotBackground>
   );
 }

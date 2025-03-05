@@ -48,7 +48,7 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
       case 'tipidkor_chat':
         return <Scale className="text-indigo-500" size={24} />;
       case 'tipikor_analyst':
-        return <img src="/img/chrome.svg" alt="ai hoax" className="w-6 h-6" />;
+        return <img src="/img/pngegg.png" alt="tipidkor analyst" className="w-6 h-6" />;
       case 'ciptakerja_chat':
         return <img src="/img/book.svg" alt="Google Scholar" className="w-6 h-6" />;
       case 'kesehatan_chat':

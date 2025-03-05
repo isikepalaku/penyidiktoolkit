@@ -8,6 +8,7 @@ import { agents } from '../data/agents';
 import { BaseAgentForm } from '../components/agent-forms/BaseAgentForm';
 import { ImageAgentForm } from '../components/agent-forms/ImageAgentForm';
 import { useAgentForm } from '../hooks/useAgentForm';
+import { DotBackground } from '../components/ui/DotBackground';
 
 // Convert ExtendedAgent to Agent type by omitting extended properties
 const toAgent = (extendedAgent: ExtendedAgent): Agent => {
@@ -137,11 +138,8 @@ export default function Agents() {
 
   if (selectedAgent && selectedAgentData) {
     return (
-      <div className="min-h-screen dark:bg-black bg-white dark:bg-dot-white/[0.2] bg-dot-black/[0.2] relative">
-        {/* Radial gradient for the container to give a faded look */}
-        <div className="absolute pointer-events-none inset-0 flex items-center justify-center dark:bg-black bg-white [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)]"></div>
-        
-        <div className={`relative z-10 p-6 lg:p-8 transition-all duration-300 ${showArtifact ? 'lg:mr-[50%]' : ''}`}>
+      <DotBackground className="min-h-screen">
+        <div className={`p-6 lg:p-8 transition-all duration-300 ${showArtifact ? 'lg:mr-[50%]' : ''}`}>
           <header>
             <div className="max-w-5xl mx-auto px-6 py-8">
               <button 
@@ -185,12 +183,12 @@ export default function Agents() {
             }}
           />
         )}
-      </div>
+      </DotBackground>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <DotBackground className="min-h-screen">
       <div className="container mx-auto px-4 py-8">
         <header className="mb-8">
           <div className="max-w-4xl">
@@ -222,6 +220,6 @@ export default function Agents() {
           ))}
         </div>
       </div>
-    </div>
+    </DotBackground>
   );
 }
