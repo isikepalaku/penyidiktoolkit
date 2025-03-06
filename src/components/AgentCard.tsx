@@ -36,7 +36,7 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
       case 'medical_image':
         return <img src="/img/dokpol.svg" alt="Dokpol Medis" className="h-10 w-10" />;
       case 'crime_trend_analyst':
-        return <BarChart3 className="text-indigo-500" size={24} />;
+        return <BarChart3 className="text-indigo-500" size={40} />;
       case 'undang_chat':
         return <img src="/img/book.svg" alt="Google Scholar" className="h-10 w-10" />;
       case 'kuhp_chat':
@@ -44,7 +44,7 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
       case 'ite_chat':
         return <img src="/img/book.svg" alt="Google Scholar" className="h-10 w-10" />;
       case 'sentiment_analyst':
-        return <TrendingUp className="text-purple-500" size={24} />;
+        return <TrendingUp className="text-purple-500" size={40} />;
       case 'tipidkor_chat':
         return <img src="/img/krimsus.png" alt="Tipidkor ai" className="h-10 w-10" />;
       case 'tipikor_analyst':
