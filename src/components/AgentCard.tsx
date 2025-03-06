@@ -1,4 +1,4 @@
-import { PieChart, Search, BarChart3, Scale, TrendingUp, AlertTriangle } from 'lucide-react';
+import { PieChart, BarChart3, TrendingUp, AlertTriangle } from 'lucide-react';
 import type { Agent, ExtendedAgent } from '../types/index';
 import { getTypeDisplay } from '@/utils/utils';
 
@@ -12,49 +12,49 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
   const getAgentIcon = () => {
     switch (agent.type) {
       case 'spkt':
-        return <img src="/img/ai.svg" alt="laporan polisi" className="w-6 h-6" />;
+        return <img src="/img/ai.svg" alt="laporan polisi" className="h-10 w-10" />;
       case 'image':
-        return <img src="/img/vision.svg" alt="laporan polisi" className="w-6 h-6" />;
+        return <img src="/img/vision.svg" alt="laporan polisi" className="h-10 w-10" />;
       case 'case_research':
-        return <img src="/img/google-scholar.svg" alt="Google Scholar" className="w-6 h-6" />;
+        return <img src="/img/google-scholar.svg" alt="Google Scholar" className="h-10 w-10" />;
       case 'hoax_checker':
-        return <img src="/img/news.svg" alt="ai hoax" className="w-6 h-6" />;
+        return <img src="/img/news.svg" alt="ai hoax" className="h-10 w-10" />;
       case 'perkaba_chat':
-        return <img src="/img/pdf.svg" alt="perkaba ai" className="w-6 h-6" />;
+        return <img src="/img/pdf.svg" alt="perkaba ai" className="h-10 w-10" />;
       case 'perkaba_search':
-        return <img src="/img/pdf.svg" alt="perkaba ai" className="w-6 h-6" />;
+        return <img src="/img/pdf.svg" alt="perkaba ai" className="h-10 w-10" />;
       case 'bantek_chat':
-        return <img src="/img/pdf.svg" alt="perkaba ai" className="w-6 h-6" />;
+        return <img src="/img/pdf.svg" alt="perkaba ai" className="h-10 w-10" />;
       case 'wassidik_chat':
-        return <img src="/img/pdf.svg" alt="perkaba ai" className="w-6 h-6" />;
+        return <img src="/img/pdf.svg" alt="perkaba ai" className="h-10 w-10" />;
       case 'emp_chat':
-        return <img src="/img/pdf.svg" alt="perkaba ai" className="w-6 h-6" />;
+        return <img src="/img/pdf.svg" alt="perkaba ai" className="h-10 w-10" />;
       case 'modus_kejahatan':
-        return <img src="/img/moduskejahatan.svg" alt="Modus Kejahatab" className="w-6 h-6" />;
+        return <img src="/img/moduskejahatan.svg" alt="Modus Kejahatab" className="h-10 w-10" />;
       case 'image_processor':
-        return <img src="/img/maps.svg" alt="Google Scholar" className="w-6 h-6" />;
+        return <img src="/img/maps.svg" alt="Google Scholar" className="h-10 w-10" />;
       case 'medical_image':
-        return <img src="/img/dokpol.svg" alt="Dokpol Medis" className="w-6 h-6" />;
+        return <img src="/img/dokpol.svg" alt="Dokpol Medis" className="h-10 w-10" />;
       case 'crime_trend_analyst':
         return <BarChart3 className="text-indigo-500" size={24} />;
       case 'undang_chat':
-        return <img src="/img/book.svg" alt="Google Scholar" className="w-6 h-6" />;
+        return <img src="/img/book.svg" alt="Google Scholar" className="h-10 w-10" />;
       case 'kuhp_chat':
-        return <img src="/img/book.svg" alt="Google Scholar" className="w-6 h-6" />;
+        return <img src="/img/book.svg" alt="Google Scholar" className="h-10 w-10" />;
       case 'ite_chat':
-        return <img src="/img/book.svg" alt="Google Scholar" className="w-6 h-6" />;
+        return <img src="/img/book.svg" alt="Google Scholar" className="h-10 w-10" />;
       case 'sentiment_analyst':
         return <TrendingUp className="text-purple-500" size={24} />;
       case 'tipidkor_chat':
-        return <Scale className="text-indigo-500" size={24} />;
+        return <img src="/img/krimsus.png" alt="Tipidkor ai" className="h-10 w-10" />;
       case 'tipikor_analyst':
-        return <img src="/img/pngegg.png" alt="tipidkor analyst" className="w-6 h-6" />;
+        return <img src="/img/pngegg.png" alt="tipidkor analyst" className="h-10 w-10" />;
       case 'ciptakerja_chat':
-        return <img src="/img/book.svg" alt="Google Scholar" className="w-6 h-6" />;
+        return <img src="/img/book.svg" alt="Google Scholar" className="h-10 w-10" />;
       case 'kesehatan_chat':
-        return <img src="/img/book.svg" alt="Google Scholar" className="w-6 h-6" />;
+        return <img src="/img/book.svg" alt="Google Scholar" className="h-10 w-10" />;
       case 'penyidik_chat':
-        return <Search className="text-purple-500" size={24} />;
+        return <img src="/img/krimsus.png" alt="Tipidkor ai" className="h-10 w-10" />;
       default:
         return <PieChart className="text-gray-500" size={24} />;
     }
@@ -106,7 +106,7 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
       <div>
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-white/80 rounded-lg group-hover:bg-white transition-colors">
+            <div>
               {getAgentIcon()}
             </div>
             <h3 className="text-lg font-semibold text-gray-900 line-clamp-1">{agent.name}</h3>

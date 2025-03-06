@@ -36,17 +36,13 @@ const Square = ({ className, children }: { className?: string; children: React.R
   </span>
 );
 
-export const ImageAgentForm: React.FC<BaseAgentFormProps & { 
-  imagePreview: string | null 
-}> = ({
+export const ImageAgentForm: React.FC<BaseAgentFormProps> = ({
   agent,
   formData,
   onInputChange,
   error,
-  isProcessing,
-  imagePreview
+  isProcessing
 }) => {
-  const isImageProcessor = agent?.type === 'image_processor' || agent?.type === 'medical_image';
   const extendedAgent = agent as ExtendedAgent;
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   
@@ -62,33 +58,35 @@ export const ImageAgentForm: React.FC<BaseAgentFormProps & {
     return null;
   };
   
-  const handleFileChange = (file: File | null) => {
+  const handleFileChange = (files: File[]) => {
     try {
-      if (!file) {
-        onInputChange('image_file', null);
+      if (files.length === 0) {
+        onInputChange('image_files', []);
         return;
       }
-      
-      console.log('Selected file:', {
+
+      console.log('Selected files:', files.map(file => ({
         name: file.name,
         type: file.type,
         size: formatFileSize(file.size)
-      });
+      })));
       
-      // Validate file
-      const validationError = validateFile(file);
-      if (validationError) {
-        onInputChange('error', validationError);
-        onInputChange('image_file', null);
-        return;
+      // Validate each file
+      for (let i = 0; i < files.length; i++) {
+        const validationError = validateFile(files[i]);
+        if (validationError) {
+          onInputChange('error', `File ${files[i].name}: ${validationError}`);
+          onInputChange('image_files', []);
+          return;
+        }
       }
       
-      onInputChange('image_file', file);
+      onInputChange('image_files', files);
       onInputChange('error', null);
     } catch (err) {
-      console.error('Error handling image file:', err);
+      console.error('Error handling image files:', err);
       onInputChange('error', err instanceof Error ? err.message : 'Gagal memproses file gambar');
-      onInputChange('image_file', null);
+      onInputChange('image_files', []);
     }
   };
   
@@ -134,12 +132,24 @@ export const ImageAgentForm: React.FC<BaseAgentFormProps & {
             type="file"
             accept="image/*"
             capture="environment"
-            onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
+            onChange={(e) => {
+              const fileList = e.target.files;
+              if (!fileList) return;
+              
+              const files = Array.from(fileList);
+              if (files.length > 3) {
+                onInputChange('error', 'Maksimal 3 gambar yang dapat diupload');
+                return;
+              }
+              
+              handleFileChange(files);
+            }}
+            multiple
             disabled={isProcessing}
             className="hidden"
           />
           <div className="flex flex-col items-center gap-3">
-            {formData.image_file ? (
+            {formData.image_files && Array.isArray(formData.image_files) && formData.image_files.length > 0 ? (
               <div className="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full">
                 <FileImage className="w-8 h-8 text-blue-600" />
               </div>
@@ -150,41 +160,77 @@ export const ImageAgentForm: React.FC<BaseAgentFormProps & {
             )}
             
             <div className="text-sm text-gray-600 text-center">
-              {formData.image_file && formData.image_file instanceof File ? (
-                <span className="text-blue-600 font-medium">
-                  {formData.image_file.name}
-                </span>
-              ) : (
-                <>
-                  <span className="font-medium">Klik untuk upload</span> atau ambil foto
-                  <br />
-                  JPG, PNG, GIF (max. {formatFileSize(MAX_FILE_SIZE)})
-                </>
-              )}
+            {formData.image_files && Array.isArray(formData.image_files) && formData.image_files.length > 0 ? (
+              <span className="text-blue-600 font-medium">
+                {formData.image_files.length} gambar dipilih
+              </span>
+            ) : (
+              <>
+                <span className="font-medium">Klik untuk upload</span> atau ambil foto
+                <br />
+                JPG, PNG, GIF (max. 3 file, {formatFileSize(MAX_FILE_SIZE)}/file)
+              </>
+            )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Image Preview */}
-      {imagePreview && (
-        <div className="mt-4 relative">
-          <img
-            src={imagePreview}
-            alt="Preview"
-            className="w-full max-w-2xl h-auto rounded-lg shadow-md border border-gray-200"
-          />
-          {formData.image_file && formData.image_file instanceof File && (
-            <div className="mt-1 text-xs text-gray-500 flex items-center gap-1">
-              <FileImage className="w-3 h-3" />
-              {formData.image_file.name} ({formatFileSize(formData.image_file.size)})
+      {/* Image Previews */}
+      {formData.image_files && Array.isArray(formData.image_files) && formData.image_files.length > 0 && (
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {formData.image_files.map((file, index) => (
+            <div key={index} className="relative">
+              <img
+                src={URL.createObjectURL(file)}
+                alt={`Preview ${index + 1}`}
+                className="w-full h-48 object-cover rounded-lg shadow-md border border-gray-200"
+              />
+              <div className="mt-1 text-xs text-gray-500 flex items-center gap-1">
+                <FileImage className="w-3 h-3" />
+                {file.name} ({formatFileSize(file.size)})
+              </div>
             </div>
-          )}
+          ))}
+        </div>
+      )}
+
+      {/* Service Type Selection for Medical Image */}
+      {agent?.type === 'medical_image' && (
+        <div className="space-y-2">
+          <Label htmlFor="service-type-select">Jenis Layanan Dokpol</Label>
+          <Select
+            value={(formData.service_type as string) || ''}
+            onValueChange={(value) => onInputChange('service_type', value)}
+          >
+            <SelectTrigger
+              id="service-type-select"
+              className="ps-2 [&>span]:flex [&>span]:items-center [&>span]:gap-2 [&>span_[data-square]]:shrink-0"
+            >
+              <SelectValue placeholder="Pilih jenis layanan" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="umum">
+                  <Square className="bg-blue-400/20 text-blue-500">
+                    <FileImage className="h-3 w-3" />
+                  </Square>
+                  <span className="truncate">Dokpol Umum</span>
+                </SelectItem>
+                <SelectItem value="forensik">
+                  <Square className="bg-purple-400/20 text-purple-500">
+                    <Microscope className="h-3 w-3" />
+                  </Square>
+                  <span className="truncate">Dokpol Forensik</span>
+                </SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </div>
       )}
 
       {/* Only show these fields for regular image agent */}
-      {!isImageProcessor && (
+      {agent?.type === 'image' && (
         <>
           {/* Prompt Type Selection */}
           <div className="space-y-2">
@@ -233,17 +279,20 @@ export const ImageAgentForm: React.FC<BaseAgentFormProps & {
         </>
       )}
 
-      {/* Error Display */}
-      {error && (
+      {/* Validation Messages */}
+      {(error || (agent?.type === 'medical_image' && !formData.service_type && Array.isArray(formData.image_files) && formData.image_files.length > 0)) && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-          {error}
+          {error || 'Mohon pilih jenis layanan Dokpol terlebih dahulu'}
         </div>
       )}
 
       {/* Submit Button */}
       <button
         type="submit"
-        disabled={isProcessing || !formData.image_file}
+      disabled={isProcessing || 
+        !(formData.image_files && Array.isArray(formData.image_files) && formData.image_files.length > 0) || 
+        (agent?.type === 'medical_image' && !formData.service_type)
+      }
         className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white font-medium
           ${isProcessing 
             ? 'bg-blue-400 cursor-not-allowed' 

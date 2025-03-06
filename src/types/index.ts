@@ -75,15 +75,22 @@ export interface ExtendedAgent {
   warning?: string;
 }
 
+export interface SelectOption {
+  value: string;
+  label: string;
+}
+
 export interface AgentField {
   id: string;
   label: string;
-  type: 'text' | 'textarea' | 'file';
+  type: 'text' | 'textarea' | 'file' | 'select';
   placeholder?: string;
   accept?: string;
+  options?: SelectOption[];
+  required?: boolean;
 }
 
-export type FormDataValue = string | File | null;
+export type FormDataValue = string | File | File[] | null;
 
 export interface FormData {
   [key: string]: FormDataValue;

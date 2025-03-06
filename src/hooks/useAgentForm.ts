@@ -8,7 +8,7 @@ import { submitImageProcessorAnalysis } from '../services/imageProcessorService'
 import { submitDokpolAnalysis } from '../services/dokpolService';
 import { imagePrompts } from '../data/agents/imageAgent';
 import { agents } from '../data/agents';
-import { submitModusKejahatanAnalysis } from '../services/agentModusKejahatan';
+import { submitModusKejahatanAnalysis } from '@/services/agentModusKejahatan';
 import { submitCrimeTrendAnalysis } from '@/services/agentCrimeTrendAnalyst';
 import { submitAgentAnalysis as submitSentimentAnalysis } from '@/services/agentSentimentAnalyst';
 import { submitAgentAnalysis as submitTipikorAnalysis } from '@/services/agentTipikorAnalyst';
@@ -25,7 +25,7 @@ interface UseAgentFormResult {
   reset: () => void;
 }
 
-const API_TIMEOUT = 60000; // 30 seconds timeout
+const API_TIMEOUT = 60000; // 60 seconds timeout
 
 export const useAgentForm = (): UseAgentFormResult => {
   const [formData, setFormData] = useState<FormData>({});
@@ -43,12 +43,27 @@ export const useAgentForm = (): UseAgentFormResult => {
       [fieldId]: value
     }));
 
+    // Handle preview for single file
     if (value instanceof File) {
       const reader = new FileReader();
       reader.onload = (e) => {
         setImagePreview(e.target?.result as string);
       };
       reader.readAsDataURL(value);
+    }
+    
+    // Handle preview for multiple files
+    if (Array.isArray(value) && value.every(file => file instanceof File)) {
+      // Just preview the first file for now
+      if (value.length > 0) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setImagePreview(e.target?.result as string);
+        };
+        reader.readAsDataURL(value[0]);
+      } else {
+        setImagePreview(null);
+      }
     }
 
     setError(null);
@@ -75,24 +90,32 @@ export const useAgentForm = (): UseAgentFormResult => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
-      setError('Permintaan timeout setelah 30 detik. Silakan coba lagi.');
+      setError('Permintaan timeout setelah 60 detik. Silakan coba lagi.');
       setIsProcessing(false);
     }, API_TIMEOUT);
 
     try {
       let response: string;
-      if (agentType === 'image_processor' || agentType === 'medical_image') {
+      if (agentType === 'image_processor') {
         const imageFile = formData.image_file;
         if (!imageFile || !(imageFile instanceof File)) {
           throw new Error('Mohon pilih file gambar');
         }
-
-        // Determine which service to use based on the agent type
-        if (agentType === 'medical_image') {
-          response = await submitDokpolAnalysis(imageFile);
-        } else {
-          response = await submitImageProcessorAnalysis(imageFile);
+        response = await submitImageProcessorAnalysis(imageFile);
+      } else if (agentType === 'medical_image') {
+        const serviceType = formData.service_type as ('umum' | 'forensik');
+        if (!serviceType) {
+          throw new Error('Mohon pilih jenis layanan Dokpol');
         }
+        
+        const imageFiles = formData.image_files as File[];
+        if (!imageFiles || !Array.isArray(imageFiles) || imageFiles.length === 0) {
+          throw new Error('Mohon pilih minimal 1 gambar');
+        }
+        if (imageFiles.length > 3) {
+          throw new Error('Maksimal 3 gambar yang dapat diupload');
+        }
+        response = await submitDokpolAnalysis(imageFiles, serviceType);
       } else if (agentType === 'image') {
         const imageFile = formData.image_file;
         if (!imageFile || !(imageFile instanceof File)) {
@@ -160,6 +183,7 @@ export const useAgentForm = (): UseAgentFormResult => {
       if (err instanceof Error && err.name !== 'AbortError') {
         setError(err instanceof Error ? err.message : 'Terjadi kesalahan yang tidak diketahui');
       }
+      throw err; // Re-throw to let the form component handle it
     } finally {
       setIsProcessing(false);
       abortControllerRef.current = null;

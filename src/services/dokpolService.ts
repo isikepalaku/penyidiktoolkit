@@ -102,48 +102,64 @@ const compressImage = async (file: File, maxSizeMB: number = 1): Promise<File> =
   });
 };
 
-export const submitDokpolAnalysis = async (imageFile: File): Promise<string> => {
+export type DokpolServiceType = 'umum' | 'forensik';
+
+export const submitDokpolAnalysis = async (imageFiles: File[], serviceType: DokpolServiceType): Promise<string> => {
   try {
-    // Validasi ukuran file (50MB dalam bytes)
+    // Validasi jumlah file
+    if (imageFiles.length === 0) {
+      throw new Error('Mohon pilih minimal 1 gambar');
+    }
+    if (imageFiles.length > 3) {
+      throw new Error('Maksimal 3 gambar yang dapat diupload');
+    }
+
     const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-    if (imageFile.size > MAX_FILE_SIZE) {
-      throw new Error(`Ukuran file terlalu besar. Maksimum ${MAX_FILE_SIZE / (1024 * 1024)}MB`);
-    }
 
-    // Validasi tipe file
-    if (!imageFile.type.startsWith('image/')) {
-      throw new Error('File harus berupa gambar');
-    }
-
-    console.group('Image Upload Details (Original)');
-    console.log('File:', {
-      name: imageFile.name,
-      type: imageFile.type,
-      size: `${(imageFile.size / (1024 * 1024)).toFixed(2)}MB`,
-      lastModified: new Date(imageFile.lastModified).toISOString()
-    });
-    console.groupEnd();
-    
-    // Kompres gambar jika ukurannya lebih dari 1MB
-    let fileToUpload = imageFile;
-    if (imageFile.size > 1 * 1024 * 1024) {
-      try {
-        console.log('Mengompres gambar...');
-        fileToUpload = await compressImage(imageFile, 1); // Kompres ke maksimal 1MB
-        
-        console.group('Image Upload Details (Compressed)');
-        console.log('File:', {
-          name: fileToUpload.name,
-          type: fileToUpload.type,
-          size: `${(fileToUpload.size / (1024 * 1024)).toFixed(2)}MB`,
-          lastModified: new Date(fileToUpload.lastModified).toISOString()
-        });
-        console.groupEnd();
-      } catch (compressError) {
-        console.error('Gagal mengompres gambar:', compressError);
-        console.log('Melanjutkan dengan file asli');
+    // Validasi dan kompresi semua file
+    const filesToUpload = await Promise.all(imageFiles.map(async (imageFile, i) => {
+      // Validasi ukuran file
+      if (imageFile.size > MAX_FILE_SIZE) {
+        throw new Error(`File ${i + 1} terlalu besar. Maksimum ${MAX_FILE_SIZE / (1024 * 1024)}MB`);
       }
-    }
+
+      // Validasi tipe file
+      if (!imageFile.type.startsWith('image/')) {
+        throw new Error(`File ${i + 1} harus berupa gambar`);
+      }
+
+      console.group('Image Upload Details (Original)');
+      console.log(`File ${i + 1}:`, {
+        name: imageFile.name,
+        type: imageFile.type,
+        size: `${(imageFile.size / (1024 * 1024)).toFixed(2)}MB`,
+        lastModified: new Date(imageFile.lastModified).toISOString()
+      });
+      console.groupEnd();
+
+      // Kompres gambar jika ukurannya lebih dari 1MB
+      let fileToUpload = imageFile;
+      if (imageFile.size > 1 * 1024 * 1024) {
+        try {
+          console.log(`Mengompres gambar ${i + 1}...`);
+          fileToUpload = await compressImage(imageFile, 1); // Kompres ke maksimal 1MB
+
+          console.group('Image Upload Details (Compressed)');
+          console.log(`File ${i + 1}:`, {
+            name: fileToUpload.name,
+            type: fileToUpload.type,
+            size: `${(fileToUpload.size / (1024 * 1024)).toFixed(2)}MB`,
+            lastModified: new Date(fileToUpload.lastModified).toISOString()
+          });
+          console.groupEnd();
+        } catch (compressError) {
+          console.error(`Gagal mengompres gambar ${i + 1}:`, compressError);
+          console.log('Melanjutkan dengan file asli');
+        }
+      }
+
+      return fileToUpload;
+    }));
 
     let retries = 0;
     
@@ -152,29 +168,36 @@ export const submitDokpolAnalysis = async (imageFile: File): Promise<string> => 
         console.log(`Attempt ${retries + 1} of ${MAX_RETRIES + 1}`);
         
         const formData = new FormData();
-        formData.append('message', 'Mohon analisis gambar ini dari sudut pandang medis');
+        const message = serviceType === 'umum' 
+          ? 'Mohon analisis gambar ini dari sudut pandang medis'
+          : 'Mohon analisis gambar ini dari sudut pandang forensik';
+        formData.append('message', message);
         formData.append('stream', 'true');
         formData.append('monitor', 'false'); 
         formData.append('session_id', 'string');
         formData.append('user_id', 'string');
-        formData.append('files', fileToUpload);
-
-        console.group('Image Upload Details (Final)');
-        console.log('File:', {
-          name: fileToUpload.name,
-          type: fileToUpload.type,
-          size: fileToUpload.size,
-          lastModified: new Date(fileToUpload.lastModified).toISOString()
+        
+        // Append all files to formData
+        filesToUpload.forEach(file => {
+          formData.append('files', file);
         });
 
+        console.group('Image Upload Details (Final)');
+        console.log('Files:', filesToUpload.map(file => ({
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          lastModified: new Date(file.lastModified).toISOString()
+        })));
+
         console.log('FormData contents:', {
-          message: 'Mohon analisis gambar ini dari sudut pandang medis',
+          message: message,
           stream: 'true',
           monitor: 'false',
           session_id: 'string',
           user_id: 'string',
-          files: imageFile.name,
-          size: imageFile.size
+          files: filesToUpload.map(file => file.name),
+          totalSize: filesToUpload.reduce((acc, file) => acc + file.size, 0)
         });
         console.groupEnd();
 
@@ -189,7 +212,8 @@ export const submitDokpolAnalysis = async (imageFile: File): Promise<string> => 
           body: formData
         };
 
-        const url = `/v1/playground/agents/medis-image-agent/runs`;
+        const agentType = serviceType === 'umum' ? 'medis-image-agent' : 'forensic-image-agent';
+        const url = `/v1/playground/agents/${agentType}/runs`;
         
         console.group('Request Details');
         console.log('API URL:', API_BASE_URL);

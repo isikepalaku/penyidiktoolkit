@@ -7,6 +7,7 @@ import type { ExtendedAgent, Agent } from '../types';
 import { agents } from '../data/agents';
 import { BaseAgentForm } from '../components/agent-forms/BaseAgentForm';
 import { ImageAgentForm } from '../components/agent-forms/ImageAgentForm';
+import { ImageProcessorForm, ImageProcessorFormProps } from '../components/agent-forms/ImageProcessorForm';
 import { useAgentForm } from '../hooks/useAgentForm';
 import { DotBackground } from '../components/ui/DotBackground';
 
@@ -28,14 +29,14 @@ export default function Agents() {
   const [showArtifact, setShowArtifact] = useState(false);
   const {
     formData,
-    imagePreview,
     error,
     isProcessing,
     result,
     setResult,
     handleInputChange,
     handleSubmit,
-    reset
+    reset,
+    imagePreview
   } = useAgentForm();
 
   useEffect(() => {
@@ -49,7 +50,11 @@ export default function Agents() {
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedAgentData) return;
-    await handleSubmit(selectedAgentData.type);
+    try {
+      await handleSubmit(selectedAgentData.type);
+    } catch (err) {
+      console.error('Error submitting form:', err);
+    }
   };
 
   const handleBack = () => {
@@ -114,14 +119,15 @@ export default function Agents() {
       formData,
       onInputChange: handleInputChange,
       error,
-      isProcessing
+      isProcessing,
+      imagePreview
     };
 
     switch (selectedAgentData.type) {
-      case 'image':
       case 'image_processor':
+        return <ImageProcessorForm {...commonProps as ImageProcessorFormProps} />;
       case 'medical_image':
-        return <ImageAgentForm {...commonProps} imagePreview={imagePreview} />;
+        return <ImageAgentForm {...commonProps} />;
       case 'crime_trend_analyst':
         return <BaseAgentForm {...commonProps} textareaHeight="h-32" />;
       case 'hoax_checker':

@@ -14,6 +14,7 @@ export interface BaseAgentFormProps {
   isProcessing: boolean;
   isDisabled?: boolean;
   textareaHeight?: string;
+  imagePreview?: string | null;
 }
 
 export function BaseAgentForm({ 
