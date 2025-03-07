@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
-import { FileAudio, ArrowLeft, Image } from 'lucide-react';
+import { FileAudio, ArrowLeft, Image, MapPin } from 'lucide-react';
 import { processAudioTranscript } from '../services/audioTranscriptService';
+import { submitMapsGeocoding } from '../services/mapsGeocodingService';
+import { mapsGeocodingAgent } from '../data/agents/mapsGeocodingAgent';
 import { AudioAgentForm } from '@/components/agent-forms/AudioAgentForm';
 import { ImageAgentForm } from '@/components/agent-forms/ImageAgentForm';
 import ResultArtifact from '@/components/ResultArtifact';
-import type { FormDataValue } from '@/types';
+import type { FormDataValue, FormData } from '@/types';
 import type { AudioFormData } from '@/types/audio';
 import type { AudioPromptType } from '@/data/agents/audioAgent';
 import { imageAgent } from '../data/agents/imageAgent';
 import { submitImageAnalysis } from '../services/imageService';
+import { BaseAgentForm } from '@/components/agent-forms/BaseAgentForm';
 import { DotBackground } from '@/components/ui/DotBackground';
 
 type ToolType = {
@@ -30,6 +33,12 @@ const toolTypes: ToolType[] = [
     name: imageAgent.name,
     description: imageAgent.description,
     icon: <Image size={24} className="text-green-500" />
+  },
+  {
+    id: 'maps-agent',
+    name: 'Maps Geocoding',
+    description: 'Alat untuk mencari dan mengkonversi alamat ke koordinat geografis',
+    icon: <MapPin size={24} className="text-red-500" />
   }
 ];
 
@@ -48,6 +57,9 @@ export default function Toolkit() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
+  const [mapsGeocodingFormData, setMapsGeocodingFormData] = useState<FormData>({
+    message: ''
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,6 +88,9 @@ export default function Toolkit() {
           imageFormData.prompt_type
         );
         setResult(text);
+      } else if (selectedTool === 'maps-agent' && mapsGeocodingFormData.message && typeof mapsGeocodingFormData.message === 'string') {
+        const text = await submitMapsGeocoding(mapsGeocodingFormData.message);
+        setResult(text);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
@@ -92,6 +107,11 @@ export default function Toolkit() {
 
     if (selectedTool === 'transcript') {
       setAudioFormData(prev => ({
+        ...prev,
+        [fieldId]: value
+      }));
+    } else if (selectedTool === 'maps-agent') {
+      setMapsGeocodingFormData(prev => ({
         ...prev,
         [fieldId]: value
       }));
@@ -131,6 +151,7 @@ export default function Toolkit() {
                     setImagePreview(null);
                     setResult(null);
                     setError(null);
+                    setMapsGeocodingFormData({ message: '' });
                   }}
                   className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
                 >
@@ -163,6 +184,15 @@ export default function Toolkit() {
                   isProcessing={isProcessing}
                   imagePreview={imagePreview}
                 />
+              ) : selectedTool === 'maps-agent' ? (
+                <BaseAgentForm
+                  agent={mapsGeocodingAgent}
+                  formData={mapsGeocodingFormData}
+                  onInputChange={handleInputChange}
+                  error={error}
+                  isProcessing={isProcessing}
+                  isDisabled={!!result}
+                />
               ) : null}
             </form>
           </div>
@@ -170,7 +200,10 @@ export default function Toolkit() {
           {result && (
             <ResultArtifact 
               content={result}
-              onClose={() => setResult(null)}
+              onClose={() => {
+                setResult(null);
+                setMapsGeocodingFormData({ message: '' });
+              }}
             />
           )}
         </div>

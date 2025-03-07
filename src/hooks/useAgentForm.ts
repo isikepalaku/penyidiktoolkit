@@ -25,7 +25,7 @@ interface UseAgentFormResult {
   reset: () => void;
 }
 
-const API_TIMEOUT = 60000; // 60 seconds timeout
+const API_TIMEOUT = 600000; // 600 seconds (10 minutes) timeout
 
 export const useAgentForm = (): UseAgentFormResult => {
   const [formData, setFormData] = useState<FormData>({});
@@ -90,7 +90,7 @@ export const useAgentForm = (): UseAgentFormResult => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
-      setError('Permintaan timeout setelah 60 detik. Silakan coba lagi.');
+      setError('Permintaan timeout setelah 10 menit. Silakan coba lagi.');
       setIsProcessing(false);
     }, API_TIMEOUT);
 

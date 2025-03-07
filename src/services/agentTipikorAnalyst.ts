@@ -1,8 +1,8 @@
 import { env } from '@/config/env';
 
 const API_KEY = import.meta.env.VITE_API_KEY;
-const MAX_RETRIES = 3;
-const RETRY_DELAY = 1000;
+const MAX_RETRIES = 1; // Total 2 percobaan (initial + 1 retry)
+const RETRY_DELAY = 30000; // Base delay 30 detik dengan exponential backoff
 const API_BASE_URL = process.env.NODE_ENV === 'production' ? env.apiUrl : '';
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -83,7 +83,7 @@ export const submitAgentAnalysis = async (
         
         if (response.status >= 500 && retries < MAX_RETRIES) {
           retries++;
-          await wait(RETRY_DELAY * retries);
+        await wait(RETRY_DELAY * Math.pow(2, retries));
           continue;
         }
         

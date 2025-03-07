@@ -57,7 +57,7 @@ const AutosizeTextarea: React.FC<AutosizeTextareaProps> = ({
       disabled={disabled}
       style={{
         resize: 'none',
-        overflow: 'hidden',
+        overflow: 'auto',
         minHeight: `${minRows * 1.5}em`,
         maxHeight: `${maxRows * 1.5}em`,
       }}

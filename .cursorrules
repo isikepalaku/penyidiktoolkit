@@ -529,6 +529,95 @@ Next Steps:
 - Consider adding more security headers if required
 - Review and optimize file upload performance
 
+## Toolkit Agent Implementation Pattern
+
+### Creating New Toolkit Agent
+1. Keep agent separate from main agents:
+   - Do NOT add to agents array in data/agents/index.ts
+   - Do NOT add to renderAgentForm switch in Agents.tsx
+   - Only integrate in Toolkit.tsx
+
+2. Agent Configuration:
+```typescript
+// src/data/agents/[agentName]Agent.ts
+export const toolkitAgent: ExtendedAgent = {
+  id: 'toolkit-specific-id',  // Use same ID in service
+  name: 'Toolkit Agent',
+  type: 'toolkit_type',
+  status: 'on',
+  description: 'Agent description',
+  fields: [
+    {
+      id: 'message',  // Standard field ID for text input
+      label: 'Input Label',
+      type: 'textarea' as const,
+      placeholder: 'Placeholder text...'
+    }
+  ]
+};
+```
+
+3. Service Implementation:
+```typescript
+// src/services/[agentName]Service.ts
+export const submitToolkitAgent = async (query: string): Promise<string> => {
+  const url = `${API_BASE_URL}/v1/playground/agents/[endpoint-name]/runs`;
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'X-API-Key': API_KEY || ''
+    },
+    body: new URLSearchParams({
+      message: query,
+      agent_id: '[endpoint-name]',
+      stream: 'false',
+      monitor: 'false',
+      session_id: 'string',
+      user_id: 'string'
+    }).toString()
+  });
+  // ... error handling ...
+};
+```
+
+4. Toolkit Integration:
+```typescript
+// In Toolkit.tsx
+const toolTypes: ToolType[] = [
+  // ... other tools ...
+  {
+    id: toolkitAgent.id,
+    name: toolkitAgent.name,
+    description: toolkitAgent.description,
+    icon: <AppropriateIcon size={24} className="text-[color]-500" />
+  }
+];
+```
+
+5. Form Handling:
+```typescript
+<BaseAgentForm
+  agent={toolkitAgent}
+  formData={formData}
+  onInputChange={handleInputChange}
+  error={error}
+  isProcessing={isProcessing}
+  isDisabled={!!result}
+/>
+```
+
+Common Mistakes to Avoid:
+- Don't add toolkit agents to main agents array
+- Don't add to Agents.tsx renderAgentForm
+- Use x-www-form-urlencoded content type instead of JSON
+- Keep agent ID consistent between config and service
+- Always provide reset functionality for toolkit forms
+- Maintain consistent form state management pattern
+- Follow proper error handling pattern
+
 ## Mobile UI Lessons
 
 ### Scrollable Content in Fixed Containers

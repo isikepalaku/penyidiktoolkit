@@ -60,7 +60,8 @@ export type AgentType =
   | 'tipikor_analyst'
   | 'ciptakerja_chat'
   | 'kesehatan_chat'
-  | 'penyidik_chat';
+  | 'penyidik_chat'
+  | 'maps_geocoding';
 
 export interface ExtendedAgent {
   id: string;
