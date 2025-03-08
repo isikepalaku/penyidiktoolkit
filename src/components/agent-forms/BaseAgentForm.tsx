@@ -1,5 +1,4 @@
 import React, { useState, useRef } from 'react';
-import { useReCaptcha } from "next-recaptcha-v3";
 import type { ExtendedAgent, FormData, FormDataValue } from '@/types';
 import AutosizeTextarea from '../AutosizeTextarea';
 import { FileImage, Loader2 } from 'lucide-react';
@@ -31,9 +30,7 @@ export function BaseAgentForm({
 }: BaseAgentFormProps) {
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
-  const [recaptchaError, setRecaptchaError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { executeRecaptcha } = useReCaptcha();
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -150,32 +147,14 @@ export function BaseAgentForm({
         </div>
       )}
 
-      {recaptchaError && (
-        <div className="text-red-500 text-sm mt-2">
-          {recaptchaError}
-        </div>
-      )}
-
       <Button
         type="submit"
         disabled={isProcessing || isDisabled}
         className={`w-full ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
         onClick={async (e) => {
           e.preventDefault();
-          setRecaptchaError(null);
-          
-          try {
-            // Execute reCAPTCHA with action name
-            const token = await executeRecaptcha('form_submit');
-            
-            if (onSubmit) {
-              // Pass the token in the event object
-              const eventWithToken = Object.assign(e, { recaptchaToken: token });
-              await onSubmit(eventWithToken);
-            }
-          } catch (err) {
-            console.error('reCAPTCHA error:', err);
-            setRecaptchaError('Verifikasi reCAPTCHA gagal. Silakan coba lagi.');
+          if (onSubmit) {
+            await onSubmit(e);
           }
         }}
       >
