@@ -510,114 +510,6 @@ Common Mistakes:
 4. Gunakan logging yang seragam
 5. Handle error dengan cara yang konsisten
 
-# Scratchpad
-
-Current Task: Optimizing API Security and Performance
-
-[X] Update API key usage across services
-[X] Configure nginx security settings
-[X] Add rate limiting
-[X] Block unnecessary paths
-[X] Update file upload handling
-[X] Configure CORS properly
-[X] Add security headers
-[X] Update vite proxy configuration
-[X] Document lessons learned
-
-Next Steps:
-- Monitor API usage and adjust rate limits if needed
-- Consider adding more security headers if required
-- Review and optimize file upload performance
-
-## Toolkit Agent Implementation Pattern
-
-### Creating New Toolkit Agent
-1. Keep agent separate from main agents:
-   - Do NOT add to agents array in data/agents/index.ts
-   - Do NOT add to renderAgentForm switch in Agents.tsx
-   - Only integrate in Toolkit.tsx
-
-2. Agent Configuration:
-```typescript
-// src/data/agents/[agentName]Agent.ts
-export const toolkitAgent: ExtendedAgent = {
-  id: 'toolkit-specific-id',  // Use same ID in service
-  name: 'Toolkit Agent',
-  type: 'toolkit_type',
-  status: 'on',
-  description: 'Agent description',
-  fields: [
-    {
-      id: 'message',  // Standard field ID for text input
-      label: 'Input Label',
-      type: 'textarea' as const,
-      placeholder: 'Placeholder text...'
-    }
-  ]
-};
-```
-
-3. Service Implementation:
-```typescript
-// src/services/[agentName]Service.ts
-export const submitToolkitAgent = async (query: string): Promise<string> => {
-  const url = `${API_BASE_URL}/v1/playground/agents/[endpoint-name]/runs`;
-  
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'X-API-Key': API_KEY || ''
-    },
-    body: new URLSearchParams({
-      message: query,
-      agent_id: '[endpoint-name]',
-      stream: 'false',
-      monitor: 'false',
-      session_id: 'string',
-      user_id: 'string'
-    }).toString()
-  });
-  // ... error handling ...
-};
-```
-
-4. Toolkit Integration:
-```typescript
-// In Toolkit.tsx
-const toolTypes: ToolType[] = [
-  // ... other tools ...
-  {
-    id: toolkitAgent.id,
-    name: toolkitAgent.name,
-    description: toolkitAgent.description,
-    icon: <AppropriateIcon size={24} className="text-[color]-500" />
-  }
-];
-```
-
-5. Form Handling:
-```typescript
-<BaseAgentForm
-  agent={toolkitAgent}
-  formData={formData}
-  onInputChange={handleInputChange}
-  error={error}
-  isProcessing={isProcessing}
-  isDisabled={!!result}
-/>
-```
-
-Common Mistakes to Avoid:
-- Don't add toolkit agents to main agents array
-- Don't add to Agents.tsx renderAgentForm
-- Use x-www-form-urlencoded content type instead of JSON
-- Keep agent ID consistent between config and service
-- Always provide reset functionality for toolkit forms
-- Maintain consistent form state management pattern
-- Follow proper error handling pattern
-
 ## Mobile UI Lessons
 
 ### Scrollable Content in Fixed Containers
@@ -757,3 +649,113 @@ Common issues to avoid:
 - Not managing browser history state properly
 - Not cleaning up event listeners
 - Not handling hardware back button on mobile
+
+### Mobile-First Chat Interface Design
+1. Collapsible panels untuk menghemat ruang:
+```typescript
+// Toggle panel visibility
+<button 
+  onClick={() => {
+    const panel = document.getElementById('panel-id');
+    if (panel) panel.classList.toggle('hidden');
+  }}
+  className="flex items-center gap-1"
+>
+  <span>Panel Title</span>
+  <ChevronDownIcon className="w-4 h-4" />
+</button>
+
+// Panel yang dapat disembunyikan
+<div id="panel-id" className="hidden md:block">
+  {/* Panel content */}
+</div>
+```
+
+2. Gunakan ukuran yang berbeda untuk mobile dan desktop:
+```css
+.element {
+  @apply p-2 md:p-4 text-sm md:text-base;
+}
+```
+
+3. Kurangi padding dan margin di mobile:
+```css
+.container {
+  @apply p-2 md:p-4 space-y-2 md:space-y-4;
+}
+```
+
+4. Gunakan ukuran ikon yang lebih kecil di mobile:
+```css
+.icon {
+  @apply w-4 h-4 md:w-5 md:h-5;
+}
+```
+
+5. Gunakan tinggi dinamis berdasarkan viewport:
+```css
+.chat-container {
+  @apply h-[calc(100vh-12rem)] md:h-[calc(100vh-8rem)];
+}
+```
+
+6. Hindari elemen UI yang menutupi konten penting:
+   - Gunakan panel yang dapat disembunyikan untuk file preview
+   - Kurangi ukuran header di mobile
+   - Prioritaskan area chat dengan memberikan lebih banyak ruang
+   - Gunakan tombol toggle untuk menampilkan/menyembunyikan panel sekunder
+
+7. Optimasi untuk layar kecil:
+   - Gunakan input yang lebih compact
+   - Kurangi teks label menjadi lebih singkat
+   - Gunakan ikon sebagai pengganti teks jika memungkinkan
+   - Terapkan truncate untuk teks yang panjang
+
+8. Gunakan JavaScript untuk toggle panel di mobile:
+```typescript
+// Tambahkan ID ke panel
+<div id="file-preview-container" className="hidden md:flex">
+  {/* File previews */}
+</div>
+
+// Gunakan toggle button
+<button onClick={() => {
+  const panel = document.getElementById('file-preview-container');
+  if (panel) panel.classList.toggle('hidden');
+}}>
+  Toggle Files
+</button>
+```
+
+# Scratchpad
+
+Current Task: Optimizing Mobile UI for PDF/Image Analysis Chat Interface
+
+[X] Memperbesar area chat untuk mode tanya jawab dokumen
+[X] Membuat header lebih compact di mobile
+[X] Membuat panel file yang dapat disembunyikan (collapsible)
+[X] Mengoptimalkan input area untuk mobile
+[X] Menghapus variabel state yang tidak digunakan (filesUploaded)
+[X] Menambahkan pembelajaran ke .cursorrules
+[X] Mengubah ikon dokumen berdasarkan jenis file yang diupload
+[X] Memperbaiki error TypeScript untuk variabel yang tidak digunakan
+
+Refleksi:
+- Berhasil mengimplementasikan tampilan mobile yang lebih optimal
+- Menggunakan pendekatan collapsible panel untuk file preview
+- Menerapkan responsive design dengan breakpoint md:
+- Memprioritaskan area chat dengan memberikan lebih banyak ruang
+- Mengurangi ukuran elemen UI di mobile untuk menghemat ruang
+- Menambahkan ikon yang berbeda berdasarkan jenis file untuk meningkatkan UX
+- Membersihkan kode dengan menghapus variabel yang tidak digunakan
+
+Pembelajaran:
+- Gunakan collapsible panel untuk konten sekunder di mobile
+- Terapkan ukuran yang berbeda untuk mobile dan desktop dengan breakpoint
+- Prioritaskan konten utama (area chat) dengan memberikan lebih banyak ruang
+- Kurangi padding dan margin di mobile
+- Gunakan JavaScript sederhana untuk toggle panel
+- Gunakan ikon yang berbeda berdasarkan jenis file untuk meningkatkan UX
+- Buat fungsi helper untuk mengelola ikon berdasarkan tipe file
+- Perhatikan peringatan TypeScript tentang variabel yang tidak digunakan
+- Impor hanya ikon yang benar-benar digunakan untuk mengurangi ukuran bundle

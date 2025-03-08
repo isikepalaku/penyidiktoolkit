@@ -61,7 +61,8 @@ export type AgentType =
   | 'ciptakerja_chat'
   | 'kesehatan_chat'
   | 'penyidik_chat'
-  | 'maps_geocoding';
+  | 'maps_geocoding'
+  | 'pdf_image_analyzer';
 
 export interface ExtendedAgent {
   id: string;
@@ -89,6 +90,7 @@ export interface AgentField {
   accept?: string;
   options?: SelectOption[];
   required?: boolean;
+  multiple?: boolean;
 }
 
 export type FormDataValue = string | File | File[] | null;

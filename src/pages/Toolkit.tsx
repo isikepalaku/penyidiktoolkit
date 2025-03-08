@@ -1,14 +1,19 @@
-import React, { useState } from 'react';
-import { FileAudio, ArrowLeft, Image, MapPin } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { FileAudio, ArrowLeft, Image, MapPin, FileText } from 'lucide-react';
 import { processAudioTranscript } from '../services/audioTranscriptService';
 import { submitMapsGeocoding } from '../services/mapsGeocodingService';
+import { processPdfImage, sendChatMessage as sendPdfImageChatMessage, clearChatHistory, initializeSession } from '../services/pdfImageService';
 import { mapsGeocodingAgent } from '../data/agents/mapsGeocodingAgent';
+import { pdfImageAgent } from '../data/agents/pdfImageAgent';
 import { AudioAgentForm } from '@/components/agent-forms/AudioAgentForm';
 import { ImageAgentForm } from '@/components/agent-forms/ImageAgentForm';
+import { PdfImageAnalysisForm } from '@/components/agent-forms/PdfImageAnalysisForm';
 import ResultArtifact from '@/components/ResultArtifact';
 import type { FormDataValue, FormData } from '@/types';
 import type { AudioFormData } from '@/types/audio';
+import type { PdfImageFormData, ChatMessage } from '@/types/pdfImage';
 import type { AudioPromptType } from '@/data/agents/audioAgent';
+import type { PdfImagePromptType } from '@/data/agents/pdfImageAgent';
 import { imageAgent } from '../data/agents/imageAgent';
 import { submitImageAnalysis } from '../services/imageService';
 import { BaseAgentForm } from '@/components/agent-forms/BaseAgentForm';
@@ -39,6 +44,12 @@ const toolTypes: ToolType[] = [
     name: 'Maps Geocoding',
     description: 'Alat untuk mencari dan mengkonversi alamat ke koordinat geografis',
     icon: <MapPin size={24} className="text-red-500" />
+  },
+  {
+    id: pdfImageAgent.id,
+    name: pdfImageAgent.name,
+    description: pdfImageAgent.description,
+    icon: <FileText size={24} className="text-purple-500" />
   }
 ];
 
@@ -53,6 +64,11 @@ export default function Toolkit() {
     image_description: '',
     prompt_type: 'default' as const
   });
+  const [pdfImageFormData, setPdfImageFormData] = useState<PdfImageFormData>({
+    files: null,
+    task_type: 'summarize',
+    instruction: ''
+  });
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +76,16 @@ export default function Toolkit() {
   const [mapsGeocodingFormData, setMapsGeocodingFormData] = useState<FormData>({
     message: ''
   });
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [isChatMode, setIsChatMode] = useState(false);
+
+  // Inisialisasi session saat komponen dimount jika ada file yang diupload
+  useEffect(() => {
+    if (selectedTool === pdfImageAgent.id && pdfImageFormData.files && pdfImageFormData.files.length > 0) {
+      console.log('Initializing session on component mount');
+      initializeSession();
+    }
+  }, [selectedTool, pdfImageFormData.files]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,6 +117,21 @@ export default function Toolkit() {
       } else if (selectedTool === 'maps-agent' && mapsGeocodingFormData.message && typeof mapsGeocodingFormData.message === 'string') {
         const text = await submitMapsGeocoding(mapsGeocodingFormData.message);
         setResult(text);
+      } else if (selectedTool === pdfImageAgent.id && pdfImageFormData.files && !isChatMode) {
+        // Pastikan session diinisialisasi sebelum memproses file
+        initializeSession();
+        
+        const response = await processPdfImage({
+          files: Array.from(pdfImageFormData.files),
+          task_type: pdfImageFormData.task_type as PdfImagePromptType,
+          instruction: pdfImageFormData.instruction as string
+        });
+
+        if (!response.success) {
+          throw new Error(response.error || 'Failed to process PDF/Image');
+        }
+
+        setResult(response.text);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
@@ -124,7 +165,111 @@ export default function Toolkit() {
         ...prev,
         [fieldId]: value
       }));
+    } else if (selectedTool === pdfImageAgent.id) {
+      // Inisialisasi session saat file diupload
+      if (fieldId === 'files' && value instanceof Array && value.length > 0) {
+        console.log('Initializing session on file upload');
+        initializeSession();
+      }
+      
+      // Simpan file dalam state
+      setPdfImageFormData(prev => ({
+        ...prev,
+        [fieldId]: value
+      }));
     }
+  };
+
+  const handleSendChatMessage = async (message: string) => {
+    if (!message.trim() || isProcessing) return;
+    
+    // Pastikan session diinisialisasi sebelum mengirim pesan
+    initializeSession();
+    
+    // Add user message to chat
+    setChatMessages(prev => [...prev, { role: 'user', content: message }]);
+    
+    setIsProcessing(true);
+    try {
+      // Send message to API
+      const response = await sendPdfImageChatMessage(message);
+      
+      // Add assistant response to chat
+      setChatMessages(prev => [...prev, { role: 'assistant', content: response }]);
+    } catch (error) {
+      console.error('Chat error:', error);
+      setChatMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: 'Maaf, terjadi kesalahan saat memproses pesan Anda.' 
+      }]);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleToggleChatMode = () => {
+    // Pastikan dokumen sudah diproses sebelum beralih ke mode chat
+    if (!isChatMode && pdfImageFormData.files && pdfImageFormData.files.length > 0) {
+      // Jika belum ada hasil, proses dokumen terlebih dahulu
+      if (!result) {
+        // Gunakan task_type default jika belum dipilih
+        const taskType = pdfImageFormData.task_type || 'summarize';
+        
+        // Proses dokumen secara otomatis dengan instruksi default
+        setIsProcessing(true);
+        processPdfImage({
+          files: Array.from(pdfImageFormData.files),
+          task_type: taskType as PdfImagePromptType,
+          instruction: 'Analisis dokumen ini untuk persiapan tanya jawab.'
+        })
+          .then(response => {
+            if (!response.success) {
+              console.warn('Document processing warning:', response.error);
+              // Tetap beralih ke mode chat meskipun ada warning
+              setIsChatMode(true);
+              setResult(null);
+              // Tampilkan pesan error sebagai pesan chat pertama
+              setChatMessages([
+                {
+                  role: 'assistant',
+                  content: `⚠️ Peringatan: ${response.error || 'Terjadi masalah saat memproses dokumen.'}\n\nAnda tetap dapat menggunakan mode tanya jawab, tetapi mungkin akan ada keterbatasan dalam kemampuan menjawab pertanyaan tentang dokumen.`
+                }
+              ]);
+            } else {
+              console.log('Document processed successfully for chat mode');
+              // Setelah dokumen diproses, beralih ke mode chat
+              setIsChatMode(true);
+              setResult(null);
+            }
+          })
+          .catch(err => {
+            console.error('Document processing error:', err);
+            // Tetap beralih ke mode chat meskipun ada error
+            setIsChatMode(true);
+            setResult(null);
+            // Tampilkan pesan error sebagai pesan chat pertama
+            setChatMessages([
+              {
+                role: 'assistant',
+                content: `❌ Error: ${err instanceof Error ? err.message : 'Terjadi kesalahan saat memproses dokumen.'}\n\nAnda tetap dapat menggunakan mode tanya jawab, tetapi mungkin akan ada keterbatasan dalam kemampuan menjawab pertanyaan tentang dokumen.`
+              }
+            ]);
+          })
+          .finally(() => {
+            setIsProcessing(false);
+          });
+      } else {
+        // Jika sudah ada hasil, langsung beralih ke mode chat
+        setIsChatMode(true);
+        setResult(null);
+      }
+    } else {
+      // Beralih kembali ke mode analisis
+      setIsChatMode(false);
+    }
+    
+    // Inisialisasi session
+    initializeSession();
   };
 
   const selectedToolData = toolTypes.find(tool => tool.id === selectedTool);
@@ -148,10 +293,18 @@ export default function Toolkit() {
                       image_description: '',
                       prompt_type: 'default'
                     });
+                    setPdfImageFormData({
+                      files: null,
+                      task_type: 'summarize',
+                      instruction: ''
+                    });
                     setImagePreview(null);
                     setResult(null);
                     setError(null);
                     setMapsGeocodingFormData({ message: '' });
+                    setChatMessages([]);
+                    setIsChatMode(false);
+                    clearChatHistory();
                   }}
                   className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
                 >
@@ -192,6 +345,18 @@ export default function Toolkit() {
                   error={error}
                   isProcessing={isProcessing}
                   isDisabled={!!result}
+                />
+              ) : selectedTool === pdfImageAgent.id ? (
+                <PdfImageAnalysisForm
+                  formData={pdfImageFormData}
+                  onInputChange={handleInputChange}
+                  error={error}
+                  isProcessing={isProcessing}
+                  isDisabled={!!result}
+                  chatMessages={chatMessages}
+                  onSendChatMessage={handleSendChatMessage}
+                  isChatMode={isChatMode}
+                  onToggleChatMode={handleToggleChatMode}
                 />
               ) : null}
             </form>
