@@ -1,4 +1,6 @@
 import React, { useState, useRef } from 'react';
+import ReCAPTCHA from 'react-google-recaptcha';
+const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
 import type { ExtendedAgent, FormData, FormDataValue } from '@/types';
 import AutosizeTextarea from '../AutosizeTextarea';
 import { FileImage, Loader2 } from 'lucide-react';
@@ -10,6 +12,7 @@ export interface BaseAgentFormProps {
   agent?: ExtendedAgent;
   formData: FormData;
   onInputChange: (fieldId: string, value: FormDataValue) => void;
+  onSubmit?: (e: React.FormEvent) => Promise<void>;
   error: string | null;
   isProcessing: boolean;
   isDisabled?: boolean;
@@ -17,18 +20,21 @@ export interface BaseAgentFormProps {
   imagePreview?: string | null;
 }
 
-export function BaseAgentForm({ 
-  agent, 
-  formData, 
-  onInputChange, 
-  error, 
+export function BaseAgentForm({
+  agent,
+  formData,
+  onInputChange,
+  onSubmit,
+  error,
   isProcessing,
   isDisabled,
   textareaHeight = 'min-h-[250px]'
 }: BaseAgentFormProps) {
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [captchaError, setCaptchaError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const captchaRef = useRef<ReCAPTCHA>(null);
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -145,10 +151,44 @@ export function BaseAgentForm({
         </div>
       )}
 
+      {RECAPTCHA_SITE_KEY && (
+        <div className="flex justify-center mb-4">
+          <ReCAPTCHA
+            sitekey={RECAPTCHA_SITE_KEY}
+            ref={captchaRef}
+            onChange={() => setCaptchaError(null)}
+          />
+        </div>
+      )}
+
+      {captchaError && (
+        <div className="text-red-500 text-sm mb-4">
+          {captchaError}
+        </div>
+      )}
+
       <Button
         type="submit"
         disabled={isProcessing || isDisabled}
         className={`w-full ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+        onClick={async (e) => {
+          e.preventDefault();
+          
+          if (RECAPTCHA_SITE_KEY) {
+            const captchaValue = captchaRef.current?.getValue();
+            if (!captchaValue) {
+              setCaptchaError('Mohon verifikasi bahwa Anda bukan robot');
+              return;
+            }
+          }
+
+          if (onSubmit) {
+            await onSubmit(e);
+          }
+          
+          // Reset captcha after submission
+          captchaRef.current?.reset();
+        }}
       >
         {isProcessing ? (
           <>
