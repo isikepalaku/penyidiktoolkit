@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileAudio, ArrowLeft, Image, MapPin, FileText } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { processAudioTranscript } from '../services/audioTranscriptService';
 import { submitMapsGeocoding } from '../services/mapsGeocodingService';
 import { processPdfImage, sendChatMessage as sendPdfImageChatMessage, clearChatHistory, initializeSession } from '../services/pdfImageService';
@@ -31,25 +31,25 @@ const toolTypes: ToolType[] = [
     id: 'transcript',
     name: 'Audio Processor',
     description: 'Transkripsi dan analisis audio dengan teknologi AI',
-    icon: <FileAudio size={24} className="text-blue-500" />
+    icon: <div className="h-10 w-10"><img src="/img/waveform-icon.svg" className="h-10 w-10" alt="extract audio" /></div>
   },
   {
     id: imageAgent.id,
     name: imageAgent.name,
     description: imageAgent.description,
-    icon: <Image size={24} className="text-green-500" />
+    icon: <div className="h-10 w-10"><img src="/img/google-gemini-icon.svg" className="h-10 w-10" alt="Extract image" /></div>
   },
   {
     id: 'maps-agent',
     name: 'Maps Geocoding',
     description: 'Alat untuk mencari dan mengkonversi alamat ke koordinat geografis',
-    icon: <MapPin size={24} className="text-red-500" />
+    icon: <div className="h-10 w-10"><img src="/img/google-color-icon.svg" className="h-10 w-10" alt="Maps geocoding" /></div>
   },
   {
     id: pdfImageAgent.id,
     name: pdfImageAgent.name,
     description: pdfImageAgent.description,
-    icon: <FileText size={24} className="text-purple-500" />
+    icon: <div className="h-10 w-10"><img src="/img/file-info-color-icon.svg" className="h-10 w-10" alt="PDF and Image Analysis" /></div>
   }
 ];
 
