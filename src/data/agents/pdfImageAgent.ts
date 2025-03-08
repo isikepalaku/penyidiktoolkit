@@ -133,7 +133,7 @@ import type { ExtendedAgent } from '@/types';
 export const pdfImageAgent: ExtendedAgent = {
   id: 'pdf-image-analyzer',
   name: 'Analisis Dokumen',
-  description: 'analisis dokumen dengan Teknologi OCR dan AI, melakukan perbandingan dokumen atau melakukan percakapan dengan dokumen',
+  description: 'analisis dokumen dengan Teknologi OCR dan AI, lambat 👨🏽‍🦯‍➡️ namun akurat (BETA)',
   type: 'pdf_image_analyzer',
   status: 'on',
   fields: [

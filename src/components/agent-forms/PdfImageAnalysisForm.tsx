@@ -184,7 +184,7 @@ export const PdfImageAnalysisForm: React.FC<PdfImageAnalysisFormProps> = ({
   // Update prompt title when task type changes
   useEffect(() => {
     if (formData.task_type) {
-      const title = getDefaultPromptTitle(formData.task_type as "summarize" | "extract" | "compare" | "analyze");
+      const title = getDefaultPromptTitle(formData.task_type as any);
       setPromptTitle(title);
     }
   }, [formData.task_type]);
@@ -207,13 +207,25 @@ export const PdfImageAnalysisForm: React.FC<PdfImageAnalysisFormProps> = ({
     }
   }, [isChatMode, formData.files]);
 
+  // Cleanup file preview URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      // Revoke all object URLs to prevent memory leaks
+      filePreviewUrls.forEach(url => {
+        if (url !== 'pdf') { // Skip placeholder strings
+          URL.revokeObjectURL(url);
+        }
+      });
+    };
+  }, [filePreviewUrls]);
+
   const validateFile = (file: File): string | null => {
     if (file.size > MAX_FILE_SIZE) {
       return `File terlalu besar. Maksimal ukuran file adalah ${formatFileSize(MAX_FILE_SIZE)}`;
     }
 
     if (!isSupportedFormat(file)) {
-      return 'Format file tidak didukung. Gunakan PDF atau gambar (JPG, PNG, etc.)';
+      return `Format file tidak didukung. Gunakan PDF atau gambar (JPG, PNG, etc.)`;
     }
 
     return null;
@@ -227,16 +239,43 @@ export const PdfImageAnalysisForm: React.FC<PdfImageAnalysisFormProps> = ({
     return null;
   };
 
+  const validateMaxDocuments = (newFiles: FileList | null): string | null => {
+    if (!newFiles) return null;
+    
+    const currentCount = formData.files ? formData.files.length : 0;
+    const newCount = newFiles.length;
+    const totalCount = currentCount + newCount;
+    
+    const MAX_DOCUMENTS = 5; // Maksimal 5 dokumen
+    
+    if (totalCount > MAX_DOCUMENTS) {
+      return `Maksimal ${MAX_DOCUMENTS} dokumen yang dapat diupload. Anda sudah memiliki ${currentCount} dokumen dan mencoba menambahkan ${newCount} dokumen baru.`;
+    }
+    
+    return null;
+  };
+
   const handleFilesChange = async (files: FileList | null) => {
     try {
       // Clean up previous previews
-      filePreviewUrls.forEach(url => URL.revokeObjectURL(url));
+      filePreviewUrls.forEach(url => {
+        if (url !== 'pdf') { // Skip placeholder strings
+          URL.revokeObjectURL(url);
+        }
+      });
       setFilePreviewUrls([]);
       setIsUploading(false);
       setUploadProgress(0);
 
       if (!files || files.length === 0) {
         onInputChange('files', null);
+        return;
+      }
+
+      // Validasi jumlah maksimum dokumen
+      const maxDocumentsError = validateMaxDocuments(files);
+      if (maxDocumentsError) {
+        onInputChange('error', maxDocumentsError);
         return;
       }
 
@@ -294,8 +333,10 @@ export const PdfImageAnalysisForm: React.FC<PdfImageAnalysisFormProps> = ({
       // Selesai upload
       setIsUploading(false);
       
-      // Update form data
-      onInputChange('files', fileArray);
+      // Update form data dengan menggabungkan file yang sudah ada dengan file baru
+      const existingFiles = formData.files || [];
+      const combinedFiles = [...existingFiles, ...fileArray];
+      onInputChange('files', combinedFiles);
       
     } catch (error) {
       console.error('Error handling files:', error);
@@ -563,7 +604,7 @@ export const PdfImageAnalysisForm: React.FC<PdfImageAnalysisFormProps> = ({
           </div>
           <div className="text-xs md:text-sm text-gray-500">
             {formData.files && (
-              <span>{formData.files.length} file</span>
+              <span>{formData.files.length} dari 5 dokumen</span>
             )}
           </div>
         </div>
@@ -585,9 +626,9 @@ export const PdfImageAnalysisForm: React.FC<PdfImageAnalysisFormProps> = ({
               <div className="mt-4 text-sm">
                 <p>Contoh pertanyaan:</p>
                 <ul className="mt-2 space-y-1 text-left max-w-md mx-auto">
-                  <li className="hover:bg-gray-100 p-1 rounded cursor-pointer" onClick={() => setChatInput("Apa isi utama dari dokumen ini?")}>• Apa isi utama dari dokumen ini?</li>
-                  <li className="hover:bg-gray-100 p-1 rounded cursor-pointer" onClick={() => setChatInput("Ringkas dokumen ini dalam 3 poin penting")}>• Ringkas dokumen ini dalam 3 poin penting</li>
-                  <li className="hover:bg-gray-100 p-1 rounded cursor-pointer" onClick={() => setChatInput("Jelaskan bagian [X] dari dokumen")}>• Jelaskan bagian [X] dari dokumen</li>
+                  <li className="hover:bg-gray-100 p-1 rounded cursor-pointer" onClick={() => setChatInput("Apa isi utama dari dokumen ini?")}>👮🏼‍♂️ Apa isi utama dari dokumen ini?</li>
+                  <li className="hover:bg-gray-100 p-1 rounded cursor-pointer" onClick={() => setChatInput("Ringkas dokumen ini dalam 3 poin penting")}>👌🏼 Ringkas dokumen ini dalam 3 poin penting</li>
+                  <li className="hover:bg-gray-100 p-1 rounded cursor-pointer" onClick={() => setChatInput("Jelaskan bagian [X] dari dokumen")}>🕵🏼 Jelaskan bagian [X] dari dokumen</li>
                 </ul>
               </div>
             </div>
@@ -611,7 +652,7 @@ export const PdfImageAnalysisForm: React.FC<PdfImageAnalysisFormProps> = ({
               }}
               className="text-sm font-medium text-gray-700 flex items-center gap-1"
             >
-              <span>File yang Diupload</span>
+              <span>File yang Diupload ({formData.files ? formData.files.length : 0}/5)</span>
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-down w-4 h-4">
                 <path d="m6 9 6 6 6-6"/>
               </svg>
@@ -620,9 +661,14 @@ export const PdfImageAnalysisForm: React.FC<PdfImageAnalysisFormProps> = ({
               type="button"
               onClick={handleUploadClick}
               className="text-xs text-blue-600 hover:text-blue-800"
-              disabled={isProcessing || isUploading}
+              disabled={!!(isProcessing || isUploading || (formData.files && formData.files.length >= 5))}
+              title={formData.files && formData.files.length >= 5 ? "Maksimal 5 dokumen" : "Tambah file"}
             >
-              + Tambah File
+              {formData.files && formData.files.length >= 5 ? (
+                "Maksimal 5 dokumen"
+              ) : (
+                "+ Tambah File"
+              )}
             </button>
             <input
               ref={fileInputRef}
@@ -633,7 +679,7 @@ export const PdfImageAnalysisForm: React.FC<PdfImageAnalysisFormProps> = ({
               multiple
               className="hidden"
               onChange={(e) => handleFilesChange(e.target.files)}
-              disabled={isDisabled || isProcessing || isUploading}
+              disabled={!!(isDisabled || isProcessing || isUploading || (formData.files && formData.files.length >= 5))}
             />
           </div>
           <div id="file-preview-container" className="px-2 md:px-3 pb-2 md:pb-3 gap-2 overflow-x-auto hidden md:flex">

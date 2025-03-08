@@ -9,6 +9,8 @@ import { Mistral } from '@mistralai/mistralai';
 const API_KEY = import.meta.env.VITE_MISTRAL_API_KEY || '';
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB (Mistral limit)
 const MAX_TOTAL_SIZE = 100 * 1024 * 1024; // 100MB
+const MAX_DOCUMENTS = 5; // Maksimal 5 dokumen
+const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 menit dalam milidetik
 
 // Log API key (hanya untuk debugging, hapus di production)
 console.log('Mistral API Key tersedia:', !!API_KEY);
@@ -36,10 +38,12 @@ export const SUPPORTED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.
 // Chat history management
 let chatHistory: ChatMessage[] = [];
 let currentSessionId: string | null = null;
+let sessionTimeoutId: number | null = null; // ID timeout untuk pembersihan sesi
 const MAX_HISTORY = 10;
 let uploadedFileIds: string[] = [];
 let processedFiles: File[] = [];
-let processedContent: string = ''; // Menyimpan konten dokumen yang sudah diproses
+let processedContents: { fileName: string; content: string }[] = []; // Menyimpan konten dokumen yang sudah diproses
+let fileObjectUrls: string[] = []; // Menyimpan URL objek file untuk dibersihkan nanti
 
 // Types for the response
 interface PdfImageResponse {
@@ -242,6 +246,51 @@ const getOcrResults = async (fileId: string): Promise<OcrResult> => {
 };
 
 /**
+ * Membersihkan sumber daya file
+ */
+const cleanupFileResources = () => {
+  console.log('Membersihkan sumber daya file...');
+  
+  // Revoke object URLs
+  fileObjectUrls.forEach(url => {
+    try {
+      URL.revokeObjectURL(url);
+      console.log('Revoked object URL:', url);
+    } catch (error) {
+      console.error('Error revoking object URL:', error);
+    }
+  });
+  
+  // Reset array
+  fileObjectUrls = [];
+  
+  // Hapus file dari memori
+  processedFiles = [];
+  uploadedFileIds = [];
+  processedContents = [];
+  
+  console.log('Pembersihan sumber daya file selesai');
+};
+
+/**
+ * Memperbarui timestamp sesi dan mengatur timeout pembersihan
+ */
+const refreshSessionTimeout = () => {
+  // Batalkan timeout sebelumnya jika ada
+  if (sessionTimeoutId !== null) {
+    window.clearTimeout(sessionTimeoutId);
+  }
+  
+  // Atur timeout baru
+  sessionTimeoutId = window.setTimeout(() => {
+    console.log('Sesi kadaluarsa, membersihkan sumber daya...');
+    clearChatHistory();
+  }, SESSION_TIMEOUT);
+  
+  console.log('Timeout sesi diperbarui, akan kadaluarsa dalam', SESSION_TIMEOUT / 1000 / 60, 'menit');
+};
+
+/**
  * Process files using Mistral API
  */
 const processFiles = async (files: File[], prompt: string, instruction: string): Promise<string> => {
@@ -255,16 +304,39 @@ const processFiles = async (files: File[], prompt: string, instruction: string):
       chatHistory = [];
       uploadedFileIds = [];
       processedFiles = [];
-      processedContent = '';
+      processedContents = [];
+      fileObjectUrls = [];
     }
+    
+    // Perbarui timeout sesi
+    refreshSessionTimeout();
     
     // Upload files and get OCR results
     const fileResults: FileResult[] = [];
     
-    // Simpan file yang diproses
-    processedFiles = [...files];
+    // Tambahkan file baru ke daftar file yang diproses
+    const newFiles = files.filter(file => 
+      !processedFiles.some(existingFile => 
+        existingFile.name === file.name && 
+        existingFile.size === file.size && 
+        existingFile.type === file.type
+      )
+    );
     
-    for (const file of files) {
+    // Periksa batas maksimum dokumen
+    if (processedFiles.length + newFiles.length > MAX_DOCUMENTS) {
+      throw new Error(`Maksimal ${MAX_DOCUMENTS} dokumen yang dapat diproses. Anda sudah memiliki ${processedFiles.length} dokumen dan mencoba menambahkan ${newFiles.length} dokumen baru.`);
+    }
+    
+    // Simpan file baru yang diproses
+    processedFiles = [...processedFiles, ...newFiles];
+    
+    // Hanya proses file baru
+    for (const file of newFiles) {
+      // Buat object URL untuk file dan simpan untuk dibersihkan nanti
+      const objectUrl = URL.createObjectURL(file);
+      fileObjectUrls.push(objectUrl);
+      
       const fileId = await uploadFile(file);
       uploadedFileIds.push(fileId);
       const ocrResult = await getOcrResults(fileId);
@@ -274,21 +346,27 @@ const processFiles = async (files: File[], prompt: string, instruction: string):
       });
     }
     
-    // Combine OCR results
-    const combinedContent = fileResults.map(result => {
+    // Combine OCR results dari file baru
+    for (const result of fileResults) {
       const pages = result.ocrResult.pages || [];
-      return `# ${result.fileName}\n\n${pages.map((page: OcrPage) => page.markdown || '').join('\n\n')}`;
-    }).join('\n\n---\n\n');
+      const content = `# ${result.fileName}\n\n${pages.map((page: OcrPage) => page.markdown || '').join('\n\n')}`;
+      
+      // Tambahkan ke daftar konten yang diproses
+      processedContents.push({
+        fileName: result.fileName,
+        content
+      });
+    }
     
-    // Simpan konten yang sudah diproses
-    processedContent = combinedContent;
+    // Gabungkan semua konten untuk diproses oleh LLM
+    const combinedContent = processedContents.map(item => item.content).join('\n\n---\n\n');
     
     // Process with LLM
     console.log('Processing OCR results with LLM');
     console.log('Session ID:', currentSessionId);
     console.log('Uploaded File IDs:', uploadedFileIds);
     console.log('Processed Files:', processedFiles.map(f => f.name));
-    console.log('Processed Content Length:', processedContent.length);
+    console.log('Processed Contents:', processedContents.map(c => c.fileName));
     
     const chatResponse = await mistralClient.chat.complete({
       model: "mistral-large-latest",
@@ -304,27 +382,10 @@ const processFiles = async (files: File[], prompt: string, instruction: string):
       ]
     });
     
-    const responseText = chatResponse.choices?.[0]?.message?.content || 'Tidak ada hasil yang ditemukan.';
-    
-    // Update chat history
-    chatHistory.push({
-      role: 'user',
-      content: instruction
-    });
-    
-    chatHistory.push({
-      role: 'assistant',
-      content: responseText as string
-    });
-    
-    // Limit history size
-    if (chatHistory.length > MAX_HISTORY * 2) {
-      chatHistory = chatHistory.slice(-MAX_HISTORY * 2);
-    }
-    
-    return responseText as string;
+    const responseText = (chatResponse.choices?.[0]?.message?.content || 'Maaf, saya tidak dapat memproses dokumen Anda.') as string;
+    return responseText;
   } catch (error) {
-    console.error('Error in processFiles:', error);
+    console.error('Error processing files:', error);
     throw error;
   }
 };
@@ -453,33 +514,39 @@ export const sendChatMessage = async (message: string): Promise<string> => {
     console.log('Current Session ID:', currentSessionId);
     console.log('Uploaded File IDs:', uploadedFileIds);
     console.log('Processed Files:', processedFiles.map(f => f.name));
-    console.log('Processed Content Length:', processedContent.length);
+    console.log('Processed Contents:', processedContents.map(c => c.fileName));
     
     // Initialize session if needed
-    if (!currentSessionId || (uploadedFileIds.length === 0 && processedContent.length === 0)) {
+    if (!currentSessionId || (uploadedFileIds.length === 0 && processedContents.length === 0)) {
       console.error('Session not initialized, no files uploaded, or no processed content');
       return 'Silakan upload dokumen terlebih dahulu sebelum memulai chat.';
     }
+    
+    // Perbarui timeout sesi
+    refreshSessionTimeout();
     
     // Prepare chat history for Mistral format
     const mistralMessages: Array<{role: 'system' | 'user' | 'assistant'; content: string}> = [
       {
         role: 'system',
-        content: 'Anda adalah asisten AI yang membantu menjawab pertanyaan tentang dokumen. Gunakan informasi dari dokumen untuk menjawab pertanyaan dengan akurat.'
+        content: `Anda adalah asisten AI yang membantu menjawab pertanyaan tentang dokumen. Gunakan informasi dari dokumen untuk menjawab pertanyaan dengan akurat. Anda memiliki akses ke ${processedContents.length} dokumen: ${processedContents.map(c => c.fileName).join(', ')}.`
       }
     ];
     
     // Add document content if available
-    if (processedContent.length > 0) {
+    if (processedContents.length > 0) {
+      // Gabungkan semua konten dokumen
+      const combinedContent = processedContents.map(item => item.content).join('\n\n---\n\n');
+      
       mistralMessages.push({
         role: 'user',
-        content: processedContent
+        content: combinedContent
       });
       
       // Add system message acknowledging the document
       mistralMessages.push({
         role: 'assistant',
-        content: 'Saya telah menerima dokumen Anda. Silakan ajukan pertanyaan tentang dokumen tersebut.'
+        content: `Saya telah menerima ${processedContents.length} dokumen: ${processedContents.map(c => c.fileName).join(', ')}. Silakan ajukan pertanyaan tentang dokumen tersebut.`
       });
     } else {
       // Add fallback content
@@ -582,10 +649,16 @@ export const clearChatHistory = () => {
   chatHistory = [];
   currentSessionId = null;
   
-  // Clean up uploaded files
-  uploadedFileIds = [];
-  processedFiles = [];
-  processedContent = '';
+  // Batalkan timeout sesi jika ada
+  if (sessionTimeoutId !== null) {
+    window.clearTimeout(sessionTimeoutId);
+    sessionTimeoutId = null;
+  }
+  
+  // Bersihkan sumber daya file
+  cleanupFileResources();
+  
+  console.log('Chat history dan sesi dibersihkan');
 };
 
 /**
@@ -596,10 +669,13 @@ export const initializeSession = () => {
     console.log('Creating new session ID');
     currentSessionId = `session_${uuidv4()}`;
     chatHistory = [];
+    
+    // Bersihkan sumber daya file dari sesi sebelumnya jika ada
+    cleanupFileResources();
   } else {
     console.log('Using existing session ID:', currentSessionId);
-    console.log('Uploaded File IDs:', uploadedFileIds);
-    console.log('Processed Files:', processedFiles.map(f => f.name));
-    console.log('Processed Content Length:', processedContent.length);
   }
+  
+  // Perbarui timeout sesi
+  refreshSessionTimeout();
 }; 
