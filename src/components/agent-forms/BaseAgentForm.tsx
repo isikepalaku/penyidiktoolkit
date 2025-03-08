@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
-import ReCAPTCHA from 'react-google-recaptcha';
-const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+import { useReCaptcha } from "next-recaptcha-v3";
 import type { ExtendedAgent, FormData, FormDataValue } from '@/types';
 import AutosizeTextarea from '../AutosizeTextarea';
 import { FileImage, Loader2 } from 'lucide-react';
@@ -32,9 +31,9 @@ export function BaseAgentForm({
 }: BaseAgentFormProps) {
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
-  const [captchaError, setCaptchaError] = useState<string | null>(null);
+  const [recaptchaError, setRecaptchaError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const captchaRef = useRef<ReCAPTCHA>(null);
+  const { executeRecaptcha } = useReCaptcha();
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -151,19 +150,9 @@ export function BaseAgentForm({
         </div>
       )}
 
-      {RECAPTCHA_SITE_KEY && (
-        <div className="flex justify-center mb-4">
-          <ReCAPTCHA
-            sitekey={RECAPTCHA_SITE_KEY}
-            ref={captchaRef}
-            onChange={() => setCaptchaError(null)}
-          />
-        </div>
-      )}
-
-      {captchaError && (
-        <div className="text-red-500 text-sm mb-4">
-          {captchaError}
+      {recaptchaError && (
+        <div className="text-red-500 text-sm mt-2">
+          {recaptchaError}
         </div>
       )}
 
@@ -173,21 +162,21 @@ export function BaseAgentForm({
         className={`w-full ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
         onClick={async (e) => {
           e.preventDefault();
+          setRecaptchaError(null);
           
-          if (RECAPTCHA_SITE_KEY) {
-            const captchaValue = captchaRef.current?.getValue();
-            if (!captchaValue) {
-              setCaptchaError('Mohon verifikasi bahwa Anda bukan robot');
-              return;
+          try {
+            // Execute reCAPTCHA with action name
+            const token = await executeRecaptcha('form_submit');
+            
+            if (onSubmit) {
+              // Pass the token in the event object
+              const eventWithToken = Object.assign(e, { recaptchaToken: token });
+              await onSubmit(eventWithToken);
             }
+          } catch (err) {
+            console.error('reCAPTCHA error:', err);
+            setRecaptchaError('Verifikasi reCAPTCHA gagal. Silakan coba lagi.');
           }
-
-          if (onSubmit) {
-            await onSubmit(e);
-          }
-          
-          // Reset captcha after submission
-          captchaRef.current?.reset();
         }}
       >
         {isProcessing ? (
