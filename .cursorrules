@@ -739,6 +739,7 @@ Current Task: Optimizing Mobile UI for PDF/Image Analysis Chat Interface
 [X] Menambahkan pembelajaran ke .cursorrules
 [X] Mengubah ikon dokumen berdasarkan jenis file yang diupload
 [X] Memperbaiki error TypeScript untuk variabel yang tidak digunakan
+[X] Memperbaiki error TypeScript di service files (MAX_RETRIES, RETRY_DELAY)
 
 Refleksi:
 - Berhasil mengimplementasikan tampilan mobile yang lebih optimal
@@ -748,6 +749,7 @@ Refleksi:
 - Mengurangi ukuran elemen UI di mobile untuk menghemat ruang
 - Menambahkan ikon yang berbeda berdasarkan jenis file untuk meningkatkan UX
 - Membersihkan kode dengan menghapus variabel yang tidak digunakan
+- Memperbaiki error TypeScript di service files untuk meningkatkan kualitas kode
 
 Pembelajaran:
 - Gunakan collapsible panel untuk konten sekunder di mobile
@@ -759,3 +761,5 @@ Pembelajaran:
 - Buat fungsi helper untuk mengelola ikon berdasarkan tipe file
 - Perhatikan peringatan TypeScript tentang variabel yang tidak digunakan
 - Impor hanya ikon yang benar-benar digunakan untuk mengurangi ukuran bundle
+- Hapus konstanta yang tidak digunakan dalam service files untuk menghindari kebingungan
+- Jika implementasi retry logic diperlukan di masa depan, tambahkan kembali konstanta yang relevan

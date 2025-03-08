@@ -29,8 +29,8 @@ type ToolType = {
 const toolTypes: ToolType[] = [
   {
     id: 'transcript',
-    name: 'Audio Processor',
-    description: 'Transkripsi dan analisis audio dengan teknologi AI',
+    name: 'Analisis Audio',
+    description: 'Melakukan Transkripsi audio menjadi teks dan sentimen analisis audio dengan teknologi AI',
     icon: <div className="h-10 w-10"><img src="/img/waveform-icon.svg" className="h-10 w-10" alt="extract audio" /></div>
   },
   {
@@ -42,14 +42,14 @@ const toolTypes: ToolType[] = [
   {
     id: 'maps-agent',
     name: 'Maps Geocoding',
-    description: 'Alat untuk mencari dan mengkonversi alamat ke koordinat geografis',
+    description: 'Menggali informasi dari bisnis dan lokasi dengan Maps Geocoding API (BETA)',
     icon: <div className="h-10 w-10"><img src="/img/google-color-icon.svg" className="h-10 w-10" alt="Maps geocoding" /></div>
   },
   {
     id: pdfImageAgent.id,
     name: pdfImageAgent.name,
     description: pdfImageAgent.description,
-    icon: <div className="h-10 w-10"><img src="/img/file-info-color-icon.svg" className="h-10 w-10" alt="PDF and Image Analysis" /></div>
+    icon: <div className="h-10 w-10"><img src="/img/fact-file-color-icon.svg" className="h-10 w-10" alt="PDF and Image Analysis" /></div>
   }
 ];
 

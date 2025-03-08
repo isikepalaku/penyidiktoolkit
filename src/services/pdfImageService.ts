@@ -9,8 +9,6 @@ import { Mistral } from '@mistralai/mistralai';
 const API_KEY = import.meta.env.VITE_MISTRAL_API_KEY || '';
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB (Mistral limit)
 const MAX_TOTAL_SIZE = 100 * 1024 * 1024; // 100MB
-const MAX_RETRIES = 3;
-const RETRY_DELAY = 1000;
 
 // Log API key (hanya untuk debugging, hapus di production)
 console.log('Mistral API Key tersedia:', !!API_KEY);

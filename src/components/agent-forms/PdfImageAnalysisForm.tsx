@@ -184,7 +184,7 @@ export const PdfImageAnalysisForm: React.FC<PdfImageAnalysisFormProps> = ({
   // Update prompt title when task type changes
   useEffect(() => {
     if (formData.task_type) {
-      const title = getDefaultPromptTitle(formData.task_type as any);
+      const title = getDefaultPromptTitle(formData.task_type as "summarize" | "extract" | "compare" | "analyze");
       setPromptTitle(title);
     }
   }, [formData.task_type]);
@@ -477,7 +477,7 @@ export const PdfImageAnalysisForm: React.FC<PdfImageAnalysisFormProps> = ({
             </Select>
             {promptTitle && (
               <p className="text-sm text-gray-500 mt-1">
-                Menggunakan prompt default: <span className="font-medium">{promptTitle}</span>
+                Melakukan tugas: <span className="font-medium">{promptTitle}</span>
               </p>
             )}
           </div>
@@ -636,7 +636,7 @@ export const PdfImageAnalysisForm: React.FC<PdfImageAnalysisFormProps> = ({
               disabled={isDisabled || isProcessing || isUploading}
             />
           </div>
-          <div id="file-preview-container" className="px-2 md:px-3 pb-2 md:pb-3 flex gap-2 overflow-x-auto hidden md:flex">
+          <div id="file-preview-container" className="px-2 md:px-3 pb-2 md:pb-3 gap-2 overflow-x-auto hidden md:flex">
             {formData.files && Array.from(formData.files).map((file, index) => (
               <FilePreviewItem 
                 key={index} 
