@@ -6,6 +6,8 @@ const ThinkingAnimation: React.FC = () => {
   const steps: string[] = [
     'Mempersiapkan data',
     'Menganalisis informasi',
+    'Melakukan pencarian Data di berbagai sumber',
+    'mengoleksi data',
     'Menyusun hasil',
   ];
 

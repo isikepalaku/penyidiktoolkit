@@ -344,18 +344,13 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
               prose-ol:list-decimal
               [&_ol>li]:mb-4 [&_ol>li]:pl-2
               [&_ol>li>p]:my-2
-              prose-ul:my-2 prose-ul:list-none prose-ul:pl-0
-              [&_ul>li]:relative [&_ul>li]:pl-5 [&_ul>li]:mb-2
-              [&_ul>li:before]:content-['*'] 
-              [&_ul>li:before]:absolute 
-              [&_ul>li:before]:left-0
-              [&_ul>li:before]:text-gray-500
+              prose-ul:my-2 prose-ul:pl-5
+              prose-ul:list-disc
+              [&_ul>li]:relative [&_ul>li]:pl-1 [&_ul>li]:mb-2
+              [&_ul>li]:marker:text-gray-500
               [&_ul>li>ul]:mt-2 [&_ul>li>ul]:ml-4
-              [&_ul>li>ul>li]:relative [&_ul>li>ul>li]:pl-5 [&_ul>li>ul>li]:mb-1
-              [&_ul>li>ul>li:before]:content-['*']
-              [&_ul>li>ul>li:before]:absolute
-              [&_ul>li>ul>li:before]:left-0
-              [&_ul>li>ul>li:before]:text-gray-500
+              [&_ul>li>ul>li]:relative [&_ul>li>ul>li]:pl-1 [&_ul>li>ul>li]:mb-1
+              [&_ul>li>ul>li]:marker:text-gray-500
               prose-strong:text-gray-900 prose-strong:font-bold"
             >
               <div>
