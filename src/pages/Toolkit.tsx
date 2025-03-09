@@ -8,7 +8,7 @@ import { pdfImageAgent } from '../data/agents/pdfImageAgent';
 import { AudioAgentForm } from '@/components/agent-forms/AudioAgentForm';
 import { ImageAgentForm } from '@/components/agent-forms/ImageAgentForm';
 import { PdfImageAnalysisForm } from '@/components/agent-forms/PdfImageAnalysisForm';
-import ResultArtifact from '@/components/ResultArtifact';
+import ResultArtifact, { Citation } from '@/components/ResultArtifact';
 import type { FormDataValue, FormData } from '@/types';
 import type { AudioFormData } from '@/types/audio';
 import type { PdfImageFormData, ChatMessage } from '@/types/pdfImage';
@@ -73,6 +73,7 @@ export default function Toolkit() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
+  const [citations, setCitations] = useState<Citation[] | undefined>(undefined);
   const [mapsGeocodingFormData, setMapsGeocodingFormData] = useState<FormData>({
     message: ''
   });
@@ -94,6 +95,7 @@ export default function Toolkit() {
     setIsProcessing(true);
     setError(null);
     setResult(null);
+    setCitations(undefined);
 
     try {
       if (selectedTool === 'transcript' && audioFormData.audio_file) {
@@ -132,6 +134,11 @@ export default function Toolkit() {
         }
 
         setResult(response.text);
+        
+        // Simpan citations jika ada
+        if (response.citations) {
+          setCitations(response.citations);
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
@@ -301,6 +308,7 @@ export default function Toolkit() {
                     setImagePreview(null);
                     setResult(null);
                     setError(null);
+                    setCitations(undefined);
                     setMapsGeocodingFormData({ message: '' });
                     setChatMessages([]);
                     setIsChatMode(false);
@@ -342,6 +350,7 @@ export default function Toolkit() {
                   agent={mapsGeocodingAgent}
                   formData={mapsGeocodingFormData}
                   onInputChange={handleInputChange}
+                  onSubmit={handleSubmit}
                   error={error}
                   isProcessing={isProcessing}
                   isDisabled={!!result}
@@ -365,8 +374,10 @@ export default function Toolkit() {
           {result && (
             <ResultArtifact 
               content={result}
+              citations={citations}
               onClose={() => {
                 setResult(null);
+                setCitations(undefined);
                 setMapsGeocodingFormData({ message: '' });
               }}
             />

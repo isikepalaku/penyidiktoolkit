@@ -12,6 +12,14 @@ export default function TimelineDemo() {
     <div className="w-full h-[500px] overflow-y-auto border rounded-md p-4 bg-background">
       <Timeline>
       <TimelineItem status="done">
+          <TimelineHeading>Analisis Dokumen</TimelineHeading>
+          <TimelineDot status="done" />
+          <TimelineLine done />
+          <TimelineContent>
+            Automatisasi analisis dokumen, melakukan ringkasan, ekstraksi informasi penting, melakukan perbandingan antar dokumen dengan akurasi tinggi (BETA).
+          </TimelineContent>
+        </TimelineItem>
+      <TimelineItem status="done">
           <TimelineHeading>Agen Dokpol</TimelineHeading>
           <TimelineDot status="done" />
           <TimelineLine done />
@@ -24,7 +32,7 @@ export default function TimelineDemo() {
           <TimelineDot status="done" />
           <TimelineLine done />
           <TimelineContent>
-            Agen ai mengekstrak file audio menjadi teks dan melakukan analisis sentimen.
+            Agen ai mengekstrak file audio menjadi teks dan melakukan analisis sentimen dari file audio.
           </TimelineContent>
         </TimelineItem>
         <TimelineItem status="done">
@@ -40,7 +48,7 @@ export default function TimelineDemo() {
           <TimelineDot status="done" />
           <TimelineLine done />
           <TimelineContent>
-            Prototype Agen ai pada bidang tindak pidana khsusus seperti Industri perdagangan, Tindak pidana Korupsi dll.
+            Prototype Agen ai pada bidang tindak pidana khsusus seperti Industri perdagangan, Tindak pidana Korupsi dll (proses penambahan agen lainnya).
           </TimelineContent>
         </TimelineItem>
         <TimelineItem status="done">

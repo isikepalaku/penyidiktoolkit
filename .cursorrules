@@ -742,6 +742,7 @@ Current Task: Optimizing Mobile UI for PDF/Image Analysis Chat Interface
 [X] Memperbaiki error TypeScript di service files (MAX_RETRIES, RETRY_DELAY)
 [X] Mengimplementasikan dukungan multi-dokumen (maksimal 5) dalam mode tanya jawab
 [X] Mengimplementasikan pengelolaan file sementara dan pembersihan otomatis
+[X] Menambahkan fitur citation untuk hasil analisis dokumen
 
 Refleksi:
 - Berhasil mengimplementasikan tampilan mobile yang lebih optimal
@@ -756,6 +757,7 @@ Refleksi:
 - Memperbaiki pengelolaan state untuk dokumen yang diupload
 - Menambahkan sistem pengelolaan file sementara dengan pembersihan otomatis
 - Mencegah memory leak dengan membersihkan URL objek file
+- Menambahkan fitur citation untuk meningkatkan kredibilitas hasil analisis
 
 Pembelajaran:
 - Gunakan collapsible panel untuk konten sekunder di mobile
@@ -778,3 +780,12 @@ Pembelajaran:
 - Gunakan useEffect cleanup function untuk membersihkan sumber daya saat komponen di-unmount
 - Simpan URL objek file dalam array terpisah untuk memudahkan pembersihan
 - Periksa kembali variabel yang dideklarasikan tetapi tidak digunakan setelah refactoring kode
+- Ekspor interface yang digunakan di beberapa file untuk memastikan konsistensi tipe data
+- Tambahkan fitur citation untuk meningkatkan kredibilitas hasil analisis
+- Gunakan toggle untuk menampilkan/menyembunyikan informasi tambahan seperti citation
+- Sertakan informasi citation dalam hasil cetak untuk dokumentasi yang lengkap
+- Tambahkan ikon hover pada elemen yang dapat diinteraksi untuk meningkatkan feedback visual
+- Gunakan state untuk melacak elemen yang sedang di-hover untuk menampilkan UI tambahan
+- Tingkatkan tampilan citation dengan layout card yang lebih menarik dan informatif
+- Pastikan untuk meneruskan prop onSubmit ke BaseAgentForm agar tombol submit berfungsi
+- Tambahkan pengecekan isProcessing dan isDisabled dalam handler onClick tombol submit

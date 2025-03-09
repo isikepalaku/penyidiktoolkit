@@ -50,6 +50,12 @@ interface PdfImageResponse {
   text: string;
   error?: string;
   success: boolean;
+  citations?: {
+    fileName: string;
+    fileType: string;
+    fileSize: string;
+    timestamp: string;
+  }[];
 }
 
 interface PdfImageRequest {
@@ -481,9 +487,18 @@ export const processPdfImage = async (request: PdfImageRequest): Promise<PdfImag
     // Process the files
     const text = await processFiles(request.files, prompt, instruction);
 
+    // Buat citations untuk setiap file
+    const citations = request.files.map(file => ({
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: formatFileSize(file.size),
+      timestamp: new Date().toISOString()
+    }));
+
     return {
       text,
-      success: true
+      success: true,
+      citations
     };
 
   } catch (error) {

@@ -153,7 +153,7 @@ export function BaseAgentForm({
         className={`w-full ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
         onClick={async (e) => {
           e.preventDefault();
-          if (onSubmit) {
+          if (onSubmit && !isProcessing && !isDisabled) {
             await onSubmit(e);
           }
         }}

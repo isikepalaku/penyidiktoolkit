@@ -1,16 +1,26 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { X, Copy, Check, Printer } from 'lucide-react';
+import { X, Copy, Check, Printer, FileText, Info, Eye, FileType, FileImage, File as FileIconGeneric } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
+
+export interface Citation {
+  fileName: string;
+  fileType: string;
+  fileSize: string;
+  timestamp: string;
+}
 
 interface ResultArtifactProps {
   content: string;
   onClose: () => void;
+  citations?: Citation[];
 }
 
-const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => {
+const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citations }) => {
   const [isCopied, setIsCopied] = useState(false);
+  const [showCitations, setShowCitations] = useState(true); // Default tampilkan citation
+  const [hoveredCitation, setHoveredCitation] = useState<number | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
   const handleCopy = async () => {
@@ -67,6 +77,11 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
         #watermark {
           display: block !important;
           visibility: visible !important;
+        }
+
+        .citations-section {
+          display: block !important;
+          page-break-before: always;
         }
       }
     `,
@@ -127,6 +142,52 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
       .trim();
   };
 
+  const formatTimestamp = (timestamp: string) => {
+    try {
+      const date = new Date(timestamp);
+      return new Intl.DateTimeFormat('id-ID', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZoneName: 'short'
+      }).format(date);
+    } catch (error) {
+      console.error('Error formatting timestamp:', error);
+      return timestamp;
+    }
+  };
+
+  const getFileTypeDisplay = (fileType: string) => {
+    if (fileType.startsWith('image/')) {
+      return `Gambar ${fileType.replace('image/', '').toUpperCase()}`;
+    } else if (fileType === 'application/pdf') {
+      return 'Dokumen PDF';
+    } else {
+      return fileType;
+    }
+  };
+
+  const getFileIcon = (fileType: string, size: 'sm' | 'md' = 'sm') => {
+    const iconSize = size === 'sm' ? "w-4 h-4" : "w-5 h-5";
+    
+    if (fileType === 'application/pdf') {
+      return <FileType className={`${iconSize} text-red-500`} />;
+    } else if (fileType.startsWith('image/')) {
+      return <FileImage className={`${iconSize} text-blue-500`} />;
+    } else if (fileType.includes('word') || fileType.includes('document')) {
+      return <FileText className={`${iconSize} text-blue-600`} />;
+    } else if (fileType.includes('excel') || fileType.includes('spreadsheet')) {
+      return <FileText className={`${iconSize} text-green-600`} />;
+    } else if (fileType.includes('powerpoint') || fileType.includes('presentation')) {
+      return <FileText className={`${iconSize} text-orange-600`} />;
+    } else {
+      return <FileIconGeneric className={`${iconSize} text-gray-500`} />;
+    }
+  };
+
   useEffect(() => {
     const event = new CustomEvent('analysisComplete');
     window.dispatchEvent(event);
@@ -154,6 +215,19 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
         >
           <h2 className="text-xl font-semibold text-gray-800">Hasil Analisis</h2>
           <div className="flex items-center gap-2">
+            {citations && citations.length > 0 && (
+              <button
+                onClick={() => setShowCitations(!showCitations)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm 
+                  rounded-lg transition-all duration-200
+                  ${showCitations ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}
+                  hover:bg-blue-100 hover:text-blue-700`}
+                title="Tampilkan sumber dokumen"
+              >
+                <Info className="w-4 h-4" />
+                <span>Sumber</span>
+              </button>
+            )}
             <button
               onClick={() => handlePrint(printRef)}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm 
@@ -214,6 +288,45 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
           </div>
           
           <div className="p-4 lg:p-6 content-wrapper">
+            {showCitations && citations && citations.length > 0 && (
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-blue-600" />
+                  Sumber Dokumen
+                </h3>
+                <div className="space-y-3">
+                  {citations.map((citation, index) => (
+                    <div 
+                      key={index} 
+                      className="p-3 bg-white rounded-lg border border-gray-100 shadow-sm transition-all duration-200 hover:shadow-md relative"
+                      onMouseEnter={() => setHoveredCitation(index)}
+                      onMouseLeave={() => setHoveredCitation(null)}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 p-2 bg-gray-50 rounded-md">
+                          {getFileIcon(citation.fileType, 'md')}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-800 mb-1">{citation.fileName}</p>
+                          <p className="text-gray-600 text-sm">
+                            {getFileTypeDisplay(citation.fileType)} • {citation.fileSize}
+                          </p>
+                          <p className="text-gray-500 text-xs mt-1">
+                            Diproses pada {formatTimestamp(citation.timestamp)}
+                          </p>
+                        </div>
+                        {hoveredCitation === index && (
+                          <div className="absolute top-3 right-3 bg-blue-500 text-white p-1.5 rounded-full shadow-md transition-opacity duration-200 opacity-90 hover:opacity-100">
+                            <Eye className="w-4 h-4" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
             <div className="prose prose-sm lg:prose-base w-full px-2
               prose-headings:font-semibold 
               prose-h1:text-2xl prose-h1:mb-6
@@ -248,6 +361,33 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose }) => 
                 </ReactMarkdown>
               </div>
             </div>
+            
+            {/* Citations section for printing */}
+            {citations && citations.length > 0 && (
+              <div className="mt-8 pt-8 border-t border-gray-200 citations-section">
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">Sumber Dokumen</h2>
+                <div className="space-y-4">
+                  {citations.map((citation, index) => (
+                    <div key={index} className="p-4 bg-gray-50 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 p-2 bg-white rounded-md">
+                          {getFileIcon(citation.fileType, 'md')}
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-800">{citation.fileName}</p>
+                          <p className="text-gray-600">
+                            {getFileTypeDisplay(citation.fileType)} • {citation.fileSize}
+                          </p>
+                          <p className="text-gray-500 text-sm mt-1">
+                            Diproses pada {formatTimestamp(citation.timestamp)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

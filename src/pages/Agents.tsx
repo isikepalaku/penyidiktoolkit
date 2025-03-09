@@ -118,6 +118,7 @@ export default function Agents() {
       agent: selectedAgentData,
       formData,
       onInputChange: handleInputChange,
+      onSubmit: handleFormSubmit,
       error,
       isProcessing,
       imagePreview
