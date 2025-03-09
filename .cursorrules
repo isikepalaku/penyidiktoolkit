@@ -796,3 +796,5 @@ Pembelajaran:
 - Buat komponen loading yang dapat menerima progress dan status dari backend untuk sinkronisasi yang lebih baik
 - Implementasikan simulasi progress yang realistis dengan kecepatan yang bervariasi di berbagai tahap
 - Gunakan props opsional untuk memungkinkan komponen berfungsi baik dengan atau tanpa data eksternal
+- Hindari penggunaan wildcard (image/*) pada atribut accept input file di perangkat mobile untuk mencegah akses ke file audio/video
+- Gunakan daftar ekstensi dan MIME type yang spesifik pada atribut accept untuk membatasi jenis file yang dapat dipilih

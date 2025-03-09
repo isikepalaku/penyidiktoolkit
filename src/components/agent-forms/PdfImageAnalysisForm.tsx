@@ -459,7 +459,7 @@ export const PdfImageAnalysisForm: React.FC<PdfImageAnalysisFormProps> = ({
                   type="file"
                   id="pdf_image_files"
                   name="files"
-                  accept="application/pdf,image/*"
+                  accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.tiff,.bmp,application/pdf,image/jpeg,image/png,image/gif,image/webp,image/tiff,image/bmp"
                   multiple
                   className="hidden"
                   onChange={(e) => handleFilesChange(e.target.files)}
@@ -675,7 +675,7 @@ export const PdfImageAnalysisForm: React.FC<PdfImageAnalysisFormProps> = ({
               type="file"
               id="pdf_image_files_chat"
               name="files"
-              accept="application/pdf,image/*"
+              accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.tiff,.bmp,application/pdf,image/jpeg,image/png,image/gif,image/webp,image/tiff,image/bmp"
               multiple
               className="hidden"
               onChange={(e) => handleFilesChange(e.target.files)}
