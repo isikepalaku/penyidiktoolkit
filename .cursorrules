@@ -789,3 +789,5 @@ Pembelajaran:
 - Tingkatkan tampilan citation dengan layout card yang lebih menarik dan informatif
 - Pastikan untuk meneruskan prop onSubmit ke BaseAgentForm agar tombol submit berfungsi
 - Tambahkan pengecekan isProcessing dan isDisabled dalam handler onClick tombol submit
+- Hindari duplikasi informasi dalam UI untuk meningkatkan pengalaman pengguna
+- Gunakan class "hidden" untuk menyembunyikan elemen di UI tetapi tetap mempertahankannya untuk cetak

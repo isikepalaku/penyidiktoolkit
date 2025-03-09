@@ -79,9 +79,12 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
           visibility: visible !important;
         }
 
-        .citations-section {
+        /* Tampilkan citations di hasil cetak meskipun tersembunyi di UI */
+        .citations-print-section {
           display: block !important;
-          page-break-before: always;
+          margin-top: 2em !important;
+          padding-top: 1em !important;
+          border-top: 1px solid #e5e7eb !important;
         }
       }
     `,
@@ -362,17 +365,14 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
               </div>
             </div>
             
-            {/* Citations section for printing */}
+            {/* Citations section for printing only - hidden in UI but visible in print */}
             {citations && citations.length > 0 && (
-              <div className="mt-8 pt-8 border-t border-gray-200 citations-section">
+              <div className="hidden citations-print-section">
                 <h2 className="text-xl font-semibold text-gray-800 mb-4">Sumber Dokumen</h2>
                 <div className="space-y-4">
                   {citations.map((citation, index) => (
                     <div key={index} className="p-4 bg-gray-50 rounded-lg">
                       <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 p-2 bg-white rounded-md">
-                          {getFileIcon(citation.fileType, 'md')}
-                        </div>
                         <div>
                           <p className="font-medium text-gray-800">{citation.fileName}</p>
                           <p className="text-gray-600">
