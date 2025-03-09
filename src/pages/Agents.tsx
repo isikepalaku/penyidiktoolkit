@@ -27,6 +27,7 @@ const toAgent = (extendedAgent: ExtendedAgent): Agent => {
 export default function Agents() {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [showArtifact, setShowArtifact] = useState(false);
+  const [progress, setProgress] = useState(0);
   const {
     formData,
     error,
@@ -51,9 +52,28 @@ export default function Agents() {
     e.preventDefault();
     if (!selectedAgentData) return;
     try {
+      setProgress(0);
+      
+      if (selectedAgentData.type === 'tipikor_analyst') {
+        const progressInterval = setInterval(() => {
+          setProgress(prev => {
+            if (prev >= 95) {
+              clearInterval(progressInterval);
+              return prev;
+            }
+            return prev + 5;
+          });
+        }, 1000);
+        
+        setTimeout(() => clearInterval(progressInterval), 30000);
+      }
+      
       await handleSubmit(selectedAgentData.type);
+      
+      setProgress(100);
     } catch (err) {
       console.error('Error submitting form:', err);
+      setProgress(0);
     }
   };
 
@@ -175,7 +195,18 @@ export default function Agents() {
 
             {isProcessing && (
               <div className="fixed inset-0 bg-white/50 dark:bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-                <ThinkingAnimation />
+                <ThinkingAnimation 
+                  status={
+                    selectedAgentData?.type === 'tipikor_analyst' ? 
+                      (progress < 20 ? 'preparing' : 
+                       progress < 40 ? 'processing' : 
+                       progress < 60 ? 'searching' : 
+                       progress < 80 ? 'collecting' : 
+                       progress < 100 ? 'finalizing' : 'complete') : 
+                      undefined
+                  }
+                  progress={selectedAgentData?.type === 'tipikor_analyst' ? progress : undefined}
+                />
               </div>
             )}
           </div>

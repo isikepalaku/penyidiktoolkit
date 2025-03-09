@@ -793,3 +793,6 @@ Pembelajaran:
 - Gunakan class "hidden" untuk menyembunyikan elemen di UI tetapi tetap mempertahankannya untuk cetak
 - Gunakan CSS native list-disc dan marker styling untuk bullet points daripada pseudo-elements dengan content
 - Sesuaikan padding dan margin list item untuk memastikan bullet points terlihat rapi
+- Buat komponen loading yang dapat menerima progress dan status dari backend untuk sinkronisasi yang lebih baik
+- Implementasikan simulasi progress yang realistis dengan kecepatan yang bervariasi di berbagai tahap
+- Gunakan props opsional untuk memungkinkan komponen berfungsi baik dengan atau tanpa data eksternal
