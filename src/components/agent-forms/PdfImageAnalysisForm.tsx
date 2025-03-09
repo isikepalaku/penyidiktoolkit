@@ -23,8 +23,7 @@ import {
   FileType,
   File as FileIconGeneric
 } from "lucide-react";
-import { isSupportedFormat } from '@/services/pdfImageService';
-import { formatFileSize } from '@/services/audioTranscriptService';
+import { isSupportedFormat, formatFileSize } from '@/services/pdfImageService';
 import type { PdfImageFormData } from '@/types/pdfImage';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';

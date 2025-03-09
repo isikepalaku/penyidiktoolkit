@@ -1,6 +1,5 @@
 import { getPdfImagePrompt, type PdfImagePromptType } from '@/data/agents/pdfImageAgent';
 import { getDefaultPrompt } from '@/data/prompts/pdfImagePrompts';
-import { formatFileSize } from '@/services/audioTranscriptService';
 import { v4 as uuidv4 } from 'uuid';
 import type { ChatMessage } from '@/types/pdfImage';
 import { Mistral } from '@mistralai/mistralai';
@@ -58,11 +57,23 @@ interface PdfImageResponse {
   }[];
 }
 
+// Types for the request
 interface PdfImageRequest {
   files: File[];
   task_type: PdfImagePromptType;
   instruction: string;
 }
+
+/**
+ * Format file size for display
+ */
+export const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+};
 
 // Definisi tipe untuk OCR page
 interface OcrPage {
