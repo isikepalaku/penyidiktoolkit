@@ -114,6 +114,87 @@ If needed, you can further use the `web_scraper.py` file to scrape the web page 
 - Use wildcard subdomain (.reserse.id) for broader access
 - Set proper hostname in docker and nginx configs
 
+## PenyidikAi Agent Implementation Pattern
+
+Untuk menambahkan agen baru di PenyidikAi.tsx, ikuti langkah-langkah berikut:
+
+1. Buat Service File (src/services/[agentName]Service.ts):
+   - Import env dan uuid
+   - Gunakan FormData untuk request body
+   - Implementasikan retry logic untuk error jaringan dan server
+   - Gunakan endpoint `/v1/playground/agents/[endpoint-name]/runs`
+   - Implementasikan fungsi sendChatMessage, clearChatHistory, dan initializeSession
+   - Contoh:
+   ```typescript
+   const formData = new FormData();
+   formData.append('message', message.trim());
+   formData.append('agent_id', 'fismondev-chat');
+   formData.append('stream', 'false');
+   formData.append('monitor', 'false');
+   formData.append('session_id', currentSessionId);
+   formData.append('user_id', currentSessionId);
+   ```
+
+2. Buat Konfigurasi Agen (src/data/agents/[agentName]Agent.ts):
+   - Gunakan interface ExtendedAgent
+   - Tentukan id, name, type, status, dan description
+   - Tambahkan icon dan iconClassName
+   - Contoh:
+   ```typescript
+   export const fismondevAgent: ExtendedAgent = {
+     id: 'fismondev_001',
+     name: 'Fismondev AI',
+     type: 'fismondev_chat',
+     status: 'on',
+     description: 'Asisten AI yang fokus pada tindak pidana di bidang Fiskal, Moneter, dan Devisa',
+     icon: DollarSign,
+     iconClassName: 'text-green-600',
+     fields: []
+   };
+   ```
+
+3. Update Types (src/types/index.ts):
+   - Tambahkan tipe agen baru ke union type AgentType
+   - Contoh: `| 'fismondev_chat'`
+
+4. Update Utils (src/utils/utils.ts):
+   - Tambahkan ID agen ke AGENT_IDS
+   - Tambahkan case di getAgentTypeFromId
+   - Contoh:
+   ```typescript
+   FISMONDEV_CHAT: 'fismondev_001'
+   ```
+
+5. Update AgentCard (src/components/AgentCard.tsx):
+   - Tambahkan case di getAgentIcon
+   - Gunakan ikon yang sesuai
+   - Contoh:
+   ```typescript
+   case 'fismondev_chat':
+     return <img src="/img/krimsus.png" alt="Fismondev AI" className="h-10 w-10" />;
+   ```
+
+6. Update PenyidikAi Component (src/pages/PenyidikAi.tsx):
+   - Import agen dan service
+   - Tambahkan agen ke array agents
+   - Tambahkan case di renderContent
+   - Tambahkan styling yang sesuai
+   - Contoh:
+   ```typescript
+   case 'fismondev_chat':
+     return <ChatInterface sendMessage={sendFismondevChatMessage} />;
+   ```
+
+7. Styling Konsisten:
+   - Gunakan gradient yang sesuai dengan jenis agen
+   - Pertahankan konsistensi visual dengan agen lain
+   - Contoh:
+   ```typescript
+   agent.type === 'fismondev_chat'
+     ? "bg-gradient-to-br from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100"
+     : "bg-gradient-to-br from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100"
+   ```
+
 ## Security Lessons
 
 - Add rate limiting in nginx (10r/s with burst 20)
