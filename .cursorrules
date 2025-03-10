@@ -800,3 +800,5 @@ Pembelajaran:
 - Gunakan daftar ekstensi dan MIME type yang spesifik pada atribut accept untuk membatasi jenis file yang dapat dipilih
 - Hindari dependensi yang tidak perlu antar komponen dengan menduplikasi fungsi utility sederhana jika diperlukan
 - Pastikan komponen hanya mengimpor dari service yang sesuai dengan fungsinya untuk menghindari side effect yang tidak diinginkan
+- Tambahkan handler onClick pada tombol submit di semua form custom untuk memastikan fungsi onSubmit dipanggil dengan benar
+- Pastikan semua form custom menerima dan menggunakan prop onSubmit dari parent component

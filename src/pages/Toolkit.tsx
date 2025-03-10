@@ -6,7 +6,7 @@ import { processPdfImage, sendChatMessage as sendPdfImageChatMessage, clearChatH
 import { mapsGeocodingAgent } from '../data/agents/mapsGeocodingAgent';
 import { pdfImageAgent } from '../data/agents/pdfImageAgent';
 import { AudioAgentForm } from '@/components/agent-forms/AudioAgentForm';
-import { ImageAgentForm } from '@/components/agent-forms/ImageAgentForm';
+import { GeminiImageForm } from '@/components/agent-forms/GeminiImageForm';
 import { PdfImageAnalysisForm } from '@/components/agent-forms/PdfImageAnalysisForm';
 import ResultArtifact, { Citation } from '@/components/ResultArtifact';
 import type { FormDataValue, FormData } from '@/types';
@@ -14,8 +14,7 @@ import type { AudioFormData } from '@/types/audio';
 import type { PdfImageFormData, ChatMessage } from '@/types/pdfImage';
 import type { AudioPromptType } from '@/data/agents/audioAgent';
 import type { PdfImagePromptType } from '@/data/agents/pdfImageAgent';
-import { imageAgent } from '../data/agents/imageAgent';
-import { submitImageAnalysis } from '../services/imageService';
+import { geminiImageAgent } from '../data/agents/geminiImageAgent';
 import { BaseAgentForm } from '@/components/agent-forms/BaseAgentForm';
 import { DotBackground } from '@/components/ui/DotBackground';
 
@@ -34,9 +33,9 @@ const toolTypes: ToolType[] = [
     icon: <div className="h-10 w-10"><img src="/img/waveform-icon.svg" className="h-10 w-10" alt="extract audio" /></div>
   },
   {
-    id: imageAgent.id,
-    name: imageAgent.name,
-    description: imageAgent.description,
+    id: geminiImageAgent.id,
+    name: geminiImageAgent.name,
+    description: geminiImageAgent.description,
     icon: <div className="h-10 w-10"><img src="/img/google-gemini-icon.svg" className="h-10 w-10" alt="Extract image" /></div>
   },
   {
@@ -109,13 +108,10 @@ export default function Toolkit() {
         }
 
         setResult(response.text);
-      } else if (selectedTool === imageAgent.id && imageFormData.image_file) {
-        const text = await submitImageAnalysis(
-          imageFormData.image_file,
-          imageFormData.image_description,
-          imageFormData.prompt_type
-        );
-        setResult(text);
+      } else if (selectedTool === geminiImageAgent.id && imageFormData.image_file) {
+        // Untuk GeminiImageForm, kita tidak perlu melakukan apa-apa di sini
+        // karena form akan menangani sendiri pemanggilan API dan menampilkan hasil
+        console.log('GeminiImageForm will handle the API call');
       } else if (selectedTool === 'maps-agent' && mapsGeocodingFormData.message && typeof mapsGeocodingFormData.message === 'string') {
         const text = await submitMapsGeocoding(mapsGeocodingFormData.message);
         setResult(text);
@@ -163,7 +159,7 @@ export default function Toolkit() {
         ...prev,
         [fieldId]: value
       }));
-    } else if (selectedTool === imageAgent.id) {
+    } else if (selectedTool === geminiImageAgent.id) {
       if (fieldId === 'image_file' && value instanceof File) {
         const previewUrl = URL.createObjectURL(value);
         setImagePreview(previewUrl);
@@ -285,10 +281,11 @@ export default function Toolkit() {
     return (
       <DotBackground className="min-h-screen">
         <div className="p-6 lg:p-8">
-          <header>
-            <div className="max-w-5xl mx-auto pl-14 pr-4 sm:pl-14 sm:pr-4 lg:pl-14 lg:pr-4 py-4">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <button 
+          <header className="mb-8">
+            <div className="max-w-3xl mx-auto">
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
                   onClick={() => {
                     setSelectedTool(null);
                     setAudioFormData({
@@ -336,14 +333,19 @@ export default function Toolkit() {
                   isProcessing={isProcessing}
                   isDisabled={!!result}
                 />
-              ) : selectedTool === imageAgent.id ? (
-                <ImageAgentForm
-                  agent={imageAgent}
+              ) : selectedTool === geminiImageAgent.id ? (
+                <GeminiImageForm
+                  agent={geminiImageAgent}
                   formData={imageFormData}
                   onInputChange={handleInputChange}
                   error={error}
                   isProcessing={isProcessing}
                   imagePreview={imagePreview}
+                  onSubmit={handleSubmit}
+                  onResult={(result) => {
+                    setResult(result);
+                    setIsProcessing(false);
+                  }}
                 />
               ) : selectedTool === 'maps-agent' ? (
                 <BaseAgentForm

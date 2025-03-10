@@ -20,66 +20,76 @@ const RETRY_DELAY = 1000; // 1 second
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const submitImageAnalysis = async (
-  imageFile: File,
+  imageFiles: File | File[],
   description?: string,
   promptType: keyof typeof imagePrompts = 'default'
 ): Promise<string> => {
+  // Konversi input menjadi array
+  const files = Array.isArray(imageFiles) ? imageFiles : [imageFiles];
+  
   let retries = 0;
   let useFallbackModel = false;
+  let results: string[] = [];
   
   while (retries < MAX_RETRIES) {
     try {
-      // Convert image to base64
-      const imageBase64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          if (typeof reader.result === 'string') {
-            resolve(reader.result);
-          } else {
-            reject(new Error('Failed to convert image to base64'));
-          }
-        };
-        reader.onerror = () => reject(new Error('Failed to read image file'));
-        reader.readAsDataURL(imageFile);
-      });
+      // Proses setiap file
+      for (const imageFile of files) {
+        // Convert image to base64
+        const imageBase64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            if (typeof reader.result === 'string') {
+              resolve(reader.result);
+            } else {
+              reject(new Error('Failed to convert image to base64'));
+            }
+          };
+          reader.onerror = () => reject(new Error('Failed to read image file'));
+          reader.readAsDataURL(imageFile);
+        });
 
-      if (!imageBase64.startsWith('data:image/')) {
-        throw new Error('Invalid image format');
-      }
-
-      // Get selected prompt and add description if provided
-      const selectedPrompt = imagePrompts[promptType] || imagePrompts.default;
-      const prompt = description 
-        ? `${selectedPrompt}\n\nKonteks tambahan: ${description}`
-        : selectedPrompt;
-
-      // Convert base64 to data for Gemini
-      const base64Data = imageBase64.split(',')[1];
-
-      // Create parts array for Gemini
-      const parts = [
-        { text: prompt },
-        {
-          inlineData: {
-            mimeType: imageFile.type,
-            data: base64Data
-          }
+        if (!imageBase64.startsWith('data:image/')) {
+          throw new Error(`Invalid image format untuk file ${imageFile.name}`);
         }
-      ];
 
-      // Pilih model berdasarkan status
-      const selectedModel = useFallbackModel ? models.fallback : models.primary;
+        // Get selected prompt and add description if provided
+        const selectedPrompt = imagePrompts[promptType] || imagePrompts.default;
+        const prompt = description 
+          ? `${selectedPrompt}\n\nKonteks tambahan: ${description}`
+          : selectedPrompt;
 
-      // Generate content using Gemini
-      const result = await selectedModel.generateContent(parts);
-      const response = await result.response;
-      const analysisText = response.text();
+        // Convert base64 to data for Gemini
+        const base64Data = imageBase64.split(',')[1];
 
-      if (!analysisText) {
-        throw new Error('Tidak ada hasil analisis dari model');
+        // Create parts array for Gemini
+        const parts = [
+          { text: prompt },
+          {
+            inlineData: {
+              mimeType: imageFile.type,
+              data: base64Data
+            }
+          }
+        ];
+
+        // Pilih model berdasarkan status
+        const selectedModel = useFallbackModel ? models.fallback : models.primary;
+
+        // Generate content using Gemini
+        const result = await selectedModel.generateContent(parts);
+        const response = await result.response;
+        const analysisText = response.text();
+
+        if (!analysisText) {
+          throw new Error(`Tidak ada hasil analisis dari model untuk file ${imageFile.name}`);
+        }
+
+        results.push(`Analisis untuk ${imageFile.name}:\n${analysisText}`);
       }
 
-      return analysisText;
+      // Gabungkan semua hasil
+      return results.join('\n\n---\n\n');
       
     } catch (error) {
       console.error('Error in submitImageAnalysis:', error);

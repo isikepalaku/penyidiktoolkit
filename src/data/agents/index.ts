@@ -9,6 +9,7 @@ import sentimentAnalystAgent from './sentimentAnalystAgent';
 import tipikorAnalystAgent from './tipikorAnalystAgent';
 import { penyidikAiAgent } from './penyidikAiAgent';
 import { dokpolAgent } from './dokpolAgent';
+import { geminiImageAgent } from './geminiImageAgent';
 import type { ExtendedAgent } from '../../types';
 
 export const agents: ExtendedAgent[] = [
@@ -20,7 +21,8 @@ export const agents: ExtendedAgent[] = [
   crimeTrendAnalystAgent,
   sentimentAnalystAgent,
   tipikorAnalystAgent,
-  dokpolAgent
+  dokpolAgent,
+  geminiImageAgent
 ];
 
 export {
@@ -34,5 +36,6 @@ export {
   sentimentAnalystAgent,
   tipikorAnalystAgent,
   penyidikAiAgent,
-  dokpolAgent
+  dokpolAgent,
+  geminiImageAgent
 };

@@ -62,7 +62,8 @@ export type AgentType =
   | 'kesehatan_chat'
   | 'penyidik_chat'
   | 'maps_geocoding'
-  | 'pdf_image_analyzer';
+  | 'pdf_image_analyzer'
+  | 'gemini_image';
 
 export interface ExtendedAgent {
   id: string;

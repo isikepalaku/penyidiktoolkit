@@ -116,19 +116,26 @@ export const useAgentForm = (): UseAgentFormResult => {
           throw new Error('Maksimal 3 gambar yang dapat diupload');
         }
         response = await submitDokpolAnalysis(imageFiles, serviceType);
-      } else if (agentType === 'image') {
-        const imageFile = formData.image_file;
-        if (!imageFile || !(imageFile instanceof File)) {
-          throw new Error('Mohon pilih file gambar');
+      } else if (agentType === 'image' || agentType === 'gemini_image') {
+        if (agentType === 'gemini_image') {
+          response = '';
+        } else {
+          const imageFiles = formData.image_files;
+          if (!imageFiles || !Array.isArray(imageFiles) || imageFiles.length === 0) {
+            throw new Error('Mohon pilih minimal 1 gambar');
+          }
+          if (imageFiles.length > 3) {
+            throw new Error('Maksimal 3 gambar yang dapat diupload');
+          }
+          
+          const promptType = (formData.prompt_type as keyof typeof imagePrompts) || 'default';
+          
+          response = await submitImageAnalysis(
+            imageFiles,
+            typeof formData.image_description === 'string' ? formData.image_description : undefined,
+            promptType
+          );
         }
-        
-        const promptType = (formData.prompt_type as keyof typeof imagePrompts) || 'default';
-        
-        response = await submitImageAnalysis(
-          imageFile,
-          typeof formData.image_description === 'string' ? formData.image_description : undefined,
-          promptType
-        );
       } else {
         const agent = agents.find(a => a.type === agentType);
         if (!agent) {

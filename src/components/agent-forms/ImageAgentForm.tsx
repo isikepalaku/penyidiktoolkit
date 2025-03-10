@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { BaseAgentFormProps } from './BaseAgentForm';
 import type { ExtendedAgent } from '../../types';
 import { imagePrompts } from '../../data/agents/imageAgent';
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/utils/utils";
+import ThinkingAnimation from '../ThinkingAnimation';
 
 // Maximum file size (10MB)
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -36,15 +37,30 @@ const Square = ({ className, children }: { className?: string; children: React.R
   </span>
 );
 
-export const ImageAgentForm: React.FC<BaseAgentFormProps> = ({
+type ImageAgentFormProps = Omit<BaseAgentFormProps, 'agent'> & {
+  agent?: ExtendedAgent;
+  isDisabled?: boolean;
+};
+
+export const ImageAgentForm: React.FC<ImageAgentFormProps> = ({
   agent,
   formData,
   onInputChange,
   error,
-  isProcessing
+  isProcessing,
+  onSubmit,
+  isDisabled = false
 }) => {
-  const extendedAgent = agent as ExtendedAgent;
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [showThinking, setShowThinking] = useState(false);
+  
+  // Helper function untuk type checking
+  const getImageFiles = (): File[] => {
+    if (!formData.image_files) return [];
+    if (Array.isArray(formData.image_files)) return formData.image_files;
+    if (formData.image_files instanceof File) return [formData.image_files];
+    return [];
+  };
   
   const validateFile = (file: File): string | null => {
     if (file.size > MAX_FILE_SIZE) {
@@ -91,26 +107,19 @@ export const ImageAgentForm: React.FC<BaseAgentFormProps> = ({
   };
   
   // Function to trigger file input click
-  const handleUploadClick = (captureMode?: string) => {
-    if (!isProcessing) {
-      if (fileInputRef.current) {
-        if (captureMode) {
-          fileInputRef.current.setAttribute('capture', captureMode);
-        } else {
-          fileInputRef.current.removeAttribute('capture');
-        }
-        fileInputRef.current.click();
-      }
+  const handleUploadClick = () => {
+    if (!isDisabled && !isProcessing && fileInputRef.current) {
+      fileInputRef.current.click();
     }
   };
 
   return (
     <div className="space-y-6">
       {/* Warning Message */}
-      {extendedAgent.warning && (
+      {agent?.warning && (
         <div className="p-3 bg-amber-50 border border-amber-200 rounded-md flex items-start gap-2">
           <AlertTriangle className="text-amber-500 h-5 w-5 mt-0.5 flex-shrink-0" />
-          <p className="text-amber-700 text-sm">{extendedAgent.warning}</p>
+          <p className="text-amber-700 text-sm">{agent.warning}</p>
         </div>
       )}
       
@@ -118,11 +127,12 @@ export const ImageAgentForm: React.FC<BaseAgentFormProps> = ({
       <div>
         <Label htmlFor="field-image_file">Upload Gambar</Label>
         <div 
-          onClick={() => handleUploadClick()}
+          onClick={handleUploadClick}
           className={cn(
             "mt-2 p-6 border-2 border-dashed rounded-lg",
-            !isProcessing ? "cursor-pointer hover:border-blue-500 hover:bg-blue-50/50" : "cursor-not-allowed",
-            "transition-colors"
+            !isDisabled && !isProcessing ? "cursor-pointer hover:border-blue-500 hover:bg-blue-50/50" : "cursor-not-allowed",
+            "transition-colors",
+            isDisabled && "opacity-50"
           )}
         >
           <input
@@ -130,8 +140,7 @@ export const ImageAgentForm: React.FC<BaseAgentFormProps> = ({
             id="field-image_file"
             name="image_file"
             type="file"
-            accept="image/*"
-            capture="environment"
+            accept="image/jpeg,image/png,image/gif"
             onChange={(e) => {
               const fileList = e.target.files;
               if (!fileList) return;
@@ -145,11 +154,11 @@ export const ImageAgentForm: React.FC<BaseAgentFormProps> = ({
               handleFileChange(files);
             }}
             multiple
-            disabled={isProcessing}
+            disabled={isDisabled || isProcessing}
             className="hidden"
           />
           <div className="flex flex-col items-center gap-3">
-            {formData.image_files && Array.isArray(formData.image_files) && formData.image_files.length > 0 ? (
+            {getImageFiles().length > 0 ? (
               <div className="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full">
                 <FileImage className="w-8 h-8 text-blue-600" />
               </div>
@@ -160,9 +169,9 @@ export const ImageAgentForm: React.FC<BaseAgentFormProps> = ({
             )}
             
             <div className="text-sm text-gray-600 text-center">
-            {formData.image_files && Array.isArray(formData.image_files) && formData.image_files.length > 0 ? (
+            {getImageFiles().length > 0 ? (
               <span className="text-blue-600 font-medium">
-                {formData.image_files.length} gambar dipilih
+                {getImageFiles().length} gambar dipilih
               </span>
             ) : (
               <>
@@ -177,9 +186,9 @@ export const ImageAgentForm: React.FC<BaseAgentFormProps> = ({
       </div>
 
       {/* Image Previews */}
-      {formData.image_files && Array.isArray(formData.image_files) && formData.image_files.length > 0 && (
+      {getImageFiles().length > 0 && (
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {formData.image_files.map((file, index) => (
+          {getImageFiles().map((file, index) => (
             <div key={index} className="relative">
               <img
                 src={URL.createObjectURL(file)}
@@ -202,10 +211,14 @@ export const ImageAgentForm: React.FC<BaseAgentFormProps> = ({
           <Select
             value={(formData.service_type as string) || ''}
             onValueChange={(value) => onInputChange('service_type', value)}
+            disabled={isDisabled || isProcessing}
           >
             <SelectTrigger
               id="service-type-select"
-              className="ps-2 [&>span]:flex [&>span]:items-center [&>span]:gap-2 [&>span_[data-square]]:shrink-0"
+              className={cn(
+                "ps-2 [&>span]:flex [&>span]:items-center [&>span]:gap-2 [&>span_[data-square]]:shrink-0",
+                isDisabled && "opacity-50 cursor-not-allowed"
+              )}
             >
               <SelectValue placeholder="Pilih jenis layanan" />
             </SelectTrigger>
@@ -238,14 +251,18 @@ export const ImageAgentForm: React.FC<BaseAgentFormProps> = ({
             <Select 
               value={(formData.prompt_type as string) || 'default'}
               onValueChange={(value) => onInputChange('prompt_type', value as keyof typeof imagePrompts)}
+              disabled={isDisabled || isProcessing}
             >
               <SelectTrigger 
                 id="prompt-type-select"
-                className="ps-2 [&>span]:flex [&>span]:items-center [&>span]:gap-2 [&>span_[data-square]]:shrink-0"
+                className={cn(
+                  "ps-2 [&>span]:flex [&>span]:items-center [&>span]:gap-2 [&>span_[data-square]]:shrink-0",
+                  isDisabled && "opacity-50 cursor-not-allowed"
+                )}
               >
                 <SelectValue placeholder="Pilih jenis analisis" />
               </SelectTrigger>
-              <SelectContent className="[&_*[role=option]>span]:end-2 [&_*[role=option]>span]:start-auto [&_*[role=option]>span]:flex [&_*[role=option]>span]:items-center [&_*[role=option]>span]:gap-2 [&_*[role=option]]:pe-8 [&_*[role=option]]:ps-2">
+              <SelectContent>
                 <SelectGroup>
                   <SelectItem value="default">
                     <Square className="bg-blue-400/20 text-blue-500">
@@ -274,33 +291,61 @@ export const ImageAgentForm: React.FC<BaseAgentFormProps> = ({
               onChange={(e) => onInputChange('image_description', e.target.value)}
               placeholder="Berikan deskripsi tambahan tentang gambar..."
               className="mt-2 w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px]"
+              disabled={isDisabled || isProcessing}
             />
           </div>
         </>
       )}
 
-      {/* Validation Messages */}
-      {(error || (agent?.type === 'medical_image' && !formData.service_type && Array.isArray(formData.image_files) && formData.image_files.length > 0)) && (
+      {/* Error Display */}
+      {error && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-          {error || 'Mohon pilih jenis layanan Dokpol terlebih dahulu'}
+          {error}
+        </div>
+      )}
+
+      {/* Thinking Animation */}
+      {showThinking && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
+            <ThinkingAnimation />
+          </div>
         </div>
       )}
 
       {/* Submit Button */}
       <button
         type="submit"
-      disabled={isProcessing || 
-        !(formData.image_files && Array.isArray(formData.image_files) && formData.image_files.length > 0) || 
-        (agent?.type === 'medical_image' && !formData.service_type)
-      }
-        className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white font-medium
-          ${isProcessing 
-            ? 'bg-blue-400 cursor-not-allowed' 
-            : 'bg-blue-600 hover:bg-blue-700'
-          }`}
+        disabled={isProcessing || isDisabled || getImageFiles().length === 0 || (agent?.type === 'medical_image' && !formData.service_type)}
+        onClick={async (e) => {
+          e.preventDefault();
+          if (onSubmit && !isProcessing && !isDisabled) {
+            try {
+              setShowThinking(true);
+              await onSubmit(e);
+            } catch (err) {
+              console.error('Error submitting form:', err);
+            } finally {
+              setShowThinking(false);
+            }
+          }
+        }}
+        className={cn(
+          "w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white font-medium",
+          (isProcessing || isDisabled)
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-blue-600 hover:bg-blue-700",
+          isDisabled && "opacity-50"
+        )}
       >
-        {isProcessing && <span className="animate-spin">⏳</span>}
-        {isProcessing ? 'Memproses...' : 'Analisis Gambar'}
+        {isProcessing ? (
+          <>
+            <span className="animate-spin">⏳</span>
+            Memproses...
+          </>
+        ) : (
+          'Analisis Gambar'
+        )}
       </button>
     </div>
   );
