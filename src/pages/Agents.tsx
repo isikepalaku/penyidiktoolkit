@@ -7,7 +7,6 @@ import type { ExtendedAgent, Agent } from '../types';
 import { agents } from '../data/agents';
 import { BaseAgentForm } from '../components/agent-forms/BaseAgentForm';
 import { ImageAgentForm } from '../components/agent-forms/ImageAgentForm';
-import { GeminiImageForm } from '../components/agent-forms/GeminiImageForm';
 import { ImageProcessorForm, ImageProcessorFormProps } from '../components/agent-forms/ImageProcessorForm';
 import { useAgentForm } from '../hooks/useAgentForm';
 import { DotBackground } from '../components/ui/DotBackground';
@@ -150,14 +149,6 @@ export default function Agents() {
         return <ImageProcessorForm {...commonProps as ImageProcessorFormProps} />;
       case 'medical_image':
         return <ImageAgentForm {...commonProps} />;
-      case 'gemini_image':
-        return <GeminiImageForm 
-          {...commonProps} 
-          onResult={(result) => {
-            setResult(result);
-            setProgress(100);
-          }}
-        />;
       case 'crime_trend_analyst':
         return <BaseAgentForm {...commonProps} textareaHeight="h-32" />;
       case 'hoax_checker':

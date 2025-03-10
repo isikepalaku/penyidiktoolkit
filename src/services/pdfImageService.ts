@@ -23,16 +23,10 @@ const mistralClient = new Mistral({
 
 // Supported file types
 export const SUPPORTED_FILE_TYPES = [
-  'application/pdf',
-  'image/jpeg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-  'image/tiff',
-  'image/bmp'
+  'application/pdf'
 ];
 
-export const SUPPORTED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.tiff', '.bmp'];
+export const SUPPORTED_EXTENSIONS = ['.pdf'];
 
 // Chat history management
 let chatHistory: ChatMessage[] = [];

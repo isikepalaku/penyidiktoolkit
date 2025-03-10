@@ -96,7 +96,6 @@ export const ImageProcessorForm: React.FC<ImageProcessorFormProps> = ({
             name="image_file"
             type="file"
             accept="image/*"
-            capture="environment"
             onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
             disabled={isProcessing}
             className="hidden"
@@ -119,7 +118,7 @@ export const ImageProcessorForm: React.FC<ImageProcessorFormProps> = ({
               </span>
             ) : (
               <>
-                <span className="font-medium">Klik untuk upload</span> atau ambil foto
+                <span className="font-medium">Klik untuk upload</span> gambar dari galeri
                 <br />
                 JPG, PNG, GIF (max. {formatFileSize(MAX_FILE_SIZE)})
               </>

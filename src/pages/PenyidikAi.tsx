@@ -4,10 +4,12 @@ import ChatInterface from '../components/ChatInterface';
 import { ArrowLeft } from 'lucide-react';
 import { sendChatMessage as sendPenyidikChatMessage } from '../services/penyidikService';
 import { sendChatMessage as sendTipidkorChatMessage } from '../services/tipidkorService';
+import { sendChatMessage as sendFismondevChatMessage } from '../services/fismondevService';
 import { DotBackground } from '@/components/ui/DotBackground';
 import { Agent } from '@/types';
 import { penyidikAiAgent } from '@/data/agents/penyidikAiAgent';
 import { tipidkorAiAgent } from '@/data/agents/tipidkorAiAgent';
+import { fismondevAgent } from '@/data/agents/fismondevAgent';
 
 export default function PenyidikAi() {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
@@ -66,6 +68,15 @@ export default function PenyidikAi() {
       status: tipidkorAiAgent.status,
       color: 'blue',
       icon: 'shield'
+    },
+    {
+      id: fismondevAgent.id,
+      name: fismondevAgent.name,
+      description: fismondevAgent.description,
+      type: fismondevAgent.type,
+      status: fismondevAgent.status,
+      color: 'green',
+      icon: 'dollar'
     }
   ];
 
@@ -85,6 +96,8 @@ export default function PenyidikAi() {
         return <ChatInterface sendMessage={sendPenyidikChatMessage} />;
       case 'tipidkor_chat':
         return <ChatInterface sendMessage={sendTipidkorChatMessage} />;
+      case 'fismondev_chat':
+        return <ChatInterface sendMessage={sendFismondevChatMessage} />;
       default:
         return null;
     }
@@ -128,7 +141,7 @@ export default function PenyidikAi() {
                 </p>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {agents.map((agent) => (
                   <div
                     key={agent.id}
@@ -140,13 +153,17 @@ export default function PenyidikAi() {
                       bgColor={
                         agent.type === 'tipidkor_chat'
                           ? "bg-gradient-to-br from-blue-50 to-sky-50 hover:from-blue-100 hover:to-sky-100"
-                          : "bg-gradient-to-br from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100"
+                          : agent.type === 'fismondev_chat'
+                            ? "bg-gradient-to-br from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100"
+                            : "bg-gradient-to-br from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100"
                       }
                       className={`
                         border border-transparent
                         ${agent.type === 'tipidkor_chat' 
                           ? 'hover:border-blue-200 hover:shadow-blue-100'
-                          : 'hover:border-purple-200 hover:shadow-purple-100'
+                          : agent.type === 'fismondev_chat'
+                            ? 'hover:border-green-200 hover:shadow-green-100'
+                            : 'hover:border-purple-200 hover:shadow-purple-100'
                         }
                         shadow-lg hover:shadow-xl transition-all duration-300
                         rounded-xl overflow-hidden

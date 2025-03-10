@@ -19,9 +19,7 @@ import {
   Copy, 
   Check, 
   Send, 
-  ArrowLeft, 
-  FileType,
-  File as FileIconGeneric
+  ArrowLeft
 } from "lucide-react";
 import { isSupportedFormat, formatFileSize } from '@/services/pdfImageService';
 import type { PdfImageFormData } from '@/types/pdfImage';
@@ -98,64 +96,39 @@ const ChatMessageItem = ({ message }: { message: ChatMessage }) => {
 };
 
 // Fungsi untuk mendapatkan ikon berdasarkan tipe file
-const getFileIcon = (file: File, size: 'sm' | 'lg' = 'sm') => {
-  const isPdf = file.type === 'application/pdf';
-  
-  const iconSize = size === 'sm' ? "w-4 h-4" : "w-12 h-12";
-  
-  if (isPdf) {
-    return <FileType className={`${iconSize} text-red-${size === 'sm' ? '500' : '400'}`} />;
-  } else if (file.type.includes('word') || file.name.endsWith('.doc') || file.name.endsWith('.docx')) {
-    return <FileText className={`${iconSize} text-blue-${size === 'sm' ? '600' : '400'}`} />;
-  } else if (file.type.includes('excel') || file.name.endsWith('.xls') || file.name.endsWith('.xlsx')) {
-    return <FileText className={`${iconSize} text-green-${size === 'sm' ? '600' : '400'}`} />;
-  } else if (file.type.includes('powerpoint') || file.name.endsWith('.ppt') || file.name.endsWith('.pptx')) {
-    return <FileText className={`${iconSize} text-orange-${size === 'sm' ? '600' : '400'}`} />;
-  } else {
-    return <FileIconGeneric className={`${iconSize} text-gray-${size === 'sm' ? '500' : '400'}`} />;
-  }
+const getFileIcon = (_file: File, size: 'sm' | 'lg' = 'sm') => {
+  // Untuk PDF, gunakan ikon FileText
+  return (
+    <FileText 
+      className={cn(
+        "text-blue-500",
+        size === 'sm' ? "w-5 h-5" : "w-8 h-8"
+      )} 
+    />
+  );
 };
 
 // Komponen untuk menampilkan file yang diupload dalam mode chat
 const FilePreviewItem = ({ file, onRemove, disabled }: { file: File; onRemove: () => void; disabled: boolean }) => {
-  const isImage = file.type.startsWith('image/');
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  
-  useEffect(() => {
-    if (isImage) {
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-      return () => URL.revokeObjectURL(url);
-    }
-  }, [file, isImage]);
-  
   return (
-    <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-md border">
-      <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-gray-100 rounded">
-        {isImage && previewUrl ? (
-          <img src={previewUrl} alt={file.name} className="w-full h-full object-cover rounded" />
-        ) : (
-          getFileIcon(file, 'sm')
-        )}
-      </div>
+    <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-md border min-w-[200px] relative group">
+      {getFileIcon(file, 'sm')}
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-gray-700 truncate" title={file.name}>
+        <div className="text-xs font-medium truncate" title={file.name}>
           {file.name}
-        </p>
-        <p className="text-xs text-gray-500">
+        </div>
+        <div className="text-xs text-gray-500">
           {formatFileSize(file.size)}
-        </p>
+        </div>
       </div>
-      {!disabled && (
-        <button
-          type="button"
-          onClick={onRemove}
-          className="p-1 rounded-full hover:bg-gray-200 text-gray-500"
-          aria-label="Remove file"
-        >
-          <X className="w-4 h-4" />
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={onRemove}
+        className="text-gray-400 hover:text-red-500 p-1 rounded-full hover:bg-gray-100 opacity-0 group-hover:opacity-100 transition-opacity absolute -top-2 -right-2 bg-white shadow-sm"
+        disabled={disabled}
+      >
+        <X className="w-3 h-3" />
+      </button>
     </div>
   );
 };
@@ -224,7 +197,7 @@ export const PdfImageAnalysisForm: React.FC<PdfImageAnalysisFormProps> = ({
     }
 
     if (!isSupportedFormat(file)) {
-      return `Format file tidak didukung. Gunakan PDF atau gambar (JPG, PNG, etc.)`;
+      return `Format file tidak didukung. Hanya file PDF yang diperbolehkan.`;
     }
 
     return null;
@@ -309,14 +282,9 @@ export const PdfImageAnalysisForm: React.FC<PdfImageAnalysisFormProps> = ({
 
       // Create previews for image files
       const previewUrls: string[] = [];
-      for (const file of fileArray) {
-        if (file.type.startsWith('image/')) {
-          const previewUrl = URL.createObjectURL(file);
-          previewUrls.push(previewUrl);
-        } else if (file.type === 'application/pdf') {
-          // For PDFs, we just add a placeholder
-          previewUrls.push('pdf');
-        }
+      for (const _file of fileArray) {
+        // For PDFs, we just add a placeholder
+        previewUrls.push('pdf');
         
         // Simulasi progress upload (dalam aplikasi nyata, ini akan menggunakan progress event dari fetch/axios)
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -399,19 +367,9 @@ export const PdfImageAnalysisForm: React.FC<PdfImageAnalysisFormProps> = ({
           {Array.from(formData.files).map((file, index) => (
             <div key={index} className="relative group">
               <div className="border rounded-lg p-2 bg-gray-50 flex flex-col items-center">
-                {file.type.startsWith('image/') ? (
-                  <div className="w-full h-24 relative">
-                    <img 
-                      src={filePreviewUrls[index]} 
-                      alt={file.name}
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-full h-24 flex items-center justify-center bg-gray-100 rounded">
-                    {getFileIcon(file, 'lg')}
-                  </div>
-                )}
+                <div className="w-full h-24 flex items-center justify-center bg-gray-100 rounded">
+                  {getFileIcon(file, 'lg')}
+                </div>
                 <div className="mt-2 text-xs text-center truncate w-full" title={file.name}>
                   {file.name}
                 </div>
@@ -441,7 +399,7 @@ export const PdfImageAnalysisForm: React.FC<PdfImageAnalysisFormProps> = ({
         <div className="space-y-4">
           <div>
             <Label htmlFor="pdf_image_files" className="text-base font-medium">
-              Upload File PDF atau Gambar
+              Upload File PDF
             </Label>
             <div className="mt-1">
               <div
@@ -458,7 +416,7 @@ export const PdfImageAnalysisForm: React.FC<PdfImageAnalysisFormProps> = ({
                   type="file"
                   id="pdf_image_files"
                   name="files"
-                  accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.tiff,.bmp,application/pdf,image/jpeg,image/png,image/gif,image/webp,image/tiff,image/bmp"
+                  accept=".pdf,application/pdf"
                   multiple
                   className="hidden"
                   onChange={(e) => handleFilesChange(e.target.files)}
@@ -484,7 +442,7 @@ export const PdfImageAnalysisForm: React.FC<PdfImageAnalysisFormProps> = ({
                       <span className="font-medium text-blue-600">Klik untuk upload</span> atau drag and drop
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
-                      PDF, JPG, PNG, GIF (max. 25MB per file)
+                      PDF (max. 25MB per file)
                     </p>
                   </>
                 )}
@@ -674,7 +632,7 @@ export const PdfImageAnalysisForm: React.FC<PdfImageAnalysisFormProps> = ({
               type="file"
               id="pdf_image_files_chat"
               name="files"
-              accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.tiff,.bmp,application/pdf,image/jpeg,image/png,image/gif,image/webp,image/tiff,image/bmp"
+              accept=".pdf,application/pdf"
               multiple
               className="hidden"
               onChange={(e) => handleFilesChange(e.target.files)}

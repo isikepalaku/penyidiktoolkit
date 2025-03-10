@@ -55,6 +55,8 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
         return <img src="/img/book.svg" alt="Google Scholar" className="h-10 w-10" />;
       case 'penyidik_chat':
         return <img src="/img/krimsus.png" alt="Tipidkor ai" className="h-10 w-10" />;
+      case 'fismondev_chat':
+        return <img src="/img/krimsus.png" alt="Fismondev AI" className="h-10 w-10" />;
       default:
         return <PieChart className="text-gray-500" size={24} />;
     }

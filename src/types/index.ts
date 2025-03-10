@@ -63,7 +63,8 @@ export type AgentType =
   | 'penyidik_chat'
   | 'maps_geocoding'
   | 'pdf_image_analyzer'
-  | 'gemini_image';
+  | 'gemini_image'
+  | 'fismondev_chat';
 
 export interface ExtendedAgent {
   id: string;
