@@ -53,7 +53,11 @@ const Sidebar = () => {
       {/* Mobile Menu Button */}
       <button
         onClick={toggleSidebar}
-        className="lg:hidden fixed left-4 top-4 z-[200] p-2.5 rounded-lg bg-gradient-to-r from-indigo-950 to-slate-900 text-white shadow-lg hover:from-slate-900 hover:to-slate-950 transition-all"
+        className={`lg:hidden fixed z-[200] p-2.5 rounded-r-lg bg-gradient-to-r from-indigo-950 to-slate-900 text-white shadow-lg hover:from-slate-900 hover:to-slate-950 transition-all ${
+          isOpen 
+            ? 'left-64 top-1/2 -translate-y-1/2' 
+            : 'left-0 top-1/2 -translate-y-1/2'
+        }`}
       >
         {isOpen ? <PanelRightClose size={20} /> : <PanelLeft size={20} />}
       </button>

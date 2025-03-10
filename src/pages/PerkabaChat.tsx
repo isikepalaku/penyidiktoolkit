@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import AgentCard from '../components/AgentCard';
-import ChatInterface from '../components/ChatInterface';
 import { ArrowLeft } from 'lucide-react';
-import { sendChatMessage as sendPerkabaChatMessage } from '../services/perkabaService';
-import { sendChatMessage as sendBantekChatMessage } from '../services/bantekService';
-import { sendChatMessage as sendWassidikChatMessage } from '../services/wassidikService';
-import { sendChatMessage as sendEmpChatMessage } from '../services/empService';
 import { DotBackground } from '@/components/ui/DotBackground';
 import { Agent, AgentType } from '@/types';
+import EMPChatPage from '@/components/ui/EMPChatPage';
+import BantekChatPage from '@/components/ui/BantekChatPage';
+import PerkabaChatPage from '@/components/ui/PerkabaChatPage';
+import WassidikChatPage from '@/components/ui/WassidikChatPage';
 
 export default function PerkabaChat() {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
@@ -28,8 +27,8 @@ export default function PerkabaChat() {
       description: 'Ajukan pertanyaan seputar SOP bantuan teknis berdasarkan Perkaba',
       type: 'bantek_chat' as AgentType,
       status: 'on',
-      icon: 'brain',
-      color: 'blue'
+      icon: 'file-text',
+      color: 'green'
     },
     {
       id: 'wassidik_chat',
@@ -42,11 +41,11 @@ export default function PerkabaChat() {
     },
     {
       id: 'emp_chat',
-      name: 'EMP',
-      description: 'Ajukan pertanyaan seputar E-Manajemen Penyidikan (EMP) berdasarkan Perkaba',
+      name: 'EMP AI',
+      description: 'Asisten AI yang fokus pada tindak pidana di bidang Ekonomi, Moneter, dan Perbankan',
       type: 'emp_chat' as AgentType,
       status: 'on',
-      icon: 'brain',
+      icon: 'dollar',
       color: 'blue'
     }
   ];
@@ -62,13 +61,29 @@ export default function PerkabaChat() {
 
     switch (selectedAgentData.type) {
       case 'perkaba_chat':
-        return <ChatInterface sendMessage={sendPerkabaChatMessage} />;
+        return (
+          <div className="fixed inset-0 z-20 bg-white">
+            <PerkabaChatPage onBack={handleBack} />
+          </div>
+        );
       case 'bantek_chat':
-        return <ChatInterface sendMessage={sendBantekChatMessage} />;
+        return (
+          <div className="fixed inset-0 z-20 bg-white">
+            <BantekChatPage onBack={handleBack} />
+          </div>
+        );
       case 'wassidik_chat':
-        return <ChatInterface sendMessage={sendWassidikChatMessage} />;
+        return (
+          <div className="fixed inset-0 z-20 bg-white">
+            <WassidikChatPage onBack={handleBack} />
+          </div>
+        );
       case 'emp_chat':
-        return <ChatInterface sendMessage={sendEmpChatMessage} />;
+        return (
+          <div className="fixed inset-0 z-20 bg-white">
+            <EMPChatPage onBack={handleBack} />
+          </div>
+        );
       default:
         return null;
     }
@@ -125,12 +140,23 @@ export default function PerkabaChat() {
                         agent.type === 'perkaba_chat' 
                           ? 'bg-purple-50' 
                           : agent.type === 'bantek_chat'
-                          ? 'bg-blue-50'
-                          : agent.type === 'wassidik_chat'
                           ? 'bg-green-50'
+                          : agent.type === 'wassidik_chat'
+                          ? 'bg-blue-50'
                           : agent.type === 'emp_chat'
                           ? 'bg-amber-50'
                           : 'bg-white'
+                      }
+                      className={
+                        agent.type === 'perkaba_chat'
+                          ? 'border border-purple-100 hover:border-purple-200 hover:shadow-purple-100'
+                          : agent.type === 'bantek_chat'
+                          ? 'border border-green-100 hover:border-green-200 hover:shadow-green-100'
+                          : agent.type === 'wassidik_chat'
+                          ? 'border border-blue-100 hover:border-blue-200 hover:shadow-blue-100'
+                          : agent.type === 'emp_chat'
+                          ? 'border border-amber-100 hover:border-amber-200 hover:shadow-amber-100'
+                          : 'border border-gray-100 hover:border-gray-200 hover:shadow-gray-100'
                       }
                     />
                   </div>

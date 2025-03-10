@@ -39,33 +39,30 @@ export interface Agent {
 }
 
 export type AgentType =
-  | 'spkt'
-  | 'case_research'
   | 'image'
-  | 'hoax_checker'
   | 'image_processor'
-  | 'medical_image'
-  | 'modus_kejahatan'
+  | 'case_research'
+  | 'hoax_checker'
   | 'crime_trend_analyst'
   | 'sentiment_analyst'
-  | 'undang_chat'
-  | 'kuhp_chat'
-  | 'ite_chat'
-  | 'tipidkor_chat'
+  | 'spkt'
   | 'perkaba_chat'
   | 'perkaba_search'
   | 'bantek_chat'
   | 'wassidik_chat'
-  | 'emp_chat'
-  | 'tipikor_analyst'
+  | 'undang_chat'
+  | 'kuhp_chat'
+  | 'ite_chat'
   | 'ciptakerja_chat'
   | 'kesehatan_chat'
+  | 'tipidkor_chat'
+  | 'tipikor_analyst'
+  | 'modus_kejahatan'
+  | 'medical_image'
   | 'penyidik_chat'
-  | 'maps_geocoding'
-  | 'pdf_image_analyzer'
-  | 'gemini_image'
   | 'fismondev_chat'
-  | 'siber_chat';
+  | 'siber_chat'
+  | 'emp_chat';
 
 export interface ExtendedAgent {
   id: string;

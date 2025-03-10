@@ -1,17 +1,16 @@
 import { useState, useEffect } from 'react';
 import AgentCard from '../components/AgentCard';
-import ChatInterface from '../components/ChatInterface';
 import { ArrowLeft } from 'lucide-react';
-import { sendChatMessage as sendPenyidikChatMessage } from '../services/penyidikService';
-import { sendChatMessage as sendTipidkorChatMessage } from '../services/tipidkorService';
-import { sendChatMessage as sendFismondevChatMessage } from '../services/fismondevService';
-import { sendChatMessage as sendSiberChatMessage } from '../services/siberService';
 import { DotBackground } from '@/components/ui/DotBackground';
 import { Agent } from '@/types';
 import { penyidikAiAgent } from '@/data/agents/penyidikAiAgent';
 import { tipidkorAiAgent } from '@/data/agents/tipidkorAiAgent';
 import { fismondevAgent } from '@/data/agents/fismondevAgent';
 import { siberAgent } from '@/data/agents/siberAgent';
+import SiberChatPage from '@/components/ui/SiberChatPage';
+import FismondevChatPage from '@/components/ui/FismondevChatPage';
+import IndagsiChatPage from '@/components/ui/IndagsiChatPage';
+import TipidkorChatPage from '@/components/ui/TipidkorChatPage';
 
 export default function PenyidikAi() {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
@@ -104,13 +103,29 @@ export default function PenyidikAi() {
 
     switch (selectedAgentData.type) {
       case 'penyidik_chat':
-        return <ChatInterface sendMessage={sendPenyidikChatMessage} />;
+        return (
+          <div className="fixed inset-0 z-20">
+            <IndagsiChatPage onBack={handleBack} />
+          </div>
+        );
       case 'tipidkor_chat':
-        return <ChatInterface sendMessage={sendTipidkorChatMessage} />;
+        return (
+          <div className="fixed inset-0 z-20">
+            <TipidkorChatPage onBack={handleBack} />
+          </div>
+        );
       case 'fismondev_chat':
-        return <ChatInterface sendMessage={sendFismondevChatMessage} />;
+        return (
+          <div className="fixed inset-0 z-20">
+            <FismondevChatPage onBack={handleBack} />
+          </div>
+        );
       case 'siber_chat':
-        return <ChatInterface sendMessage={sendSiberChatMessage} />;
+        return (
+          <div className="fixed inset-0 z-20">
+            <SiberChatPage onBack={handleBack} />
+          </div>
+        );
       default:
         return null;
     }

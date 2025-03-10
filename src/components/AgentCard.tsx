@@ -1,4 +1,4 @@
-import { PieChart, BarChart3, TrendingUp, AlertTriangle } from 'lucide-react';
+import { PieChart, BarChart3, TrendingUp, AlertTriangle, DollarSign, FileText } from 'lucide-react';
 import type { Agent, ExtendedAgent } from '../types/index';
 import { getTypeDisplay } from '@/utils/utils';
 
@@ -10,6 +10,13 @@ interface AgentCardProps {
 
 export default function AgentCard({ agent, bgColor = 'bg-white', className = '' }: AgentCardProps) {
   const getAgentIcon = () => {
+    // Jika agent adalah ExtendedAgent dan memiliki icon yang sudah didefinisikan
+    if ('iconClassName' in agent && 'icon' in agent && agent.icon) {
+      const Icon = agent.icon;
+      return <Icon className={agent.iconClassName || 'text-gray-700'} size={40} />;
+    }
+
+    // Fallback ke icon berdasarkan type
     switch (agent.type) {
       case 'spkt':
         return <img src="/img/ai.svg" alt="laporan polisi" className="h-10 w-10" />;
@@ -24,11 +31,11 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
       case 'perkaba_search':
         return <img src="/img/pdf.svg" alt="perkaba ai" className="h-10 w-10" />;
       case 'bantek_chat':
-        return <img src="/img/pdf.svg" alt="perkaba ai" className="h-10 w-10" />;
+        return <FileText className="text-green-600" size={40} />;
       case 'wassidik_chat':
         return <img src="/img/pdf.svg" alt="perkaba ai" className="h-10 w-10" />;
       case 'emp_chat':
-        return <img src="/img/pdf.svg" alt="perkaba ai" className="h-10 w-10" />;
+        return <DollarSign className="text-blue-600" size={40} />;
       case 'modus_kejahatan':
         return <img src="/img/moduskejahatan.svg" alt="Modus Kejahatab" className="h-10 w-10" />;
       case 'image_processor':
@@ -60,6 +67,16 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
       case 'siber_chat':
         return <img src="/img/krimsus.png" alt="Siber AI" className="h-10 w-10" />;
       default:
+        // Jika agent memiliki icon sebagai string
+        if (agent.icon === 'brain') {
+          return <img src="/img/ai.svg" alt="AI" className="h-10 w-10" />;
+        } else if (agent.icon === 'dollar') {
+          return <DollarSign className="text-blue-600" size={40} />;
+        } else if (agent.icon === 'shield') {
+          return <img src="/img/krimsus.png" alt="Shield" className="h-10 w-10" />;
+        } else if (agent.icon === 'file-text') {
+          return <FileText className="text-green-600" size={40} />;
+        }
         return <PieChart className="text-gray-500" size={24} />;
     }
   };

@@ -355,6 +355,19 @@ Professional Color Scheme Examples:
     * Reference in img src with absolute path from public (e.g., "/img/google-scholar.svg")
     * Keep original SVG colors if they match the design
     * Maintain consistent size with w-6 h-6 classes (24px)
+- ChatPage implementation best practices:
+  - Use consistent structure across all ChatPage components
+  - Follow the same pattern for message handling, formatting, and display
+  - Use conditional rendering for UI elements that should appear/disappear based on state
+  - Hide example questions after user starts chatting (messages.length > 1)
+  - Use proper spacing and layout for different screen sizes
+  - Ensure proper sidebar spacing with lg:pl-64 to prevent overlap
+  - Use max-w-3xl mx-auto for content centering
+  - Implement proper scrolling behavior with requestAnimationFrame
+  - Use consistent styling for message bubbles, info panels, and input areas
+  - Provide clear visual feedback for user actions (copying, sending messages)
+  - Use aria-label attributes for better accessibility
+  - Remove unused imports to prevent TypeScript errors
 
 ## Form Implementation Lessons
 
@@ -810,76 +823,74 @@ Common issues to avoid:
 
 # Scratchpad
 
-Current Task: Optimizing Mobile UI for PDF/Image Analysis Chat Interface
+Current Task: Mengimplementasikan ChatPage untuk agen-agen di PenyidikAi.tsx
 
-[X] Memperbesar area chat untuk mode tanya jawab dokumen
-[X] Membuat header lebih compact di mobile
-[X] Membuat panel file yang dapat disembunyikan (collapsible)
-[X] Mengoptimalkan input area untuk mobile
-[X] Menghapus variabel state yang tidak digunakan (filesUploaded)
+[X] Membuat komponen SiberChatPage.tsx untuk agen Siber AI
+[X] Membuat komponen FismondevChatPage.tsx untuk agen Fismondev AI
+[X] Membuat komponen IndagsiChatPage.tsx untuk agen Indagsi AI
+[X] Membuat komponen TipidkorChatPage.tsx untuk agen Tipidkor AI
+[X] Mengintegrasikan komponen-komponen tersebut ke PenyidikAi.tsx
+[X] Memperbaiki styling agar tidak tumpang tindih dengan sidebar
+[X] Memisahkan contoh pertanyaan dari panel info
+[X] Membuat contoh pertanyaan hilang saat pengguna sudah melakukan chat
+[X] Menghapus import yang tidak digunakan
 [X] Menambahkan pembelajaran ke .cursorrules
-[X] Mengubah ikon dokumen berdasarkan jenis file yang diupload
-[X] Memperbaiki error TypeScript untuk variabel yang tidak digunakan
-[X] Memperbaiki error TypeScript di service files (MAX_RETRIES, RETRY_DELAY)
-[X] Mengimplementasikan dukungan multi-dokumen (maksimal 5) dalam mode tanya jawab
-[X] Mengimplementasikan pengelolaan file sementara dan pembersihan otomatis
-[X] Menambahkan fitur citation untuk hasil analisis dokumen
 
 Refleksi:
-- Berhasil mengimplementasikan tampilan mobile yang lebih optimal
-- Menggunakan pendekatan collapsible panel untuk file preview
-- Menerapkan responsive design dengan breakpoint md:
-- Memprioritaskan area chat dengan memberikan lebih banyak ruang
-- Mengurangi ukuran elemen UI di mobile untuk menghemat ruang
-- Menambahkan ikon yang berbeda berdasarkan jenis file untuk meningkatkan UX
-- Membersihkan kode dengan menghapus variabel yang tidak digunakan
-- Memperbaiki error TypeScript di service files untuk meningkatkan kualitas kode
-- Mengimplementasikan dukungan multi-dokumen dengan batas maksimal 5 dokumen
-- Memperbaiki pengelolaan state untuk dokumen yang diupload
-- Menambahkan sistem pengelolaan file sementara dengan pembersihan otomatis
-- Mencegah memory leak dengan membersihkan URL objek file
-- Menambahkan fitur citation untuk meningkatkan kredibilitas hasil analisis
+- Berhasil mengimplementasikan empat komponen ChatPage dengan struktur yang konsisten
+- Menggunakan skema warna yang sesuai dengan tema masing-masing agen:
+  - Siber AI: Biru (tema keamanan)
+  - Fismondev AI: Hijau (tema keuangan)
+  - Indagsi AI: Ungu (tema perdagangan)
+  - Tipidkor AI: Merah (tema korupsi)
+- Memastikan semua komponen memiliki fitur yang sama:
+  - Panel info yang dapat ditampilkan/disembunyikan
+  - Contoh pertanyaan yang hilang setelah pengguna mulai chat
+  - Kemampuan untuk menyalin pesan
+  - Pemformatan markdown yang konsisten
+  - Tampilan sumber dokumen jika tersedia
+  - Animasi "sedang mengetik" saat menunggu respons
+- Memperbaiki styling agar tidak tumpang tindih dengan sidebar dengan menggunakan lg:pl-64
+- Menggunakan max-w-3xl mx-auto untuk memastikan konten berada di tengah
+- Menghapus import yang tidak digunakan untuk mencegah error TypeScript
+- Menggunakan komponen UI yang konsisten (Button, Textarea) dari shadcn/ui
+- Menggunakan DotBackground untuk latar belakang yang konsisten
+- Menggunakan AnimatedBotIcon untuk animasi yang konsisten
 
 Pembelajaran:
-- Gunakan collapsible panel untuk konten sekunder di mobile
-- Terapkan ukuran yang berbeda untuk mobile dan desktop dengan breakpoint
-- Prioritaskan konten utama (area chat) dengan memberikan lebih banyak ruang
-- Kurangi padding dan margin di mobile
-- Gunakan JavaScript sederhana untuk toggle panel
-- Gunakan ikon yang berbeda berdasarkan jenis file untuk meningkatkan UX
-- Buat fungsi helper untuk mengelola ikon berdasarkan tipe file
-- Perhatikan peringatan TypeScript tentang variabel yang tidak digunakan
-- Impor hanya ikon yang benar-benar digunakan untuk mengurangi ukuran bundle
-- Hapus konstanta yang tidak digunakan dalam service files untuk menghindari kebingungan
-- Jika implementasi retry logic diperlukan di masa depan, tambahkan kembali konstanta yang relevan
-- Gunakan array objek untuk menyimpan konten dokumen yang diproses dengan metadata
-- Validasi jumlah maksimum dokumen yang dapat diupload
-- Gabungkan file yang sudah ada dengan file baru saat mengupload dokumen tambahan
-- Gunakan operator !! untuk mengkonversi nilai ke boolean saat diperlukan oleh TypeScript
-- Selalu bersihkan URL objek file dengan URL.revokeObjectURL() untuk mencegah memory leak
-- Implementasikan sistem timeout untuk membersihkan sumber daya yang tidak digunakan
-- Gunakan useEffect cleanup function untuk membersihkan sumber daya saat komponen di-unmount
-- Simpan URL objek file dalam array terpisah untuk memudahkan pembersihan
-- Periksa kembali variabel yang dideklarasikan tetapi tidak digunakan setelah refactoring kode
-- Ekspor interface yang digunakan di beberapa file untuk memastikan konsistensi tipe data
-- Tambahkan fitur citation untuk meningkatkan kredibilitas hasil analisis
-- Gunakan toggle untuk menampilkan/menyembunyikan informasi tambahan seperti citation
-- Sertakan informasi citation dalam hasil cetak untuk dokumentasi yang lengkap
-- Tambahkan ikon hover pada elemen yang dapat diinteraksi untuk meningkatkan feedback visual
-- Gunakan state untuk melacak elemen yang sedang di-hover untuk menampilkan UI tambahan
-- Tingkatkan tampilan citation dengan layout card yang lebih menarik dan informatif
-- Pastikan untuk meneruskan prop onSubmit ke BaseAgentForm agar tombol submit berfungsi
-- Tambahkan pengecekan isProcessing dan isDisabled dalam handler onClick tombol submit
-- Hindari duplikasi informasi dalam UI untuk meningkatkan pengalaman pengguna
-- Gunakan class "hidden" untuk menyembunyikan elemen di UI tetapi tetap mempertahankannya untuk cetak
-- Gunakan CSS native list-disc dan marker styling untuk bullet points daripada pseudo-elements dengan content
-- Sesuaikan padding dan margin list item untuk memastikan bullet points terlihat rapi
-- Buat komponen loading yang dapat menerima progress dan status dari backend untuk sinkronisasi yang lebih baik
-- Implementasikan simulasi progress yang realistis dengan kecepatan yang bervariasi di berbagai tahap
-- Gunakan props opsional untuk memungkinkan komponen berfungsi baik dengan atau tanpa data eksternal
-- Hindari penggunaan wildcard (image/*) pada atribut accept input file di perangkat mobile untuk mencegah akses ke file audio/video
-- Gunakan daftar ekstensi dan MIME type yang spesifik pada atribut accept untuk membatasi jenis file yang dapat dipilih
-- Hindari dependensi yang tidak perlu antar komponen dengan menduplikasi fungsi utility sederhana jika diperlukan
-- Pastikan komponen hanya mengimpor dari service yang sesuai dengan fungsinya untuk menghindari side effect yang tidak diinginkan
-- Tambahkan handler onClick pada tombol submit di semua form custom untuk memastikan fungsi onSubmit dipanggil dengan benar
-- Pastikan semua form custom menerima dan menggunakan prop onSubmit dari parent component
+- Pola Implementasi ChatPage:
+  1. Struktur Dasar:
+     - Interface Message untuk struktur pesan
+     - Interface Props dengan onBack callback
+     - State untuk messages, inputMessage, isProcessing, dll.
+     - Refs untuk containerRef, textareaRef, dll.
+     - useEffect untuk inisialisasi session dan scrollToBottom
+     - Fungsi handleSubmit, formatMessage, copyToClipboard, dll.
+     - Layout dengan header, panel info, container chat, dan area input
+  
+  2. Styling Konsisten:
+     - Gunakan flex h-screen bg-gray-50 lg:pl-64 untuk layout utama
+     - Gunakan max-w-3xl mx-auto untuk konten
+     - Gunakan warna yang sesuai dengan tema agen
+     - Gunakan shadow-sm untuk efek bayangan yang halus
+     - Gunakan border-b untuk pemisah antar bagian
+     - Gunakan rounded-lg untuk sudut yang lebih lembut
+  
+  3. Conditional Rendering:
+     - Gunakan showInfo && (...) untuk panel info
+     - Gunakan messages.length === 1 && (...) untuk contoh pertanyaan
+     - Gunakan message.isAnimating ? (...) : (...) untuk animasi loading
+     - Gunakan message.type === 'bot' && !message.error && (...) untuk tombol copy
+     - Gunakan message.sourceDocuments && message.sourceDocuments.length > 0 && (...) untuk sumber dokumen
+  
+  4. Accessibility:
+     - Gunakan aria-label untuk tombol
+     - Gunakan semantic HTML (header, button, div, dll.)
+     - Gunakan proper contrast ratio untuk teks
+     - Gunakan proper focus states untuk interaktivitas keyboard
+
+  5. Performance:
+     - Gunakan requestAnimationFrame untuk scrolling
+     - Gunakan conditional rendering untuk mengurangi DOM nodes
+     - Gunakan proper cleanup di useEffect
+     - Gunakan proper error handling
