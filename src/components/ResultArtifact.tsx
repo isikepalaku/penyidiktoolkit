@@ -1,8 +1,14 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 import { X, Copy, Check, Printer, FileText, Info, Eye, FileType, FileImage, File as FileIconGeneric } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
+
+// Konfigurasi marked
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+});
 
 export interface Citation {
   fileName: string;
@@ -191,6 +197,21 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
     }
   };
 
+  const formatMarkdown = (content: string) => {
+    try {
+      // Convert markdown to HTML
+      const html = marked(content);
+      
+      // Sanitize HTML to prevent XSS
+      const sanitizedHtml = DOMPurify.sanitize(html);
+      
+      return sanitizedHtml;
+    } catch (error) {
+      console.error('Error formatting markdown:', error);
+      return content;
+    }
+  };
+
   useEffect(() => {
     const event = new CustomEvent('analysisComplete');
     window.dispatchEvent(event);
@@ -353,11 +374,7 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
               [&_ul>li>ul>li]:marker:text-gray-500
               prose-strong:text-gray-900 prose-strong:font-bold"
             >
-              <div>
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {processContent(content)}
-                </ReactMarkdown>
-              </div>
+              <div dangerouslySetInnerHTML={{ __html: formatMarkdown(processContent(content)) }} />
             </div>
             
             {/* Citations section for printing only - hidden in UI but visible in print */}
