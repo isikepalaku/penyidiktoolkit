@@ -40,7 +40,7 @@ const EMPChatPage: React.FC<EMPChatPageProps> = ({ onBack }) => {
     // Add welcome message
     setMessages([
       {
-        content: 'Selamat datang di EMP AI. Saya adalah asisten AI yang fokus pada tindak pidana di bidang Ekonomi, Moneter, dan Perbankan. Apa yang ingin Anda tanyakan?',
+        content: 'Selamat datang kembali, saya adalah asisten Ai yang bertugas untuk membantu menjawab hal-hal seputar aplikasi EMP berdasarkan perkaba Polri?',
         type: 'bot',
         timestamp: new Date()
       }

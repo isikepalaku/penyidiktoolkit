@@ -339,12 +339,16 @@ const PerkabaChatPage: React.FC<PerkabaChatPageProps> = ({ onBack }) => {
                 {message.type === 'bot' && (
                   <div className="flex-shrink-0 mt-1">
                     {message.isAnimating ? (
-                      <div className="w-8 h-8 text-purple-600">
+                      <div className="w-8 h-8 text-blue-600">
                         <AnimatedBotIcon />
                       </div>
                     ) : (
-                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                        <BookOpen className="w-5 h-5 text-purple-600" />
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <img 
+                          src="/reserse.png"
+                          alt="Bot Icon"
+                          className="w-6 h-6 object-contain"
+                        />
                       </div>
                     )}
                   </div>

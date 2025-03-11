@@ -344,7 +344,11 @@ const WassidikChatPage: React.FC<WassidikChatPageProps> = ({ onBack }) => {
                       </div>
                     ) : (
                       <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <Shield className="w-5 h-5 text-blue-600" />
+                        <img 
+                          src="/reserse.png"
+                          alt="Bot Icon"
+                          className="w-6 h-6 object-contain"
+                        />
                       </div>
                     )}
                   </div>

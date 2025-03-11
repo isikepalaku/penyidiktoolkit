@@ -368,6 +368,19 @@ Professional Color Scheme Examples:
   - Provide clear visual feedback for user actions (copying, sending messages)
   - Use aria-label attributes for better accessibility
   - Remove unused imports to prevent TypeScript errors
+- UndangUndang ChatPage implementation pattern:
+  - Create dedicated ChatPage components for each agent type (e.g., KUHPChatPage)
+  - Use consistent color schemes that match the agent's domain:
+    * KUHP (Criminal Law): rose-600 (red) theme
+    * P2SK (Financial Services): blue-600 (blue) theme
+    * ITE (Technology Law): cyan-600 (light blue) theme
+    * Cipta Kerja (Labor Law): slate-600 (gray) theme
+    * Kesehatan (Health Law): emerald-600 (green) theme
+  - Customize welcome messages and example questions for each agent's domain
+  - Maintain consistent UI structure across all ChatPage components
+  - Use the same formatMessage function for consistent markdown rendering
+  - Implement proper session management with initializeSession and clearChatHistory
+  - Use consistent error handling and loading states
 
 ## Form Implementation Lessons
 
@@ -823,74 +836,67 @@ Common issues to avoid:
 
 # Scratchpad
 
-Current Task: Mengimplementasikan ChatPage untuk agen-agen di PenyidikAi.tsx
+Current Task: Mengimplementasikan Chat Interface untuk UU Kesehatan dan UU Fidusia
 
-[X] Membuat komponen SiberChatPage.tsx untuk agen Siber AI
-[X] Membuat komponen FismondevChatPage.tsx untuk agen Fismondev AI
-[X] Membuat komponen IndagsiChatPage.tsx untuk agen Indagsi AI
-[X] Membuat komponen TipidkorChatPage.tsx untuk agen Tipidkor AI
-[X] Mengintegrasikan komponen-komponen tersebut ke PenyidikAi.tsx
-[X] Memperbaiki styling agar tidak tumpang tindih dengan sidebar
-[X] Memisahkan contoh pertanyaan dari panel info
-[X] Membuat contoh pertanyaan hilang saat pengguna sudah melakukan chat
-[X] Menghapus import yang tidak digunakan
+[X] Membuat komponen KesehatanChatPage.tsx untuk UU Kesehatan dengan warna emerald (hijau)
+[X] Membuat komponen FidusiaChatPage.tsx untuk UU Fidusia dengan warna orange (oranye)
+[X] Mengintegrasikan kedua komponen ke dalam UndangUndang.tsx
+[X] Memperbaiki path import untuk DotBackground dan AnimatedBotIcon
+[X] Memperbaiki tipe agent di UndangUndang.tsx
 [X] Menambahkan pembelajaran ke .cursorrules
 
 Refleksi:
-- Berhasil mengimplementasikan empat komponen ChatPage dengan struktur yang konsisten
-- Menggunakan skema warna yang sesuai dengan tema masing-masing agen:
-  - Siber AI: Biru (tema keamanan)
-  - Fismondev AI: Hijau (tema keuangan)
-  - Indagsi AI: Ungu (tema perdagangan)
-  - Tipidkor AI: Merah (tema korupsi)
-- Memastikan semua komponen memiliki fitur yang sama:
+- Berhasil mengimplementasikan dua komponen ChatPage baru dengan struktur yang konsisten
+- Menggunakan skema warna yang sesuai untuk masing-masing domain:
+  - UU Kesehatan: emerald (tema kesehatan)
+  - UU Fidusia: orange (tema jaminan)
+- Menyesuaikan contoh pertanyaan untuk konteks masing-masing UU
+- Memastikan semua fitur berfungsi dengan baik:
   - Panel info yang dapat ditampilkan/disembunyikan
   - Contoh pertanyaan yang hilang setelah pengguna mulai chat
   - Kemampuan untuk menyalin pesan
   - Pemformatan markdown yang konsisten
   - Tampilan sumber dokumen jika tersedia
   - Animasi "sedang mengetik" saat menunggu respons
-- Memperbaiki styling agar tidak tumpang tindih dengan sidebar dengan menggunakan lg:pl-64
-- Menggunakan max-w-3xl mx-auto untuk memastikan konten berada di tengah
-- Menghapus import yang tidak digunakan untuk mencegah error TypeScript
-- Menggunakan komponen UI yang konsisten (Button, Textarea) dari shadcn/ui
-- Menggunakan DotBackground untuk latar belakang yang konsisten
-- Menggunakan AnimatedBotIcon untuk animasi yang konsisten
+- Mengupdate UndangUndang.tsx untuk menggunakan komponen ChatPage khusus
+- Memperbaiki tipe agent di UndangUndang.tsx dengan membuat interface UndangAgent
 
 Pembelajaran:
-- Pola Implementasi ChatPage:
-  1. Struktur Dasar:
-     - Interface Message untuk struktur pesan
-     - Interface Props dengan onBack callback
-     - State untuk messages, inputMessage, isProcessing, dll.
-     - Refs untuk containerRef, textareaRef, dll.
-     - useEffect untuk inisialisasi session dan scrollToBottom
-     - Fungsi handleSubmit, formatMessage, copyToClipboard, dll.
-     - Layout dengan header, panel info, container chat, dan area input
-  
-  2. Styling Konsisten:
-     - Gunakan flex h-screen bg-gray-50 lg:pl-64 untuk layout utama
-     - Gunakan max-w-3xl mx-auto untuk konten
-     - Gunakan warna yang sesuai dengan tema agen
-     - Gunakan shadow-sm untuk efek bayangan yang halus
-     - Gunakan border-b untuk pemisah antar bagian
-     - Gunakan rounded-lg untuk sudut yang lebih lembut
-  
-  3. Conditional Rendering:
-     - Gunakan showInfo && (...) untuk panel info
-     - Gunakan messages.length === 1 && (...) untuk contoh pertanyaan
-     - Gunakan message.isAnimating ? (...) : (...) untuk animasi loading
-     - Gunakan message.type === 'bot' && !message.error && (...) untuk tombol copy
-     - Gunakan message.sourceDocuments && message.sourceDocuments.length > 0 && (...) untuk sumber dokumen
-  
-  4. Accessibility:
-     - Gunakan aria-label untuk tombol
-     - Gunakan semantic HTML (header, button, div, dll.)
-     - Gunakan proper contrast ratio untuk teks
-     - Gunakan proper focus states untuk interaktivitas keyboard
+- Pola Implementasi ChatPage yang Konsisten:
+  1. Gunakan struktur dasar yang sama untuk semua ChatPage
+  2. Sesuaikan warna dan konten untuk konteks spesifik
+  3. Pastikan semua fitur berfungsi dengan baik
+  4. Gunakan class `fixed inset-0 z-20 bg-white lg:pl-64` untuk container utama
+  5. Gunakan BookOpen icon untuk bot avatar yang sesuai dengan konteks UU
 
-  5. Performance:
-     - Gunakan requestAnimationFrame untuk scrolling
-     - Gunakan conditional rendering untuk mengurangi DOM nodes
-     - Gunakan proper cleanup di useEffect
-     - Gunakan proper error handling
+- Skema Warna untuk UndangUndang:
+  - KUHP: rose-600 (merah) - tema hukum pidana
+  - P2SK: blue-600 (biru) - tema jasa keuangan
+  - ITE: cyan-600 (biru muda) - tema teknologi
+  - Cipta Kerja: slate-600 (abu-abu) - tema ketenagakerjaan
+  - Kesehatan: emerald-600 (hijau) - tema kesehatan
+  - Fidusia: orange-600 (oranye) - tema jaminan
+
+- Pola Contoh Pertanyaan yang Efektif:
+  1. Pertanyaan umum tentang UU (apa, mengapa, kapan)
+  2. Pertanyaan tentang aspek spesifik dari UU
+  3. Pertanyaan tentang perubahan atau perbandingan dengan regulasi sebelumnya
+  4. Pertanyaan tentang implementasi atau dampak UU
+
+- Integrasi di UndangUndang.tsx:
+  1. Import semua komponen ChatPage yang diperlukan
+  2. Update renderContent untuk menampilkan ChatPage yang sesuai
+  3. Sesuaikan deskripsi dan warna untuk setiap agen
+  4. Pastikan semua agen memiliki warna yang konsisten di card dan chat interface
+
+- Mengatasi Masalah Tipe di TypeScript:
+  1. Jika tipe AgentType tidak mencakup semua nilai yang diperlukan, buat interface khusus
+  2. Gunakan type assertion (as any) dengan hati-hati saat diperlukan
+  3. Pastikan struktur objek agent sesuai dengan yang diharapkan oleh AgentCard
+  4. Sederhanakan struktur tipe jika terlalu kompleks
+
+- Perbaikan Path Import:
+  1. Periksa struktur folder yang benar sebelum mengimpor komponen
+  2. Gunakan path relatif (./component) untuk komponen dalam folder yang sama
+  3. Gunakan path absolut (@/components/component) untuk komponen di folder lain
+  4. Pastikan komponen menerima props yang benar (seperti className untuk AnimatedBotIcon)

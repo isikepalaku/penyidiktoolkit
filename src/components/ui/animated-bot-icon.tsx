@@ -1,8 +1,13 @@
 import type { FC } from 'react';
+import { cn } from '@/utils/utils';
 
-export const AnimatedBotIcon: FC = () => {
+interface AnimatedBotIconProps {
+  className?: string;
+}
+
+export const AnimatedBotIcon: FC<AnimatedBotIconProps> = ({ className }) => {
   return (
-    <div className="w-full h-full relative">
+    <div className={cn("w-full h-full relative", className)}>
       <img 
         src="/logo.svg" 
         alt="Bot Logo" 
