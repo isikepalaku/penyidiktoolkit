@@ -104,7 +104,19 @@ const compressImage = async (file: File, maxSizeMB: number = 1): Promise<File> =
 
 export type DokpolServiceType = 'umum' | 'forensik';
 
-export const submitDokpolAnalysis = async (imageFiles: File[], serviceType: DokpolServiceType): Promise<string> => {
+interface DokpolAnalysisParams {
+  imageFiles: File[];
+  serviceType: DokpolServiceType;
+  clinicalSymptoms?: string;
+  medicalHistory?: string;
+}
+
+export const submitDokpolAnalysis = async ({
+  imageFiles,
+  serviceType,
+  clinicalSymptoms,
+  medicalHistory
+}: DokpolAnalysisParams): Promise<string> => {
   try {
     // Validasi jumlah file
     if (imageFiles.length === 0) {
@@ -168,9 +180,29 @@ export const submitDokpolAnalysis = async (imageFiles: File[], serviceType: Dokp
         console.log(`Attempt ${retries + 1} of ${MAX_RETRIES + 1}`);
         
         const formData = new FormData();
-        const message = serviceType === 'umum' 
+        
+        // Buat pesan yang lebih informatif jika ada informasi tambahan
+        let message = serviceType === 'umum' 
           ? 'Mohon analisis gambar ini dari sudut pandang medis'
           : 'Mohon analisis gambar ini dari sudut pandang forensik';
+        
+        // Tambahkan informasi gejala klinis dan riwayat medis jika tersedia
+        if (serviceType === 'umum') {
+          const additionalInfo = [];
+          
+          if (clinicalSymptoms && clinicalSymptoms.trim()) {
+            additionalInfo.push(`Gejala klinis: ${clinicalSymptoms.trim()}`);
+          }
+          
+          if (medicalHistory && medicalHistory.trim()) {
+            additionalInfo.push(`Riwayat medis: ${medicalHistory.trim()}`);
+          }
+          
+          if (additionalInfo.length > 0) {
+            message += `. Informasi tambahan: ${additionalInfo.join('. ')}`;
+          }
+        }
+        
         formData.append('message', message);
         formData.append('stream', 'true');
         formData.append('monitor', 'false'); 
@@ -197,7 +229,9 @@ export const submitDokpolAnalysis = async (imageFiles: File[], serviceType: Dokp
           session_id: 'string',
           user_id: 'string',
           files: filesToUpload.map(file => file.name),
-          totalSize: filesToUpload.reduce((acc, file) => acc + file.size, 0)
+          totalSize: filesToUpload.reduce((acc, file) => acc + file.size, 0),
+          hasClinicSymptoms: !!clinicalSymptoms,
+          hasMedicalHistory: !!medicalHistory
         });
         console.groupEnd();
 

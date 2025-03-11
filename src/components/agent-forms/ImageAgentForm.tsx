@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import type { BaseAgentFormProps } from './BaseAgentForm';
 import type { ExtendedAgent } from '../../types';
 import { imagePrompts } from '../../data/agents/imageAgent';
@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/utils/utils";
-import ThinkingAnimation from '../ThinkingAnimation';
 
 // Maximum file size (10MB)
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -52,7 +51,6 @@ export const ImageAgentForm: React.FC<ImageAgentFormProps> = ({
   isDisabled = false
 }) => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const [showThinking, setShowThinking] = useState(false);
   
   // Helper function untuk type checking
   const getImageFiles = (): File[] => {
@@ -242,6 +240,49 @@ export const ImageAgentForm: React.FC<ImageAgentFormProps> = ({
         </div>
       )}
 
+      {/* Informasi Medis Tambahan - hanya untuk Dokpol Umum */}
+      {agent?.type === 'medical_image' && formData.service_type === 'umum' && (
+        <div className="mt-4 p-4 bg-blue-50 border border-blue-100 rounded-lg">
+          <h3 className="text-sm font-medium text-blue-800 mb-3">Informasi Medis Tambahan (Opsional)</h3>
+          
+          {/* Gejala Klinis */}
+          <div className="mb-4">
+            <Label htmlFor="clinical-symptoms" className="text-blue-700">
+              Gejala Klinis
+            </Label>
+            <textarea
+              id="clinical-symptoms"
+              value={(formData.clinical_symptoms as string) || ''}
+              onChange={(e) => onInputChange('clinical_symptoms', e.target.value)}
+              placeholder="Deskripsikan gejala yang dialami pasien..."
+              className="mt-1 w-full p-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[80px] text-sm"
+              disabled={isDisabled || isProcessing}
+            />
+            <p className="mt-1 text-xs text-blue-600">
+              Contoh: nyeri dada, sesak napas, demam tinggi, dll.
+            </p>
+          </div>
+          
+          {/* Riwayat Medis */}
+          <div>
+            <Label htmlFor="medical-history" className="text-blue-700">
+              Riwayat Medis
+            </Label>
+            <textarea
+              id="medical-history"
+              value={(formData.medical_history as string) || ''}
+              onChange={(e) => onInputChange('medical_history', e.target.value)}
+              placeholder="Deskripsikan riwayat medis yang relevan..."
+              className="mt-1 w-full p-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[80px] text-sm"
+              disabled={isDisabled || isProcessing}
+            />
+            <p className="mt-1 text-xs text-blue-600">
+              Contoh: riwayat penyakit jantung, diabetes, alergi obat, dll.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Only show these fields for regular image agent */}
       {agent?.type === 'image' && (
         <>
@@ -304,15 +345,6 @@ export const ImageAgentForm: React.FC<ImageAgentFormProps> = ({
         </div>
       )}
 
-      {/* Thinking Animation */}
-      {showThinking && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
-            <ThinkingAnimation />
-          </div>
-        </div>
-      )}
-
       {/* Submit Button */}
       <button
         type="submit"
@@ -321,12 +353,9 @@ export const ImageAgentForm: React.FC<ImageAgentFormProps> = ({
           e.preventDefault();
           if (onSubmit && !isProcessing && !isDisabled) {
             try {
-              setShowThinking(true);
               await onSubmit(e);
             } catch (err) {
               console.error('Error submitting form:', err);
-            } finally {
-              setShowThinking(false);
             }
           }
         }}

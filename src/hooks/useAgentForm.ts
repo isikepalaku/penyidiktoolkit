@@ -115,7 +115,17 @@ export const useAgentForm = (): UseAgentFormResult => {
         if (imageFiles.length > 3) {
           throw new Error('Maksimal 3 gambar yang dapat diupload');
         }
-        response = await submitDokpolAnalysis(imageFiles, serviceType);
+        
+        // Ambil informasi tambahan jika tersedia
+        const clinicalSymptoms = formData.clinical_symptoms as string | undefined;
+        const medicalHistory = formData.medical_history as string | undefined;
+        
+        response = await submitDokpolAnalysis({
+          imageFiles,
+          serviceType,
+          clinicalSymptoms,
+          medicalHistory
+        });
       } else if (agentType === 'image' || agentType === 'gemini_image') {
         if (agentType === 'gemini_image') {
           response = '';
