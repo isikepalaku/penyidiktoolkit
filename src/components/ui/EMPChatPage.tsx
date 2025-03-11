@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, Copy, Check, Loader2, MessageSquare, Info, X } from 'lucide-react';
+import { ArrowLeft, Send, Copy, Check, Loader2, Info, X } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { Button } from './button';
 import { Textarea } from './textarea';
@@ -40,7 +40,7 @@ const EMPChatPage: React.FC<EMPChatPageProps> = ({ onBack }) => {
     // Add welcome message
     setMessages([
       {
-        content: 'Selamat datang kembali, saya adalah asisten Ai yang bertugas untuk membantu menjawab hal-hal seputar aplikasi EMP berdasarkan perkaba Polri?',
+        content: 'Asisten Ai yang bertugas untuk membantu menjawab hal-hal seputar aplikasi EMP berdasarkan perkaba Polri, silahkan tulis pertanyaan anda?',
         type: 'bot',
         timestamp: new Date()
       }
@@ -265,8 +265,12 @@ const EMPChatPage: React.FC<EMPChatPageProps> = ({ onBack }) => {
               <ArrowLeft className="w-5 h-5 text-gray-700" />
             </button>
             <div className="flex items-center gap-2">
-              <div className="flex items-center justify-center w-9 h-9 bg-blue-100 rounded-full">
-                <MessageSquare className="w-5 h-5 text-blue-600" />
+            <div className="flex items-center justify-center w-9 h-9 bg-blue-100 rounded-full">
+                <img 
+                  src="/img/book.svg"
+                  alt="Bareskrim"
+                  className="w-7 h-7 object-contain"
+                />
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">EMP AI</h2>

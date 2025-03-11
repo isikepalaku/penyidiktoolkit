@@ -5,7 +5,7 @@ import UndangChatPage from '../components/ui/UndangChatPage';
 import ITEChatPage from '../components/ui/ITEChatPage';
 import CiptaKerjaChatPage from '../components/ui/CiptaKerjaChatPage';
 import KesehatanChatPage from '../components/ui/KesehatanChatPage';
-import FidusiaChatPage from '../components/ui/FidusiaChatPage';
+import PerbankanChatPage from '../components/ui/PerbankanChatPage';
 
 // Definisikan tipe untuk agent di UndangUndang
 interface UndangAgent {
@@ -96,12 +96,12 @@ export default function UndangUndang() {
       status: 'on',
     },
     {
-      id: 'fidusia',
-      name: 'Fidusia AI',
-      description: 'Asisten AI untuk memahami Undang-Undang Jaminan Fidusia',
+      id: 'perbankan',
+      name: 'Perbankan AI',
+      description: 'Asisten AI untuk memahami Undang-Undang Perbankan',
       icon: 'brain',
-      color: 'orange',
-      type: 'fidusia_chat',
+      color: 'indigo',
+      type: 'perbankan_chat',
       status: 'on',
     }
   ];
@@ -150,10 +150,10 @@ export default function UndangUndang() {
             <KesehatanChatPage onBack={handleBack} />
           </div>
         );
-      case 'fidusia_chat':
+      case 'perbankan_chat':
         return (
           <div className="fixed inset-0 z-20">
-            <FidusiaChatPage onBack={handleBack} />
+            <PerbankanChatPage onBack={handleBack} />
           </div>
         );
       default:
@@ -191,8 +191,8 @@ export default function UndangUndang() {
                       ? "bg-gradient-to-br from-slate-50 to-gray-50 hover:from-slate-100 hover:to-gray-100"
                       : agent.type === 'kesehatan_chat'
                       ? "bg-gradient-to-br from-emerald-50 to-green-50 hover:from-emerald-100 hover:to-green-100"
-                      : agent.type === 'fidusia_chat'
-                      ? "bg-gradient-to-br from-orange-50 to-amber-50 hover:from-orange-100 hover:to-amber-100"
+                      : agent.type === 'perbankan_chat'
+                      ? "bg-gradient-to-br from-indigo-50 to-purple-50 hover:from-indigo-100 hover:to-purple-100"
                       : "bg-gradient-to-br from-gray-50 to-slate-50 hover:from-gray-100 hover:to-slate-100"
                   }
                 />

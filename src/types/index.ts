@@ -62,6 +62,7 @@ export type AgentType =
   | 'penyidik_chat'
   | 'fismondev_chat'
   | 'siber_chat'
+  | 'perbankan_chat'
   | 'emp_chat';
 
 export interface ExtendedAgent {

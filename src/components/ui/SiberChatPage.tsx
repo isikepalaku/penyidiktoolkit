@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, Copy, Check, Loader2, Shield, Info, X } from 'lucide-react';
+import { ArrowLeft, Send, Copy, Check, Loader2, Info, X } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { Button } from './button';
 import { Textarea } from './textarea';
@@ -46,10 +46,10 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
     // Initialize chat session
     initializeSession();
     
-    // Set welcome message
+    // Set empty welcome message to trigger welcome UI
     setMessages([
       {
-        content: 'Halo, saya Siber AI, asisten untuk membantu Anda dengan pertanyaan seputar tindak pidana siber. Apa yang ingin Anda tanyakan?',
+        content: '',
         type: 'bot',
         timestamp: new Date(),
       },
@@ -222,7 +222,11 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
             </button>
             <div className="flex items-center gap-2">
               <div className="flex items-center justify-center w-9 h-9 bg-blue-100 rounded-full">
-                <Shield className="w-5 h-5 text-blue-600" />
+                <img 
+                  src="/img/bareskrim.png"
+                  alt="Bareskrim"
+                  className="w-7 h-7 object-contain"
+                />
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">Siber AI</h2>
@@ -259,6 +263,23 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
             <DotBackground />
           </div>
           <div className="max-w-3xl mx-auto relative z-10 space-y-6">
+            {/* Welcome Message - Bold SIBER AI in center */}
+            {messages.length <= 1 && (
+              <div className="flex flex-col items-center justify-center h-[50vh] text-center">
+                <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                  <img 
+                    src="/img/bareskrim.png"
+                    alt="Bareskrim"
+                    className="w-16 h-16 object-contain"
+                  />
+                </div>
+                <h1 className="text-4xl font-bold text-blue-600 mb-4">SIBER AI</h1>
+                <p className="text-gray-600 max-w-md">
+                  Asisten untuk membantu Anda dengan pertanyaan seputar tindak pidana siber.
+                </p>
+              </div>
+            )}
+
             {/* Example questions at the beginning */}
             {messages.length === 1 && (
               <div className="mt-6 mb-8">
@@ -284,100 +305,102 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
 
             {/* Messages */}
             {messages.map((message, index) => (
-              <div
-                key={index}
-                className={cn(
-                  "flex",
-                  message.type === 'user' ? "justify-end" : "justify-start"
-                )}
-              >
+              message.content && (
                 <div
+                  key={index}
                   className={cn(
-                    "flex max-w-[80%]",
-                    message.type === 'user' ? "flex-row-reverse" : "flex-row"
+                    "flex",
+                    message.type === 'user' ? "justify-end" : "justify-start"
                   )}
                 >
-                  {message.type === 'bot' && (
-                    <div className="flex-shrink-0 mr-2">
-                      {message.isAnimating ? (
-                        <div className="w-8 h-8 text-blue-600">
-                          <AnimatedBotIcon />
-                        </div>
-                      ) : (
-                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                          <img 
-                            src="/reserse.png"
-                            alt="Bot Icon"
-                            className="w-6 h-6 object-contain"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
-                
-                  <div 
+                  <div
                     className={cn(
-                      "rounded-2xl px-4 py-3",
-                      message.type === 'user' 
-                        ? "bg-blue-600 text-white rounded-tr-none" 
-                        : message.error 
-                          ? "bg-red-50 text-red-800 rounded-tl-none border border-red-200" 
-                          : "bg-white text-gray-800 rounded-tl-none border border-gray-200"
+                      "flex max-w-[80%]",
+                      message.type === 'user' ? "flex-row-reverse" : "flex-row"
                     )}
                   >
-                    {message.isAnimating ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-                        <span className="text-gray-500">Siber AI sedang mengetik...</span>
-                      </div>
-                    ) : message.type === 'bot' ? (
-                      <div>
-                        <div 
-                          className="prose prose-sm max-w-none break-words prose-headings:font-semibold prose-headings:text-gray-900 prose-p:text-gray-700 prose-pre:bg-gray-100 prose-pre:text-gray-800 prose-code:text-gray-800 prose-code:bg-gray-100 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-sm prose-code:font-mono prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-li:text-gray-700 prose-li:marker:text-gray-500 prose-strong:text-gray-900 prose-em:text-gray-700 prose-p:my-0.5 prose-headings:my-0.5 prose-headings:mb-0 prose-ul:my-0.5 prose-ol:my-0.5 prose-li:my-0.5 prose-pre:my-1 leading-tight [&_p]:!my-0.5 [&_br]:leading-none [&_h1+p]:!mt-0.5 [&_h2+p]:!mt-0.5 [&_h3+p]:!mt-0.5"
-                          dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
-                        />
-                        
-                        {message.sourceDocuments && message.sourceDocuments.length > 0 && (
-                          <div className="mt-2 pt-2 border-t border-gray-200">
-                            <p className="text-xs font-medium text-gray-500 mb-1">
-                              Sumber:
-                            </p>
-                            <ul className="text-xs text-gray-500 space-y-1">
-                              {message.sourceDocuments.map((doc, idx) => (
-                                <li key={idx} className="truncate">
-                                  {doc.metadata.title || doc.metadata.source || 'Dokumen'}
-                                </li>
-                              ))}
-                            </ul>
+                    {message.type === 'bot' && (
+                      <div className="flex-shrink-0 mr-2">
+                        {message.isAnimating ? (
+                          <div className="w-8 h-8 text-blue-600">
+                            <AnimatedBotIcon />
+                          </div>
+                        ) : (
+                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <img 
+                              src="/img/bareskrim.png"
+                              alt="Bot Icon"
+                              className="w-6 h-6 object-contain"
+                            />
                           </div>
                         )}
-
-                        {message.type === 'bot' && !message.isAnimating && (
-                          <button
-                            onClick={() => copyToClipboard(message.content)}
-                            className="mt-1 text-xs text-gray-500 hover:text-gray-700 flex items-center"
-                            aria-label="Salin pesan"
-                          >
-                            {copied === message.content ? (
-                              <>
-                                <Check className="w-3 h-3 mr-1" />
-                                Disalin
-                              </>
-                            ) : (
-                              <>
-                                <Copy className="w-3 h-3 mr-1" />
-                                Salin
-                              </>
-                            )}
-                          </button>
-                        )}
                       </div>
-                    ) : (
-                      <p className="text-sm">{message.content}</p>
                     )}
+                  
+                    <div 
+                      className={cn(
+                        "rounded-2xl px-4 py-3",
+                        message.type === 'user' 
+                          ? "bg-blue-600 text-white rounded-tr-none" 
+                          : message.error 
+                            ? "bg-red-50 text-red-800 rounded-tl-none border border-red-200" 
+                            : "bg-white text-gray-800 rounded-tl-none border border-gray-200"
+                      )}
+                    >
+                      {message.isAnimating ? (
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                          <span className="text-gray-500">Siber AI sedang mengetik...</span>
+                        </div>
+                      ) : message.type === 'bot' ? (
+                        <div>
+                          <div 
+                            className="prose prose-sm max-w-none break-words prose-headings:font-semibold prose-headings:text-gray-900 prose-p:text-gray-700 prose-pre:bg-gray-100 prose-pre:text-gray-800 prose-code:text-gray-800 prose-code:bg-gray-100 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-sm prose-code:font-mono prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-li:text-gray-700 prose-li:marker:text-gray-500 prose-strong:text-gray-900 prose-em:text-gray-700 prose-p:my-0.5 prose-headings:my-0.5 prose-headings:mb-0 prose-ul:my-0.5 prose-ol:my-0.5 prose-li:my-0.5 prose-pre:my-1 leading-tight [&_p]:!my-0.5 [&_br]:leading-none [&_h1+p]:!mt-0.5 [&_h2+p]:!mt-0.5 [&_h3+p]:!mt-0.5"
+                            dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
+                          />
+                          
+                          {message.sourceDocuments && message.sourceDocuments.length > 0 && (
+                            <div className="mt-2 pt-2 border-t border-gray-200">
+                              <p className="text-xs font-medium text-gray-500 mb-1">
+                                Sumber:
+                              </p>
+                              <ul className="text-xs text-gray-500 space-y-1">
+                                {message.sourceDocuments.map((doc, idx) => (
+                                  <li key={idx} className="truncate">
+                                    {doc.metadata.title || doc.metadata.source || 'Dokumen'}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {message.type === 'bot' && !message.isAnimating && (
+                            <button
+                              onClick={() => copyToClipboard(message.content)}
+                              className="mt-1 text-xs text-gray-500 hover:text-gray-700 flex items-center"
+                              aria-label="Salin pesan"
+                            >
+                              {copied === message.content ? (
+                                <>
+                                  <Check className="w-3 h-3 mr-1" />
+                                  Disalin
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="w-3 h-3 mr-1" />
+                                  Salin
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-sm">{message.content}</p>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )
             ))}
             <div ref={messagesEndRef} />
           </div>

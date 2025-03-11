@@ -29,6 +29,7 @@ const KesehatanChatPage: React.FC<KesehatanChatPageProps> = ({ onBack }) => {
   const [copied, setCopied] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     // Initialize chat session
@@ -172,59 +173,56 @@ const KesehatanChatPage: React.FC<KesehatanChatPageProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-20 bg-white lg:pl-64">
+    <div className="fixed inset-0 z-20 bg-white lg:pl-64 flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
+      <div className="flex items-center justify-between p-4 border-b shadow-sm">
         <div className="flex items-center gap-2">
           <button
             onClick={handleBack}
-            className="p-1 rounded-full hover:bg-gray-100"
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
             aria-label="Kembali"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5 text-gray-700" />
           </button>
-          <h1 className="text-lg font-semibold">UU Kesehatan</h1>
+          <div>
+            <h1 className="text-lg font-semibold text-gray-900">UU Kesehatan</h1>
+            <p className="text-xs text-gray-500 hidden sm:block">Asisten untuk pertanyaan seputar UU Kesehatan</p>
+          </div>
         </div>
         <button
           onClick={() => setShowInfo(!showInfo)}
-          className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
+          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+          aria-label={showInfo ? "Sembunyikan Info" : "Tampilkan Info"}
         >
-          <Info className="w-4 h-4" />
-          <span>{showInfo ? 'Sembunyikan Info' : 'Tampilkan Info'}</span>
+          {showInfo ? <X className="w-5 h-5 text-gray-700" /> : <Info className="w-5 h-5 text-gray-700" />}
         </button>
       </div>
 
       {/* Info Panel */}
       {showInfo && (
         <div className="p-4 bg-emerald-50 border-b border-emerald-100">
-          <div className="flex justify-between items-center mb-2">
-            <h2 className="font-medium text-emerald-800">Tentang UU Kesehatan</h2>
-            <button
-              onClick={() => setShowInfo(false)}
-              className="text-emerald-500 hover:text-emerald-700"
-            >
-              <X className="w-4 h-4" />
-            </button>
+          <div className="max-w-3xl mx-auto">
+            <h2 className="font-medium text-emerald-800 mb-2">Tentang UU Kesehatan</h2>
+            <p className="text-sm text-emerald-700">
+              Asisten ini dapat membantu Anda dengan pertanyaan seputar Undang-Undang Kesehatan di Indonesia, 
+              termasuk UU No. 36 Tahun 2009 tentang Kesehatan dan peraturan terkait lainnya. 
+              Anda dapat bertanya tentang hak dan kewajiban dalam pelayanan kesehatan, 
+              standar fasilitas kesehatan, praktik kedokteran, dan aspek hukum kesehatan lainnya.
+            </p>
           </div>
-          <p className="text-sm text-emerald-700">
-            Asisten ini dapat membantu Anda dengan pertanyaan seputar Undang-Undang Kesehatan di Indonesia, 
-            termasuk UU No. 36 Tahun 2009 tentang Kesehatan dan peraturan terkait lainnya. 
-            Anda dapat bertanya tentang hak dan kewajiban dalam pelayanan kesehatan, 
-            standar fasilitas kesehatan, praktik kedokteran, dan aspek hukum kesehatan lainnya.
-          </p>
         </div>
       )}
 
       {/* Chat Container */}
       <div
         ref={containerRef}
-        className="h-[calc(100vh-8rem)] overflow-y-auto pb-32"
+        className="flex-1 overflow-y-auto overscroll-contain"
       >
-        <div className="max-w-3xl mx-auto p-4 space-y-4">
+        <div className="max-w-3xl mx-auto p-4 space-y-6">
           <DotBackground />
 
           {/* Messages */}
-          <div className="space-y-4">
+          <div className="space-y-6">
             {messages.map((message, index) => (
               <div
                 key={index}
@@ -233,16 +231,16 @@ const KesehatanChatPage: React.FC<KesehatanChatPageProps> = ({ onBack }) => {
                 }`}
               >
                 <div
-                  className={`flex max-w-[80%] ${
+                  className={`flex max-w-[85%] sm:max-w-[75%] ${
                     message.type === 'user' ? 'flex-row-reverse' : 'flex-row'
-                  }`}
+                  } items-end`}
                 >
                   {message.type === 'bot' && (
-                    <div className="flex-shrink-0 mr-2">
+                    <div className="flex-shrink-0 mr-2 mb-1">
                       {message.isAnimating ? (
                         <AnimatedBotIcon className="w-8 h-8 text-emerald-600" />
                       ) : (
-                        <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-white">
+                        <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-white shadow-sm">
                           <BookOpen className="w-4 h-4" />
                         </div>
                       )}
@@ -250,23 +248,23 @@ const KesehatanChatPage: React.FC<KesehatanChatPageProps> = ({ onBack }) => {
                   )}
 
                   <div
-                    className={`rounded-2xl px-4 py-2 ${
+                    className={`rounded-2xl px-4 py-3 ${
                       message.type === 'user'
-                        ? 'bg-emerald-600 text-white'
+                        ? 'bg-emerald-600 text-white rounded-tr-none shadow-sm'
                         : message.error
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-gray-100 text-gray-800'
+                        ? 'bg-red-50 text-red-800 rounded-tl-none border border-red-200'
+                        : 'bg-white text-gray-800 rounded-tl-none border border-gray-200 shadow-sm'
                     }`}
                   >
                     {message.isAnimating ? (
-                      <div className="flex items-center justify-center h-6">
+                      <div className="flex items-center gap-2">
                         <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
-                        <span className="ml-2 text-emerald-600">Sedang mengetik...</span>
+                        <span className="text-gray-500">Sedang mengetik...</span>
                       </div>
                     ) : (
                       <div>
                         <div
-                          className="prose prose-sm max-w-none break-words"
+                          className="prose prose-sm max-w-none break-words prose-headings:font-semibold prose-headings:text-gray-900 prose-p:text-gray-700 prose-pre:bg-gray-100 prose-pre:text-gray-800 prose-code:text-gray-800 prose-code:bg-gray-100 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-sm prose-code:font-mono prose-a:text-emerald-600 prose-a:no-underline hover:prose-a:underline prose-li:text-gray-700 prose-li:marker:text-gray-500 prose-strong:text-gray-900 prose-em:text-gray-700 prose-p:my-0.5 prose-headings:my-0.5 prose-headings:mb-0 prose-ul:my-0.5 prose-ol:my-0.5 prose-li:my-0.5 prose-pre:my-1 leading-tight [&_p]:!my-0.5 [&_br]:leading-none [&_h1+p]:!mt-0.5 [&_h2+p]:!mt-0.5 [&_h3+p]:!mt-0.5"
                           dangerouslySetInnerHTML={formatMessage(message.content)}
                         />
 
@@ -319,16 +317,17 @@ const KesehatanChatPage: React.FC<KesehatanChatPageProps> = ({ onBack }) => {
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {[
-                    'Apa saja hak pasien menurut UU Kesehatan?',
-                    'Bagaimana regulasi tentang praktik dokter di Indonesia?',
-                    'Jelaskan tentang perubahan dalam UU Kesehatan terbaru',
-                    'Apa sanksi bagi rumah sakit yang melanggar standar pelayanan?'
+                    'Apa yang dimaksud dengan hak atas kesehatan?',
+                    'Bagaimana regulasi praktik kedokteran di Indonesia?',
+                    'Jelaskan standar fasilitas kesehatan menurut UU',
+                    'Apa sanksi bagi pelanggaran UU Kesehatan?'
                   ].map((question, idx) => (
                     <button
                       key={idx}
-                      className="text-sm bg-white border border-emerald-200 rounded-lg p-3 text-left hover:bg-emerald-50 transition-colors"
+                      className="text-sm bg-white border border-emerald-200 rounded-lg p-3 text-left hover:bg-emerald-50 transition-colors shadow-sm"
                       onClick={() => {
                         setInputMessage(question);
+                        textareaRef.current?.focus();
                       }}
                     >
                       {question}
@@ -342,34 +341,41 @@ const KesehatanChatPage: React.FC<KesehatanChatPageProps> = ({ onBack }) => {
       </div>
 
       {/* Input Area */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 lg:pl-64">
-        <div className="max-w-3xl mx-auto flex items-end gap-2">
-          <div className="flex-grow">
+      <div className="border-t border-gray-200 bg-white p-4 md:px-8 pb-safe">
+        <div className="max-w-3xl mx-auto">
+          <div className="relative flex w-full cursor-text flex-col rounded-xl border border-gray-300 px-4 py-3 duration-150 ease-in-out shadow-sm focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 bg-white">
             <textarea
               value={inputMessage}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder="Ketik pesan Anda..."
-              className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
-              rows={1}
+              className="w-full border-0 bg-transparent px-0 py-1 text-sm placeholder:text-gray-500 focus:outline-none resize-none pr-12 min-h-[40px] max-h-[200px] text-gray-800"
               disabled={isProcessing}
+              ref={textareaRef}
+              rows={2}
             />
-            <p className="text-xs text-gray-500 mt-1">
-              Tekan Enter untuk mengirim, Shift+Enter untuk baris baru
-            </p>
+            
+            {/* Tombol kirim di dalam textarea */}
+            <button
+              onClick={handleSubmit}
+              disabled={!inputMessage.trim() || isProcessing}
+              className={`absolute right-3 bottom-3 p-2.5 rounded-lg flex items-center justify-center transition-colors ${
+                !inputMessage.trim() || isProcessing
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-emerald-600 text-white hover:bg-emerald-700'
+              }`}
+              aria-label="Kirim pesan"
+            >
+              {isProcessing ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Send className="w-5 h-5" />
+              )}
+            </button>
           </div>
-          <button
-            onClick={handleSubmit}
-            disabled={!inputMessage.trim() || isProcessing}
-            className={`p-2 rounded-full ${
-              !inputMessage.trim() || isProcessing
-                ? 'bg-gray-200 text-gray-500'
-                : 'bg-emerald-600 text-white hover:bg-emerald-700'
-            }`}
-            aria-label="Kirim pesan"
-          >
-            <Send className="w-5 h-5" />
-          </button>
+          <p className="text-xs text-gray-500 mt-2 text-center">
+            Tekan Enter untuk mengirim, Shift+Enter untuk baris baru
+          </p>
         </div>
       </div>
     </div>

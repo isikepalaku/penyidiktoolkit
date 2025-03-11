@@ -376,6 +376,7 @@ Professional Color Scheme Examples:
     * ITE (Technology Law): cyan-600 (light blue) theme
     * Cipta Kerja (Labor Law): slate-600 (gray) theme
     * Kesehatan (Health Law): emerald-600 (green) theme
+    * Fidusia (Insurance Law): orange-600 (orange) theme
   - Customize welcome messages and example questions for each agent's domain
   - Maintain consistent UI structure across all ChatPage components
   - Use the same formatMessage function for consistent markdown rendering
@@ -834,69 +835,202 @@ Common issues to avoid:
 </button>
 ```
 
+### Chat Interface Optimization Lessons
+
+1. Struktur Layout Flexbox untuk Chat Interface:
+   ```css
+   /* Container utama dengan flexbox */
+   .chat-container {
+     @apply fixed inset-0 z-20 bg-white lg:pl-64 flex flex-col;
+   }
+   
+   /* Area chat yang scrollable */
+   .chat-messages {
+     @apply flex-1 overflow-y-auto overscroll-contain;
+   }
+   
+   /* Input area yang tetap di bawah */
+   .input-area {
+     @apply border-t border-gray-200 bg-white p-4 md:px-8 pb-safe;
+   }
+   ```
+
+2. Peningkatan Tampilan Pesan:
+   - Gunakan `max-w-[85%] sm:max-w-[75%]` untuk lebar pesan yang responsif
+   - Tambahkan `rounded-tr-none` pada pesan user dan `rounded-tl-none` pada pesan bot untuk efek chat bubble
+   - Gunakan `border border-gray-200` dengan `bg-white` untuk pesan bot daripada `bg-gray-100` untuk tampilan yang lebih modern
+   - Tambahkan `shadow-sm` pada pesan untuk kedalaman visual
+   - Gunakan `items-end` untuk perataan yang lebih baik antara avatar dan pesan
+
+3. Optimasi Input Area:
+   - Gunakan container dengan border dan textarea tanpa border:
+   ```css
+   .input-container {
+     @apply relative flex w-full cursor-text flex-col rounded-xl border border-gray-300 px-4 py-3 duration-150 ease-in-out shadow-sm focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 bg-white;
+   }
+   
+   .input-textarea {
+     @apply w-full border-0 bg-transparent px-0 py-1 text-sm placeholder:text-gray-500 focus:outline-none resize-none pr-12 min-h-[40px] max-h-[200px] text-gray-800;
+   }
+   ```
+   - Posisikan tombol kirim di dalam textarea dengan `absolute right-3 bottom-3`
+   - Gunakan `rows={2}` dan `min-h-[40px]` untuk textarea agar tombol tidak terlihat terjepit
+   - Tambahkan `max-h-[200px]` untuk membatasi tinggi textarea saat konten panjang
+
+4. Peningkatan Header:
+   - Tambahkan shadow untuk memberikan kedalaman visual: `shadow-sm`
+   - Gunakan area klik yang lebih besar untuk tombol: `p-2` daripada `p-1`
+   - Tambahkan deskripsi singkat yang hanya muncul pada layar lebih besar: `hidden sm:block`
+   - Gunakan `transition-colors` untuk efek hover yang lebih halus
+
+5. Optimasi Panel Info:
+   - Gunakan `max-w-3xl mx-auto` untuk konsistensi lebar dengan konten lainnya
+   - Hapus tombol close yang redundan jika sudah ada di header
+   - Gunakan `p-4 md:p-6` untuk padding yang responsif
+   - Tambahkan `rounded-lg` dan `shadow-md` untuk tampilan yang lebih modern
+
+6. Peningkatan Contoh Pertanyaan:
+   - Tambahkan `shadow-sm` untuk kedalaman visual
+   - Gunakan `hover:bg-emerald-50 transition-colors` untuk feedback visual saat hover
+   - Tambahkan `textareaRef.current?.focus()` setelah memilih pertanyaan untuk UX yang lebih baik
+   - Gunakan `grid grid-cols-1 md:grid-cols-2 gap-2` untuk layout responsif
+
+7. Optimasi Performa Scrolling:
+   - Gunakan `requestAnimationFrame` untuk scrolling yang lebih smooth:
+   ```typescript
+   const scrollToBottom = () => {
+     requestAnimationFrame(() => {
+       if (containerRef.current) {
+         containerRef.current.scrollTo({
+           top: containerRef.current.scrollHeight,
+           behavior: 'smooth'
+         });
+       }
+     });
+   };
+   ```
+   - Tambahkan `overscroll-contain` untuk mencegah bouncing pada iOS
+   - Gunakan `useEffect` dengan dependency `[messages.length]` untuk scroll otomatis saat pesan baru
+
+8. Perbaikan Responsivitas:
+   - Gunakan `space-y-6` daripada `space-y-4` untuk pemisahan pesan yang lebih baik
+   - Tambahkan `px-4 md:px-8` untuk padding horizontal yang responsif
+   - Gunakan `text-sm md:text-base` untuk ukuran teks yang responsif
+   - Terapkan `max-w-3xl mx-auto` pada semua container konten untuk konsistensi
+
+9. Peningkatan Aksesibilitas:
+   - Tambahkan `aria-label` pada tombol: `aria-label="Kirim pesan"`
+   - Gunakan `disabled` state dengan styling yang jelas untuk tombol yang tidak aktif
+   - Tambahkan `aria-live="polite"` pada area pesan untuk screen reader
+   - Pastikan kontras warna memenuhi standar WCAG
+
+10. Optimasi untuk Perangkat Mobile:
+    - Gunakan `pb-safe` untuk padding yang aman di perangkat dengan notch/home indicator
+    - Hindari penggunaan `position: fixed` untuk input area pada perangkat mobile
+    - Gunakan flexbox layout untuk menghindari masalah dengan keyboard mobile
+    - Tambahkan `focus-within:ring-1` untuk feedback visual yang lebih baik saat focus
+
 # Scratchpad
 
-Current Task: Mengimplementasikan Chat Interface untuk UU Kesehatan dan UU Fidusia
+Current Task: Menerapkan Welcome Message Baru di Multiple Chat Pages
 
-[X] Membuat komponen KesehatanChatPage.tsx untuk UU Kesehatan dengan warna emerald (hijau)
-[X] Membuat komponen FidusiaChatPage.tsx untuk UU Fidusia dengan warna orange (oranye)
-[X] Mengintegrasikan kedua komponen ke dalam UndangUndang.tsx
-[X] Memperbaiki path import untuk DotBackground dan AnimatedBotIcon
-[X] Memperbaiki tipe agent di UndangUndang.tsx
-[X] Menambahkan pembelajaran ke .cursorrules
+[X] Mengubah Welcome Message dan Logo di SiberChatPage.tsx
+[X] Menerapkan teknik yang sama di TipidkorChatPage.tsx
+[X] Menerapkan teknik yang sama di IndagsiChatPage.tsx
+[X] Menerapkan teknik yang sama di FismondevChatPage.tsx
+[X] Mendokumentasikan perubahan di .cursorrules
+
+## Langkah-langkah Menerapkan Welcome Message Baru di Multiple Chat Pages
+
+1. Mengubah Welcome Message di Setiap File:
+   [X] Mengganti pesan selamat datang dengan string kosong untuk memicu tampilan welcome UI baru
+   ```typescript
+   // Set empty welcome message to trigger welcome UI
+   setMessages([
+     {
+       content: '',
+       type: 'bot',
+       timestamp: new Date(),
+     },
+   ]);
+   ```
+
+2. Membuat Komponen Welcome Message Baru di Setiap File:
+   [X] Menambahkan komponen welcome message dengan tulisan nama AI di tengah
+   [X] Menyesuaikan warna dengan tema masing-masing AI:
+      - SIBER AI: Biru (blue-600)
+      - TIPIDKOR AI: Merah (red-600)
+      - INDAGSI AI: Ungu (purple-600)
+      - FISMONDEV AI: Hijau (green-600)
+   ```jsx
+   {/* Welcome Message - Bold AI NAME in center */}
+   {messages.length <= 1 && (
+     <div className="flex flex-col items-center justify-center h-[50vh] text-center">
+       <div className="w-20 h-20 bg-[color]-100 rounded-full flex items-center justify-center mb-4">
+         <img 
+           src="/img/krimsus.png"
+           alt="Krimsus"
+           className="w-16 h-16 object-contain"
+         />
+       </div>
+       <h1 className="text-4xl font-bold text-[color]-600 mb-4">[AI NAME]</h1>
+       <p className="text-gray-600 max-w-md">
+         Asisten untuk membantu Anda dengan pertanyaan seputar [domain].
+       </p>
+     </div>
+   )}
+   ```
+
+3. Menambahkan Kondisi untuk Menampilkan Pesan di Setiap File:
+   [X] Menambahkan kondisi untuk hanya menampilkan pesan yang memiliki konten
+   ```jsx
+   {messages.map((message, index) => (
+     message.content && (
+       <div>
+         {/* Message content */}
+       </div>
+     )
+   ))}
+   ```
+
+## Hasil Perubahan
+
+1. Tampilan Welcome Message yang Konsisten:
+   - Semua chat page sekarang memiliki tampilan welcome message yang konsisten
+   - Setiap AI memiliki warna tema yang sesuai dengan domainnya
+   - Tampilan welcome message otomatis menghilang saat chat dimulai
+
+2. Peningkatan UX:
+   - Pesan kosong tidak ditampilkan di chat
+   - Tampilan lebih profesional dan modern
+   - Fokus pada nama AI yang ditampilkan secara menonjol
+
+3. Konsistensi Visual:
+   - SIBER AI: Tema biru untuk kejahatan siber
+   - TIPIDKOR AI: Tema merah untuk tindak pidana korupsi
+   - INDAGSI AI: Tema ungu untuk industri dan perdagangan
+   - FISMONDEV AI: Tema hijau untuk fiskal, moneter, dan devisa
+
+## Pembelajaran
+
+1. Penggunaan Conditional Rendering yang Konsisten:
+   - Gunakan `messages.length <= 1` untuk menampilkan welcome message hanya di awal
+   - Gunakan `message.content &&` untuk memfilter pesan kosong
+
+2. Penerapan Tema Warna yang Sesuai:
+   - Sesuaikan warna dengan domain masing-masing AI
+   - Gunakan kombinasi warna yang kontras untuk meningkatkan keterbacaan
+
+3. Reusable Pattern:
+   - Pola yang sama dapat diterapkan ke berbagai chat interface
+   - Hanya perlu menyesuaikan warna, logo, dan teks deskripsi
+
+4. Optimasi Performa:
+   - Gunakan string kosong untuk pesan awal daripada menghapus pesan sepenuhnya
+   - Pertahankan struktur data yang konsisten untuk mencegah re-render yang tidak perlu
 
 Refleksi:
-- Berhasil mengimplementasikan dua komponen ChatPage baru dengan struktur yang konsisten
-- Menggunakan skema warna yang sesuai untuk masing-masing domain:
-  - UU Kesehatan: emerald (tema kesehatan)
-  - UU Fidusia: orange (tema jaminan)
-- Menyesuaikan contoh pertanyaan untuk konteks masing-masing UU
-- Memastikan semua fitur berfungsi dengan baik:
-  - Panel info yang dapat ditampilkan/disembunyikan
-  - Contoh pertanyaan yang hilang setelah pengguna mulai chat
-  - Kemampuan untuk menyalin pesan
-  - Pemformatan markdown yang konsisten
-  - Tampilan sumber dokumen jika tersedia
-  - Animasi "sedang mengetik" saat menunggu respons
-- Mengupdate UndangUndang.tsx untuk menggunakan komponen ChatPage khusus
-- Memperbaiki tipe agent di UndangUndang.tsx dengan membuat interface UndangAgent
-
-Pembelajaran:
-- Pola Implementasi ChatPage yang Konsisten:
-  1. Gunakan struktur dasar yang sama untuk semua ChatPage
-  2. Sesuaikan warna dan konten untuk konteks spesifik
-  3. Pastikan semua fitur berfungsi dengan baik
-  4. Gunakan class `fixed inset-0 z-20 bg-white lg:pl-64` untuk container utama
-  5. Gunakan BookOpen icon untuk bot avatar yang sesuai dengan konteks UU
-
-- Skema Warna untuk UndangUndang:
-  - KUHP: rose-600 (merah) - tema hukum pidana
-  - P2SK: blue-600 (biru) - tema jasa keuangan
-  - ITE: cyan-600 (biru muda) - tema teknologi
-  - Cipta Kerja: slate-600 (abu-abu) - tema ketenagakerjaan
-  - Kesehatan: emerald-600 (hijau) - tema kesehatan
-  - Fidusia: orange-600 (oranye) - tema jaminan
-
-- Pola Contoh Pertanyaan yang Efektif:
-  1. Pertanyaan umum tentang UU (apa, mengapa, kapan)
-  2. Pertanyaan tentang aspek spesifik dari UU
-  3. Pertanyaan tentang perubahan atau perbandingan dengan regulasi sebelumnya
-  4. Pertanyaan tentang implementasi atau dampak UU
-
-- Integrasi di UndangUndang.tsx:
-  1. Import semua komponen ChatPage yang diperlukan
-  2. Update renderContent untuk menampilkan ChatPage yang sesuai
-  3. Sesuaikan deskripsi dan warna untuk setiap agen
-  4. Pastikan semua agen memiliki warna yang konsisten di card dan chat interface
-
-- Mengatasi Masalah Tipe di TypeScript:
-  1. Jika tipe AgentType tidak mencakup semua nilai yang diperlukan, buat interface khusus
-  2. Gunakan type assertion (as any) dengan hati-hati saat diperlukan
-  3. Pastikan struktur objek agent sesuai dengan yang diharapkan oleh AgentCard
-  4. Sederhanakan struktur tipe jika terlalu kompleks
-
-- Perbaikan Path Import:
-  1. Periksa struktur folder yang benar sebelum mengimpor komponen
-  2. Gunakan path relatif (./component) untuk komponen dalam folder yang sama
-  3. Gunakan path absolut (@/components/component) untuk komponen di folder lain
-  4. Pastikan komponen menerima props yang benar (seperti className untuk AnimatedBotIcon)
+- Perubahan welcome message memberikan identitas visual yang lebih kuat untuk setiap AI
+- Penggunaan logo yang konsisten menciptakan konsistensi visual dengan identitas institusi
+- Tampilan welcome message yang menonjol memberikan kesan profesional dan modern
+- Pendekatan ini berhasil diterapkan ke berbagai chat interface dengan penyesuaian minimal

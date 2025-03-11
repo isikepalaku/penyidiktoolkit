@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, Copy, Check, Loader2, Shield, Info, X } from 'lucide-react';
+import { ArrowLeft, Send, Copy, Check, Loader2, Info, X } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { Button } from './button';
 import { Textarea } from './textarea';
@@ -49,7 +49,7 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
     // Set welcome message
     setMessages([
       {
-        content: 'Halo, saya Tipidkor AI, asisten untuk membantu Anda dengan pertanyaan seputar tindak pidana korupsi. Apa yang ingin Anda tanyakan?',
+        content: '',
         type: 'bot',
         timestamp: new Date(),
       },
@@ -221,8 +221,12 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
               <ArrowLeft className="w-5 h-5 text-gray-700" />
             </button>
             <div className="flex items-center gap-2">
-              <div className="flex items-center justify-center w-9 h-9 bg-red-100 rounded-full">
-                <Shield className="w-5 h-5 text-red-600" />
+            <div className="flex items-center justify-center w-9 h-9 bg-blue-100 rounded-full">
+                <img 
+                  src="/img/bareskrim.png"
+                  alt="Bareskrim"
+                  className="w-7 h-7 object-contain"
+                />
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">Tipidkor AI</h2>
@@ -259,6 +263,23 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
             <DotBackground />
           </div>
           <div className="max-w-3xl mx-auto relative z-10 space-y-6">
+            {/* Welcome Message - Bold TIPIDKOR AI in center */}
+            {messages.length <= 1 && (
+              <div className="flex flex-col items-center justify-center h-[50vh] text-center">
+                <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                  <img 
+                    src="/img/krimsus.png"
+                    alt="Krimsus"
+                    className="w-16 h-16 object-contain"
+                  />
+                </div>
+                <h1 className="text-4xl font-bold text-red-600 mb-4">TIPIDKOR AI</h1>
+                <p className="text-gray-600 max-w-md">
+                  Asisten untuk membantu Anda dengan pertanyaan seputar tindak pidana korupsi.
+                </p>
+              </div>
+            )}
+
             {/* Example questions at the beginning */}
             {messages.length === 1 && (
               <div className="mt-6 mb-8">
@@ -284,87 +305,89 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
 
             {/* Messages */}
             {messages.map((message, index) => (
-              <div 
-                key={index} 
-                className={cn(
-                  "flex items-start gap-3 transition-opacity group",
-                  message.type === 'user' ? "justify-end" : "justify-start",
-                  message.isAnimating && "animate-pulse"
-                )}
-              >
-                {message.type === 'bot' && (
-                  <div className="flex-shrink-0 mt-1">
-                    {message.isAnimating ? (
-                      <div className="w-8 h-8 text-blue-600">
-                        <AnimatedBotIcon />
-                      </div>
-                    ) : (
-                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <img 
-                          src="/reserse.png"
-                          alt="Bot Icon"
-                          className="w-6 h-6 object-contain"
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
-                
+              message.content && (
                 <div 
+                  key={index} 
                   className={cn(
-                    "rounded-2xl px-4 py-3 max-w-[85%] shadow-sm",
-                    message.type === 'user' 
-                      ? "bg-red-600 text-white rounded-tr-none" 
-                      : message.error 
-                        ? "bg-red-50 text-red-800 rounded-tl-none border border-red-200" 
-                        : "bg-white text-gray-800 rounded-tl-none border border-gray-200"
+                    "flex items-start gap-3 transition-opacity group",
+                    message.type === 'user' ? "justify-end" : "justify-start",
+                    message.isAnimating && "animate-pulse"
                   )}
                 >
-                  {message.isAnimating ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="w-4 h-4 animate-spin text-red-600" />
-                      <span className="text-gray-500">Tipidkor AI sedang mengetik...</span>
-                    </div>
-                  ) : message.type === 'bot' ? (
-                    <div className="space-y-0">
-                      <div 
-                        className="prose prose-sm max-w-none prose-headings:font-semibold prose-headings:text-gray-900 prose-p:text-gray-700 prose-pre:bg-gray-100 prose-pre:text-gray-800 prose-code:text-gray-800 prose-code:bg-gray-100 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-sm prose-code:font-mono prose-a:text-red-600 prose-a:no-underline hover:prose-a:underline prose-li:text-gray-700 prose-li:marker:text-gray-500 prose-strong:text-gray-900 prose-em:text-gray-700 prose-p:my-0.5 prose-headings:my-0.5 prose-headings:mb-0 prose-ul:my-0.5 prose-ol:my-0.5 prose-li:my-0.5 prose-pre:my-1 leading-tight [&_p]:!my-0.5 [&_br]:leading-none [&_h1+p]:!mt-0.5 [&_h2+p]:!mt-0.5 [&_h3+p]:!mt-0.5"
-                        dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
-                      />
-                      
-                      {message.sourceDocuments && message.sourceDocuments.length > 0 && (
-                        <div className="mt-3 pt-3 border-t border-gray-200">
-                          <p className="text-xs text-gray-500 font-medium mb-1">Sumber:</p>
-                          <ul className="text-xs text-gray-500 space-y-1">
-                            {message.sourceDocuments.map((doc, idx) => (
-                              <li key={idx} className="truncate">
-                                {doc.metadata.title || doc.metadata.source || 'Dokumen'}
-                              </li>
-                            ))}
-                          </ul>
+                  {message.type === 'bot' && (
+                    <div className="flex-shrink-0 mt-1">
+                      {message.isAnimating ? (
+                        <div className="w-8 h-8 text-blue-600">
+                          <AnimatedBotIcon />
+                        </div>
+                      ) : (
+                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                          <img 
+                            src="/reserse.png"
+                            alt="Bot Icon"
+                            className="w-6 h-6 object-contain"
+                          />
                         </div>
                       )}
                     </div>
-                  ) : (
-                    <p className="text-sm">{message.content}</p>
+                  )}
+                  
+                  <div 
+                    className={cn(
+                      "rounded-2xl px-4 py-3 max-w-[85%] shadow-sm",
+                      message.type === 'user' 
+                        ? "bg-red-600 text-white rounded-tr-none" 
+                        : message.error 
+                          ? "bg-red-50 text-red-800 rounded-tl-none border border-red-200" 
+                          : "bg-white text-gray-800 rounded-tl-none border border-gray-200"
+                    )}
+                  >
+                    {message.isAnimating ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin text-red-600" />
+                        <span className="text-gray-500">Tipidkor AI sedang mengetik...</span>
+                      </div>
+                    ) : message.type === 'bot' ? (
+                      <div className="space-y-0">
+                        <div 
+                          className="prose prose-sm max-w-none prose-headings:font-semibold prose-headings:text-gray-900 prose-p:text-gray-700 prose-pre:bg-gray-100 prose-pre:text-gray-800 prose-code:text-gray-800 prose-code:bg-gray-100 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-sm prose-code:font-mono prose-a:text-red-600 prose-a:no-underline hover:prose-a:underline prose-li:text-gray-700 prose-li:marker:text-gray-500 prose-strong:text-gray-900 prose-em:text-gray-700 prose-p:my-0.5 prose-headings:my-0.5 prose-headings:mb-0 prose-ul:my-0.5 prose-ol:my-0.5 prose-li:my-0.5 prose-pre:my-1 leading-tight [&_p]:!my-0.5 [&_br]:leading-none [&_h1+p]:!mt-0.5 [&_h2+p]:!mt-0.5 [&_h3+p]:!mt-0.5"
+                          dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
+                        />
+                        
+                        {message.sourceDocuments && message.sourceDocuments.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-gray-200">
+                            <p className="text-xs text-gray-500 font-medium mb-1">Sumber:</p>
+                            <ul className="text-xs text-gray-500 space-y-1">
+                              {message.sourceDocuments.map((doc, idx) => (
+                                <li key={idx} className="truncate">
+                                  {doc.metadata.title || doc.metadata.source || 'Dokumen'}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-sm">{message.content}</p>
+                    )}
+                  </div>
+                  
+                  {message.type === 'bot' && !message.isAnimating && !message.error && (
+                    <button
+                      onClick={() => copyToClipboard(message.content)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full bg-white border border-gray-200 shadow-sm hover:bg-gray-50"
+                      aria-label="Salin pesan"
+                    >
+                      {copied === message.content ? (
+                        <Check className="w-4 h-4 text-green-500" />
+                      ) : (
+                        <Copy className="w-4 h-4 text-gray-500" />
+                      )}
+                    </button>
                   )}
                 </div>
-                
-                {message.type === 'bot' && !message.isAnimating && !message.error && (
-                  <button
-                    onClick={() => copyToClipboard(message.content)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full bg-white border border-gray-200 shadow-sm hover:bg-gray-50"
-                    aria-label="Salin pesan"
-                  >
-                    {copied === message.content ? (
-                      <Check className="w-4 h-4 text-green-500" />
-                    ) : (
-                      <Copy className="w-4 h-4 text-gray-500" />
-                    )}
-                  </button>
-                )}
-              </div>
-            ))}
+  )
+))}
             <div ref={messagesEndRef} />
           </div>
         </div>

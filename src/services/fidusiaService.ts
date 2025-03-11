@@ -57,7 +57,7 @@ export const sendChatMessage = async (message: string): Promise<{
       
       const formData = new FormData();
       formData.append('message', message.trim());
-      formData.append('agent_id', 'tipidkor-chat');
+      formData.append('agent_id', 'perbankan-investigator');
       formData.append('stream', 'false');
       formData.append('monitor', 'false');
       formData.append('session_id', currentSessionId);
@@ -83,7 +83,7 @@ export const sendChatMessage = async (message: string): Promise<{
         body: formData
       };
 
-      const url = `${API_BASE_URL}/v1/playground/agents/tipidkor-chat/runs`;
+      const url = `${API_BASE_URL}/v1/playground/agents/perbankan-investigator/runs`;
       console.log('Sending request to:', url);
 
       const response = await fetch(url, requestOptions);
