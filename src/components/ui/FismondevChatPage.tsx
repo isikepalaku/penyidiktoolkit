@@ -370,28 +370,39 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
         </div>
 
         {/* Input Area */}
-        <div className="border-t border-gray-200 bg-white p-4">
+        <div className="border-t border-gray-200 bg-white p-4 md:px-8 pb-6 md:pb-4">
           <div className="max-w-3xl mx-auto">
-            <div className="flex items-end gap-2">
-              <div className="relative flex-1">
-                <Textarea
-                  ref={textareaRef}
-                  value={inputMessage}
-                  onChange={handleInputChange}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Ketik pesan Anda..."
-                  className="min-h-[2.5rem] max-h-[8rem] resize-none pr-10 py-3 rounded-xl"
-                />
-              </div>
+            <div className="relative">
+              <Textarea
+                ref={textareaRef}
+                value={inputMessage}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                placeholder="Ketik pesan Anda..."
+                className="resize-none pr-12 py-3 min-h-[56px] max-h-[200px] rounded-xl border-gray-300 focus:border-green-500 focus:ring-green-500 shadow-sm"
+                disabled={isProcessing}
+              />
               <Button
                 onClick={handleSubmit}
                 disabled={!inputMessage.trim() || isProcessing}
-                className="rounded-full p-3 h-auto aspect-square bg-green-600 hover:bg-green-700 text-white"
+                className={cn(
+                  "absolute right-2 bottom-2 p-2 rounded-lg",
+                  !inputMessage.trim() || isProcessing
+                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                    : "bg-green-600 text-white hover:bg-green-700"
+                )}
                 aria-label="Kirim pesan"
               >
-                <Send className="w-5 h-5" />
+                {isProcessing ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Send className="w-5 h-5" />
+                )}
               </Button>
             </div>
+            <p className="text-xs text-gray-500 mt-2 text-center">
+              Fismondev AI dapat memberikan informasi yang tidak akurat. Verifikasi fakta penting.
+            </p>
           </div>
         </div>
       </div>

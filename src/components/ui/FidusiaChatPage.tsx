@@ -29,6 +29,8 @@ const FidusiaChatPage: React.FC<FidusiaChatPageProps> = ({ onBack }) => {
   const [copied, setCopied] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const MAX_CHARS = 1000;
 
   useEffect(() => {
     // Initialize chat session
@@ -43,15 +45,39 @@ const FidusiaChatPage: React.FC<FidusiaChatPageProps> = ({ onBack }) => {
       },
     ]);
 
+    // Restore draft message from localStorage if exists
+    const savedDraft = localStorage.getItem('fidusia_draft_message');
+    if (savedDraft) {
+      setInputMessage(savedDraft);
+    }
+
     // Clean up on unmount
     return () => {
       clearChatHistory();
     };
   }, []);
 
+  // Save draft message to localStorage
+  useEffect(() => {
+    if (inputMessage) {
+      localStorage.setItem('fidusia_draft_message', inputMessage);
+    } else {
+      localStorage.removeItem('fidusia_draft_message');
+    }
+  }, [inputMessage]);
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
+    }
+  }, [inputMessage]);
 
   const scrollToBottom = () => {
     requestAnimationFrame(() => {
@@ -65,7 +91,15 @@ const FidusiaChatPage: React.FC<FidusiaChatPageProps> = ({ onBack }) => {
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputMessage(e.target.value);
+    const newValue = e.target.value;
+    if (newValue.length <= MAX_CHARS) {
+      setInputMessage(newValue);
+      
+      // Adjust textarea height
+      const textarea = e.target;
+      textarea.style.height = 'auto';
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -76,7 +110,7 @@ const FidusiaChatPage: React.FC<FidusiaChatPageProps> = ({ onBack }) => {
   };
 
   const handleSubmit = async () => {
-    if (!inputMessage.trim() || isProcessing) return;
+    if (!inputMessage.trim() || isProcessing || inputMessage.length > MAX_CHARS) return;
 
     const userMessage: Message = {
       content: inputMessage.trim(),
@@ -86,6 +120,7 @@ const FidusiaChatPage: React.FC<FidusiaChatPageProps> = ({ onBack }) => {
 
     setMessages((prev) => [...prev, userMessage]);
     setInputMessage('');
+    localStorage.removeItem('fidusia_draft_message');
     setIsProcessing(true);
 
     // Add a placeholder for the bot's response with animation
@@ -343,33 +378,57 @@ const FidusiaChatPage: React.FC<FidusiaChatPageProps> = ({ onBack }) => {
 
       {/* Input Area */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 lg:pl-64">
-        <div className="max-w-3xl mx-auto flex items-end gap-2">
+        <div className="max-w-3xl mx-auto">
           <div className="flex-grow">
-            <textarea
-              value={inputMessage}
-              onChange={handleInputChange}
-              onKeyDown={handleKeyDown}
-              placeholder="Ketik pesan Anda..."
-              className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
-              rows={1}
-              disabled={isProcessing}
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Tekan Enter untuk mengirim, Shift+Enter untuk baris baru
+            <div className="relative flex w-full cursor-text flex-col rounded-3xl border border-gray-300 px-3 py-1 duration-150 ease-in-out shadow-[0_9px_9px_0px_rgba(0,0,0,0.01),_0_2px_5px_0px_rgba(0,0,0,0.06)] focus-within:shadow-[0_2px_12px_0px_rgba(0,0,0,0.04),_0_9px_9px_0px_rgba(0,0,0,0.01),_0_2px_5px_0px_rgba(0,0,0,0.06)] bg-white">
+              <textarea
+                value={inputMessage}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                placeholder="Ketik pesan Anda..."
+                className={`w-full border-0 bg-transparent px-0 py-2 text-sm placeholder:text-gray-500 focus:outline-none resize-none pr-12 min-h-[24px] max-h-[200px] ${
+                  inputMessage.length > MAX_CHARS 
+                    ? 'text-red-500' 
+                    : inputMessage.length > MAX_CHARS * 0.8 
+                      ? 'text-orange-500' 
+                      : 'text-gray-800'
+                }`}
+                disabled={isProcessing}
+                ref={textareaRef}
+                maxLength={MAX_CHARS}
+                rows={1}
+              />
+              
+              {/* Tombol kirim di dalam textarea */}
+              <button
+                onClick={handleSubmit}
+                disabled={!inputMessage.trim() || isProcessing}
+                className={`absolute right-3 bottom-2 p-2 rounded-lg flex items-center justify-center transition-colors ${
+                  !inputMessage.trim() || isProcessing
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-orange-600 text-white hover:bg-orange-700'
+                }`}
+                aria-label="Kirim pesan"
+              >
+                {isProcessing ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Send className="w-5 h-5" />
+                )}
+              </button>
+            </div>
+            <div className="flex justify-between items-center mt-1">
+              <p className="text-xs text-gray-500">
+                Tekan Enter untuk mengirim, Shift+Enter untuk baris baru
+              </p>
+              <p className={`text-xs ${inputMessage.length > MAX_CHARS * 0.8 ? 'text-orange-500' : 'text-gray-500'}`}>
+                {MAX_CHARS - inputMessage.length} karakter tersisa
+              </p>
+            </div>
+            <p className="text-xs text-gray-500 mt-2 text-center">
+              Asisten UU Fidusia dapat memberikan informasi yang tidak akurat. Verifikasi fakta penting.
             </p>
           </div>
-          <button
-            onClick={handleSubmit}
-            disabled={!inputMessage.trim() || isProcessing}
-            className={`p-2 rounded-full ${
-              !inputMessage.trim() || isProcessing
-                ? 'bg-gray-200 text-gray-500'
-                : 'bg-orange-600 text-white hover:bg-orange-700'
-            }`}
-            aria-label="Kirim pesan"
-          >
-            <Send className="w-5 h-5" />
-          </button>
         </div>
       </div>
     </div>

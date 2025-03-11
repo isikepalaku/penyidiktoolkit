@@ -31,11 +31,11 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
       case 'perkaba_search':
         return <img src="/img/pdf.svg" alt="perkaba ai" className="h-10 w-10" />;
       case 'bantek_chat':
-        return <FileText className="text-green-600" size={40} />;
+        return <img src="/img/pdf.svg" alt="perkaba ai" className="h-10 w-10" />;
       case 'wassidik_chat':
         return <img src="/img/pdf.svg" alt="perkaba ai" className="h-10 w-10" />;
       case 'emp_chat':
-        return <DollarSign className="text-blue-600" size={40} />;
+        return <img src="/img/pdf.svg" alt="perkaba ai" className="h-10 w-10" />;
       case 'modus_kejahatan':
         return <img src="/img/moduskejahatan.svg" alt="Modus Kejahatab" className="h-10 w-10" />;
       case 'image_processor':
