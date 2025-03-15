@@ -63,7 +63,8 @@ export type AgentType =
   | 'fismondev_chat'
   | 'siber_chat'
   | 'perbankan_chat'
-  | 'emp_chat';
+  | 'emp_chat'
+  | 'pdf_image_analyzer';
 
 export interface ExtendedAgent {
   id: string;
