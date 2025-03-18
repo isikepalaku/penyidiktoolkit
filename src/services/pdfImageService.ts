@@ -2,24 +2,22 @@ import { getPdfImagePrompt, type PdfImagePromptType } from '@/data/agents/pdfIma
 import { getDefaultPrompt } from '@/data/prompts/pdfImagePrompts';
 import { v4 as uuidv4 } from 'uuid';
 import type { ChatMessage } from '@/types/pdfImage';
-import { Mistral } from '@mistralai/mistralai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Ambil API key dari environment variable
-const API_KEY = import.meta.env.VITE_MISTRAL_API_KEY || '';
-const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB (Mistral limit)
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB (Gemini limit)
 const MAX_TOTAL_SIZE = 100 * 1024 * 1024; // 100MB
-const MAX_DOCUMENTS = 5; // Maksimal 5 dokumen
+const MAX_DOCUMENTS = 10; // Maksimal 10 dokumen
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 menit dalam milidetik
 
 // Log API key (hanya untuk debugging, hapus di production)
-console.log('Mistral API Key tersedia:', !!API_KEY);
-console.log('Mistral API Key length:', API_KEY.length);
-console.log('Mistral API Key prefix:', API_KEY.substring(0, 5) + '...');
+console.log('Gemini API Key tersedia:', !!API_KEY);
+console.log('Gemini API Key length:', API_KEY.length);
+console.log('Gemini API Key prefix:', API_KEY.substring(0, 5) + '...');
 
-// Inisialisasi klien Mistral dengan API key yang benar
-const mistralClient = new Mistral({
-  apiKey: API_KEY
-});
+// Inisialisasi Gemini API client
+const genAI = new GoogleGenerativeAI(API_KEY);
 
 // Supported file types
 export const SUPPORTED_FILE_TYPES = [
@@ -33,10 +31,30 @@ let chatHistory: ChatMessage[] = [];
 let currentSessionId: string | null = null;
 let sessionTimeoutId: number | null = null; // ID timeout untuk pembersihan sesi
 const MAX_HISTORY = 10;
-let uploadedFileIds: string[] = [];
 let processedFiles: File[] = [];
-let processedContents: { fileName: string; content: string }[] = []; // Menyimpan konten dokumen yang sudah diproses
-let fileObjectUrls: string[] = []; // Menyimpan URL objek file untuk dibersihkan nanti
+let processedContents: { fileName: string; content: string }[] = []; 
+let fileObjectUrls: string[] = []; 
+
+// Definisi tipe untuk content yang dikirim ke Gemini API
+interface TextPart {
+  text: string;
+}
+
+interface InlineDataPart {
+  inlineData: {
+    data: string;
+    mimeType: string;
+  };
+}
+
+// Union type untuk semua jenis part yang didukung
+type ContentPart = TextPart | InlineDataPart;
+
+// Helper type untuk chat history
+interface HistoryEntry {
+  role: 'user' | 'model';
+  parts: ContentPart[];
+}
 
 // Types for the response
 interface PdfImageResponse {
@@ -69,29 +87,6 @@ export const formatFileSize = (bytes: number): string => {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 };
 
-// Definisi tipe untuk OCR page
-interface OcrPage {
-  index: number;
-  markdown: string;
-  images: any[];
-  dimensions: {
-    dpi: number;
-    height: number;
-    width: number;
-  };
-}
-
-// Definisi tipe untuk OCR result
-interface OcrResult {
-  pages: OcrPage[];
-}
-
-// Definisi tipe untuk file result
-interface FileResult {
-  fileName: string;
-  ocrResult: OcrResult;
-}
-
 /**
  * Check if file type is supported
  */
@@ -107,153 +102,26 @@ export const isSupportedFormat = (file: File): boolean => {
 };
 
 /**
- * Converts a File object to ArrayBuffer
+ * Convert file to base64
  */
-const fileToArrayBuffer = async (file: File): Promise<ArrayBuffer> => {
+const fileToBase64 = async (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.readAsArrayBuffer(file);
+    reader.readAsDataURL(file);
     reader.onload = () => {
-      if (reader.result instanceof ArrayBuffer) {
-        resolve(reader.result);
+      if (reader.result) {
+        // Hasil readAsDataURL memiliki format: data:application/pdf;base64,XXXX
+        // Kita hanya butuh bagian XXXX (base64 content)
+        const base64Result = reader.result.toString();
+        const base64 = base64Result.substring(base64Result.indexOf(',') + 1);
+        console.log(`Converted ${file.name} to base64, length: ${base64.length} chars`);
+        resolve(base64);
       } else {
-        reject(new Error('Failed to convert file to ArrayBuffer'));
+        reject(new Error('Failed to convert file to base64'));
       }
     };
     reader.onerror = error => reject(error);
   });
-};
-
-/**
- * Upload file to Mistral
- */
-const uploadFile = async (file: File): Promise<string> => {
-  try {
-    console.log(`Uploading file: ${file.name} (${formatFileSize(file.size)})`);
-    
-    const arrayBuffer = await fileToArrayBuffer(file);
-    const uint8Array = new Uint8Array(arrayBuffer);
-    
-    console.log('Attempting to upload file to Mistral API...');
-    
-    try {
-      const uploadedFile = await mistralClient.files.upload({
-        file: {
-          fileName: file.name,
-          content: uint8Array,
-        },
-        purpose: "ocr" as any // Type cast untuk mengatasi error
-      });
-      
-      console.log(`File uploaded successfully. ID: ${uploadedFile.id}`);
-      return uploadedFile.id;
-    } catch (apiError) {
-      console.error('Mistral API Error:', apiError);
-      
-      // Log detail error untuk debugging
-      if (apiError instanceof Error) {
-        console.error('Error message:', apiError.message);
-        console.error('Error stack:', apiError.stack);
-        
-        // Cek apakah error berisi response
-        const anyError = apiError as any;
-        if (anyError.response) {
-          console.error('Response status:', anyError.response.status);
-          console.error('Response data:', anyError.response.data);
-        }
-      }
-      
-      // Gunakan file ID dummy untuk fallback
-      const dummyFileId = `dummy_${uuidv4()}`;
-      console.log(`Using dummy file ID: ${dummyFileId} for fallback`);
-      return dummyFileId;
-    }
-  } catch (error) {
-    console.error('Error uploading file:', error);
-    throw new Error(`Gagal mengupload file ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-};
-
-/**
- * Get OCR results for a file
- */
-const getOcrResults = async (fileId: string): Promise<OcrResult> => {
-  try {
-    console.log(`Getting signed URL for file ID: ${fileId}`);
-    
-    // Cek apakah ini file ID dummy
-    if (fileId.startsWith('dummy_')) {
-      console.log('Using fallback OCR for dummy file ID');
-      return {
-        pages: [
-          {
-            index: 1,
-            markdown: "# Fallback Content\n\nMaaf, kami tidak dapat memproses dokumen Anda saat ini karena layanan OCR sedang tidak tersedia. Ini adalah konten fallback untuk memungkinkan Anda tetap menggunakan mode tanya jawab.\n\nSilakan coba lagi nanti atau hubungi administrator sistem jika masalah berlanjut.",
-            images: [],
-            dimensions: {
-              dpi: 200,
-              height: 1000,
-              width: 800
-            }
-          }
-        ]
-      };
-    }
-    
-    // Get signed URL
-    const signedUrl = await mistralClient.files.getSignedUrl({
-      fileId: fileId,
-    });
-    
-    console.log(`Processing OCR for file ID: ${fileId}`);
-    
-    // Process OCR
-    try {
-      const ocrResponse = await mistralClient.ocr.process({
-        model: "mistral-ocr-latest",
-        document: {
-          type: "document_url",
-          documentUrl: signedUrl.url,
-        }
-      });
-      
-      return ocrResponse as OcrResult;
-    } catch (ocrError) {
-      console.error('OCR processing error:', ocrError);
-      
-      // Log detail error untuk debugging
-      if (ocrError instanceof Error) {
-        console.error('Error message:', ocrError.message);
-        console.error('Error stack:', ocrError.stack);
-        
-        // Cek apakah error berisi response
-        const anyError = ocrError as any;
-        if (anyError.response) {
-          console.error('Response status:', anyError.response.status);
-          console.error('Response data:', anyError.response.data);
-        }
-      }
-      
-      // Gunakan fallback OCR result
-      return {
-        pages: [
-          {
-            index: 1,
-            markdown: `# Error Processing Document\n\nMaaf, kami tidak dapat memproses dokumen Anda saat ini. Error: ${ocrError instanceof Error ? ocrError.message : 'Unknown error'}\n\nIni adalah konten fallback untuk memungkinkan Anda tetap menggunakan mode tanya jawab.`,
-            images: [],
-            dimensions: {
-              dpi: 200,
-              height: 1000,
-              width: 800
-            }
-          }
-        ]
-      };
-    }
-  } catch (error) {
-    console.error('Error getting OCR results:', error);
-    throw new Error(`Gagal mendapatkan hasil OCR: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
 };
 
 /**
@@ -274,10 +142,7 @@ const cleanupFileResources = () => {
   
   // Reset array
   fileObjectUrls = [];
-  
-  // Hapus file dari memori
   processedFiles = [];
-  uploadedFileIds = [];
   processedContents = [];
   
   console.log('Pembersihan sumber daya file selesai');
@@ -302,10 +167,10 @@ const refreshSessionTimeout = () => {
 };
 
 /**
- * Process files using Mistral API
+ * Process files using Gemini API
  */
 const processFiles = async (files: File[], prompt: string, instruction: string): Promise<string> => {
-  console.log('Processing files using Mistral API');
+  console.log('Processing files using Gemini API');
   console.log('Files:', files.map(f => ({ name: f.name, type: f.type, size: formatFileSize(f.size) })));
 
   try {
@@ -313,7 +178,6 @@ const processFiles = async (files: File[], prompt: string, instruction: string):
     if (!currentSessionId) {
       currentSessionId = `session_${uuidv4()}`;
       chatHistory = [];
-      uploadedFileIds = [];
       processedFiles = [];
       processedContents = [];
       fileObjectUrls = [];
@@ -321,9 +185,6 @@ const processFiles = async (files: File[], prompt: string, instruction: string):
     
     // Perbarui timeout sesi
     refreshSessionTimeout();
-    
-    // Upload files and get OCR results
-    const fileResults: FileResult[] = [];
     
     // Tambahkan file baru ke daftar file yang diproses
     const newFiles = files.filter(file => 
@@ -342,58 +203,60 @@ const processFiles = async (files: File[], prompt: string, instruction: string):
     // Simpan file baru yang diproses
     processedFiles = [...processedFiles, ...newFiles];
     
-    // Hanya proses file baru
+    // Siapkan array untuk menyimpan file parts untuk Gemini API
+    const parts: ContentPart[] = [{ text: `${prompt}\n\nInstruksi pengguna: ${instruction}` }];
+    
+    // Proses semua file baru dan konversi ke base64
     for (const file of newFiles) {
-      // Buat object URL untuk file dan simpan untuk dibersihkan nanti
-      const objectUrl = URL.createObjectURL(file);
-      fileObjectUrls.push(objectUrl);
-      
-      const fileId = await uploadFile(file);
-      uploadedFileIds.push(fileId);
-      const ocrResult = await getOcrResults(fileId);
-      fileResults.push({
-        fileName: file.name,
-        ocrResult
-      });
+      try {
+        // Buat object URL untuk file dan simpan untuk dibersihkan nanti
+        const objectUrl = URL.createObjectURL(file);
+        fileObjectUrls.push(objectUrl);
+        
+        // Konversi file ke base64
+        const base64Data = await fileToBase64(file);
+        console.log(`Adding ${file.name} as inlineData part`);
+        
+        // Tambahkan file sebagai part ke array parts
+        const filePart: InlineDataPart = {
+          inlineData: {
+            data: base64Data,
+            mimeType: file.type
+          }
+        };
+        parts.push(filePart);
+        
+        // Tambahkan ke daftar konten yang diproses
+        processedContents.push({
+          fileName: file.name,
+          content: `Content dari file ${file.name}` // Placeholder
+        });
+      } catch (error) {
+        console.error(`Error processing file ${file.name}:`, error);
+        throw new Error(`Gagal memproses file ${file.name}: ${error instanceof Error ? error.message : 'unknown error'}`);
+      }
     }
     
-    // Combine OCR results dari file baru
-    for (const result of fileResults) {
-      const pages = result.ocrResult.pages || [];
-      const content = `# ${result.fileName}\n\n${pages.map((page: OcrPage) => page.markdown || '').join('\n\n')}`;
-      
-      // Tambahkan ke daftar konten yang diproses
-      processedContents.push({
-        fileName: result.fileName,
-        content
-      });
-    }
-    
-    // Gabungkan semua konten untuk diproses oleh LLM
-    const combinedContent = processedContents.map(item => item.content).join('\n\n---\n\n');
-    
-    // Process with LLM
-    console.log('Processing OCR results with LLM');
-    console.log('Session ID:', currentSessionId);
-    console.log('Uploaded File IDs:', uploadedFileIds);
-    console.log('Processed Files:', processedFiles.map(f => f.name));
-    console.log('Processed Contents:', processedContents.map(c => c.fileName));
-    
-    const chatResponse = await mistralClient.chat.complete({
-      model: "mistral-large-latest",
-      messages: [
-        {
-          role: "system",
-          content: `${prompt}\n\nInstruksi pengguna: ${instruction}`
-        },
-        {
-          role: "user",
-          content: combinedContent
-        }
-      ]
+    // Pilih model Gemini yang sesuai untuk pemrosesan PDF
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.0-flash",
+      generationConfig: {
+        temperature: 0.2,
+        topP: 0.95,
+        topK: 64,
+        maxOutputTokens: 8192,
+      }
     });
     
-    const responseText = (chatResponse.choices?.[0]?.message?.content || 'Maaf, saya tidak dapat memproses dokumen Anda.') as string;
+    // Kirim request ke Gemini API menggunakan file yang sudah dikonversi ke base64
+    console.log('Sending request to Gemini API with files:', processedFiles.map(f => f.name));
+    console.log('Using prompt:', prompt);
+    console.log('Using instruction:', instruction);
+    
+    const result = await model.generateContent(parts);
+    console.log('Received response from Gemini API');
+    
+    const responseText = result.response.text();
     return responseText;
   } catch (error) {
     console.error('Error processing files:', error);
@@ -406,18 +269,19 @@ const processFiles = async (files: File[], prompt: string, instruction: string):
  */
 const verifyApiKey = async (): Promise<boolean> => {
   if (!API_KEY) {
-    console.error('API key tidak tersedia. Pastikan VITE_MISTRAL_API_KEY telah ditambahkan ke file .env');
+    console.error('API key tidak tersedia. Pastikan VITE_GEMINI_API_KEY telah ditambahkan ke file .env');
     return false;
   }
   
   try {
     // Coba panggil API sederhana untuk memverifikasi API key
-    console.log('Memverifikasi API key Mistral...');
+    console.log('Memverifikasi API key Gemini...');
     
-    // Gunakan models.list sebagai endpoint sederhana untuk verifikasi
-    const models = await mistralClient.models.list();
+    // Buat request sederhana untuk verifikasi
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const result = await model.generateContent("Hello, this is a test request.");
     
-    console.log('API key valid. Model tersedia:', models?.data?.map(m => m.id).join(', ') || 'Tidak ada model yang tersedia');
+    console.log('API key valid. Response:', result.response.text());
     return true;
   } catch (error) {
     console.error('Verifikasi API key gagal:', error);
@@ -425,13 +289,6 @@ const verifyApiKey = async (): Promise<boolean> => {
     // Log detail error
     if (error instanceof Error) {
       console.error('Error message:', error.message);
-      
-      // Cek apakah error berisi response
-      const anyError = error as any;
-      if (anyError.response) {
-        console.error('Response status:', anyError.response.status);
-        console.error('Response data:', anyError.response.data);
-      }
     }
     
     return false;
@@ -456,7 +313,7 @@ export const processPdfImage = async (request: PdfImageRequest): Promise<PdfImag
     // Verifikasi API key terlebih dahulu
     const isApiKeyValid = await verifyApiKey();
     if (!isApiKeyValid) {
-      throw new Error('API key Mistral tidak valid atau tidak tersedia. Pastikan Anda telah menambahkan API key yang benar ke file .env');
+      throw new Error('API key Gemini tidak valid atau tidak tersedia. Pastikan Anda telah menambahkan API key yang benar ke file .env');
     }
 
     // Validate files
@@ -468,7 +325,7 @@ export const processPdfImage = async (request: PdfImageRequest): Promise<PdfImag
 
       // Validate format
       if (!isSupportedFormat(file)) {
-        throw new Error(`Format file ${file.name} tidak didukung. Gunakan PDF atau gambar (JPG, PNG, etc.)`);
+        throw new Error(`Format file ${file.name} tidak didukung. Gunakan PDF.`);
       }
     }
 
@@ -512,7 +369,7 @@ export const processPdfImage = async (request: PdfImageRequest): Promise<PdfImag
     if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
       return {
         text: '',
-        error: 'Tidak dapat terhubung ke layanan AI. Mohon periksa koneksi anda dan pastikan API key Mistral valid.',
+        error: 'Tidak dapat terhubung ke layanan AI. Mohon periksa koneksi anda dan pastikan API key Gemini valid.',
         success: false
       };
     }
@@ -532,128 +389,114 @@ export const sendChatMessage = async (message: string): Promise<string> => {
   try {
     console.log('Sending chat message:', message);
     console.log('Current Session ID:', currentSessionId);
-    console.log('Uploaded File IDs:', uploadedFileIds);
     console.log('Processed Files:', processedFiles.map(f => f.name));
     console.log('Processed Contents:', processedContents.map(c => c.fileName));
     
     // Initialize session if needed
-    if (!currentSessionId || (uploadedFileIds.length === 0 && processedContents.length === 0)) {
-      console.error('Session not initialized, no files uploaded, or no processed content');
+    if (!currentSessionId || processedFiles.length === 0) {
+      console.error('Session not initialized or no processed files');
       return 'Silakan upload dokumen terlebih dahulu sebelum memulai chat.';
     }
     
     // Perbarui timeout sesi
     refreshSessionTimeout();
     
-    // Prepare chat history for Mistral format
-    const mistralMessages: Array<{role: 'system' | 'user' | 'assistant'; content: string}> = [
-      {
-        role: 'system',
-        content: `Anda adalah asisten AI yang membantu menjawab pertanyaan tentang dokumen. Gunakan informasi dari dokumen untuk menjawab pertanyaan dengan akurat. Anda memiliki akses ke ${processedContents.length} dokumen: ${processedContents.map(c => c.fileName).join(', ')}.`
+    // Pilih model Gemini yang sesuai
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.0-flash",
+      generationConfig: {
+        temperature: 0.2,
+        topP: 0.95,
+        topK: 64,
+        maxOutputTokens: 8192,
       }
-    ];
-    
-    // Add document content if available
-    if (processedContents.length > 0) {
-      // Gabungkan semua konten dokumen
-      const combinedContent = processedContents.map(item => item.content).join('\n\n---\n\n');
-      
-      mistralMessages.push({
-        role: 'user',
-        content: combinedContent
-      });
-      
-      // Add system message acknowledging the document
-      mistralMessages.push({
-        role: 'assistant',
-        content: `Saya telah menerima ${processedContents.length} dokumen: ${processedContents.map(c => c.fileName).join(', ')}. Silakan ajukan pertanyaan tentang dokumen tersebut.`
-      });
-    } else {
-      // Add fallback content
-      mistralMessages.push({
-        role: 'user',
-        content: 'Dokumen tidak dapat diproses, tetapi saya ingin bertanya tentang topik umum.'
-      });
-      
-      // Add system message acknowledging the issue
-      mistralMessages.push({
-        role: 'assistant',
-        content: 'Maaf, dokumen Anda tidak dapat diproses. Saya akan mencoba menjawab pertanyaan Anda berdasarkan pengetahuan umum saya.'
-      });
-    }
-    
-    // Add chat history
-    chatHistory.forEach(msg => {
-      mistralMessages.push({
-        role: msg.role,
-        content: msg.content
-      });
     });
     
-    // Add current message
-    mistralMessages.push({
+    // Konversi chat history ke format Gemini
+    const history: HistoryEntry[] = chatHistory.map(msg => ({
+      role: msg.role === 'user' ? 'user' : 'model',
+      parts: [{ text: msg.content }]
+    }));
+    
+    // Buat chat session
+    const chat = model.startChat({
+      history,
+      generationConfig: {
+        temperature: 0.2,
+        topP: 0.95,
+        topK: 64,
+        maxOutputTokens: 8192,
+      }
+    });
+    
+    // Siapkan pesan untuk dikirim
+    let messageParts: ContentPart[] = [];
+    
+    // Jika ini pesan pertama, sertakan file dalam base64 dan system message
+    if (chatHistory.length === 0) {
+      const textPart: TextPart = { 
+        text: `Anda adalah asisten AI yang membantu menjawab pertanyaan tentang dokumen. 
+        Gunakan HANYA informasi dari dokumen yang diunggah untuk menjawab pertanyaan dengan akurat.
+        Jika jawaban tidak ditemukan dalam dokumen, nyatakan dengan jelas bahwa informasi tersebut tidak ada dalam dokumen.
+        Jangan mencoba menebak atau memberikan informasi yang tidak ada dalam dokumen.
+        
+        Anda memiliki akses ke ${processedContents.length} dokumen: ${processedContents.map(c => c.fileName).join(', ')}.
+        
+        Instruksi: 
+        1. Baca dokumen dengan seksama
+        2. Perhatikan seluruh isi dokumen
+        3. Hanya jawab berdasarkan informasi yang tersedia dalam dokumen
+        4. Sertakan bagian dokumen yang relevan sebagai kutipan jika memungkinkan
+        
+        Pertanyaan pengguna: ${message}` 
+      };
+      messageParts = [textPart];
+      
+      // Tambahkan semua file dalam base64
+      for (const file of processedFiles) {
+        try {
+          const base64Data = await fileToBase64(file);
+          console.log(`Adding ${file.name} to chat message as inlineData, base64 length: ${base64Data.length}`);
+          
+          const filePart: InlineDataPart = {
+            inlineData: {
+              data: base64Data,
+              mimeType: file.type
+            }
+          };
+          messageParts.push(filePart);
+        } catch (err) {
+          console.error(`Error converting file ${file.name} to base64:`, err);
+        }
+      }
+    } else {
+      // Jika bukan pesan pertama, cukup kirim pesan pengguna
+      const textPart: TextPart = { text: message };
+      messageParts = [textPart];
+    }
+    
+    // Kirim pesan ke model
+    console.log('Sending message to Gemini model');
+    const result = await chat.sendMessage(messageParts);
+    const responseText = result.response.text();
+    
+    // Update chat history
+    chatHistory.push({
       role: 'user',
       content: message
     });
     
-    // Send chat request
-    try {
-      const chatResponse = await mistralClient.chat.complete({
-        model: "mistral-large-latest",
-        messages: mistralMessages
-      });
-      
-      const responseText = chatResponse.choices?.[0]?.message?.content || 'Maaf, saya tidak dapat memproses pesan Anda.';
-      
-      // Update chat history
-      chatHistory.push({
-        role: 'user',
-        content: message
-      });
-      
-      chatHistory.push({
-        role: 'assistant',
-        content: responseText as string
-      });
-      
-      // Limit history size
-      if (chatHistory.length > MAX_HISTORY * 2) {
-        chatHistory = chatHistory.slice(-MAX_HISTORY * 2);
-      }
-      
-      return responseText as string;
-    } catch (chatError) {
-      console.error('Chat API error:', chatError);
-      
-      // Log detail error untuk debugging
-      if (chatError instanceof Error) {
-        console.error('Error message:', chatError.message);
-        console.error('Error stack:', chatError.stack);
-        
-        // Cek apakah error berisi response
-        const anyError = chatError as any;
-        if (anyError.response) {
-          console.error('Response status:', anyError.response.status);
-          console.error('Response data:', anyError.response.data);
-        }
-      }
-      
-      // Fallback response
-      const fallbackResponse = 'Maaf, saya mengalami masalah saat memproses pesan Anda. Layanan AI mungkin sedang tidak tersedia. Silakan coba lagi nanti.';
-      
-      // Update chat history
-      chatHistory.push({
-        role: 'user',
-        content: message
-      });
-      
-      chatHistory.push({
-        role: 'assistant',
-        content: fallbackResponse
-      });
-      
-      return fallbackResponse;
+    chatHistory.push({
+      role: 'assistant',
+      content: responseText
+    });
+    
+    // Limit history size
+    if (chatHistory.length > MAX_HISTORY * 2) {
+      chatHistory = chatHistory.slice(-MAX_HISTORY * 2);
     }
+    
+    return responseText;
   } catch (error) {
     console.error('Chat error:', error);
     return error instanceof Error 

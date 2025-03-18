@@ -76,10 +76,16 @@ Format output dalam Markdown yang terstruktur dengan bagian yang jelas untuk set
   chat: {
     title: 'Tanya Jawab',
     prompt: `Jawab pertanyaan pengguna tentang dokumen ini dengan:
-- Informasi akurat berdasarkan isi dokumen
-- Kutipan langsung jika relevan
-- Penjelasan yang jelas dan ringkas
-- Pengakuan jika informasi tidak tersedia dalam dokumen
+- Informasi HANYA berdasarkan isi dokumen yang diberikan
+- Kutipan langsung dari dokumen jika relevan
+- Jangan gunakan pengetahuan umum yang tidak ada dalam dokumen
+- Jika informasi tidak tersedia dalam dokumen, nyatakan dengan jelas: "Informasi ini tidak tersedia dalam dokumen yang diberikan" 
+- Jangan mencoba menebak atau memberikan informasi yang tidak ada dalam dokumen
+
+Proses dokumen dengan teliti:
+1. Perhatikan semua bagian dokumen termasuk metadata, header, footer, dan bagian kecil lainnya
+2. Pertimbangkan konteks keseluruhan dokumen
+3. Sertakan halaman atau bagian dokumen tertentu saat mengutip jika memungkinkan
 
 Berikan jawaban dalam format yang mudah dibaca dan informatif.`
   }
