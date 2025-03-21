@@ -1,3 +1,9 @@
+/**
+ * INDAGSI AI Service
+ * Service untuk menangani chat AI untuk bidang industri dan perdagangan
+ * Menggunakan backend API untuk manajemen session
+ */
+
 import { env } from '@/config/env';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -37,14 +43,28 @@ const parseResponse = async (response: Response) => {
   }
 };
 
-export const sendChatMessage = async (message: string): Promise<{
+// Interface untuk respon pesan chat
+export interface ChatResponse {
   text: string;
   sourceDocuments?: Array<{
     pageContent: string;
     metadata: Record<string, string>;
   }>;
-  error?: string;
-}> => {
+  error?: boolean | string;
+}
+
+export const initializeSession = () => {
+  if (!currentSessionId) {
+    currentSessionId = `session_${uuidv4()}`;
+  }
+};
+
+export const clearChatHistory = () => {
+  currentSessionId = null;
+};
+
+// Fungsi untuk mengirim pesan ke backend API
+export const sendChatMessage = async (message: string): Promise<ChatResponse> => {
   let retries = 0;
 
   // Generate or retrieve session ID
@@ -58,7 +78,7 @@ export const sendChatMessage = async (message: string): Promise<{
       
       const formData = new FormData();
       formData.append('message', message.trim());
-      formData.append('agent_id', 'tipidkor-chat');
+      formData.append('agent_id', 'ipi-chat');
       formData.append('stream', 'false');
       formData.append('monitor', 'false');
       formData.append('session_id', currentSessionId as string);
@@ -66,7 +86,7 @@ export const sendChatMessage = async (message: string): Promise<{
 
       console.log('Sending request with FormData:', {
         message: message.trim(),
-        agent_id: 'tipidkor-chat',
+        agent_id: 'ipi-chat',
         session_id: currentSessionId
       });
 
@@ -84,7 +104,7 @@ export const sendChatMessage = async (message: string): Promise<{
         body: formData
       };
 
-      const url = `${API_BASE_URL}/v1/playground/agents/tipidkor-chat/runs`;
+      const url = `${API_BASE_URL}/v1/playground/agents/ipi-chat/runs`;
       console.log('Sending request to:', url);
 
       const abortController = new AbortController();
@@ -138,16 +158,4 @@ export const sendChatMessage = async (message: string): Promise<{
   }
   
   throw new Error('Failed after maximum retries');
-};
-
-// Add a function to clear chat history and session
-export const clearChatHistory = () => {
-  currentSessionId = null;
-};
-
-// Add function to persist session between page reloads
-export const initializeSession = () => {
-  if (!currentSessionId) {
-    currentSessionId = `session_${uuidv4()}`;
-  }
-};
+}; 

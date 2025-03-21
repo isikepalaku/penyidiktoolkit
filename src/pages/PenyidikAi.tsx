@@ -12,8 +12,49 @@ import FismondevChatPage from '@/components/ui/FismondevChatPage';
 import IndagsiChatPage from '@/components/ui/IndagsiChatPage';
 import TipidkorChatPage from '@/components/ui/TipidkorChatPage';
 
+// Key untuk menyimpan data di localStorage
+const SELECTED_AGENT_KEY = 'penyidikai-selected-agent';
+
 export default function PenyidikAi() {
-  const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
+  // Menggunakan localStorage untuk mempertahankan status saat reload
+  const [selectedAgent, setSelectedAgent] = useState<string | null>(() => {
+    try {
+      // Ambil data dari localStorage saat komponen dimuat
+      const savedAgent = localStorage.getItem(SELECTED_AGENT_KEY);
+      return savedAgent ? savedAgent : null;
+    } catch (error) {
+      console.error('Error accessing localStorage:', error);
+      return null;
+    }
+  });
+
+  // Simpan selectedAgent ke localStorage setiap kali nilainya berubah
+  useEffect(() => {
+    try {
+      if (selectedAgent) {
+        localStorage.setItem(SELECTED_AGENT_KEY, selectedAgent);
+      } else {
+        localStorage.removeItem(SELECTED_AGENT_KEY);
+      }
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
+    }
+  }, [selectedAgent]);
+
+  // Tambahkan error boundary state
+  const [hasError, setHasError] = useState(false);
+
+  // Error boundary untuk menangkap error yang tidak tertangani
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      console.error('Global error caught:', event.error);
+      setHasError(true);
+      // Jangan reload otomatis, biarkan user yang memilih untuk refresh
+    };
+
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
 
   // Prevent accidental navigation
   useEffect(() => {
@@ -98,36 +139,67 @@ export default function PenyidikAi() {
     }
   };
 
+  // Render error state jika terjadi error
+  if (hasError) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-white">
+        <div className="max-w-md p-6 text-center">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Terjadi Kesalahan</h2>
+          <p className="mb-4">Maaf, terjadi kesalahan dalam aplikasi. Ini mungkin disebabkan oleh masalah koneksi atau server.</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            Muat Ulang Aplikasi
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const renderContent = () => {
     if (!selectedAgentData) return null;
 
-    switch (selectedAgentData.type) {
-      case 'penyidik_chat':
-        return (
-          <div className="fixed inset-0 z-20">
-            <IndagsiChatPage onBack={handleBack} />
-          </div>
-        );
-      case 'tipidkor_chat':
-        return (
-          <div className="fixed inset-0 z-20">
-            <TipidkorChatPage onBack={handleBack} />
-          </div>
-        );
-      case 'fismondev_chat':
-        return (
-          <div className="fixed inset-0 z-20">
-            <FismondevChatPage onBack={handleBack} />
-          </div>
-        );
-      case 'siber_chat':
-        return (
-          <div className="fixed inset-0 z-20">
-            <SiberChatPage onBack={handleBack} />
-          </div>
-        );
-      default:
-        return null;
+    try {
+      switch (selectedAgentData.type) {
+        case 'penyidik_chat':
+          return (
+            <div className="fixed inset-0 z-20">
+              <IndagsiChatPage onBack={handleBack} />
+            </div>
+          );
+        case 'tipidkor_chat':
+          return (
+            <div className="fixed inset-0 z-20">
+              <TipidkorChatPage onBack={handleBack} />
+            </div>
+          );
+        case 'fismondev_chat':
+          return (
+            <div className="fixed inset-0 z-20">
+              <FismondevChatPage onBack={handleBack} />
+            </div>
+          );
+        case 'siber_chat':
+          return (
+            <div className="fixed inset-0 z-20">
+              <SiberChatPage onBack={handleBack} />
+            </div>
+          );
+        default:
+          return null;
+      }
+    } catch (error) {
+      console.error('Error rendering chat page:', error);
+      setHasError(true);
+      return (
+        <div className="p-8 bg-red-50 rounded-lg">
+          <h3 className="text-lg font-medium text-red-800">Terjadi kesalahan saat memuat chat</h3>
+          <p className="mt-2 text-sm text-red-700">
+            Silakan coba kembali ke halaman utama dan pilih agen lagi.
+          </p>
+        </div>
+      );
     }
   };
 

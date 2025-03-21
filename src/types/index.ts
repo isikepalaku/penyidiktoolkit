@@ -64,6 +64,7 @@ export type AgentType =
   | 'siber_chat'
   | 'perbankan_chat'
   | 'emp_chat'
+  | 'indagsi_chat'
   | 'pdf_image_analyzer';
 
 export interface ExtendedAgent {
