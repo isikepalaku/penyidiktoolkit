@@ -4,6 +4,21 @@ import { v4 as uuidv4 } from 'uuid';
 import type { ChatMessage } from '@/types/pdfImage';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
+/**
+ * PENTING: Keterbatasan API Gemini untuk Document Understanding
+ * 
+ * Fitur Gemini Document Understanding memiliki keterbatasan berikut:
+ * 1. File PDF dan gambar TIDAK disimpan dalam konteks model antar pesan
+ * 2. Setiap pesan baru harus menyertakan kembali semua file yang ingin dianalisis
+ * 3. Setiap file PDF dibaca sebagai gambar terpisah untuk setiap halaman
+ * 
+ * Untuk itu, implementasi sendChatMessage harus menyertakan file yang sama pada setiap pesan,
+ * bukan hanya pada pesan pertama. Hal ini meningkatkan penggunaan bandwidth dan performa,
+ * tapi diperlukan agar model tetap memiliki akses ke dokumen untuk setiap pesan.
+ * 
+ * Dokumentasi resmi: https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/document-understanding
+ */
+
 // Ambil API key dari environment variable
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB (Gemini limit)
@@ -384,6 +399,15 @@ export const processPdfImage = async (request: PdfImageRequest): Promise<PdfImag
 
 /**
  * Send chat message about uploaded documents
+ * 
+ * KETERBATASAN API GEMINI:
+ * Berbeda dengan API lain, Gemini TIDAK menyimpan file yang dikirim dalam konteks model
+ * antar pesan dalam chat. Setiap pesan baru (termasuk pertanyaan lanjutan tentang dokumen)
+ * harus menyertakan kembali semua file PDF. Fungsi ini mengatasi hal tersebut dengan
+ * selalu menyertakan semua file di setiap pesan, bukan hanya pada pesan pertama.
+ * 
+ * Ini meningkatkan penggunaan bandwidth tapi diperlukan agar dokumen tetap dapat dianalisis
+ * oleh model pada setiap pesan dalam percakapan.
  */
 export const sendChatMessage = async (message: string): Promise<string> => {
   try {
@@ -432,51 +456,50 @@ export const sendChatMessage = async (message: string): Promise<string> => {
     // Siapkan pesan untuk dikirim
     let messageParts: ContentPart[] = [];
     
-    // Jika ini pesan pertama, sertakan file dalam base64 dan system message
-    if (chatHistory.length === 0) {
-      const textPart: TextPart = { 
-        text: `Anda adalah asisten AI yang membantu menjawab pertanyaan tentang dokumen. 
-        Gunakan HANYA informasi dari dokumen yang diunggah untuk menjawab pertanyaan dengan akurat.
-        Jika jawaban tidak ditemukan dalam dokumen, nyatakan dengan jelas bahwa informasi tersebut tidak ada dalam dokumen.
-        Jangan mencoba menebak atau memberikan informasi yang tidak ada dalam dokumen.
-        
-        Anda memiliki akses ke ${processedContents.length} dokumen: ${processedContents.map(c => c.fileName).join(', ')}.
-        
-        Instruksi: 
-        1. Baca dokumen dengan seksama
-        2. Perhatikan seluruh isi dokumen
-        3. Hanya jawab berdasarkan informasi yang tersedia dalam dokumen
-        4. Sertakan bagian dokumen yang relevan sebagai kutipan jika memungkinkan
-        
-        Pertanyaan pengguna: ${message}` 
-      };
-      messageParts = [textPart];
+    // Untuk semua pesan, sertakan system message dan file dalam base64
+    // Penting: File PDF harus disertakan dalam SETIAP pesan, bukan hanya pesan pertama
+    // karena Gemini tidak menyimpan context files antar pesan
+    
+    // Tambahkan system prompt dan instruksi
+    const textPart: TextPart = { 
+      text: `Anda adalah asisten AI yang membantu menjawab pertanyaan tentang dokumen. 
+      Gunakan HANYA informasi dari dokumen yang diunggah untuk menjawab pertanyaan dengan akurat.
+      Jika jawaban tidak ditemukan dalam dokumen, nyatakan dengan jelas bahwa informasi tersebut tidak ada dalam dokumen.
+      Jangan mencoba menebak atau memberikan informasi yang tidak ada dalam dokumen.
       
-      // Tambahkan semua file dalam base64
-      for (const file of processedFiles) {
-        try {
-          const base64Data = await fileToBase64(file);
-          console.log(`Adding ${file.name} to chat message as inlineData, base64 length: ${base64Data.length}`);
-          
-          const filePart: InlineDataPart = {
-            inlineData: {
-              data: base64Data,
-              mimeType: file.type
-            }
-          };
-          messageParts.push(filePart);
-        } catch (err) {
-          console.error(`Error converting file ${file.name} to base64:`, err);
-        }
+      Anda memiliki akses ke ${processedContents.length} dokumen: ${processedContents.map(c => c.fileName).join(', ')}.
+      
+      Instruksi: 
+      1. Baca dokumen dengan seksama
+      2. Perhatikan seluruh isi dokumen
+      3. Hanya jawab berdasarkan informasi yang tersedia dalam dokumen
+      4. Sertakan bagian dokumen yang relevan sebagai kutipan jika memungkinkan
+      
+      Pertanyaan pengguna: ${message}` 
+    };
+    messageParts = [textPart];
+    
+    // Tambahkan semua file dalam base64 - untuk SETIAP pesan, bukan hanya pesan pertama
+    console.log(`Menambahkan ${processedFiles.length} file ke dalam pesan`);
+    for (const file of processedFiles) {
+      try {
+        const base64Data = await fileToBase64(file);
+        console.log(`Adding ${file.name} to chat message as inlineData, base64 length: ${base64Data.length}`);
+        
+        const filePart: InlineDataPart = {
+          inlineData: {
+            data: base64Data,
+            mimeType: file.type
+          }
+        };
+        messageParts.push(filePart);
+      } catch (err) {
+        console.error(`Error converting file ${file.name} to base64:`, err);
       }
-    } else {
-      // Jika bukan pesan pertama, cukup kirim pesan pengguna
-      const textPart: TextPart = { text: message };
-      messageParts = [textPart];
     }
     
     // Kirim pesan ke model
-    console.log('Sending message to Gemini model');
+    console.log('Sending message to Gemini model with files included');
     const result = await chat.sendMessage(messageParts);
     const responseText = result.response.text();
     

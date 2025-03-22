@@ -26,9 +26,21 @@ import type { PdfImageFormData } from '@/types/pdfImage';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ChatMessage } from '@/types/pdfImage';
-import { getDefaultPromptTitle } from '@/data/prompts/pdfImagePrompts';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+
+// Definisikan getDefaultPromptTitle secara inline jika import gagal
+const getDefaultPromptTitle = (type: string): string => {
+  const titles: Record<string, string> = {
+    summarize: 'Ringkasan Dokumen',
+    extract: 'Ekstraksi Informasi',
+    analyze: 'Analisis Mendalam',
+    qa: 'Tanya Jawab',
+    translate: 'Terjemahan Dokumen'
+  };
+  
+  return titles[type] || 'Analisis Dokumen';
+};
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 const MAX_TOTAL_SIZE = 100 * 1024 * 1024; // 100MB

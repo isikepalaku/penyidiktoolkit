@@ -5,7 +5,7 @@ import { Button } from './button';
 import { Textarea } from './textarea';
 import { AnimatedBotIcon } from './animated-bot-icon';
 import { DotBackground } from './DotBackground';
-import { sendChatMessage, initializeSession, clearChatHistory } from '@/services/tipidkorService';
+import { sendChatMessage, initializeSession, clearChatHistory } from '@/services/tipidterService';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
@@ -27,11 +27,11 @@ interface Message {
   isAnimating?: boolean;
 }
 
-interface TipidkorChatPageProps {
+interface TipidterChatPageProps {
   onBack?: () => void;
 }
 
-const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
+const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       content: '',
@@ -55,7 +55,7 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
     // Initialize chat session
     try {
       initializeSession();
-      console.log('TipidkorChatPage: Session initialized');
+      console.log('TipidterChatPage: Session initialized');
       
       // Set empty welcome message to trigger welcome UI if tidak ada messages yang disimpan
       if (messages.length === 0) {
@@ -172,12 +172,12 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
     }
   };
 
-  // Example questions yang relevan dengan tindak pidana korupsi
+  // Contoh pertanyaan yang bisa ditanyakan
   const exampleQuestions = [
-    "Apa definisi korupsi menurut UU Tipikor?",
-    "Jelaskan tentang gratifikasi dan risikonya bagi pejabat",
-    "Bagaimana proses penyelidikan kasus korupsi?",
-    "Apa sanksi untuk tindak pidana korupsi di Indonesia?"
+    "Apa contoh tindak pidana tertentu (Tipidter) dalam penyidikan kepolisian?",
+    "Bagaimana prosedur penanganan kasus pertambangan dalam Tipidter?",
+    "Buatkan saya Draft berita acara Interogasi untuk kasus :",
+    "Apa saja undang-undang yang terkait dengan Tipidter?"
   ];
 
   const handleSelectQuestion = (question: string) => {
@@ -287,8 +287,8 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="font-semibold">TIPIDKOR AI</h1>
-              <p className="text-sm text-gray-600 hidden sm:block">Asisten untuk tindak pidana korupsi</p>
+              <h1 className="font-semibold">TIPIDTER AI</h1>
+              <p className="text-sm text-gray-600 hidden sm:block">Asisten untuk tindak pidana tertentu</p>
             </div>
           </div>
         </header>
@@ -328,8 +328,8 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="font-semibold">TIPIDKOR AI</h1>
-            <p className="text-sm text-gray-600 hidden sm:block">Asisten untuk tindak pidana korupsi</p>
+            <h1 className="font-semibold">TIPIDTER AI</h1>
+            <p className="text-sm text-gray-600 hidden sm:block">Asisten untuk tindak pidana tertentu</p>
           </div>
         </div>
         
@@ -354,18 +354,18 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
       </header>
       
       {showInfo && (
-        <div className="bg-red-50 border-l-4 border-red-500 p-4 m-4 shadow-sm rounded-md">
+        <div className="bg-orange-50 border-l-4 border-orange-500 p-4 m-4 shadow-sm rounded-md">
           <div className="flex">
             <div className="flex-shrink-0">
-              <Info className="h-5 w-5 text-red-500" />
+              <Info className="h-5 w-5 text-orange-500" />
             </div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Informasi TIPIDKOR AI</h3>
-              <div className="mt-2 text-sm text-red-700">
-                <p>TIPIDKOR AI merupakan asisten kepolisian yang membantu dalam penanganan tindak pidana korupsi. Asisten ini dapat menjawab pertanyaan terkait UU Tipikor, penyelidikan kasus korupsi, dan penanganan kasus-kasus tipikor.</p>
+              <h3 className="text-sm font-medium text-orange-800">Informasi TIPIDTER AI</h3>
+              <div className="mt-2 text-sm text-orange-700">
+                <p>TIPIDTER AI merupakan asisten kepolisian yang membantu dalam penanganan tindak pidana tertentu. Asisten ini dapat menjawab pertanyaan terkait prosedur penanganan kasus-kasus Tipidter seperti narkoba, pencucian uang, kejahatan siber, dan tindak pidana tertentu lainnya.</p>
               </div>
               <button 
-                className="mt-2 text-sm font-medium text-red-600 hover:text-red-500 focus:outline-none"
+                className="mt-2 text-sm font-medium text-orange-600 hover:text-orange-500 focus:outline-none"
                 onClick={() => setShowInfo(false)}
               >
                 Tutup
@@ -391,9 +391,9 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
                     className="w-16 h-16 object-contain"
                   />
                 </div>
-                <h1 className="text-4xl font-bold text-red-600 mb-4">TIPIDKOR AI</h1>
+                <h1 className="text-4xl font-bold text-red-600 mb-4">TIPIDTER Ai</h1>
                 <p className="text-gray-600 max-w-md">
-                  Asisten untuk membantu Anda dengan pertanyaan seputar tindak pidana korupsi.
+                  Asisten untuk membantu Anda dengan pertanyaan seputar tindak pidana tertentu.
                 </p>
               </div>
             )}
@@ -406,7 +406,7 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
                   {exampleQuestions.map((question, idx) => (
                     <button
                       key={idx}
-                      className="text-left p-3 border border-gray-200 rounded-lg text-gray-700 hover:bg-red-50 transition-colors shadow-sm"
+                      className="text-left p-3 border border-gray-200 rounded-lg text-gray-700 hover:bg-orange-50 transition-colors shadow-sm"
                       onClick={() => handleSelectQuestion(question)}
                     >
                       {question}
@@ -444,7 +444,7 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
                     className={cn(
                       "flex flex-col max-w-[85%] sm:max-w-[75%] rounded-xl p-4 shadow-sm",
                       message.type === "user"
-                        ? "bg-red-600 text-white rounded-tr-none"
+                        ? "bg-orange-600 text-white rounded-tr-none"
                         : message.error
                         ? "bg-red-50 text-gray-800 rounded-tl-none border border-red-200"
                         : "bg-white text-gray-800 rounded-tl-none border border-gray-200"
@@ -499,13 +499,13 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder="Ketik pesan..."
-              className="pl-4 pr-12 py-3 min-h-[56px] max-h-[200px] rounded-xl border border-gray-300 focus:border-red-500 focus:ring-1 focus:ring-red-500 resize-none"
+              className="pl-4 pr-12 py-3 min-h-[56px] max-h-[200px] rounded-xl border border-gray-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 resize-none"
               disabled={isProcessing}
             />
             <Button 
               type="submit"
               size="icon"
-              className="absolute bottom-2.5 right-2.5 h-8 w-8 bg-red-600 hover:bg-red-700 text-white rounded-lg"
+              className="absolute bottom-2.5 right-2.5 h-8 w-8 bg-orange-600 hover:bg-orange-700 text-white rounded-lg"
               disabled={isProcessing || !inputMessage.trim()}
             >
               {isProcessing ? (
@@ -521,4 +521,4 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
   );
 };
 
-export default TipidkorChatPage; 
+export default TipidterChatPage; 

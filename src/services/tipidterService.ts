@@ -1,6 +1,6 @@
 /**
- * ITE AI Service
- * Service untuk menangani chat AI untuk bidang hukum ITE (Informasi dan Transaksi Elektronik)
+ * TIPIDTER AI Service
+ * Service untuk menangani chat AI untuk bidang tindak pidana tertentu
  * Menggunakan backend API untuk manajemen session
  */
 
@@ -15,16 +15,6 @@ const API_BASE_URL = env.apiUrl || 'http://localhost:8000';
 
 // Store session ID
 let currentSessionId: string | null = null;
-
-// Interface untuk respon pesan chat
-export interface ChatResponse {
-  text: string;
-  sourceDocuments?: Array<{
-    pageContent: string;
-    metadata: Record<string, string>;
-  }>;
-  error?: boolean | string;
-}
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -53,6 +43,16 @@ const parseResponse = async (response: Response) => {
   }
 };
 
+// Interface untuk respon pesan chat
+export interface ChatResponse {
+  text: string;
+  sourceDocuments?: Array<{
+    pageContent: string;
+    metadata: Record<string, string>;
+  }>;
+  error?: boolean | string;
+}
+
 /**
  * Membuat session ID baru jika belum ada
  * Session ID digunakan oleh backend untuk mengelola konteks percakapan
@@ -60,9 +60,9 @@ const parseResponse = async (response: Response) => {
 export const initializeSession = () => {
   if (!currentSessionId) {
     currentSessionId = `session_${uuidv4()}`;
-    console.log('ITE: Created new session ID:', currentSessionId);
+    console.log('TIPIDTER: Created new session ID:', currentSessionId);
   } else {
-    console.log('ITE: Using existing session ID:', currentSessionId);
+    console.log('TIPIDTER: Using existing session ID:', currentSessionId);
   }
 };
 
@@ -70,7 +70,7 @@ export const initializeSession = () => {
  * Menghapus session ID untuk memulai percakapan baru
  */
 export const clearChatHistory = () => {
-  console.log('ITE: Clearing chat history and session');
+  console.log('TIPIDTER: Clearing chat history and session');
   currentSessionId = null;
 };
 
@@ -88,7 +88,7 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
       
       const formData = new FormData();
       formData.append('message', message.trim());
-      formData.append('agent_id', 'ite-chat');
+      formData.append('agent_id', 'tipidter-chat');
       formData.append('stream', 'false');
       formData.append('monitor', 'false');
       formData.append('session_id', currentSessionId as string);
@@ -96,8 +96,9 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
 
       console.log('Sending request with FormData:', {
         message: message.trim().substring(0, 50) + (message.length > 50 ? '...' : ''),
-        agent_id: 'ite-chat',
-        session_id: currentSessionId
+        agent_id: 'tipidter-chat',
+        session_id: currentSessionId,
+        user_id: currentSessionId,
       });
 
       const headers: HeadersInit = {
@@ -114,7 +115,7 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
         body: formData
       };
 
-      const url = `${API_BASE_URL}/v1/playground/agents/ite-chat/runs`;
+      const url = `${API_BASE_URL}/v1/playground/agents/tipidter-chat/runs`;
       console.log('Sending request to:', url);
 
       const abortController = new AbortController();
@@ -168,4 +169,4 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
   }
   
   throw new Error('Failed after maximum retries');
-};
+}; 

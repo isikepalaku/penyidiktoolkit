@@ -1,3 +1,9 @@
+/**
+ * SIBER AI Service
+ * Service untuk menangani chat AI untuk bidang cybercrime
+ * Menggunakan backend API untuk manajemen session
+ */
+
 import { env } from '@/config/env';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -37,14 +43,38 @@ const parseResponse = async (response: Response) => {
   }
 };
 
-export const sendChatMessage = async (message: string): Promise<{
+// Interface untuk respon pesan chat
+export interface ChatResponse {
   text: string;
   sourceDocuments?: Array<{
     pageContent: string;
     metadata: Record<string, string>;
   }>;
-  error?: string;
-}> => {
+  error?: boolean | string;
+}
+
+/**
+ * Membuat session ID baru jika belum ada
+ * Session ID digunakan oleh backend untuk mengelola konteks percakapan
+ */
+export const initializeSession = () => {
+  if (!currentSessionId) {
+    currentSessionId = `session_${uuidv4()}`;
+    console.log('SIBER: Created new session ID:', currentSessionId);
+  } else {
+    console.log('SIBER: Using existing session ID:', currentSessionId);
+  }
+};
+
+/**
+ * Menghapus session ID untuk memulai percakapan baru
+ */
+export const clearChatHistory = () => {
+  console.log('SIBER: Clearing chat history and session');
+  currentSessionId = null;
+};
+
+export const sendChatMessage = async (message: string): Promise<ChatResponse> => {
   let retries = 0;
 
   // Generate or retrieve session ID
@@ -65,7 +95,7 @@ export const sendChatMessage = async (message: string): Promise<{
       formData.append('user_id', currentSessionId as string);
 
       console.log('Sending request with FormData:', {
-        message: message.trim(),
+        message: message.trim().substring(0, 50) + (message.length > 50 ? '...' : ''),
         agent_id: 'siber-chat',
         session_id: currentSessionId
       });
@@ -138,16 +168,4 @@ export const sendChatMessage = async (message: string): Promise<{
   }
   
   throw new Error('Failed after maximum retries');
-};
-
-// Add a function to clear chat history and session
-export const clearChatHistory = () => {
-  currentSessionId = null;
-};
-
-// Add function to persist session between page reloads
-export const initializeSession = () => {
-  if (!currentSessionId) {
-    currentSessionId = `session_${uuidv4()}`;
-  }
 }; 

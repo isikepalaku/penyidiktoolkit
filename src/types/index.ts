@@ -56,6 +56,7 @@ export type AgentType =
   | 'ciptakerja_chat'
   | 'kesehatan_chat'
   | 'tipidkor_chat'
+  | 'tipidter_chat'
   | 'tipikor_analyst'
   | 'modus_kejahatan'
   | 'medical_image'

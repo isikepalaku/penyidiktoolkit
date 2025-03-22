@@ -10,6 +10,7 @@ import tipikorAnalystAgent from './tipikorAnalystAgent';
 import { penyidikAiAgent } from './penyidikAiAgent';
 import { dokpolAgent } from './dokpolAgent';
 import { geminiImageAgent } from './geminiImageAgent';
+import { tipidterAiAgent } from './tipidterAiAgent';
 import type { ExtendedAgent } from '../../types';
 
 export const agents: ExtendedAgent[] = [
@@ -36,5 +37,6 @@ export {
   tipikorAnalystAgent,
   penyidikAiAgent,
   dokpolAgent,
-  geminiImageAgent
+  geminiImageAgent,
+  tipidterAiAgent
 };

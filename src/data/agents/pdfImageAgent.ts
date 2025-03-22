@@ -49,34 +49,6 @@ Output dalam format Markdown:
 [Catatan tambahan jika diperlukan]`,
     description: 'Ekstraksi informasi spesifik dari dokumen'
   },
-  compare: {
-    id: 'compare',
-    prompt: `Bandingkan dokumen-dokumen ini dengan memperhatikan:
-- Persamaan dan perbedaan utama
-- Perubahan spesifik antar dokumen
-- Implikasi dari perbedaan yang ditemukan
-- Rekomendasi berdasarkan analisis
-
-Output dalam format Markdown:
-
-# Analisis Perbandingan Dokumen
-
-## Persamaan Utama
-${Array(3).fill('- [persamaan]').join('\n')}
-
-## Perbedaan Signifikan
-${Array(5).fill('- [perbedaan]').join('\n')}
-
-## Analisis Perubahan
-[analisis mendalam tentang perubahan antar dokumen]
-
-## Implikasi
-[implikasi dari perbedaan yang ditemukan]
-
-## Rekomendasi
-[rekomendasi berdasarkan analisis]`,
-    description: 'Perbandingan antar dokumen'
-  },
   analyze: {
     id: 'analyze',
     prompt: `Analisis mendalam dokumen ini dengan memperhatikan:
@@ -109,16 +81,44 @@ ${Array(2).fill('- [kesenjangan/kelemahan]').join('\n')}
 [kesimpulan dari analisis]`,
     description: 'Analisis mendalam dokumen'
   },
-  chat: {
-    id: 'chat',
+  qa: {
+    id: 'qa',
     prompt: `Jawab pertanyaan pengguna tentang dokumen ini dengan:
-- Informasi akurat berdasarkan isi dokumen
-- Kutipan langsung jika relevan
-- Penjelasan yang jelas dan ringkas
-- Pengakuan jika informasi tidak tersedia dalam dokumen
+- Informasi HANYA berdasarkan isi dokumen yang diberikan
+- Kutipan langsung dari dokumen jika relevan
+- Jangan gunakan pengetahuan umum yang tidak ada dalam dokumen
+- Jika informasi tidak tersedia dalam dokumen, nyatakan dengan jelas: "Informasi ini tidak tersedia dalam dokumen yang diberikan" 
+- Jangan mencoba menebak atau memberikan informasi yang tidak ada dalam dokumen
+
+Proses dokumen dengan teliti:
+1. Perhatikan semua bagian dokumen termasuk metadata, header, footer, dan bagian kecil lainnya
+2. Pertimbangkan konteks keseluruhan dokumen
+3. Sertakan halaman atau bagian dokumen tertentu saat mengutip jika memungkinkan
 
 Berikan jawaban dalam format yang mudah dibaca dan informatif.`,
     description: 'Tanya jawab tentang dokumen'
+  },
+  translate: {
+    id: 'translate',
+    prompt: `Terjemahkan dokumen ini ke dalam bahasa Indonesia (atau bahasa lain sesuai instruksi pengguna) dengan:
+- Keakuratan tinggi dalam penerjemahan
+- Mempertahankan format dan struktur dokumen asli
+- Mempertahankan terminologi khusus dan istilah teknis
+- Catatan tambahan untuk konteks budaya jika diperlukan
+
+Output dalam format Markdown:
+
+# Hasil Terjemahan
+
+## Dokumen Asli
+[ringkasan singkat dokumen asli]
+
+## Terjemahan
+[terjemahan lengkap dokumen]
+
+## Catatan Penerjemah
+[catatan tentang istilah khusus atau konteks budaya jika diperlukan]`,
+    description: 'Terjemahan dokumen ke bahasa Indonesia'
   }
 } as const;
 
@@ -152,9 +152,9 @@ export const pdfImageAgent: ExtendedAgent = {
       options: [
         { value: 'summarize', label: 'Ringkasan Dokumen' },
         { value: 'extract', label: 'Ekstraksi Informasi' },
-        { value: 'compare', label: 'Perbandingan Dokumen' },
         { value: 'analyze', label: 'Analisis Mendalam' },
-        { value: 'chat', label: 'Tanya Jawab' }
+        { value: 'qa', label: 'Tanya Jawab' },
+        { value: 'translate', label: 'Terjemahan Dokumen' }
       ],
       placeholder: 'Pilih jenis tugas'
     },

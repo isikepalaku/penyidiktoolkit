@@ -48,6 +48,7 @@ export const AGENT_IDS = {
   KUHP_CHAT: 'kuhp-chat',
   ITE_CHAT: 'ite-chat',
   TIPIDKOR_CHAT: 'tipidkor-chat',
+  TIPIDTER_CHAT: 'tipidter-chat',
   CIPTAKERJA_CHAT: 'ciptakerja-chat',
   KESEHATAN_CHAT: 'kesehatan-chat',
   PENYIDIK_CHAT: 'penyidik-chat',
@@ -90,6 +91,8 @@ export const getAgentTypeFromId = (id: string): AgentType | null => {
       return 'ite_chat';
     case AGENT_IDS.TIPIDKOR_CHAT:
       return 'tipidkor_chat';
+    case AGENT_IDS.TIPIDTER_CHAT:
+      return 'tipidter_chat';
     case AGENT_IDS.CIPTAKERJA_CHAT:
       return 'ciptakerja_chat';
     case AGENT_IDS.KESEHATAN_CHAT:

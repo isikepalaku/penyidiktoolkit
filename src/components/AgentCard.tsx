@@ -54,6 +54,8 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
         return <TrendingUp className="text-purple-500" size={40} />;
       case 'tipidkor_chat':
         return <img src="/img/krimsus.png" alt="Tipidkor ai" className="h-10 w-10" />;
+      case 'tipidter_chat':
+        return <img src="/img/krimsus.png" alt="Tipidter ai" className="h-10 w-10" />;
       case 'tipikor_analyst':
         return <img src="/img/pngegg.png" alt="tipidkor analyst" className="h-10 w-10" />;
       case 'ciptakerja_chat':
@@ -78,6 +80,8 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
           return <img src="/img/krimsus.png" alt="Shield" className="h-10 w-10" />;
         } else if (agent.icon === 'file-text') {
           return <FileText className="text-green-600" size={40} />;
+        } else if (agent.icon === 'alert-triangle') {
+          return <AlertTriangle className="text-orange-600" size={40} />;
         }
         return <PieChart className="text-gray-500" size={24} />;
     }

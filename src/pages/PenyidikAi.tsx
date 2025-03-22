@@ -7,10 +7,12 @@ import { penyidikAiAgent } from '@/data/agents/penyidikAiAgent';
 import { tipidkorAiAgent } from '@/data/agents/tipidkorAiAgent';
 import { fismondevAgent } from '@/data/agents/fismondevAgent';
 import { siberAgent } from '@/data/agents/siberAgent';
+import { tipidterAiAgent } from '@/data/agents/tipidterAiAgent';
 import SiberChatPage from '@/components/ui/SiberChatPage';
 import FismondevChatPage from '@/components/ui/FismondevChatPage';
 import IndagsiChatPage from '@/components/ui/IndagsiChatPage';
 import TipidkorChatPage from '@/components/ui/TipidkorChatPage';
+import TipidterChatPage from '@/components/ui/TipidterChatPage';
 
 // Key untuk menyimpan data di localStorage
 const SELECTED_AGENT_KEY = 'penyidikai-selected-agent';
@@ -19,7 +21,18 @@ export default function PenyidikAi() {
   // Menggunakan localStorage untuk mempertahankan status saat reload
   const [selectedAgent, setSelectedAgent] = useState<string | null>(() => {
     try {
-      // Ambil data dari localStorage saat komponen dimuat
+      // Gunakan URL parameter untuk memeriksa apakah ini adalah navigasi langsung ke halaman
+      const urlParams = new URLSearchParams(window.location.search);
+      const isDirectNavigation = urlParams.get('direct') === 'true';
+      
+      // Jika ini adalah navigasi langsung ke halaman (bukan dari dalam aplikasi),
+      // hapus data agent yang tersimpan dan mulai dari halaman pilihan
+      if (!isDirectNavigation) {
+        localStorage.removeItem(SELECTED_AGENT_KEY);
+        return null;
+      }
+      
+      // Jika ini navigasi internal, ambil data dari localStorage
       const savedAgent = localStorage.getItem(SELECTED_AGENT_KEY);
       return savedAgent ? savedAgent : null;
     } catch (error) {
@@ -33,8 +46,18 @@ export default function PenyidikAi() {
     try {
       if (selectedAgent) {
         localStorage.setItem(SELECTED_AGENT_KEY, selectedAgent);
+        
+        // Tambahkan parameter direct=true ke URL saat agent dipilih
+        const url = new URL(window.location.href);
+        url.searchParams.set('direct', 'true');
+        window.history.replaceState({}, '', url.toString());
       } else {
         localStorage.removeItem(SELECTED_AGENT_KEY);
+        
+        // Hapus parameter direct dari URL saat kembali ke halaman pilihan
+        const url = new URL(window.location.href);
+        url.searchParams.delete('direct');
+        window.history.replaceState({}, '', url.toString());
       }
     } catch (error) {
       console.error('Error saving to localStorage:', error);
@@ -128,6 +151,15 @@ export default function PenyidikAi() {
       status: siberAgent.status,
       color: 'cyan',
       icon: 'shield'
+    },
+    {
+      id: tipidterAiAgent.id,
+      name: tipidterAiAgent.name,
+      description: tipidterAiAgent.description,
+      type: tipidterAiAgent.type,
+      status: tipidterAiAgent.status,
+      color: 'orange',
+      icon: 'alert-triangle'
     }
   ];
 
@@ -137,6 +169,17 @@ export default function PenyidikAi() {
     if (window.confirm('Apakah Anda yakin ingin kembali? Semua percakapan akan hilang.')) {
       setSelectedAgent(null);
     }
+  };
+
+  // Reset agent selection without confirmation - untuk tombol reset cepat
+  const handleReset = () => {
+    setSelectedAgent(null);
+    localStorage.removeItem(SELECTED_AGENT_KEY);
+    
+    // Hapus parameter direct dari URL
+    const url = new URL(window.location.href);
+    url.searchParams.delete('direct');
+    window.history.replaceState({}, '', url.toString());
   };
 
   // Render error state jika terjadi error
@@ -186,6 +229,12 @@ export default function PenyidikAi() {
               <SiberChatPage onBack={handleBack} />
             </div>
           );
+        case 'tipidter_chat':
+          return (
+            <div className="fixed inset-0 z-20">
+              <TipidterChatPage onBack={handleBack} />
+            </div>
+          );
         default:
           return null;
       }
@@ -218,6 +267,15 @@ export default function PenyidikAi() {
                   <ArrowLeft className="w-5 h-5 mr-2" />
                   <span className="font-medium">Kembali</span>
                 </button>
+                
+                {/* Tambahkan tombol Pilih Agent Lain yang tidak menghapus percakapan */}
+                <button
+                  onClick={handleReset}
+                  className="inline-flex items-center px-4 py-2 ml-2 text-blue-600 bg-blue-50 rounded-lg shadow-sm hover:bg-blue-100 transition-all duration-200 border border-blue-100"
+                >
+                  <span className="font-medium">Pilih Agent Lain</span>
+                </button>
+                
                 {selectedAgentData && (
                   <div className="mt-6">
                     <h1 className="text-2xl font-bold text-gray-900">{selectedAgentData.name}</h1>
@@ -257,7 +315,9 @@ export default function PenyidikAi() {
                             ? "bg-gradient-to-br from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100"
                             : agent.type === 'siber_chat'
                               ? "bg-gradient-to-br from-cyan-50 to-sky-50 hover:from-cyan-100 hover:to-sky-100"
-                              : "bg-gradient-to-br from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100"
+                              : agent.type === 'tipidter_chat'
+                                ? "bg-gradient-to-br from-orange-50 to-yellow-50 hover:from-orange-100 hover:to-yellow-100"
+                                : "bg-gradient-to-br from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100"
                       }
                       className={`
                         border border-transparent
@@ -267,7 +327,9 @@ export default function PenyidikAi() {
                             ? 'hover:border-green-200 hover:shadow-green-100'
                             : agent.type === 'siber_chat'
                               ? 'hover:border-cyan-200 hover:shadow-cyan-100'
-                              : 'hover:border-purple-200 hover:shadow-purple-100'
+                              : agent.type === 'tipidter_chat'
+                                ? 'hover:border-orange-200 hover:shadow-orange-100'
+                                : 'hover:border-purple-200 hover:shadow-purple-100'
                         }
                         shadow-lg hover:shadow-xl transition-all duration-300
                         rounded-xl overflow-hidden
