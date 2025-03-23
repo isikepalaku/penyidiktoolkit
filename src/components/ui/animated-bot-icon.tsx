@@ -9,7 +9,7 @@ export const AnimatedBotIcon: FC<AnimatedBotIconProps> = ({ className }) => {
   return (
     <div className={cn("w-full h-full relative", className)}>
       <img 
-        src="/logo.svg" 
+        src="/reserseid.svg" 
         alt="Bot Logo" 
         className="w-full h-full object-contain animate-pulse"
       />

@@ -385,7 +385,7 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
               <div className="flex flex-col items-center justify-center h-[50vh] text-center">
                 <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
                   <img 
-                    src="/img/krimsus.png"
+                    src="/img/bareskrim.svg"
                     alt="Krimsus"
                     className="w-16 h-16 object-contain"
                   />

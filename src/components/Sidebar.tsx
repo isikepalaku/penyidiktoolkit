@@ -22,9 +22,9 @@ const Sidebar = () => {
         text: 'Agen AI'
       },
       {
-        path: '/perkaba-chat',
+        path: '/sop-penyidik',
         icon: <MessageSquare className="w-5 h-5" />,
-        text: 'Perkaba Chat'
+        text: 'SOP Penyidik'
       },
       {
         path: '/penyidik-ai',

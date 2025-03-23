@@ -42,7 +42,7 @@ export default function PerkabaChat() {
     {
       id: 'emp_chat',
       name: 'EMP AI',
-      description: 'Asisten AI yang fokus pada tindak pidana di bidang Ekonomi, Moneter, dan Perbankan',
+      description: 'Asisten AI EMP berdasarkan perkaba polri',
       type: 'emp_chat' as AgentType,
       status: 'on',
       icon: 'dollar',
@@ -119,11 +119,11 @@ export default function PerkabaChat() {
                 <div className="flex items-center gap-3 mb-3">
                   <div className="h-8 w-1 bg-blue-500 rounded-full"></div>
                   <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
-                    SOP Perkaba Polri 🫰
+                    SOP Penyidik
                   </h1>
                 </div>
                 <p className="text-base md:text-lg text-gray-600 ml-11">
-                  Melakukan percakapan dengan agen AI dapat membantu memahami SOP berdasarkan Perkaba Polri
+                  Melakukan percakapan dengan agen AI yang terkait dengan SOP Penyidik
                 </p>
               </div>
               

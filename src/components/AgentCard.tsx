@@ -53,9 +53,9 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
       case 'sentiment_analyst':
         return <TrendingUp className="text-purple-500" size={40} />;
       case 'tipidkor_chat':
-        return <img src="/img/krimsus.png" alt="Tipidkor ai" className="h-10 w-10" />;
+        return <img src="/img/bareskrim.svg" alt="Tipidkor ai" className="h-10 w-10" />;
       case 'tipidter_chat':
-        return <img src="/img/krimsus.png" alt="Tipidter ai" className="h-10 w-10" />;
+        return <img src="/img/bareskrim.svg" alt="Tipidter ai" className="h-10 w-10" />;
       case 'tipikor_analyst':
         return <img src="/img/pngegg.png" alt="tipidkor analyst" className="h-10 w-10" />;
       case 'ciptakerja_chat':
@@ -63,11 +63,11 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
       case 'kesehatan_chat':
         return <img src="/img/book.svg" alt="Google Scholar" className="h-10 w-10" />;
       case 'penyidik_chat':
-        return <img src="/img/krimsus.png" alt="Tipidkor ai" className="h-10 w-10" />;
+        return <img src="/img/bareskrim.svg" alt="Tipidkor ai" className="h-10 w-10" />;
       case 'fismondev_chat':
-        return <img src="/img/krimsus.png" alt="Fismondev AI" className="h-10 w-10" />;
+        return <img src="/img/bareskrim.svg" alt="Fismondev AI" className="h-10 w-10" />;
       case 'siber_chat':
-        return <img src="/img/krimsus.png" alt="Siber AI" className="h-10 w-10" />;
+        return <img src="/img/siber.svg" alt="Siber AI" className="h-10 w-10" />;
       case 'perbankan_chat':
         return <img src="/img/book.svg" alt="Perbankan" className="h-10 w-10" />;
       default:
@@ -77,7 +77,7 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
         } else if (agent.icon === 'dollar') {
           return <DollarSign className="text-blue-600" size={40} />;
         } else if (agent.icon === 'shield') {
-          return <img src="/img/krimsus.png" alt="Shield" className="h-10 w-10" />;
+          return <img src="/img/bareskrim.svg" alt="Shield" className="h-10 w-10" />;
         } else if (agent.icon === 'file-text') {
           return <FileText className="text-green-600" size={40} />;
         } else if (agent.icon === 'alert-triangle') {

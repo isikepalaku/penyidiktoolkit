@@ -6,7 +6,7 @@ export const empAgent: ExtendedAgent = {
   name: 'EMP AI',
   type: 'emp_chat',
   status: 'on',
-  description: 'Asisten AI yang fokus pada tindak pidana di bidang Ekonomi, Moneter, dan Perbankan',
+  description: 'Asisten AI aplikasi EMP berdasarkan perkaba polri',
   icon: DollarSign,
   iconClassName: 'text-blue-600',
   fields: []

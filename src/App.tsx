@@ -18,7 +18,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/agents" element={<Agents />} />
-            <Route path="/perkaba-chat" element={<PerkabaChat />} />
+            <Route path="/sop-penyidik" element={<PerkabaChat />} />
             <Route path="/undang-undang" element={<UndangUndang />} />
             <Route path="/penyidik-ai" element={<PenyidikAi />} />
             <Route path="/toolkit" element={<Toolkit />} />
