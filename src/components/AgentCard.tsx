@@ -1,4 +1,4 @@
-import { PieChart, BarChart3, TrendingUp, AlertTriangle, DollarSign, FileText } from 'lucide-react';
+import { PieChart, BarChart3, TrendingUp, AlertTriangle } from 'lucide-react';
 import type { Agent, ExtendedAgent } from '../types/index';
 import { getTypeDisplay } from '@/utils/utils';
 
@@ -10,13 +10,6 @@ interface AgentCardProps {
 
 export default function AgentCard({ agent, bgColor = 'bg-white', className = '' }: AgentCardProps) {
   const getAgentIcon = () => {
-    // Jika agent adalah ExtendedAgent dan memiliki icon yang sudah didefinisikan
-    if ('iconClassName' in agent && 'icon' in agent && agent.icon) {
-      const Icon = agent.icon;
-      return <Icon className={agent.iconClassName || 'text-gray-700'} size={40} />;
-    }
-
-    // Fallback ke icon berdasarkan type
     switch (agent.type) {
       case 'spkt':
         return <img src="/img/ai.svg" alt="laporan polisi" className="h-10 w-10" />;
@@ -43,7 +36,7 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
       case 'medical_image':
         return <img src="/img/dokpol.svg" alt="Dokpol Medis" className="h-10 w-10" />;
       case 'crime_trend_analyst':
-        return <BarChart3 className="text-indigo-500" size={40} />;
+        return <BarChart3 className="text-indigo-500" size={24} />;
       case 'undang_chat':
         return <img src="/img/book.svg" alt="Google Scholar" className="h-10 w-10" />;
       case 'kuhp_chat':
@@ -51,11 +44,9 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
       case 'ite_chat':
         return <img src="/img/book.svg" alt="Google Scholar" className="h-10 w-10" />;
       case 'sentiment_analyst':
-        return <TrendingUp className="text-purple-500" size={40} />;
+        return <TrendingUp className="text-purple-500" size={24} />;
       case 'tipidkor_chat':
-        return <img src="/img/bareskrim.svg" alt="Tipidkor ai" className="h-10 w-10" />;
-      case 'tipidter_chat':
-        return <img src="/img/bareskrim.svg" alt="Tipidter ai" className="h-10 w-10" />;
+        return <img src="/img/krimsus.png" alt="Tipidkor ai" className="h-10 w-10" />;
       case 'tipikor_analyst':
         return <img src="/img/pngegg.png" alt="tipidkor analyst" className="h-10 w-10" />;
       case 'ciptakerja_chat':
@@ -63,32 +54,14 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
       case 'kesehatan_chat':
         return <img src="/img/book.svg" alt="Google Scholar" className="h-10 w-10" />;
       case 'penyidik_chat':
-        return <img src="/img/bareskrim.svg" alt="Tipidkor ai" className="h-10 w-10" />;
-      case 'fismondev_chat':
-        return <img src="/img/bareskrim.svg" alt="Fismondev AI" className="h-10 w-10" />;
-      case 'siber_chat':
-        return <img src="/img/siber.svg" alt="Siber AI" className="h-10 w-10" />;
-      case 'perbankan_chat':
-        return <img src="/img/book.svg" alt="Perbankan" className="h-10 w-10" />;
+        return <img src="/img/krimsus.png" alt="Tipidkor ai" className="h-10 w-10" />;
       default:
-        // Jika agent memiliki icon sebagai string
-        if (agent.icon === 'brain') {
-          return <img src="/img/ai.svg" alt="AI" className="h-10 w-10" />;
-        } else if (agent.icon === 'dollar') {
-          return <DollarSign className="text-blue-600" size={40} />;
-        } else if (agent.icon === 'shield') {
-          return <img src="/img/bareskrim.svg" alt="Shield" className="h-10 w-10" />;
-        } else if (agent.icon === 'file-text') {
-          return <FileText className="text-green-600" size={40} />;
-        } else if (agent.icon === 'alert-triangle') {
-          return <AlertTriangle className="text-orange-600" size={40} />;
-        }
         return <PieChart className="text-gray-500" size={24} />;
     }
   };
 
   // Render khusus untuk agen UU
-  if (agent.type === 'undang_chat' || agent.type === 'kuhp_chat' || agent.type === 'ciptakerja_chat' || agent.type === 'kesehatan_chat' || agent.type === 'perbankan_chat') {
+  if (agent.type === 'undang_chat' || agent.type === 'kuhp_chat' || agent.type === 'ciptakerja_chat' || agent.type === 'kesehatan_chat') {
     return (
       <div className={`${bgColor} rounded-lg shadow-md p-6 hover:shadow-xl transition-all duration-300 border border-gray-100 group h-[200px] flex flex-col justify-between ${className}`}>
         <div>
@@ -120,7 +93,6 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
             {agent.type === 'undang_chat' ? 'UU P2SK' : 
              agent.type === 'kuhp_chat' ? 'KUHP' : 
              agent.type === 'kesehatan_chat' ? 'UU Kesehatan' :
-             agent.type === 'perbankan_chat' ? 'UU Perbankan' :
              'UU Cipta Kerja'}
           </span>
         </div>
