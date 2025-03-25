@@ -49,6 +49,12 @@ const toolTypes: ToolType[] = [
     name: pdfImageAgent.name,
     description: pdfImageAgent.description,
     icon: <div className="h-10 w-10"><img src="/img/fact-file-color-icon.svg" className="h-10 w-10" alt="PDF and Image Analysis" /></div>
+  },
+  {
+    id: 'cdr-analysis',
+    name: 'CDR Analisis',
+    description: 'Toolkit untuk melakukan analisis data penyelidikan dari Call Detail Record (CDR)',
+    icon: <div className="h-10 w-10"><img src="/img/hp.svg" className="h-10 w-10" alt="CDR Analysis" /></div>
   }
 ];
 
@@ -275,6 +281,15 @@ export default function Toolkit() {
     initializeSession();
   };
 
+  const handleToolClick = (toolId: string) => {
+    if (toolId === 'cdr-analysis') {
+      // Buka URL CDR Analisis di tab baru
+      window.open('https://cdr.reserse.id/', '_blank');
+      return;
+    }
+    setSelectedTool(toolId);
+  };
+
   const selectedToolData = toolTypes.find(tool => tool.id === selectedTool);
 
   if (selectedTool && selectedToolData) {
@@ -409,7 +424,7 @@ export default function Toolkit() {
             {toolTypes.map(tool => (
               <div 
                 key={tool.id}
-                onClick={() => setSelectedTool(tool.id)}
+                onClick={() => handleToolClick(tool.id)}
                 className="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-all cursor-pointer border border-gray-100"
               >
                 <div className="flex items-start justify-between mb-4">
