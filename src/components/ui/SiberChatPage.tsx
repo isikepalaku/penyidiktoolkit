@@ -7,14 +7,12 @@ import { AnimatedBotIcon } from './animated-bot-icon';
 import { DotBackground } from './DotBackground';
 import { sendChatMessage, initializeSession, clearChatHistory } from '@/services/siberService';
 import { marked } from 'marked';
-import { formatMessage } from '@/utils/messageFormatter';
+import DOMPurify from 'dompurify';
 
 // Konfigurasi marked
 marked.setOptions({
-  breaks: true,  // Mengaktifkan line breaks
-  gfm: true,     // Mengaktifkan GitHub Flavored Markdown
-  headerIds: false, // Menonaktifkan ID otomatis pada header
-  mangle: false,  // Menonaktifkan escape pada email links
+  breaks: true,
+  gfm: true,
 });
 
 interface Message {
@@ -212,6 +210,24 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
     setTimeout(() => setCopied(null), 2000);
   };
 
+  const formatMessage = (content: string) => {
+    try {
+      // Pastikan content ada dan bukan string kosong
+      if (!content) return '';
+      
+      // Parse markdown menjadi HTML
+      const rawHtml = marked.parse(content);
+      
+      // Sanitasi HTML untuk mencegah XSS
+      const sanitizedHtml = DOMPurify.sanitize(rawHtml);
+      
+      return sanitizedHtml;
+    } catch (error) {
+      console.error('Error formatting message:', error);
+      return 'Error formatting message.';
+    }
+  };
+
   const handleChatReset = () => {
     try {
       clearChatHistory();
@@ -404,6 +420,7 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
 
             {/* Chat Messages */}
             {messages.map((message, index) => (
+              // Hanya tampilkan message dengan content (kecuali animating placeholder)
               (message.content || message.isAnimating) && (
                 <div
                   key={index}
@@ -422,21 +439,8 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
                     {message.type === "bot" && !message.isAnimating ? (
                       <>
                         <div 
-                          className={cn(
-                            "prose prose-sm max-w-none",
-                            "prose-ol:pl-5 prose-ol:mt-2 prose-ol:list-decimal prose-ol:list-outside",
-                            "prose-ul:pl-5 prose-ul:mt-2 prose-ul:list-disc prose-ul:list-outside",
-                            "prose-li:pl-1 prose-li:my-0",
-                            "prose-p:my-2 prose-p:leading-relaxed",
-                            "prose-headings:mt-4 prose-headings:mb-2",
-                            "prose-pre:my-2 prose-pre:rounded-lg",
-                            "prose-code:text-gray-800",
-                            "prose-blockquote:my-2 prose-blockquote:pl-4 prose-blockquote:border-l-4 prose-blockquote:border-gray-300",
-                            "prose-a:text-blue-600 prose-a:no-underline hover:prose-a:text-blue-800"
-                          )}
-                          dangerouslySetInnerHTML={{ 
-                            __html: formatMessage(message.content) 
-                          }}
+                          className="prose prose-sm max-w-none"
+                          dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
                         />
                         <div className="flex justify-end mt-2">
                           <Button
@@ -450,9 +454,7 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
                             ) : (
                               <Copy className="h-3.5 w-3.5" />
                             )}
-                            <span className="ml-2 text-xs">
-                              {copied === message.content ? "Disalin" : "Salin"}
-                            </span>
+                            <span className="ml-2 text-xs">{copied === message.content ? "Disalin" : "Salin"}</span>
                           </Button>
                         </div>
                       </>
