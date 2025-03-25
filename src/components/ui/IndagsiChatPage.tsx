@@ -6,14 +6,7 @@ import { Textarea } from './textarea';
 import { AnimatedBotIcon } from './animated-bot-icon';
 import { DotBackground } from './DotBackground';
 import { sendChatMessage, initializeSession, clearChatHistory } from '@/services/indagsiService';
-import { marked } from 'marked';
-import DOMPurify from 'dompurify';
-
-// Konfigurasi marked
-marked.setOptions({
-  breaks: true,
-  gfm: true,
-});
+import { formatMessage } from '@/utils/messageFormatter';
 
 interface Message {
   content: string;
@@ -113,24 +106,6 @@ const IndagsiChatPage: React.FC<IndagsiChatPageProps> = ({ onBack }) => {
     navigator.clipboard.writeText(text);
     setCopied(text);
     setTimeout(() => setCopied(null), 2000);
-  };
-
-  const formatMessage = (content: string) => {
-    try {
-      // Pastikan content ada dan bukan string kosong
-      if (!content) return '';
-      
-      // Parse markdown menjadi HTML
-      const rawHtml = marked.parse(content);
-      
-      // Sanitasi HTML untuk mencegah XSS
-      const sanitizedHtml = DOMPurify.sanitize(rawHtml);
-      
-      return sanitizedHtml;
-    } catch (error) {
-      console.error('Error formatting message:', error);
-      return 'Error formatting message.';
-    }
   };
 
   const handleRetry = () => {
@@ -441,7 +416,6 @@ const IndagsiChatPage: React.FC<IndagsiChatPageProps> = ({ onBack }) => {
                     {message.type === "bot" && !message.isAnimating ? (
                       <>
                         <div 
-                          className="prose prose-sm max-w-none"
                           dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
                         />
                         <div className="flex justify-end mt-2">
@@ -456,7 +430,9 @@ const IndagsiChatPage: React.FC<IndagsiChatPageProps> = ({ onBack }) => {
                             ) : (
                               <Copy className="h-3.5 w-3.5" />
                             )}
-                            <span className="ml-2 text-xs">{copied === message.content ? "Disalin" : "Salin"}</span>
+                            <span className="ml-2 text-xs">
+                              {copied === message.content ? "Disalin" : "Salin"}
+                            </span>
                           </Button>
                         </div>
                       </>
@@ -466,7 +442,7 @@ const IndagsiChatPage: React.FC<IndagsiChatPageProps> = ({ onBack }) => {
                         <span>Sedang mengetik...</span>
                       </div>
                     ) : (
-                      <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                      <p className="whitespace-pre-wrap break-words text-white">{message.content}</p>
                     )}
                   </div>
                 </div>

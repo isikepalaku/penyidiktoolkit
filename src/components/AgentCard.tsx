@@ -55,13 +55,25 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
         return <img src="/img/book.svg" alt="Google Scholar" className="h-10 w-10" />;
       case 'penyidik_chat':
         return <img src="/img/krimsus.png" alt="Tipidkor ai" className="h-10 w-10" />;
+      case 'siber_chat':
+        return <img src="/img/siber.svg" alt="Siber AI" className="h-10 w-10" />;
+      case 'fismondev_chat':
+        return <img src="/img/krimsus.png" alt="Fismondev AI" className="h-10 w-10" />;
+      case 'tipidter_chat':
+        return <img src="/img/krimsus.png" alt="Tipidter AI" className="h-10 w-10" />;
+      case 'perbankan_chat':
+        return <img src="/img/book.svg" alt="Perbankan AI" className="h-10 w-10" />;
       default:
         return <PieChart className="text-gray-500" size={24} />;
     }
   };
 
   // Render khusus untuk agen UU
-  if (agent.type === 'undang_chat' || agent.type === 'kuhp_chat' || agent.type === 'ciptakerja_chat' || agent.type === 'kesehatan_chat') {
+  if (agent.type === 'undang_chat' || 
+      agent.type === 'kuhp_chat' || 
+      agent.type === 'ciptakerja_chat' || 
+      agent.type === 'kesehatan_chat' ||
+      agent.type === 'perbankan_chat') {
     return (
       <div className={`${bgColor} rounded-lg shadow-md p-6 hover:shadow-xl transition-all duration-300 border border-gray-100 group h-[200px] flex flex-col justify-between ${className}`}>
         <div>
@@ -93,6 +105,7 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
             {agent.type === 'undang_chat' ? 'UU P2SK' : 
              agent.type === 'kuhp_chat' ? 'KUHP' : 
              agent.type === 'kesehatan_chat' ? 'UU Kesehatan' :
+             agent.type === 'perbankan_chat' ? 'UU Perbankan' :
              'UU Cipta Kerja'}
           </span>
         </div>
