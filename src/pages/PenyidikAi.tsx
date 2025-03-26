@@ -308,32 +308,8 @@ export default function PenyidikAi() {
                   >
                     <AgentCard 
                       agent={agent}
-                      bgColor={
-                        agent.type === 'tipidkor_chat'
-                          ? "bg-gradient-to-br from-blue-50 to-sky-50 hover:from-blue-100 hover:to-sky-100"
-                          : agent.type === 'fismondev_chat'
-                            ? "bg-gradient-to-br from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100"
-                            : agent.type === 'siber_chat'
-                              ? "bg-gradient-to-br from-cyan-50 to-sky-50 hover:from-cyan-100 hover:to-sky-100"
-                              : agent.type === 'tipidter_chat'
-                                ? "bg-gradient-to-br from-orange-50 to-yellow-50 hover:from-orange-100 hover:to-yellow-100"
-                                : "bg-gradient-to-br from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100"
-                      }
-                      className={`
-                        border border-transparent
-                        ${agent.type === 'tipidkor_chat' 
-                          ? 'hover:border-blue-200 hover:shadow-blue-100'
-                          : agent.type === 'fismondev_chat'
-                            ? 'hover:border-green-200 hover:shadow-green-100'
-                            : agent.type === 'siber_chat'
-                              ? 'hover:border-cyan-200 hover:shadow-cyan-100'
-                              : agent.type === 'tipidter_chat'
-                                ? 'hover:border-orange-200 hover:shadow-orange-100'
-                                : 'hover:border-purple-200 hover:shadow-purple-100'
-                        }
-                        shadow-lg hover:shadow-xl transition-all duration-300
-                        rounded-xl overflow-hidden
-                      `}
+                      bgColor="bg-white"
+                      className="border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl overflow-hidden"
                     />
                   </div>
                 ))}
