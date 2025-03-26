@@ -10,7 +10,7 @@ if (!GEMINI_API_KEY) {
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 // Update model fallback ke gemini-2.0-flash
 const models = {
-  primary: genAI.getGenerativeModel({ model: "gemini-1.5-flash" }),
+  primary: genAI.getGenerativeModel({ model: "gemini-2.0-flash" }),
   fallback: genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" })
 };
 

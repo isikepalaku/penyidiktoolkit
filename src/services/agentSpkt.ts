@@ -17,7 +17,7 @@ export const submitAgentAnalysis = async (
 
     // For text-only input, use the gemini-pro model
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.0-flash-exp",
+      model: "gemini-2.0-flash",
       generationConfig: {
         maxOutputTokens: 8192,
         temperature: 1.0,

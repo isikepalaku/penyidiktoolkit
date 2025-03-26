@@ -3,6 +3,7 @@ import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { X, Copy, Check, Printer, FileText, Info, Eye, FileType, FileImage, File as FileIconGeneric } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
+import * as d3 from 'd3';
 
 // Konfigurasi marked
 marked.setOptions({
@@ -17,17 +18,177 @@ export interface Citation {
   timestamp: string;
 }
 
-interface ResultArtifactProps {
+interface GraphNode {
+  id: string;
+  name: string;
+  type: 'person' | 'evidence' | 'location' | 'event' | 'loss';
+  x: number;
+  y: number;
+  properties?: Record<string, string>;
+}
+
+interface GraphLink {
+  source: GraphNode;
+  target: GraphNode;
+  type: string;
+  description?: string;
+}
+
+interface GraphData {
+  nodes: GraphNode[];
+  links: GraphLink[];
+}
+
+interface ResultGraphProps {
   content: string;
   onClose: () => void;
   citations?: Citation[];
+  graphData?: GraphData;
 }
 
-const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citations }) => {
+// Pindahkan GraphComponent ke luar
+const GraphComponent: React.FC<{ graphData: GraphData }> = ({ graphData }) => {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!svgRef.current || !graphData) return;
+
+    try {
+      console.log('Rendering graph with data:', graphData);
+      
+      const svg = d3.select(svgRef.current);
+      const width = svgRef.current.clientWidth;
+      const height = 500;
+
+      // Clear previous content
+      svg.selectAll("*").remove();
+
+      // Set SVG dimensions
+      svg
+        .attr("width", width)
+        .attr("height", height)
+        .attr("viewBox", [0, 0, width, height]);
+
+      // Create simulation
+      const simulation = d3.forceSimulation(graphData.nodes)
+        .force("link", d3.forceLink(graphData.links).id((d: any) => d.id))
+        .force("charge", d3.forceManyBody().strength(-200))
+        .force("center", d3.forceCenter(width / 2, height / 2));
+
+      // Draw links
+      const link = svg.append("g")
+        .selectAll("line")
+        .data(graphData.links)
+        .join("line")
+        .attr("stroke", (d: any) => getLinkColor(d.type))
+        .attr("stroke-opacity", 0.6)
+        .attr("stroke-width", 2);
+
+      // Draw nodes
+      const node = svg.append("g")
+        .selectAll("circle")
+        .data(graphData.nodes)
+        .join("circle")
+        .attr("r", 5)
+        .attr("fill", (d: any) => getNodeColor(d.type));
+
+      // Add labels
+      const label = svg.append("g")
+        .selectAll("text")
+        .data(graphData.nodes)
+        .join("text")
+        .text((d: any) => d.name)
+        .attr("font-size", 10)
+        .attr("dx", 8)
+        .attr("dy", ".35em");
+
+      // Update positions on tick
+      simulation.on("tick", () => {
+        link
+          .attr("x1", (d: any) => d.source.x)
+          .attr("y1", (d: any) => d.source.y)
+          .attr("x2", (d: any) => d.target.x)
+          .attr("y2", (d: any) => d.target.y);
+
+        node
+          .attr("cx", (d: any) => d.x)
+          .attr("cy", (d: any) => d.y);
+
+        label
+          .attr("x", (d: any) => d.x)
+          .attr("y", (d: any) => d.y);
+      });
+
+      // Add zoom capabilities
+      const zoom = d3.zoom()
+        .on("zoom", (event) => {
+          svg.selectAll("g").attr("transform", event.transform);
+        });
+
+      svg.call(zoom as any);
+
+      return () => {
+        simulation.stop();
+      };
+    } catch (error) {
+      console.error("Error in GraphComponent:", error);
+      setError(error instanceof Error ? error.message : 'Terjadi kesalahan saat merender graph');
+    }
+  }, [graphData]);
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-[500px]">
+        <div className="text-red-500">{error}</div>
+      </div>
+    );
+  }
+
+  return (
+    <svg 
+      ref={svgRef} 
+      className="w-full" 
+      style={{ 
+        minHeight: '500px',
+        backgroundColor: '#ffffff'
+      }} 
+    />
+  );
+};
+
+const ResultGraph: React.FC<ResultGraphProps> = ({ content, onClose, citations, graphData }) => {
   const [isCopied, setIsCopied] = useState(false);
-  const [showCitations, setShowCitations] = useState(true); // Default tampilkan citation
+  const [showCitations, setShowCitations] = useState(true);
   const [hoveredCitation, setHoveredCitation] = useState<number | null>(null);
+  const [showGraph, setShowGraph] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+
+  // Log props saat komponen dimount
+  useEffect(() => {
+    console.log('ResultGraph mounted with props:', {
+      hasContent: !!content,
+      contentLength: content?.length,
+      hasCitations: !!citations,
+      citationsCount: citations?.length,
+      hasGraphData: !!graphData,
+      graphDataNodes: graphData?.nodes?.length,
+      graphDataLinks: graphData?.links?.length
+    });
+  }, [content, citations, graphData]);
+
+  // Tambahkan pengecekan untuk memastikan data graph valid
+  useEffect(() => {
+    if (graphData) {
+      console.log('Validating graph data:', {
+        nodes: graphData.nodes?.length,
+        links: graphData.links?.length,
+        hasValidNodes: graphData.nodes?.every(node => node.id && node.name && node.type),
+        hasValidLinks: graphData.links?.every(link => link.source && link.target && link.type)
+      });
+    }
+  }, [graphData]);
 
   const handleCopy = async () => {
     try {
@@ -217,6 +378,68 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
     window.dispatchEvent(event);
   }, []);
 
+  // Modifikasi bagian render graph
+  const renderGraph = () => {
+    if (!graphData || !graphData.nodes || !graphData.links) {
+      console.log('Graph data is invalid:', graphData);
+      return null;
+    }
+
+    if (graphData.nodes.length === 0) {
+      console.log('No nodes in graph data');
+      return (
+        <div className="mt-8 border border-gray-200 rounded-lg overflow-hidden bg-white p-4">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-gray-800">Visualisasi Hubungan</h3>
+          </div>
+          <div className="flex items-center justify-center h-[500px]">
+            <div className="text-gray-500">Tidak ada data untuk visualisasi</div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="mt-8 border border-gray-200 rounded-lg overflow-hidden bg-white p-4">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold text-gray-800">Visualisasi Hubungan</h3>
+          <div className="text-sm text-gray-500">Geser untuk menggerakkan, scroll untuk zoom</div>
+        </div>
+        <GraphComponent graphData={graphData} />
+      </div>
+    );
+  };
+
+  // Tambahkan pengecekan error
+  if (error) {
+    return (
+      <div className="fixed inset-0 bg-white flex items-center justify-center">
+        <div className="text-center p-4">
+          <h2 className="text-xl font-semibold text-red-600 mb-2">Terjadi Kesalahan</h2>
+          <p className="text-gray-600">{error}</p>
+          <button
+            onClick={() => setError(null)}
+            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+          >
+            Coba Lagi
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Tambahkan pengecekan content
+  if (!content) {
+    return (
+      <div className="fixed inset-0 bg-white flex items-center justify-center">
+        <div className="text-center p-4">
+          <h2 className="text-xl font-semibold text-gray-600 mb-2">Tidak Ada Konten</h2>
+          <p className="text-gray-500">Tidak ada data yang dapat ditampilkan</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div 
@@ -224,21 +447,22 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
         onClick={onClose}
       />
       
-      <div className="fixed right-0 top-0 h-full lg:w-1/2 w-full 
-        bg-white
-        border-l border-gray-200 
-        overflow-auto z-40 
-        shadow-2xl 
-        animate-slide-left">
-        
-        <div className="sticky top-0 z-50 bg-white p-4 
-          flex justify-between items-center 
-          border-b border-gray-200 
-          no-print
-          shadow-sm"
-        >
-          <h2 className="text-xl font-semibold text-gray-800">Hasil Analisis</h2>
+      <div className="fixed right-0 top-0 h-full lg:w-1/2 w-full bg-white border-l border-gray-200 overflow-auto z-40 shadow-2xl animate-slide-left">
+        <div className="sticky top-0 z-50 bg-white p-4 flex justify-between items-center border-b border-gray-200 no-print shadow-sm">
+          <h2 className="text-xl font-semibold text-gray-800">Hasil Analisis SPKT</h2>
           <div className="flex items-center gap-2">
+            {graphData && (
+              <button
+                onClick={() => setShowGraph(!showGraph)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-all duration-200
+                  ${showGraph ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}
+                  hover:bg-blue-100 hover:text-blue-700`}
+                title="Tampilkan visualisasi graph"
+              >
+                <Info className="w-4 h-4" />
+                <span>Graph</span>
+              </button>
+            )}
             {citations && citations.length > 0 && (
               <button
                 onClick={() => setShowCitations(!showCitations)}
@@ -376,6 +600,9 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
             >
               <div dangerouslySetInnerHTML={{ __html: formatMarkdown(processContent(content)) }} />
             </div>
+
+            {/* Graph Visualization */}
+            {showGraph && renderGraph()}
             
             {/* Citations section for printing only - hidden in UI but visible in print */}
             {citations && citations.length > 0 && (
@@ -407,4 +634,37 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
   );
 };
 
-export default ResultArtifact;
+// Helper functions for graph styling
+const getNodeColor = (type: GraphNode['type']): string => {
+  switch (type) {
+    case 'person':
+      return '#ef4444'; // red
+    case 'evidence':
+      return '#3b82f6'; // blue
+    case 'location':
+      return '#10b981'; // green
+    case 'event':
+      return '#8b5cf6'; // purple
+    case 'loss':
+      return '#f59e0b'; // yellow
+    default:
+      return '#6b7280'; // gray
+  }
+};
+
+const getLinkColor = (type: string): string => {
+  switch (type) {
+    case 'involved_in':
+      return '#ef4444'; // red
+    case 'occurred_at':
+      return '#10b981'; // green
+    case 'proves':
+      return '#3b82f6'; // blue
+    case 'caused':
+      return '#f59e0b'; // yellow
+    default:
+      return '#6b7280'; // gray
+  }
+};
+
+export default ResultGraph;
