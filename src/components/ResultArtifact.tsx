@@ -21,9 +21,14 @@ interface ResultArtifactProps {
   content: string;
   onClose: () => void;
   citations?: Citation[];
+  title?: string;
 }
 
-const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citations }) => {
+/**
+ * ResultArtifact Component
+ * A reusable component for displaying analysis results with optional citations
+ */
+const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citations, title }) => {
   const [isCopied, setIsCopied] = useState(false);
   const [showCitations, setShowCitations] = useState(true); // Default tampilkan citation
   const [hoveredCitation, setHoveredCitation] = useState<number | null>(null);
@@ -237,7 +242,7 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
           no-print
           shadow-sm"
         >
-          <h2 className="text-xl font-semibold text-gray-800">Hasil Analisis</h2>
+          <h2 className="text-xl font-semibold text-gray-800">{title || 'Hasil Analisis'}</h2>
           <div className="flex items-center gap-2">
             {citations && citations.length > 0 && (
               <button

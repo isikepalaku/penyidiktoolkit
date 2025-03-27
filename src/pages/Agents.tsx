@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import AgentCard from '../components/AgentCard';
 import ThinkingAnimation from '../components/ThinkingAnimation';
-import ResultGraph from '../components/resultgraph';
+import ResultArtifact from '../components/ResultArtifact';
 import { ArrowLeft, CircuitBoard, Cpu } from 'lucide-react';
 import type { ExtendedAgent, Agent } from '../types';
 import { agents } from '../data/agents';
@@ -212,9 +212,10 @@ export default function Agents() {
           </div>
         </div>
 
-        {showArtifact && result && (
-          <ResultGraph 
+        {showArtifact && result && selectedAgentData && (
+          <ResultArtifact 
             content={result}
+            title={`Hasil Analisis ${selectedAgentData.name}`}
             onClose={() => {
               setShowArtifact(false);
               setResult(null);
