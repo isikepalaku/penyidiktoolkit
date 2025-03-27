@@ -50,6 +50,9 @@ export default defineConfig(({ mode }) => {
         strict: false,
         allow: ['.', 'node_modules']
       },
+      hmr: {
+        overlay: false // Disable HMR overlay to prevent k8s config errors
+      },
       proxy: {
         '/v1': {
           target: 'https://api.reserse.id',
