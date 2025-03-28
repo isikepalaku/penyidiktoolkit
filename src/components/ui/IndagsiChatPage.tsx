@@ -9,7 +9,7 @@ import { sendChatMessage, initializeSession, clearChatHistory } from '@/services
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
-// Konfigurasi marked dan DOMPurify
+// Konfigurasi marked dan DOMPurify for safe link handling
 marked.setOptions({
   breaks: true,
   gfm: true,
@@ -19,7 +19,7 @@ marked.setOptions({
 
 DOMPurify.setConfig({
   ADD_TAGS: ['a'],
-  ADD_ATTR: ['target', 'rel'],
+  ADD_ATTR: ['target', 'rel', 'class'],
   FORBID_TAGS: ['style', 'script'],
   FORBID_ATTR: ['style', 'onerror', 'onload']
 });
@@ -126,23 +126,14 @@ const IndagsiChatPage: React.FC<IndagsiChatPageProps> = ({ onBack }) => {
 
   const formatMessage = (content: string) => {
     try {
+      // Pastikan content ada dan bukan string kosong
       if (!content) return '';
       
       // Parse markdown menjadi HTML
       const rawHtml = marked.parse(content);
       
-      // Sanitasi HTML dan tambahkan atribut untuk links
-      let sanitizedHtml = DOMPurify.sanitize(rawHtml, {
-        ADD_ATTR: ['target', 'rel', 'class'],
-        FORBID_TAGS: ['style', 'script'],
-        FORBID_ATTR: ['style', 'onerror', 'onload']
-      });
-
-      // Tambahkan target="_blank" dan styling untuk links setelah sanitasi
-      sanitizedHtml = sanitizedHtml.replace(
-        /<a /g, 
-        '<a target="_blank" rel="noopener noreferrer" class="break-all text-purple-600 hover:text-purple-700" '
-      );
+      // Sanitasi HTML untuk mencegah XSS
+      const sanitizedHtml = DOMPurify.sanitize(rawHtml);
       
       return sanitizedHtml;
     } catch (error) {
@@ -448,7 +439,7 @@ const IndagsiChatPage: React.FC<IndagsiChatPageProps> = ({ onBack }) => {
                 >
                   <div
                     className={cn(
-                      "flex flex-col max-w-[95%] sm:max-w-[90%] md:max-w-[85%] lg:max-w-[80%] rounded-xl p-3 shadow-sm break-words overflow-hidden",
+                      "flex flex-col max-w-[85%] sm:max-w-[75%] rounded-xl p-4 shadow-sm",
                       message.type === "user"
                         ? "bg-purple-600 text-white rounded-tr-none"
                         : message.error
@@ -459,7 +450,7 @@ const IndagsiChatPage: React.FC<IndagsiChatPageProps> = ({ onBack }) => {
                     {message.type === "bot" && !message.isAnimating ? (
                       <>
                         <div 
-                          className="prose prose-sm max-w-none prose-a:break-all prose-a:text-purple-600 prose-img:max-w-full [&_a]:inline-block [&_a]:max-w-[100%] [&_a]:overflow-hidden [&_a]:text-ellipsis"
+                          className="prose prose-sm max-w-none"
                           dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
                         />
                         <div className="flex justify-end mt-2">
@@ -527,4 +518,4 @@ const IndagsiChatPage: React.FC<IndagsiChatPageProps> = ({ onBack }) => {
   );
 };
 
-export default IndagsiChatPage;
+export default IndagsiChatPage; 

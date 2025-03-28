@@ -9,7 +9,7 @@ import { sendChatMessage, initializeSession, clearChatHistory } from '@/services
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
-// Konfigurasi marked dan DOMPurify
+// Konfigurasi marked dan DOMPurify for safe link handling
 marked.setOptions({
   breaks: true,
   gfm: true,
@@ -41,13 +41,11 @@ interface SiberChatPageProps {
 }
 
 const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      content: '',
-      type: 'bot',
-      timestamp: new Date(),
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([{
+    content: '',
+    type: 'bot',
+    timestamp: new Date(),
+  }]);
   
   const [inputMessage, setInputMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -60,38 +58,33 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Session initialization
   useEffect(() => {
-    const initChat = async () => {
-      try {
-        await initializeSession();
-      } catch (error) {
-        console.error('Error initializing session:', error);
-        setHasError(true);
-      }
-    };
+    // Initialize chat session
+    try {
+      initializeSession();
+    } catch (error) {
+      console.error('Error initializing session:', error);
+      setHasError(true);
+    }
 
-    initChat();
-
-    return () => {
-      try {
-        clearChatHistory();
-      } catch (error) {
-        console.error('Error clearing chat history:', error);
-      }
-    };
-  }, []); // Run once on mount
-
-  // Error handler setup
-  useEffect(() => {
+    // Error boundary untuk komponen ini
     const handleError = (event: ErrorEvent) => {
       console.error('Chat component error caught:', event.error);
       setHasError(true);
     };
 
     window.addEventListener('error', handleError);
-    return () => window.removeEventListener('error', handleError);
-  }, []); // Error handler setup runs once on mount
+
+    // Clean up on unmount
+    return () => {
+      window.removeEventListener('error', handleError);
+      try {
+        clearChatHistory();
+      } catch (error) {
+        console.error('Error clearing chat history:', error);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
@@ -123,39 +116,6 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
     }
   };
 
-  const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(text);
-    setTimeout(() => setCopied(null), 2000);
-  };
-
-  const formatMessage = (content: string) => {
-    try {
-      if (!content) return '';
-      
-      // Parse markdown menjadi HTML
-      const rawHtml = marked.parse(content);
-      
-      // Sanitasi HTML dan tambahkan atribut untuk links
-      let sanitizedHtml = DOMPurify.sanitize(rawHtml, {
-        ADD_ATTR: ['target', 'rel', 'class'],
-        FORBID_TAGS: ['style', 'script'],
-        FORBID_ATTR: ['style', 'onerror', 'onload']
-      });
-
-      // Tambahkan target="_blank" dan styling untuk links setelah sanitasi
-      sanitizedHtml = sanitizedHtml.replace(
-        /<a /g, 
-        '<a target="_blank" rel="noopener noreferrer" class="break-all text-blue-600 hover:text-blue-700" '
-      );
-      
-      return sanitizedHtml;
-    } catch (error) {
-      console.error('Error formatting message:', error);
-      return 'Error formatting message.';
-    }
-  };
-
   const handleRetry = () => {
     setHasError(false);
     setIsConnectionError(false);
@@ -165,36 +125,6 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
       initializeSession();
     } catch (error) {
       console.error('Error reinitializing session:', error);
-    }
-  };
-
-  const handleChatReset = () => {
-    try {
-      clearChatHistory();
-      setMessages([{
-        content: '',
-        type: 'bot',
-        timestamp: new Date(),
-      }]);
-      setHasError(false);
-      setIsConnectionError(false);
-    } catch (error) {
-      console.error('Error resetting chat:', error);
-    }
-  };
-
-  // Example questions yang relevan dengan kejahatan siber
-  const exampleQuestions = [
-    "Apa definisi kejahatan siber menurut UU ITE?",
-    "Bagaimana cara menangani kasus pencurian data pribadi?",
-    "Jelaskan proses penyelidikan kasus penipuan online",
-    "Apa sanksi hukum untuk kejahatan ransomware?"
-  ];
-
-  const handleSelectQuestion = (question: string) => {
-    setInputMessage(question);
-    if (textareaRef.current) {
-      textareaRef.current.focus();
     }
   };
 
@@ -276,9 +206,64 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
       });
     } finally {
       setIsProcessing(false);
+      // Focus the textarea after sending
       if (textareaRef.current) {
         textareaRef.current.focus();
       }
+    }
+  };
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(text);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const formatMessage = (content: string) => {
+    try {
+      // Pastikan content ada dan bukan string kosong
+      if (!content) return '';
+      
+      // Parse markdown menjadi HTML
+      const rawHtml = marked.parse(content);
+      
+      // Sanitasi HTML untuk mencegah XSS
+      const sanitizedHtml = DOMPurify.sanitize(rawHtml);
+      
+      return sanitizedHtml;
+    } catch (error) {
+      console.error('Error formatting message:', error);
+      return 'Error formatting message.';
+    }
+  };
+
+  const handleChatReset = () => {
+    try {
+      clearChatHistory();
+      setMessages([{
+        content: '',
+        type: 'bot',
+        timestamp: new Date(),
+      }]);
+      setHasError(false);
+      setIsConnectionError(false);
+    } catch (error) {
+      console.error('Error resetting chat:', error);
+    }
+  };
+
+  // Example questions yang relevan dengan kejahatan siber
+  const exampleQuestions = [
+    "Apa definisi kejahatan siber menurut UU ITE?",
+    "Bagaimana cara menangani kasus pencurian data pribadi?",
+    "Jelaskan proses penyelidikan kasus penipuan online",
+    "Apa sanksi hukum untuk kejahatan ransomware?"
+  ];
+
+  const handleSelectQuestion = (question: string) => {
+    setInputMessage(question);
+    if (textareaRef.current) {
+      textareaRef.current.focus();
     }
   };
 
@@ -452,7 +437,7 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
                 >
                   <div
                     className={cn(
-                      "flex flex-col max-w-[95%] sm:max-w-[90%] md:max-w-[85%] lg:max-w-[80%] rounded-xl p-3 shadow-sm break-words overflow-hidden",
+                      "flex flex-col max-w-[85%] sm:max-w-[75%] rounded-xl p-4 shadow-sm",
                       message.type === "user"
                         ? "bg-blue-600 text-white rounded-tr-none"
                         : message.error
@@ -463,7 +448,7 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
                     {message.type === "bot" && !message.isAnimating ? (
                       <>
                         <div 
-                          className="prose prose-sm max-w-none prose-a:break-all prose-a:text-blue-600 prose-img:max-w-full [&_a]:inline-block [&_a]:max-w-[100%] [&_a]:overflow-hidden [&_a]:text-ellipsis"
+                          className="prose prose-sm max-w-none"
                           dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
                         />
                         <div className="flex justify-end mt-2">
@@ -531,4 +516,4 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
   );
 };
 
-export default SiberChatPage;
+export default SiberChatPage; 

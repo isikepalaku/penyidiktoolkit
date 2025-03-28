@@ -9,7 +9,7 @@ import { sendChatMessage, initializeSession, clearChatHistory } from '@/services
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
-// Konfigurasi marked dan DOMPurify
+// Konfigurasi marked dan DOMPurify for safe link handling
 marked.setOptions({
   breaks: true,
   gfm: true,
@@ -41,38 +41,6 @@ interface TipidkorChatPageProps {
 }
 
 const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
-  // Component state and handlers implementation...
-  // (Same implementation as other components, but with red theme color)
-
-  const formatMessage = (content: string) => {
-    try {
-      if (!content) return '';
-      
-      // Parse markdown menjadi HTML
-      const rawHtml = marked.parse(content);
-      
-      // Sanitasi HTML dan tambahkan atribut untuk links
-      let sanitizedHtml = DOMPurify.sanitize(rawHtml, {
-        ADD_ATTR: ['target', 'rel', 'class'],
-        FORBID_TAGS: ['style', 'script'],
-        FORBID_ATTR: ['style', 'onerror', 'onload']
-      });
-
-      // Tambahkan target="_blank" dan styling untuk links setelah sanitasi
-      sanitizedHtml = sanitizedHtml.replace(
-        /<a /g, 
-        '<a target="_blank" rel="noopener noreferrer" class="break-all text-red-600 hover:text-red-700" '
-      );
-      
-      return sanitizedHtml;
-    } catch (error) {
-      console.error('Error formatting message:', error);
-      return 'Error formatting message.';
-    }
-  };
-
-  // Rest of the component implementation...
-  
   const [messages, setMessages] = useState<Message[]>([
     {
       content: '',
@@ -92,38 +60,45 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Session initialization
   useEffect(() => {
-    const initChat = async () => {
-      try {
-        await initializeSession();
-      } catch (error) {
-        console.error('Error initializing session:', error);
-        setHasError(true);
+    // Initialize chat session
+    try {
+      initializeSession();
+      console.log('TipidkorChatPage: Session initialized');
+      
+      // Set empty welcome message to trigger welcome UI if tidak ada messages yang disimpan
+      if (messages.length === 0) {
+        setMessages([
+          {
+            content: '',
+            type: 'bot',
+            timestamp: new Date(),
+          }
+        ]);
       }
-    };
+    } catch (error) {
+      console.error('Error initializing session:', error);
+      setHasError(true);
+    }
 
-    initChat();
-
-    return () => {
-      try {
-        clearChatHistory();
-      } catch (error) {
-        console.error('Error clearing chat history:', error);
-      }
-    };
-  }, []); // Run once on mount
-
-  // Error handler setup
-  useEffect(() => {
+    // Error boundary untuk komponen ini
     const handleError = (event: ErrorEvent) => {
       console.error('Chat component error caught:', event.error);
       setHasError(true);
     };
 
     window.addEventListener('error', handleError);
-    return () => window.removeEventListener('error', handleError);
-  }, []); // Error handler setup runs once on mount
+
+    // Clean up on unmount
+    return () => {
+      window.removeEventListener('error', handleError);
+      try {
+        clearChatHistory();
+      } catch (error) {
+        console.error('Error clearing chat history:', error);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
@@ -159,6 +134,24 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
     navigator.clipboard.writeText(text);
     setCopied(text);
     setTimeout(() => setCopied(null), 2000);
+  };
+
+  const formatMessage = (content: string) => {
+    try {
+      // Pastikan content ada dan bukan string kosong
+      if (!content) return '';
+      
+      // Parse markdown menjadi HTML
+      const rawHtml = marked.parse(content);
+      
+      // Sanitasi HTML untuk mencegah XSS
+      const sanitizedHtml = DOMPurify.sanitize(rawHtml);
+      
+      return sanitizedHtml;
+    } catch (error) {
+      console.error('Error formatting message:', error);
+      return 'Error formatting message.';
+    }
   };
 
   const handleRetry = () => {
@@ -458,7 +451,7 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
                 >
                   <div
                     className={cn(
-                      "flex flex-col max-w-[95%] sm:max-w-[90%] md:max-w-[85%] lg:max-w-[80%] rounded-xl p-3 shadow-sm break-words overflow-hidden",
+                      "flex flex-col max-w-[85%] sm:max-w-[75%] rounded-xl p-4 shadow-sm",
                       message.type === "user"
                         ? "bg-red-600 text-white rounded-tr-none"
                         : message.error
@@ -469,7 +462,7 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
                     {message.type === "bot" && !message.isAnimating ? (
                       <>
                         <div 
-                          className="prose prose-sm max-w-none prose-a:break-all prose-a:text-red-600 prose-img:max-w-full [&_a]:inline-block [&_a]:max-w-[100%] [&_a]:overflow-hidden [&_a]:text-ellipsis"
+                          className="prose prose-sm max-w-none"
                           dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
                         />
                         <div className="flex justify-end mt-2">
@@ -537,4 +530,4 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
   );
 };
 
-export default TipidkorChatPage;
+export default TipidkorChatPage; 

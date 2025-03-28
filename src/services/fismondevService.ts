@@ -1,16 +1,10 @@
-/**
- * FISMONDEV AI Service
- * Service untuk menangani chat AI untuk bidang fiskal, moneter, dan devisa
- * Menggunakan backend API untuk manajemen session
- */
-
 import { env } from '@/config/env';
 import { v4 as uuidv4 } from 'uuid';
 
 const API_KEY = import.meta.env.VITE_API_KEY;
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
-const FETCH_TIMEOUT = 600000; // 10 minutes timeout - matching nginx server timeout
+const FETCH_TIMEOUT = 600000; // 10 minutes timeout
 const API_BASE_URL = env.apiUrl || 'http://localhost:8000';
 
 // Store session ID
@@ -21,14 +15,11 @@ const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const parseResponse = async (response: Response) => {
   const text = await response.text();
   try {
-    // First try to parse as JSON
     return JSON.parse(text);
   } catch (error) {
-    // If JSON parsing fails, handle text response
     console.log('Response is not JSON, processing as text:', text);
     console.error('JSON parse error:', error);
     
-    // If the text contains multiple JSON objects, try to parse the first one
     const jsonMatch = text.match(/\{.*?\}/);
     if (jsonMatch) {
       try {
@@ -38,46 +29,36 @@ const parseResponse = async (response: Response) => {
       }
     }
     
-    // If all parsing fails, return text as content
     return { content: text };
   }
 };
 
-// Interface untuk respon pesan chat
-export interface ChatResponse {
-  text: string;
-  sourceDocuments?: Array<{
-    pageContent: string;
-    metadata: Record<string, string>;
-  }>;
-  error?: boolean | string;
+interface SourceDocument {
+  pageContent: string;
+  metadata: Record<string, string>;
 }
 
-/**
- * Membuat session ID baru jika belum ada
- * Session ID digunakan oleh backend untuk mengelola konteks percakapan
- */
+interface ChatResponse {
+  text: string;
+  sourceDocuments: SourceDocument[];
+  error: boolean;
+}
+
 export const initializeSession = () => {
   if (!currentSessionId) {
     currentSessionId = `session_${uuidv4()}`;
-    console.log('FISMONDEV: Created new session ID:', currentSessionId);
-  } else {
-    console.log('FISMONDEV: Using existing session ID:', currentSessionId);
+    console.log('Initializing Fismondev session:', currentSessionId);
   }
 };
 
-/**
- * Menghapus session ID untuk memulai percakapan baru
- */
 export const clearChatHistory = () => {
-  console.log('FISMONDEV: Clearing chat history and session');
+  console.log('Clearing Fismondev chat history');
   currentSessionId = null;
 };
 
 export const sendChatMessage = async (message: string): Promise<ChatResponse> => {
   let retries = 0;
 
-  // Generate or retrieve session ID
   if (!currentSessionId) {
     initializeSession();
   }
@@ -95,7 +76,7 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
       formData.append('user_id', currentSessionId as string);
 
       console.log('Sending request with FormData:', {
-        message: message.trim().substring(0, 50) + (message.length > 50 ? '...' : ''),
+        message: message.trim(),
         agent_id: 'fismondev-chat',
         session_id: currentSessionId
       });
@@ -151,7 +132,8 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
 
       return {
         text: data.content || data.message || 'No response received',
-        sourceDocuments: data.sourceDocuments
+        sourceDocuments: data.sourceDocuments || [],
+        error: false
       };
 
     } catch (error) {
@@ -168,4 +150,4 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
   }
   
   throw new Error('Failed after maximum retries');
-}; 
+};

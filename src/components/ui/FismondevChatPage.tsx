@@ -9,19 +9,10 @@ import { sendChatMessage, initializeSession, clearChatHistory } from '@/services
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
-// Konfigurasi marked dan DOMPurify
+// Konfigurasi marked
 marked.setOptions({
   breaks: true,
   gfm: true,
-  headerIds: false,
-  mangle: false
-});
-
-DOMPurify.setConfig({
-  ADD_TAGS: ['a'],
-  ADD_ATTR: ['target', 'rel', 'class'],
-  FORBID_TAGS: ['style', 'script'],
-  FORBID_ATTR: ['style', 'onerror', 'onload']
 });
 
 interface Message {
@@ -60,38 +51,41 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Session initialization
   useEffect(() => {
-    const initChat = async () => {
-      try {
-        await initializeSession();
-      } catch (error) {
-        console.error('Error initializing session:', error);
-        setHasError(true);
+    // Initialize chat session
+    try {
+      initializeSession();
+
+      if (messages.length === 0) {
+        setMessages([{
+          content: '',
+          type: 'bot',
+          timestamp: new Date(),
+        }]);
       }
-    };
+    } catch (error) {
+      console.error('Error initializing session:', error);
+      setHasError(true);
+    }
 
-    initChat();
-
-    return () => {
-      try {
-        clearChatHistory();
-      } catch (error) {
-        console.error('Error clearing chat history:', error);
-      }
-    };
-  }, []); // Run once on mount
-
-  // Error handler setup
-  useEffect(() => {
+    // Error boundary untuk komponen ini
     const handleError = (event: ErrorEvent) => {
       console.error('Chat component error caught:', event.error);
       setHasError(true);
     };
 
     window.addEventListener('error', handleError);
-    return () => window.removeEventListener('error', handleError);
-  }, []); // Error handler setup runs once on mount
+
+    // Clean up on unmount
+    return () => {
+      window.removeEventListener('error', handleError);
+      try {
+        clearChatHistory();
+      } catch (error) {
+        console.error('Error clearing chat history:', error);
+      }
+    };
+  }, []); // Only run on mount
 
   useEffect(() => {
     scrollToBottom();
@@ -133,21 +127,8 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
     try {
       if (!content) return '';
       
-      // Parse markdown menjadi HTML
       const rawHtml = marked.parse(content);
-      
-      // Sanitasi HTML dan tambahkan atribut untuk links
-      let sanitizedHtml = DOMPurify.sanitize(rawHtml, {
-        ADD_ATTR: ['target', 'rel', 'class'],
-        FORBID_TAGS: ['style', 'script'],
-        FORBID_ATTR: ['style', 'onerror', 'onload']
-      });
-
-      // Tambahkan target="_blank" dan styling untuk links setelah sanitasi
-      sanitizedHtml = sanitizedHtml.replace(
-        /<a /g, 
-        '<a target="_blank" rel="noopener noreferrer" class="break-all text-green-600 hover:text-green-700" '
-      );
+      const sanitizedHtml = DOMPurify.sanitize(rawHtml);
       
       return sanitizedHtml;
     } catch (error) {
@@ -160,7 +141,6 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
     setHasError(false);
     setIsConnectionError(false);
     
-    // Reinitialize session
     try {
       initializeSession();
     } catch (error) {
@@ -182,14 +162,6 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
       console.error('Error resetting chat:', error);
     }
   };
-
-  // Example questions yang relevan dengan fiskal, moneter, dan devisa
-  const exampleQuestions = [
-    "Apa definisi kejahatan di bidang perbankan?",
-    "Bagaimana cara menangani kasus pencucian uang?",
-    "Jelaskan tentang tindak pidana di bidang perpajakan",
-    "Apa sanksi untuk pelanggaran devisa di Indonesia?"
-  ];
 
   const handleSelectQuestion = (question: string) => {
     setInputMessage(question);
@@ -213,7 +185,6 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
     setIsConnectionError(false);
 
     try {
-      // Add a placeholder bot message with animation
       setMessages((prev) => [
         ...prev,
         {
@@ -226,19 +197,16 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
 
       const response = await sendChatMessage(userMessage.content);
 
-      // Replace the placeholder with the actual response
       setMessages((prev) => {
         const newMessages = [...prev];
-        // Remove the last message (placeholder)
         newMessages.pop();
         
-        // Add the actual response
         newMessages.push({
           content: response.text,
           type: 'bot',
           timestamp: new Date(),
           sourceDocuments: response.sourceDocuments,
-          error: !!response.error,
+          error: response.error,
         });
         
         return newMessages;
@@ -246,7 +214,6 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
     } catch (error) {
       console.error('Error sending message:', error);
       
-      // Check if it's a network error
       const isNetworkError = error instanceof TypeError && 
         (error.message.includes('network') || 
          error.message.includes('fetch') || 
@@ -256,13 +223,10 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
         setIsConnectionError(true);
       }
       
-      // Replace the placeholder with an error message
       setMessages((prev) => {
         const newMessages = [...prev];
-        // Remove the last message (placeholder)
         newMessages.pop();
         
-        // Add error message
         newMessages.push({
           content: isNetworkError 
             ? 'Terjadi masalah koneksi. Silakan periksa koneksi internet Anda dan coba lagi.' 
@@ -282,7 +246,14 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
     }
   };
 
-  // Render error states
+  // Example questions yang relevan dengan fiskal, moneter, dan devisa
+  const exampleQuestions = [
+    "Apa definisi kejahatan di bidang perbankan?",
+    "Bagaimana cara menangani kasus pencucian uang?",
+    "Jelaskan tentang tindak pidana di bidang perpajakan",
+    "Apa sanksi untuk pelanggaran devisa di Indonesia?"
+  ];
+
   if (hasError) {
     return (
       <div className="fixed inset-0 z-20 bg-white lg:pl-64 flex flex-col">
@@ -391,7 +362,7 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
       >
         <DotBackground>
           <div className="max-w-3xl mx-auto px-4 md:px-8 space-y-6">
-            {/* Welcome Message - Bold FISMONDEV AI in center */}
+            {/* Welcome Message */}
             {messages.length <= 1 && messages[0].content === '' && (
               <div className="flex flex-col items-center justify-center h-[50vh] text-center">
                 <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
@@ -408,7 +379,7 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
               </div>
             )}
 
-            {/* Example Questions - only show at the beginning */}
+            {/* Example Questions */}
             {messages.length <= 1 && (
               <div className="space-y-4">
                 <h3 className="text-sm font-medium text-gray-500">Contoh pertanyaan:</h3>
@@ -444,7 +415,6 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
 
             {/* Chat Messages */}
             {messages.map((message, index) => (
-              // Hanya tampilkan message dengan content (kecuali animating placeholder)
               (message.content || message.isAnimating) && (
                 <div
                   key={index}
@@ -452,7 +422,7 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
                 >
                   <div
                     className={cn(
-                      "flex flex-col max-w-[95%] sm:max-w-[90%] md:max-w-[85%] lg:max-w-[80%] rounded-xl p-3 shadow-sm break-words overflow-hidden",
+                      "flex flex-col max-w-[85%] sm:max-w-[75%] rounded-xl p-4 shadow-sm",
                       message.type === "user"
                         ? "bg-green-600 text-white rounded-tr-none"
                         : message.error
@@ -463,7 +433,7 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
                     {message.type === "bot" && !message.isAnimating ? (
                       <>
                         <div 
-                          className="prose prose-sm max-w-none prose-a:break-all prose-a:text-green-600 prose-img:max-w-full [&_a]:inline-block [&_a]:max-w-[100%] [&_a]:overflow-hidden [&_a]:text-ellipsis"
+                          className="prose prose-sm max-w-none"
                           dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
                         />
                         <div className="flex justify-end mt-2">
@@ -499,7 +469,7 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
         </DotBackground>
       </div>
 
-      {/* Input area fixed at bottom */}
+      {/* Input area */}
       <div className="border-t border-gray-200 bg-white p-4 md:px-8 pb-safe">
         <div className="max-w-3xl mx-auto">
           <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="relative">

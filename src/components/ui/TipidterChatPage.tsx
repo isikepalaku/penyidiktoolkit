@@ -9,10 +9,19 @@ import { sendChatMessage, initializeSession, clearChatHistory } from '@/services
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
-// Konfigurasi marked
+// Konfigurasi marked dan DOMPurify for safe link handling
 marked.setOptions({
   breaks: true,
   gfm: true,
+  headerIds: false,
+  mangle: false
+});
+
+DOMPurify.setConfig({
+  ADD_TAGS: ['a'],
+  ADD_ATTR: ['target', 'rel', 'class'],
+  FORBID_TAGS: ['style', 'script'],
+  FORBID_ATTR: ['style', 'onerror', 'onload']
 });
 
 interface Message {
