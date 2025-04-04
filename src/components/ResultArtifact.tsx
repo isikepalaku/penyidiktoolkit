@@ -103,8 +103,56 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
 
   const printRef = useCallback(() => contentRef.current, []);
 
-  const processContent = (rawContent: string) => {
-    // Handle medical analysis markdown content
+  // Function to format the specific JSON structure into Markdown
+  const formatJsonToMarkdown = (jsonData: any): string => {
+    let markdown = '';
+
+    if (jsonData.ringkasan_kasus) {
+      markdown += `## Ringkasan Kasus\n\n${jsonData.ringkasan_kasus}\n\n`;
+    }
+    if (jsonData.temuan_utama && Array.isArray(jsonData.temuan_utama)) {
+      markdown += `## Temuan Utama\n\n`;
+      jsonData.temuan_utama.forEach((item: string) => {
+        markdown += `- ${item}\n`;
+      });
+      markdown += `\n`;
+    }
+    if (jsonData.analisis_hukum) {
+      markdown += `## Analisis Hukum\n\n${jsonData.analisis_hukum}\n\n`;
+    }
+    if (jsonData.referensi && Array.isArray(jsonData.referensi)) {
+      markdown += `## Referensi\n\n`;
+      jsonData.referensi.forEach((item: string) => {
+        // Attempt to make links clickable if they look like URLs
+        if (item.startsWith('http://') || item.startsWith('https://')) {
+          markdown += `- [${item}](${item})\n`;
+        } else {
+          markdown += `- ${item}\n`;
+        }
+      });
+      markdown += `\n`;
+    }
+    if (jsonData.modus_operandi) {
+      markdown += `## Modus Operandi\n\n${jsonData.modus_operandi}\n\n`;
+    }
+
+    return markdown.trim();
+  };
+
+
+  const processContent = (rawContent: string): string => {
+    // 1. Attempt to parse as JSON and format if it matches the expected structure
+    try {
+      const parsedJson = JSON.parse(rawContent);
+      if (parsedJson && typeof parsedJson === 'object' && parsedJson.ringkasan_kasus) {
+        // Assume it's the target JSON structure if ringkasan_kasus exists
+        return formatJsonToMarkdown(parsedJson);
+      }
+    } catch (e) {
+      // Not JSON or doesn't match structure, proceed to other checks
+    }
+
+    // 2. Handle medical analysis markdown content (existing logic)
     if (rawContent.startsWith('Tentu, berikut adalah analisis gambar medis')) {
       return rawContent
         .replace(/\r\n/g, '\n') // Normalize line endings
@@ -156,6 +204,7 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
       .trim();
   };
 
+  // Original formatTimestamp function (ensure it's correctly placed and not duplicated)
   const formatTimestamp = (timestamp: string) => {
     try {
       const date = new Date(timestamp);
@@ -170,9 +219,10 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
       }).format(date);
     } catch (error) {
       console.error('Error formatting timestamp:', error);
-      return timestamp;
+      return timestamp; // Return original timestamp on error
     }
   };
+
 
   const getFileTypeDisplay = (fileType: string) => {
     if (fileType.startsWith('image/')) {
@@ -379,9 +429,10 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
               [&_ul>li>ul>li]:marker:text-gray-500
               prose-strong:text-gray-900 prose-strong:font-bold"
             >
+              {/* processContent now returns ready-to-format Markdown */}
               <div dangerouslySetInnerHTML={{ __html: formatMarkdown(processContent(content)) }} />
             </div>
-            
+
             {/* Citations section for printing only - hidden in UI but visible in print */}
             {citations && citations.length > 0 && (
               <div className="hidden citations-print-section">

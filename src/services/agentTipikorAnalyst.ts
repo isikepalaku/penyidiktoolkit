@@ -1,8 +1,9 @@
 import { env } from '@/config/env';
 
 const API_KEY = import.meta.env.VITE_API_KEY;
-const MAX_RETRIES = 1; // Total 2 percobaan (initial + 1 retry)
-const RETRY_DELAY = 30000; // Base delay 30 detik dengan exponential backoff
+const MAX_RETRIES = 3; // Total 4 percobaan (initial + 3 retries)
+const INITIAL_RETRY_DELAY = 5000; // Initial delay 5 detik
+const MAX_RETRY_DELAY = 30000; // Maximum delay 30 detik
 const API_BASE_URL = process.env.NODE_ENV === 'production' ? env.apiUrl : '';
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -81,9 +82,16 @@ export const submitAgentAnalysis = async (
           throw new Error('Forbidden: Tidak memiliki akses');
         }
         
-        if (response.status >= 500 && retries < MAX_RETRIES) {
+        // Handle various error status codes
+        if ((response.status >= 500 || response.status === 504) && retries < MAX_RETRIES) {
           retries++;
-        await wait(RETRY_DELAY * Math.pow(2, retries));
+          // Exponential backoff with jitter and max delay
+          const delay = Math.min(
+            INITIAL_RETRY_DELAY * Math.pow(2, retries) * (0.5 + Math.random()),
+            MAX_RETRY_DELAY
+          );
+          console.log(`Retrying in ${Math.round(delay/1000)} seconds...`);
+          await wait(delay);
           continue;
         }
         
@@ -128,7 +136,12 @@ export const submitAgentAnalysis = async (
       
       if ((error instanceof TypeError || error instanceof Error) && retries < MAX_RETRIES) {
         retries++;
-        await wait(RETRY_DELAY * retries);
+        const delay = Math.min(
+          INITIAL_RETRY_DELAY * Math.pow(2, retries) * (0.5 + Math.random()),
+          MAX_RETRY_DELAY
+        );
+        console.log(`Retrying in ${Math.round(delay/1000)} seconds...`);
+        await wait(delay);
         continue;
       }
       
