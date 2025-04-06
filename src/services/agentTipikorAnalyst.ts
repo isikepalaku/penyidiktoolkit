@@ -17,10 +17,10 @@ export const submitAgentAnalysis = async (
       console.log(`Attempt ${retries + 1} of ${MAX_RETRIES + 1}`);
 
       // Ensure message is not empty and is a string
-      const trimmedMessage = message?.trim() || '';
-      if (!trimmedMessage) {
-        throw new Error('Message cannot be empty');
-      }
+  const trimmedMessage = message?.trim() || '';
+  if (!trimmedMessage) {
+    throw new Error('Message cannot be empty');
+  }
 
       // Use URL parameters instead of FormData
       // Convert parameters to URLSearchParams

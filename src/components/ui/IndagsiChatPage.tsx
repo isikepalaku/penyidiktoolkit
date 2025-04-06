@@ -441,7 +441,7 @@ const IndagsiChatPage: React.FC<IndagsiChatPageProps> = ({ onBack }) => {
                     className={cn(
                       "flex flex-col max-w-[85%] sm:max-w-[75%] rounded-xl p-4 shadow-sm",
                       message.type === "user"
-                        ? "bg-purple-600 text-white rounded-tr-none"
+                        ? "bg-gray-100 text-gray-900 rounded-tr-none"
                         : message.error
                         ? "bg-red-50 text-gray-800 rounded-tl-none border border-red-200"
                         : "bg-white text-gray-800 rounded-tl-none border border-gray-200"
