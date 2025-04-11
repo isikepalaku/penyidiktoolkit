@@ -1,4 +1,5 @@
 import { env } from '@/config/env';
+import { v4 as uuidv4 } from 'uuid';
 
 interface Message {
   role: string;
@@ -15,6 +16,9 @@ const API_KEY = import.meta.env.VITE_API_KEY;
 const MAX_RETRIES = 1;
 const RETRY_DELAY = 1000;
 const API_BASE_URL = env.apiUrl || 'https://api.reserse.id';
+
+// Store session ID
+let currentSessionId: string | null = null;
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -111,6 +115,26 @@ interface DokpolAnalysisParams {
   medicalHistory?: string;
 }
 
+/**
+ * Membuat session ID baru jika belum ada
+ */
+export const initializeSession = () => {
+  if (!currentSessionId) {
+    currentSessionId = `dokpol_session_${uuidv4()}`;
+    console.log('DOKPOL: Created new session ID:', currentSessionId);
+  } else {
+    console.log('DOKPOL: Using existing session ID:', currentSessionId);
+  }
+};
+
+/**
+ * Menghapus session ID untuk memulai analisis baru
+ */
+export const clearSession = () => {
+  console.log('DOKPOL: Clearing session');
+  currentSessionId = null;
+};
+
 export const submitDokpolAnalysis = async ({
   imageFiles,
   serviceType,
@@ -118,6 +142,9 @@ export const submitDokpolAnalysis = async ({
   medicalHistory
 }: DokpolAnalysisParams): Promise<string> => {
   try {
+    // Initialize session if not already done
+    initializeSession();
+
     // Validasi jumlah file
     if (imageFiles.length === 0) {
       throw new Error('Mohon pilih minimal 1 gambar');
@@ -206,8 +233,8 @@ export const submitDokpolAnalysis = async ({
         formData.append('message', message);
         formData.append('stream', 'true');
         formData.append('monitor', 'false'); 
-        formData.append('session_id', 'string');
-        formData.append('user_id', 'string');
+        formData.append('session_id', currentSessionId as string);
+        formData.append('user_id', currentSessionId as string);
         
         // Append all files to formData
         filesToUpload.forEach(file => {
@@ -226,8 +253,8 @@ export const submitDokpolAnalysis = async ({
           message: message,
           stream: 'true',
           monitor: 'false',
-          session_id: 'string',
-          user_id: 'string',
+          session_id: currentSessionId,
+          user_id: currentSessionId,
           files: filesToUpload.map(file => file.name),
           totalSize: filesToUpload.reduce((acc, file) => acc + file.size, 0),
           hasClinicSymptoms: !!clinicalSymptoms,
