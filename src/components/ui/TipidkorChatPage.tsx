@@ -183,10 +183,10 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
 
   // Example questions yang relevan dengan tindak pidana korupsi
   const exampleQuestions = [
-    "Apa definisi korupsi menurut UU Tipikor?",
-    "Jelaskan tentang gratifikasi dan risikonya bagi pejabat",
-    "Bagaimana proses penyelidikan kasus korupsi?",
-    "Apa sanksi untuk tindak pidana korupsi di Indonesia?"
+    "Apa saja unsur yang harus dibuktikan dalam tindak pidana suap terhadap penyelenggara negara menurut UU Tipikor?",
+    "Bagaimana metode penyidik dalam menelusuri aliran dana hasil korupsi, dan apakah pembuktian terbalik berlaku?",
+    "Apa perbedaan antara gratifikasi yang wajib dilaporkan ke KPK dan gratifikasi yang dapat dijerat sebagai tindak pidana korupsi?",
+    "Bagaimana peran Aparat Pengawasan Intern Pemerintah (APIP) dalam proses penyelidikan kasus dugaan penyalahgunaan anggaran proyek daerah?"
   ];
 
   const handleSelectQuestion = (question: string) => {

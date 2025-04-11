@@ -171,10 +171,10 @@ const IndagsiChatPage: React.FC<IndagsiChatPageProps> = ({ onBack }) => {
 
   // Example questions yang relevan dengan industri dan perdagangan
   const exampleQuestions = [
-    "Apa definisi kejahatan di bidang industri menurut UU?",
-    "Bagaimana menangani kasus pemalsuan produk?",
-    "Jelaskan jenis-jenis pelanggaran perdagangan ilegal",
-    "Bagaimana proses penyelidikan kasus tindak pidana di bidang industri?"
+    "Bagaimana kriteria suatu produk dikategorikan sebagai barang palsu atau tiruan menurut hukum di Indonesia?",
+    "Apa sanksi pidana bagi pelaku usaha yang memperdagangkan barang tanpa label Standar Nasional Indonesia (SNI) wajib?",
+    "Apakah pengusaha bisa dipidana jika menaikkan harga barang secara tidak wajar menjelang hari besar nasional?",
+    "Pasal apa yang dapat diterapkan untuk pelaku penjualan pestisida tanpa izin edar?"
   ];
 
   const handleSelectQuestion = (question: string) => {

@@ -183,10 +183,10 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
 
   // Contoh pertanyaan yang bisa ditanyakan
   const exampleQuestions = [
-    "Apa contoh tindak pidana tertentu (Tipidter) dalam penyidikan kepolisian?",
-    "Bagaimana prosedur penanganan kasus pertambangan dalam Tipidter?",
+    "Apa saja unsur pidana dalam kasus pembalakan liar?",
+    "Bagaimana langkah penyidik dalam mengidentifikasi legalitas dokumen kayu hasil sitaan?",
     "Buatkan saya Draft berita acara Interogasi untuk kasus :",
-    "Apa saja undang-undang yang terkait dengan Tipidter?"
+    "Dalam kasus pelanggaran standar kesehatan oleh pabrik makanan, bagaimana penyidik membuktikan unsur kelalaian atau kesengajaan menurut hukum pidana?"
   ];
 
   const handleSelectQuestion = (question: string) => {

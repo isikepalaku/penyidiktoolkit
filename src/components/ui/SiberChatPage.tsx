@@ -254,10 +254,10 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
 
   // Example questions yang relevan dengan kejahatan siber
   const exampleQuestions = [
-    "Apa definisi kejahatan siber menurut UU ITE?",
+    "Pasal apa yang dapat diterapkan untuk pelaku penipuan online?",
     "Bagaimana cara menangani kasus pencurian data pribadi?",
-    "Jelaskan proses penyelidikan kasus penipuan online",
-    "Apa sanksi hukum untuk kejahatan ransomware?"
+    "Apakah menyebarkan screenshot percakapan WhatsApp seseorang tanpa izin termasuk pelanggaran UU ITE?",
+    "Apa batasan antara kritik dan penghinaan dalam konteks tindak pidana UU ITE?"
   ];
 
   const handleSelectQuestion = (question: string) => {

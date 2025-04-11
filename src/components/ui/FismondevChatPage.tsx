@@ -248,10 +248,10 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
 
   // Example questions yang relevan dengan fiskal, moneter, dan devisa
   const exampleQuestions = [
-    "Apa definisi kejahatan di bidang perbankan?",
-    "Bagaimana cara menangani kasus pencucian uang?",
-    "Jelaskan tentang tindak pidana di bidang perpajakan",
-    "Apa sanksi untuk pelanggaran devisa di Indonesia?"
+    "Apa sanksi pidana bagi pihak yang menghimpun dana masyarakat tanpa izin OJK sebagaimana diatur dalam UU P2SK?",
+    "Bentuk tindak pidana dalam pemberian fidusia fiktif atau ganda oleh pelaku usaha pembiayaan",
+    "Apakah pengelolaan dana nasabah oleh bank tanpa pencatatan sesuai prinsip kehatian-hatian termasuk tindak pidana perbankan menurut UU P2SK?",
+    "Bagaimana jika perusahaan asuransi yang menjual polis unit link tanpa transparansi risiko, dan apakah hal itu dapat dikategorikan sebagai penipuan keuangan?"
   ];
 
   if (hasError) {
