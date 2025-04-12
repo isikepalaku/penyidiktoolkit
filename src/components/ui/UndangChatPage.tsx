@@ -27,6 +27,21 @@ interface Message {
   isAnimating?: boolean;
 }
 
+// Skeleton component for loading state - using AnimatedBotIcon, text, and pulse
+const SkeletonMessage = () => (
+  <div className="flex items-start space-x-3">
+    <AnimatedBotIcon className="w-5 h-5 flex-shrink-0 mt-1" />
+    <div className="flex-1 space-y-2 py-1">
+      <p className="text-xs text-gray-500 italic mb-1">Sedang menyusun hasil...</p>
+      <div className="space-y-2 animate-pulse">
+        <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+        <div className="h-4 bg-gray-300 rounded w-1/2"></div>
+        <div className="h-4 bg-gray-300 rounded w-5/6"></div>
+      </div>
+    </div>
+  </div>
+);
+
 interface UndangChatPageProps {
   onBack?: () => void;
 }
@@ -105,7 +120,7 @@ const UndangChatPage: React.FC<UndangChatPageProps> = ({ onBack }) => {
       setMessages(prev => [
         ...prev,
         {
-          content: 'Sedang mengetik...',
+          content: '', // Gunakan content kosong untuk skeleton
           type: 'bot',
           timestamp: new Date(),
           isAnimating: true
@@ -291,7 +306,7 @@ const UndangChatPage: React.FC<UndangChatPageProps> = ({ onBack }) => {
                 className={cn(
                   "flex items-start gap-3 transition-opacity group",
                   message.type === 'user' ? "justify-end" : "justify-start",
-                  message.isAnimating && "animate-pulse"
+                  message.isAnimating ? 'w-full' : 'max-w-[85%] sm:max-w-[75%]'
                 )}
               >
                 {message.type === 'bot' && (
@@ -315,14 +330,14 @@ const UndangChatPage: React.FC<UndangChatPageProps> = ({ onBack }) => {
                       ? "bg-blue-600 text-white rounded-tr-none" 
                       : message.error 
                         ? "bg-red-50 text-red-800 rounded-tl-none border border-red-200" 
+                        : message.isAnimating
+                        ? "bg-white text-gray-800 rounded-tl-none border border-gray-200 w-full"
                         : "bg-white text-gray-800 rounded-tl-none border border-gray-200"
                   )}
                 >
                   {message.isAnimating ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-                      <span className="text-gray-500">P2SK AI sedang mengetik...</span>
-                    </div>
+                    // Render Skeleton component with AnimatedBotIcon when animating
+                    <SkeletonMessage />
                   ) : message.type === 'bot' ? (
                     <div className="space-y-0">
                       <div 

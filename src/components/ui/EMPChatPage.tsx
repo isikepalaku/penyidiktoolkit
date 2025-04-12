@@ -27,6 +27,21 @@ interface Message {
   isAnimating?: boolean;
 }
 
+// Skeleton component for loading state - using AnimatedBotIcon, text, and pulse
+const SkeletonMessage = () => (
+  <div className="flex items-start space-x-3">
+    <AnimatedBotIcon className="w-5 h-5 flex-shrink-0 mt-1" />
+    <div className="flex-1 space-y-2 py-1">
+      <p className="text-xs text-gray-500 italic mb-1">Sedang menyusun hasil...</p>
+      <div className="space-y-2 animate-pulse"> {/* Add animate-pulse here */}
+        <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+        <div className="h-4 bg-gray-300 rounded w-1/2"></div>
+        <div className="h-4 bg-gray-300 rounded w-5/6"></div>
+      </div>
+    </div>
+  </div>
+);
+
 interface EMPChatPageProps {
   onBack?: () => void;
 }
@@ -106,10 +121,10 @@ const EMPChatPage: React.FC<EMPChatPageProps> = ({ onBack }) => {
       setMessages((prev) => [
         ...prev,
         {
-          content: 'Sedang mengetik...',
+          content: '', // Konten kosong untuk skeleton
           type: 'bot',
           timestamp: new Date(),
-          isAnimating: true,
+          isAnimating: true, // Tandai sebagai animasi
         },
       ]);
       
@@ -119,17 +134,19 @@ const EMPChatPage: React.FC<EMPChatPageProps> = ({ onBack }) => {
       // Replace the placeholder with the actual response
       setMessages((prev) => {
         const newMessages = [...prev];
-        // Remove the last message (placeholder)
-        newMessages.pop();
-        
-        // Add the actual response
-        newMessages.push({
-          content: response.text,
-          type: 'bot',
-          timestamp: new Date(),
-          sourceDocuments: response.sourceDocuments,
-          error: !!response.error,
-        });
+        const placeholderIndex = newMessages.findIndex(
+          (msg) => msg.type === 'bot' && msg.isAnimating
+        );
+
+        if (placeholderIndex !== -1) {
+          newMessages[placeholderIndex] = {
+            content: response.text,
+            type: 'bot',
+            timestamp: new Date(),
+            sourceDocuments: response.sourceDocuments,
+            error: !!response.error,
+          };
+        }
         
         return newMessages;
       });
@@ -139,16 +156,18 @@ const EMPChatPage: React.FC<EMPChatPageProps> = ({ onBack }) => {
       // Replace the placeholder with an error message
       setMessages((prev) => {
         const newMessages = [...prev];
-        // Remove the last message (placeholder)
-        newMessages.pop();
+        const placeholderIndex = newMessages.findIndex(
+          (msg) => msg.type === 'bot' && msg.isAnimating
+        );
         
-        // Add error message
-        newMessages.push({
-          content: 'Maaf, terjadi kesalahan saat memproses pesan Anda. Silakan coba lagi.',
-          type: 'bot',
-          timestamp: new Date(),
-          error: true,
-        });
+        if (placeholderIndex !== -1) {
+          newMessages[placeholderIndex] = {
+            content: 'Maaf, terjadi kesalahan saat memproses pesan Anda. Silakan coba lagi.',
+            type: 'bot',
+            timestamp: new Date(),
+            error: true,
+          };
+        }
         
         return newMessages;
       });
@@ -306,104 +325,97 @@ const EMPChatPage: React.FC<EMPChatPageProps> = ({ onBack }) => {
             )}
 
             {/* Messages */}
-            {messages.map((message, index) => (
-              message.content && (
-                <div
-                  key={index}
-                  className={cn(
-                    "flex",
-                    message.type === 'user' ? "justify-end" : "justify-start"
-                  )}
-                >
+            <div className="space-y-6">
+              {messages.map((message, index) => (
+                message.content || message.isAnimating ? ( // Tampilkan jika ada konten atau sedang animasi
                   <div
-                    className={cn(
-                      "flex max-w-[80%]",
-                      message.type === 'user' ? "flex-row-reverse" : "flex-row"
-                    )}
+                    key={index}
+                    className={`flex ${
+                      message.type === 'user' ? 'justify-end' : 'justify-start'
+                    }`}
                   >
-                    {message.type === 'bot' && (
-                      <div className="flex-shrink-0 mr-2">
+                    <div
+                      className={`flex items-end ${message.isAnimating ? 'w-full' : 'max-w-[85%] sm:max-w-[75%]'} ${
+                        message.type === 'user' ? 'flex-row-reverse' : 'flex-row'
+                      }`}
+                    >
+                      {message.type === 'bot' && (
+                        <div className="flex-shrink-0 mr-2 mb-1">
+                          {/* Gunakan AnimatedBotIcon atau ikon statis - sesuaikan warna */}
+                          {message.isAnimating ? (
+                            <AnimatedBotIcon className="w-8 h-8 text-amber-600" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-amber-600 flex items-center justify-center text-white shadow-sm">
+                              {/* Ganti ikon jika perlu */}
+                              <img src="/img/krimsus.png" alt="Krimsus" className="w-5 h-5 object-contain" />
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div
+                        className={`rounded-2xl px-4 py-3 ${
+                          message.type === 'user'
+                            ? 'bg-amber-600 text-white rounded-tr-none shadow-sm' // Sesuaikan warna user
+                            : message.error
+                            ? 'bg-red-50 text-red-800 rounded-tl-none border border-red-200'
+                            : message.isAnimating // Style khusus untuk skeleton
+                            ? 'bg-white text-gray-800 rounded-tl-none border border-gray-200 w-full' 
+                            : 'bg-white text-gray-800 rounded-tl-none border border-gray-200 shadow-sm'
+                        }`}
+                      >
+                        {/* Tampilkan SkeletonMessage jika sedang animasi */}
                         {message.isAnimating ? (
-                          <div className="w-8 h-8 text-amber-600">
-                            <AnimatedBotIcon />
-                          </div>
+                          <SkeletonMessage />
                         ) : (
-                          <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
-                            <img 
-                              src="/img/krimsus.png"
-                              alt="Bot Icon"
-                              className="w-6 h-6 object-contain"
+                          <div>
+                            <div
+                              className="prose prose-sm max-w-none break-words prose-headings:font-semibold prose-headings:text-gray-900 prose-p:text-gray-700 prose-pre:bg-gray-100 prose-pre:text-gray-800 prose-code:text-gray-800 prose-code:bg-gray-100 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-sm prose-code:font-mono prose-a:text-amber-600 prose-a:no-underline hover:prose-a:underline prose-li:text-gray-700 prose-li:marker:text-gray-500 prose-strong:text-gray-900 prose-em:text-gray-700 prose-p:my-0.5 prose-headings:my-0.5 prose-headings:mb-0 prose-ul:my-0.5 prose-ol:my-0.5 prose-li:my-0.5 prose-pre:my-1 leading-tight [&_p]:!my-0.5 [&_br]:leading-none [&_h1+p]:!mt-0.5 [&_h2+p]:!mt-0.5 [&_h3+p]:!mt-0.5" // Sesuaikan warna link
+                              dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
                             />
+
+                            {message.sourceDocuments && message.sourceDocuments.length > 0 && (
+                              <div className="mt-2 pt-2 border-t border-gray-200">
+                                <p className="text-xs font-medium text-gray-500 mb-1">
+                                  Sumber:
+                                </p>
+                                <ul className="text-xs text-gray-500 space-y-1">
+                                  {message.sourceDocuments.map((doc, idx) => (
+                                    <li key={idx} className="break-all">
+                                      {doc.metadata.source || doc.metadata.title || 'Dokumen EMP'}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {message.type === 'bot' && !message.isAnimating && (
+                              <button
+                                onClick={() => copyToClipboard(message.content)}
+                                className="mt-1 text-xs text-gray-500 hover:text-gray-700 flex items-center"
+                                aria-label="Salin pesan"
+                              >
+                                {copied === message.content ? (
+                                  <>
+                                    <Check className="w-3 h-3 mr-1" />
+                                    Disalin
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3 h-3 mr-1" />
+                                    Salin
+                                  </>
+                                )}
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
-                    )}
-                  
-                    <div 
-                      className={cn(
-                        "rounded-2xl px-4 py-3",
-                        message.type === 'user' 
-                          ? "bg-amber-600 text-white rounded-tr-none" 
-                          : message.error 
-                            ? "bg-red-50 text-red-800 rounded-tl-none border border-red-200" 
-                            : "bg-white text-gray-800 rounded-tl-none border border-gray-200"
-                      )}
-                    >
-                      {message.isAnimating ? (
-                        <div className="flex items-center gap-2">
-                          <Loader2 className="w-4 h-4 animate-spin text-amber-600" />
-                          <span className="text-gray-500">EMP AI sedang mengetik...</span>
-                        </div>
-                      ) : message.type === 'bot' ? (
-                        <div>
-                          <div 
-                            className="prose prose-sm max-w-none break-words prose-headings:font-semibold prose-headings:text-gray-900 prose-p:text-gray-700 prose-pre:bg-gray-100 prose-pre:text-gray-800 prose-code:text-gray-800 prose-code:bg-gray-100 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-sm prose-code:font-mono prose-a:text-amber-600 prose-a:no-underline hover:prose-a:underline prose-li:text-gray-700 prose-li:marker:text-gray-500 prose-strong:text-gray-900 prose-em:text-gray-700 prose-p:my-0.5 prose-headings:my-0.5 prose-headings:mb-0 prose-ul:my-0.5 prose-ol:my-0.5 prose-li:my-0.5 prose-pre:my-1 leading-tight [&_p]:!my-0.5 [&_br]:leading-none [&_h1+p]:!mt-0.5 [&_h2+p]:!mt-0.5 [&_h3+p]:!mt-0.5"
-                            dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
-                          />
-                          
-                          {message.sourceDocuments && message.sourceDocuments.length > 0 && (
-                            <div className="mt-2 pt-2 border-t border-gray-200">
-                              <p className="text-xs font-medium text-gray-500 mb-1">
-                                Sumber:
-                              </p>
-                              <ul className="text-xs text-gray-500 space-y-1">
-                                {message.sourceDocuments.map((doc, idx) => (
-                                  <li key={idx} className="truncate">
-                                    {doc.metadata.title || doc.metadata.source || 'Dokumen Perkaba'}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-
-                          {message.type === 'bot' && !message.isAnimating && (
-                            <button
-                              onClick={() => copyToClipboard(message.content)}
-                              className="mt-1 text-xs text-gray-500 hover:text-gray-700 flex items-center"
-                              aria-label="Salin pesan"
-                            >
-                              {copied === message.content ? (
-                                <>
-                                  <Check className="w-3 h-3 mr-1" />
-                                  Disalin
-                                </>
-                              ) : (
-                                <>
-                                  <Copy className="w-3 h-3 mr-1" />
-                                  Salin
-                                </>
-                              )}
-                            </button>
-                          )}
-                        </div>
-                      ) : (
-                        <p className="text-sm">{message.content}</p>
-                      )}
                     </div>
                   </div>
-                </div>
-              )
-            ))}
+                ) : null // Jangan render jika konten kosong dan tidak animasi
+              ))}
+            </div>
             <div ref={messagesEndRef} />
           </div>
         </div>
