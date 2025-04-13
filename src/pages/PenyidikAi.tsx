@@ -8,11 +8,13 @@ import { tipidkorAiAgent } from '@/data/agents/tipidkorAiAgent';
 import { fismondevAgent } from '@/data/agents/fismondevAgent';
 import { siberAgent } from '@/data/agents/siberAgent';
 import { tipidterAiAgent } from '@/data/agents/tipidterAiAgent';
+import { narkotikaAgent } from '@/data/agents/narkotikaAgent';
 import SiberChatPage from '@/components/ui/SiberChatPage';
 import FismondevChatPage from '@/components/ui/FismondevChatPage';
 import IndagsiChatPage from '@/components/ui/IndagsiChatPage';
 import TipidkorChatPage from '@/components/ui/TipidkorChatPage';
 import TipidterChatPage from '@/components/ui/TipidterChatPage';
+import NarkotikaChatPage from '@/components/ui/NarkotikaChatPage';
 
 // Key untuk menyimpan data di localStorage
 const SELECTED_AGENT_KEY = 'penyidikai-selected-agent';
@@ -160,6 +162,15 @@ export default function PenyidikAi() {
       status: tipidterAiAgent.status,
       color: 'orange',
       icon: 'alert-triangle'
+    },
+    {
+      id: narkotikaAgent.id,
+      name: narkotikaAgent.name,
+      description: narkotikaAgent.description,
+      type: narkotikaAgent.type,
+      status: narkotikaAgent.status,
+      color: 'amber',
+      icon: 'pill'
     }
   ];
 
@@ -233,6 +244,12 @@ export default function PenyidikAi() {
           return (
             <div className="fixed inset-0 z-20">
               <TipidterChatPage onBack={handleBack} />
+            </div>
+          );
+        case 'narkotika_chat':
+          return (
+            <div className="fixed inset-0 z-20">
+              <NarkotikaChatPage onBack={handleBack} />
             </div>
           );
         default:

@@ -63,6 +63,8 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
         return <img src="/img/krimsus.png" alt="Tipidter AI" className="h-10 w-10" />;
       case 'perbankan_chat':
         return <img src="/img/book.svg" alt="Perbankan AI" className="h-10 w-10" />;
+      case 'narkotika_chat':
+        return <img src="/img/narkoba.svg" alt="Narkotika AI" className="h-10 w-10" />;
       default:
         return <PieChart className="text-gray-500" size={24} />;
     }
