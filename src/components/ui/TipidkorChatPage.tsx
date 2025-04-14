@@ -228,6 +228,10 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
 
     setMessages((prev) => [...prev, userMessage]);
     setInputMessage('');
+    // Reset textarea height after clearing input
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
     setIsProcessing(true);
     setIsConnectionError(false);
 

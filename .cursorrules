@@ -1055,11 +1055,11 @@ Untuk meningkatkan pengalaman pengguna textarea input pada perangkat mobile di h
 
 1.  **Nonaktifkan Submit on Enter (Mobile)**: Hapus atau komentari logika dalam `handleKeyDown` yang memicu `handleSubmit` saat tombol Enter (tanpa Shift) ditekan. Ini memastikan Enter di keyboard mobile berfungsi sebagai pembuat baris baru.
     ```typescript
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const handleKeyDown = (_e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       // Remove Enter key submission for mobile compatibility
       // Submission is handled by the Send button
-      // if (e.key === 'Enter' && !e.shiftKey) {
-      //   e.preventDefault();
+      // if (_e.key === 'Enter' && !_e.shiftKey) {
+      //   _e.preventDefault();
       //   handleSubmit();
       // }
     };
@@ -1086,7 +1086,22 @@ Untuk meningkatkan pengalaman pengguna textarea input pada perangkat mobile di h
       disabled={isProcessing}
     />
     ```
-3.  **Konsistensi**: Terapkan perubahan ini secara konsisten di semua komponen Chat Page (misalnya `IndagsiChatPage.tsx`, `NarkotikaChatPage.tsx`, dll.).
+3.  **Reset Tinggi Textarea Setelah Submit**: Tambahkan logika di `handleSubmit` untuk mereset tinggi textarea ke 'auto' setelah input dikosongkan (`setInputMessage('')`). Ini memastikan textarea kembali ke ukuran awal setelah pesan dikirim.
+    ```typescript
+    const handleSubmit = async () => {
+      // ... (kode lainnya)
+
+      setMessages((prev) => [...prev, userMessage]);
+      setInputMessage('');
+      // Reset textarea height after clearing input
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+      }
+      setIsProcessing(true);
+      // ... (rest of the function)
+    };
+    ```
+4.  **Konsistensi**: Terapkan perubahan ini secara konsisten di semua komponen Chat Page (misalnya `IndagsiChatPage.tsx`, `NarkotikaChatPage.tsx`, dll.).
 
 # Scratchpad
 
