@@ -1034,3 +1034,63 @@ Refleksi:
 - Penggunaan logo yang konsisten menciptakan konsistensi visual dengan identitas institusi
 - Tampilan welcome message yang menonjol memberikan kesan profesional dan modern
 - Pendekatan ini berhasil diterapkan ke berbagai chat interface dengan penyesuaian minimal
+
+## PenyidikAi Agent Implementation Pattern (Narkotika AI)
+
+Menambahkan agen chat baru ke Penyidik AI mengikuti pola yang sama dengan agen sebelumnya (Fismondev, Siber, dll). Langkah-langkah spesifik untuk Narkotika AI:
+
+1.  **Service File (`src/services/narkotikaService.ts`)**: Duplikasi dari service yang ada (`siberService.ts`), ubah endpoint API ke `narkotika-chat`, dan sesuaikan log identifier (e.g., `NARKOTIKA: ...`).
+2.  **Agent Configuration (`src/data/agents/narkotikaAgent.ts`)**: Buat file baru, gunakan interface `ExtendedAgent`, definisikan ID unik (`narkotika_001`), nama ("Narkotika AI"), tipe (`narkotika_chat`), deskripsi yang relevan, dan ikon (misalnya `Pill` dari Lucide) dengan kelas warna yang sesuai (`text-amber-600`).
+3.  **Types (`src/types/index.ts`)**: Tambahkan `'narkotika_chat'` ke union type `AgentType`.
+4.  **Utils (`src/utils/utils.ts`)**: Tambahkan konstanta ID (`NARKOTIKA_CHAT: 'narkotika_001'`) ke `AGENT_IDS` dan tambahkan `case AGENT_IDS.NARKOTIKA_CHAT: return 'narkotika_chat';` ke fungsi `getAgentTypeFromId`.
+5.  **Agent Card (`src/components/AgentCard.tsx`)**: Tambahkan `case 'narkotika_chat':` ke fungsi `getAgentIcon` untuk menampilkan ikon yang sesuai (misalnya `<img src="/img/krimsus.png" alt="Narkotika AI" ... />`).
+6.  **Chat Page Component (`src/components/ui/NarkotikaChatPage.tsx`)**: Duplikasi dari komponen chat page yang ada (misalnya `PerkabaChatPage.tsx`), impor service dan hooks yang benar (`narkotikaService`), sesuaikan nama komponen, props, judul header, teks info panel, warna tema (amber), contoh pertanyaan, dan teks disclaimer agar sesuai dengan domain narkotika.
+7.  **Main Page (`src/pages/PenyidikAi.tsx`)**: Impor konfigurasi agen (`narkotikaAgent`) dan komponen chat page (`NarkotikaChatPage`), tambahkan data agen ke array `agents` dengan warna yang sesuai ('amber'), dan tambahkan `case 'narkotika_chat':` ke fungsi `renderContent` untuk merender komponen `NarkotikaChatPage`.
+
+## UI/UX Lessons (PenyidikAi)
+
+### Chat Interface Textarea UX Improvement (Mobile)
+
+Untuk meningkatkan pengalaman pengguna textarea input pada perangkat mobile di halaman chat:
+
+1.  **Nonaktifkan Submit on Enter (Mobile)**: Hapus atau komentari logika dalam `handleKeyDown` yang memicu `handleSubmit` saat tombol Enter (tanpa Shift) ditekan. Ini memastikan Enter di keyboard mobile berfungsi sebagai pembuat baris baru.
+    ```typescript
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      // Remove Enter key submission for mobile compatibility
+      // Submission is handled by the Send button
+      // if (e.key === 'Enter' && !e.shiftKey) {
+      //   e.preventDefault();
+      //   handleSubmit();
+      // }
+    };
+    ```
+2.  **Implementasi Tinggi Textarea Dinamis**: Modifikasi `handleInputChange` untuk secara otomatis menyesuaikan tinggi textarea berdasarkan konten. Gunakan `rows={1}` pada komponen `Textarea` dan hapus `min-h-*` agar dimulai dari tinggi minimal. Tambahkan `overflow-y-auto`.
+    ```typescript
+    const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setInputMessage(e.target.value);
+      // Adjust height dynamically
+      const textarea = e.target;
+      textarea.style.height = 'auto'; // Reset height
+      textarea.style.height = `${textarea.scrollHeight}px`; // Set to scroll height
+    };
+    ```
+    ```jsx
+    <Textarea
+      ref={textareaRef}
+      rows={1} // Start with one row
+      value={inputMessage}
+      onChange={handleInputChange}
+      onKeyDown={handleKeyDown}
+      placeholder="Ketik pesan Anda..."
+      className="resize-none pr-12 py-3 max-h-[200px] rounded-xl ... overflow-y-auto"
+      disabled={isProcessing}
+    />
+    ```
+3.  **Konsistensi**: Terapkan perubahan ini secara konsisten di semua komponen Chat Page (misalnya `IndagsiChatPage.tsx`, `NarkotikaChatPage.tsx`, dll.).
+
+# Scratchpad
+
+[X] Task: Menerapkan Welcome Message Baru di Multiple Chat Pages
+[X] Task: Membuat Agen Narkotika AI baru
+[X] Task: Meningkatkan UX Textarea Input Mobile
+[X] Task: Mendokumentasikan perubahan di .cursorrules

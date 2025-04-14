@@ -124,13 +124,19 @@ const IndagsiChatPage: React.FC<IndagsiChatPageProps> = ({ onBack }) => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputMessage(e.target.value);
+    // Adjust height dynamically
+    const textarea = e.target;
+    textarea.style.height = 'auto'; // Reset height to recalculate
+    textarea.style.height = `${textarea.scrollHeight}px`; // Set to scroll height
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
+  const handleKeyDown = (_e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Remove Enter key submission for mobile compatibility
+    // Submission is handled by the Send button
+    // if (_e.key === 'Enter' && !_e.shiftKey) {
+    //   _e.preventDefault();
+    //   handleSubmit();
+    // }
   };
 
   const handleCopy = (text: string) => {
@@ -506,11 +512,12 @@ const IndagsiChatPage: React.FC<IndagsiChatPageProps> = ({ onBack }) => {
           <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="relative">
             <Textarea
               ref={textareaRef}
+              rows={1} // Start with one row
               value={inputMessage}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder="Ketik pesan..."
-              className="pl-4 pr-12 py-3 min-h-[56px] max-h-[200px] rounded-xl border border-gray-300 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 resize-none"
+              className="pl-4 pr-12 py-3 max-h-[200px] rounded-xl border border-gray-300 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 resize-none overflow-y-auto"
               disabled={isProcessing}
             />
             <Button 

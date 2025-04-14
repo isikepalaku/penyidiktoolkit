@@ -91,15 +91,21 @@ const UndangChatPage: React.FC<UndangChatPageProps> = ({ onBack }) => {
     });
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputMessage(e.target.value);
+  const handleInputChange = (_e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputMessage(_e.target.value);
+    // Adjust height dynamically
+    const textarea = _e.target;
+    textarea.style.height = 'auto'; // Reset height to recalculate
+    textarea.style.height = `${textarea.scrollHeight}px`; // Set to scroll height
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
+  const handleKeyDown = (_e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Remove Enter key submission for mobile compatibility
+    // Submission is handled by the Send button
+    // if (_e.key === 'Enter' && !_e.shiftKey) {
+    //   _e.preventDefault();
+    //   handleSubmit();
+    // }
   };
 
   const handleSubmit = async () => {
@@ -383,17 +389,18 @@ const UndangChatPage: React.FC<UndangChatPageProps> = ({ onBack }) => {
         </div>
 
         {/* Input Area */}
-        <div className="border-t border-gray-200 bg-white p-4">
+        <div className="border-t border-gray-200 bg-white p-4 md:px-8 pb-safe">
           <div className="max-w-3xl mx-auto">
             <div className="flex items-end gap-2">
               <div className="relative flex-1">
                 <Textarea
                   ref={textareaRef}
+                  rows={1} // Start with one row
                   value={inputMessage}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
                   placeholder="Ketik pesan Anda..."
-                  className="min-h-[2.5rem] max-h-[8rem] resize-none pr-10 py-3 rounded-xl"
+                  className="max-h-[8rem] resize-none pr-10 py-3 rounded-xl overflow-y-auto"
                   disabled={isProcessing}
                 />
               </div>

@@ -89,15 +89,21 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
     });
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputMessage(e.target.value);
+  const handleInputChange = (_e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputMessage(_e.target.value);
+    // Adjust height dynamically
+    const textarea = _e.target;
+    textarea.style.height = 'auto'; // Reset height to recalculate
+    textarea.style.height = `${textarea.scrollHeight}px`; // Set to scroll height
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
+  const handleKeyDown = (_e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Remove Enter key submission for mobile compatibility
+    // Submission is handled by the Send button
+    // if (_e.key === 'Enter' && !_e.shiftKey) {
+    //   _e.preventDefault();
+    //   handleSubmit();
+    // }
   };
 
   const handleSubmit = async () => {
@@ -392,13 +398,13 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
           <div className="relative flex w-full cursor-text flex-col rounded-xl border border-gray-300 px-4 py-3 duration-150 ease-in-out shadow-sm focus-within:border-rose-500 focus-within:ring-1 focus-within:ring-rose-500 bg-white">
             <textarea
               ref={textareaRef}
+              rows={1} // Start with one row
               value={inputMessage}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder="Ketik pesan Anda..."
-              className="w-full border-0 bg-transparent px-0 py-1 text-sm placeholder:text-gray-500 focus:outline-none resize-none pr-12 min-h-[40px] max-h-[200px] text-gray-800"
+              className="w-full border-0 bg-transparent px-0 py-1 text-sm placeholder:text-gray-500 focus:outline-none resize-none pr-12 max-h-[200px] text-gray-800 overflow-y-auto"
               disabled={isProcessing}
-              rows={2}
             />
             
             {/* Tombol kirim di dalam textarea */}
@@ -420,7 +426,7 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
             </button>
           </div>
           <p className="text-xs text-gray-500 mt-2 text-center">
-            Tekan Enter untuk mengirim, Shift+Enter untuk baris baru
+            Tekan tombol kirim untuk mengirim, Shift+Enter untuk baris baru
           </p>
         </div>
       </div>

@@ -94,13 +94,19 @@ const EMPChatPage: React.FC<EMPChatPageProps> = ({ onBack }) => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputMessage(e.target.value);
+    // Adjust height dynamically
+    const textarea = e.target;
+    textarea.style.height = 'auto'; // Reset height to recalculate
+    textarea.style.height = `${textarea.scrollHeight}px`; // Set to scroll height
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
+  const handleKeyDown = (_e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Remove Enter key submission for mobile compatibility
+    // Submission is handled by the Send button
+    // if (_e.key === 'Enter' && !_e.shiftKey) {
+    //   _e.preventDefault();
+    //   handleSubmit();
+    // }
   };
 
   const handleSubmit = async () => {
