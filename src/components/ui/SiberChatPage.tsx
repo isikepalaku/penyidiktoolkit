@@ -165,6 +165,13 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
       initializeSession();
       isSessionInitialized.current = true;
       console.log('Session initialized successfully');
+      
+      // Focus pada textarea setelah inisialisasi
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+        }
+      }, 500);
     } catch (error) {
       console.error('Error initializing session:', error);
       setHasError(true);
@@ -740,15 +747,18 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder="Ketik pesan Anda atau upload file..."
-              className="resize-none pr-12 py-3 max-h-[200px] rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm overflow-y-auto"
+              className="resize-none pr-12 py-3 max-h-[200px] rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm overflow-y-auto z-10"
               disabled={isProcessing}
+              readOnly={false}
+              autoComplete="off"
             />
             
             {/* File upload button */}
             <button
+              type="button"
               onClick={handleOpenFileDialog}
               disabled={isProcessing}
-              className="absolute left-2 bottom-2 p-2 rounded-lg text-gray-500 hover:text-blue-500 hover:bg-blue-50 transition-colors"
+              className="absolute left-2 bottom-3 p-2 rounded-lg text-gray-500 hover:text-blue-500 hover:bg-blue-50 transition-colors z-20"
               aria-label="Upload file"
             >
               <Paperclip className="w-5 h-5" />
@@ -765,10 +775,11 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
             />
             
             <Button
+              type="button"
               onClick={handleSubmit}
               disabled={(selectedFiles.length === 0 && !inputMessage.trim()) || isProcessing}
               className={cn(
-                "absolute right-2 bottom-2 p-2 rounded-lg",
+                "absolute right-2 bottom-3 p-2 rounded-lg z-20",
                 (selectedFiles.length === 0 && !inputMessage.trim()) || isProcessing
                   ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                   : "bg-blue-600 text-white hover:bg-blue-700"
