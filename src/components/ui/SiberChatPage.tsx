@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, Copy, Check, Loader2, Info, X, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Send, Copy, Check, Loader2, Info, X, RefreshCw, Paperclip, File, X as XIcon } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { Button } from './button';
 import { Textarea } from './textarea';
 import { AnimatedBotIcon } from './animated-bot-icon';
 import { DotBackground } from './DotBackground';
-import { sendChatMessage, initializeSession, clearChatHistory } from '@/services/siberService';
+import { sendChatMessage, initializeSession, clearChatHistory, onProgress } from '@/services/siberService';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
@@ -18,8 +18,8 @@ marked.setOptions({
 });
 
 DOMPurify.setConfig({
-  ADD_TAGS: ['a'],
-  ADD_ATTR: ['target', 'rel', 'class'],
+  ADD_TAGS: ['a', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'ul', 'ol', 'li', 'p', 'br', 'strong', 'em', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'pre', 'code'],
+  ADD_ATTR: ['target', 'rel', 'class', 'id'],
   FORBID_TAGS: ['style', 'script'],
   FORBID_ATTR: ['style', 'onerror', 'onload']
 });
@@ -55,6 +55,52 @@ const SkeletonMessage = () => (
   </div>
 );
 
+// Progress bar component untuk file processing
+const ProgressBar = ({ percent = 0, status = 'uploading' }) => {
+  const getStatusText = () => {
+    switch (status) {
+      case 'preparing':
+        return 'Mempersiapkan...';
+      case 'uploading':
+        return 'Mengunggah file...';
+      case 'processing':
+        return 'Memproses dokumen...';
+      case 'completed':
+        return 'Selesai!';
+      default:
+        return 'Memproses...';
+    }
+  };
+
+  const getColor = () => {
+    switch (status) {
+      case 'completed':
+        return 'bg-green-500';
+      case 'processing':
+        return 'bg-blue-500';
+      case 'uploading':
+        return 'bg-amber-500';
+      default:
+        return 'bg-blue-500';
+    }
+  };
+
+  return (
+    <div className="w-full mb-3">
+      <div className="flex justify-between items-center mb-1">
+        <span className="text-sm font-medium text-gray-700">{getStatusText()}</span>
+        <span className="text-sm font-medium text-gray-700">{percent}%</span>
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-2.5">
+        <div 
+          className={`h-2.5 rounded-full ${getColor()} transition-all duration-500 ease-in-out`} 
+          style={{ width: `${percent}%` }}
+        ></div>
+      </div>
+    </div>
+  );
+};
+
 const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
   const [messages, setMessages] = useState<Message[]>([{
     content: '',
@@ -68,15 +114,57 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
   const [showInfo, setShowInfo] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isConnectionError, setIsConnectionError] = useState(false);
+  // State untuk upload file
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  // State untuk progress
+  const [progress, setProgress] = useState<{status: string, percent: number}>({
+    status: 'preparing',
+    percent: 0
+  });
+  const [showProgress, setShowProgress] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const isSessionInitialized = useRef<boolean>(false);
 
+  // Setup progress listener
   useEffect(() => {
-    // Initialize chat session
+    const unsubscribe = onProgress((progressInfo) => {
+      setProgress({
+        status: progressInfo.status,
+        percent: progressInfo.percent || 0
+      });
+      
+      if (progressInfo.status === 'completed') {
+        // Hide progress after completion + delay
+        setTimeout(() => {
+          setShowProgress(false);
+        }, 1000);
+      } else {
+        setShowProgress(true);
+      }
+    });
+    
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  // Effect untuk inisialisasi session sekali saat komponen di-mount
+  useEffect(() => {
+    // Jangan inisialisasi ulang jika sudah dilakukan
+    if (isSessionInitialized.current) {
+      console.log('Session already initialized, skipping');
+      return;
+    }
+
     try {
+      // Inisialisasi session hanya sekali
       initializeSession();
+      isSessionInitialized.current = true;
+      console.log('Session initialized successfully');
     } catch (error) {
       console.error('Error initializing session:', error);
       setHasError(true);
@@ -93,12 +181,8 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
     // Clean up on unmount
     return () => {
       window.removeEventListener('error', handleError);
-      try {
-        clearChatHistory();
-      } catch (error) {
-        console.error('Error clearing chat history:', error);
-      }
     };
+    // Jangan hapus session saat unmount agar memory tetap terjaga
   }, []);
 
   useEffect(() => {
@@ -149,11 +233,60 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files);
+      setSelectedFiles(prev => [...prev, ...filesArray]);
+    }
+  };
+
+  const handleRemoveFile = (indexToRemove: number) => {
+    setSelectedFiles(prev => prev.filter((_, index) => index !== indexToRemove));
+  };
+
+  const handleOpenFileDialog = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  // Fungsi untuk menampilkan error yang lebih spesifik
+  const getErrorMessage = (error: any): string => {
+    if (!navigator.onLine) {
+      return 'Perangkat Anda sedang offline. Silakan periksa koneksi internet dan coba lagi.';
+    }
+    
+    if (error.message) {
+      // Jika error spesifik tentang ukuran file
+      if (error.message.includes('File terlalu besar')) {
+        return 'File terlalu besar. Harap gunakan file dengan ukuran lebih kecil (maksimal 50MB).';
+      }
+      
+      // Jika error timeout
+      if (error.message.includes('timeout') || error.message.includes('timed out')) {
+        return 'Permintaan timeout. File mungkin terlalu besar atau koneksi terlalu lambat.';
+      }
+      
+      // Jika error spesifik tentang rate limit
+      if (error.message.includes('Terlalu banyak permintaan')) {
+        return 'Terlalu banyak permintaan dalam waktu singkat. Silakan tunggu beberapa saat dan coba lagi.';
+      }
+      
+      // Jika ada pesan error spesifik lainnya, tampilkan
+      return error.message;
+    }
+    
+    // Default error message
+    return 'Terjadi masalah koneksi. Silakan periksa koneksi internet Anda dan coba lagi.';
+  };
+
   const handleSubmit = async () => {
-    if (!inputMessage.trim() || isProcessing) return;
+    // Tetap memungkinkan submit jika ada file yang dipilih, bahkan jika inputMessage kosong
+    if ((selectedFiles.length === 0 && !inputMessage.trim()) || isProcessing) return;
 
     const userMessage: Message = {
-      content: inputMessage.trim(),
+      // Jika pesan kosong tapi ada file, tampilkan pesan default
+      content: inputMessage.trim() || (selectedFiles.length > 0 ? "Tolong analisis file yang saya kirimkan." : ""),
       type: 'user',
       timestamp: new Date(),
     };
@@ -166,6 +299,15 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
     }
     setIsProcessing(true);
     setIsConnectionError(false);
+    
+    // Reset progress display
+    setProgress({ status: 'preparing', percent: 0 });
+    
+    // Check if any file is large (> 5MB)
+    const hasLargeFile = selectedFiles.some(file => file.size > 5 * 1024 * 1024);
+    if (hasLargeFile) {
+      setShowProgress(true);
+    }
 
     try {
       // Add a placeholder bot message with animation
@@ -179,7 +321,23 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
         },
       ]);
 
-      const response = await sendChatMessage(userMessage.content);
+      // Log file sizes sebelum upload
+      if (selectedFiles.length > 0) {
+        console.log('Uploading files:');
+        selectedFiles.forEach((file, index) => {
+          console.log(`File ${index + 1}: ${file.name} - ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+        });
+      }
+
+      // Kirim pesan dengan file jika ada
+      const response = await sendChatMessage(
+        userMessage.content, 
+        selectedFiles.length > 0 ? selectedFiles : undefined
+      );
+
+      // Reset selected files setelah berhasil mengirim
+      setSelectedFiles([]);
+      setShowProgress(false);
 
       // Replace the placeholder with the actual response
       setMessages((prev) => {
@@ -198,7 +356,7 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
         
         return newMessages;
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending message:', error);
       
       // Check if it's a network error
@@ -211,17 +369,18 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
         setIsConnectionError(true);
       }
       
+      // Reset progress display
+      setShowProgress(false);
+      
       // Replace the placeholder with an error message
       setMessages((prev) => {
         const newMessages = [...prev];
         // Remove the last message (placeholder)
         newMessages.pop();
         
-        // Add error message
+        // Add error message with specific details
         newMessages.push({
-          content: isNetworkError 
-            ? 'Terjadi masalah koneksi. Silakan periksa koneksi internet Anda dan coba lagi.' 
-            : 'Maaf, terjadi kesalahan saat memproses pesan Anda. Silakan coba lagi.',
+          content: getErrorMessage(error),
           type: 'bot',
           timestamp: new Date(),
           error: true,
@@ -249,8 +408,12 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
       // Pastikan content ada dan bukan string kosong
       if (!content) return '';
       
+      // Preprocessor sederhana: hanya ganti karakter newline
+      // Terlalu banyak preprocessing bisa mengubah format asli
+      let processedContent = content.replace(/\\n/g, '\n');
+      
       // Parse markdown menjadi HTML
-      const rawHtml = marked.parse(content);
+      const rawHtml = marked.parse(processedContent);
       
       // Sanitasi HTML untuk mencegah XSS
       const sanitizedHtml = DOMPurify.sanitize(rawHtml);
@@ -264,7 +427,14 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
 
   const handleChatReset = () => {
     try {
-      clearChatHistory();
+      console.log('Resetting chat history but maintaining user identity');
+      clearChatHistory(); // Ini hanya akan menghapus session_id, tapi mempertahankan user_id
+      
+      // Inisialisasi ulang session dengan user_id yang sama
+      initializeSession();
+      console.log('Session reinitialized with fresh session_id but same user_id');
+      
+      // Reset UI state
       setMessages([{
         content: '',
         type: 'bot',
@@ -272,6 +442,7 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
       }]);
       setHasError(false);
       setIsConnectionError(false);
+      setSelectedFiles([]);
     } catch (error) {
       console.error('Error resetting chat:', error);
     }
@@ -452,6 +623,23 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
               </div>
             )}
 
+            {/* Progress Bar for file uploads and processing - only show when active */}
+            {showProgress && (
+              <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4 shadow-sm">
+                <ProgressBar 
+                  percent={progress.percent} 
+                  status={progress.status}
+                />
+                <p className="text-xs text-gray-500 italic">
+                  {progress.status === 'uploading' 
+                    ? 'Mengunggah file besar memerlukan waktu, mohon jangan refresh halaman.' 
+                    : progress.status === 'processing'
+                    ? 'AI sedang menganalisis dokumen, proses ini mungkin memerlukan beberapa menit untuk file besar.'
+                    : 'Sedang memproses...'}
+                </p>
+              </div>
+            )}
+
             {/* Chat Messages */}
             {messages.map((message, index) => (
               // Hanya tampilkan message dengan content (kecuali animating placeholder)
@@ -475,7 +663,17 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
                     {message.type === "bot" && !message.isAnimating ? (
                       <>
                         <div 
-                          className="prose prose-sm max-w-none"
+                          className="prose prose-sm max-w-none overflow-x-auto
+                                    prose-headings:font-bold prose-headings:text-blue-800 prose-headings:my-4
+                                    prose-h1:text-xl prose-h2:text-lg prose-h3:text-base
+                                    prose-p:my-2 prose-p:text-gray-700
+                                    prose-ul:pl-6 prose-ul:my-2 prose-ol:pl-6 prose-ol:my-2
+                                    prose-li:my-1
+                                    prose-table:border-collapse prose-table:my-4
+                                    prose-th:bg-blue-50 prose-th:p-2 prose-th:border prose-th:border-gray-300
+                                    prose-td:p-2 prose-td:border prose-td:border-gray-300
+                                    prose-strong:font-bold prose-strong:text-gray-800
+                                    prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-800"
                           dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
                         />
                         <div className="flex justify-end mt-2">
@@ -512,30 +710,81 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
       {/* Input area fixed at bottom */}
       <div className="border-t border-gray-200 bg-white p-4 md:px-8 pb-safe">
         <div className="max-w-3xl mx-auto">
-          <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="relative">
+          {/* File Preview Area */}
+          {selectedFiles.length > 0 && (
+            <div className="mb-3 flex flex-wrap gap-2">
+              {selectedFiles.map((file, index) => (
+                <div 
+                  key={index}
+                  className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-1 flex items-center gap-2 text-sm text-blue-700"
+                >
+                  <File className="w-4 h-4" />
+                  <span className="truncate max-w-[150px]">{file.name}</span>
+                  <button 
+                    onClick={() => handleRemoveFile(index)}
+                    className="text-blue-500 hover:text-blue-700"
+                    aria-label="Hapus file"
+                  >
+                    <XIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="relative">
             <Textarea
               ref={textareaRef}
               rows={1} // Start with one row
               value={inputMessage}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
-              placeholder="Ketik pesan..."
-              className="pl-4 pr-12 py-3 max-h-[200px] rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none overflow-y-auto"
+              placeholder="Ketik pesan Anda atau upload file..."
+              className="resize-none pr-12 py-3 max-h-[200px] rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm overflow-y-auto"
               disabled={isProcessing}
             />
-            <Button 
-              type="submit"
-              size="icon"
-              className="absolute bottom-2.5 right-2.5 h-8 w-8 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
-              disabled={isProcessing || !inputMessage.trim()}
+            
+            {/* File upload button */}
+            <button
+              onClick={handleOpenFileDialog}
+              disabled={isProcessing}
+              className="absolute left-2 bottom-2 p-2 rounded-lg text-gray-500 hover:text-blue-500 hover:bg-blue-50 transition-colors"
+              aria-label="Upload file"
+            >
+              <Paperclip className="w-5 h-5" />
+            </button>
+            
+            {/* Hidden file input */}
+            <input 
+              type="file" 
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+              multiple
+              accept=".pdf,.doc,.docx,.txt,.csv,.xls,.xlsx,.jpg,.jpeg,.png"
+            />
+            
+            <Button
+              onClick={handleSubmit}
+              disabled={(selectedFiles.length === 0 && !inputMessage.trim()) || isProcessing}
+              className={cn(
+                "absolute right-2 bottom-2 p-2 rounded-lg",
+                (selectedFiles.length === 0 && !inputMessage.trim()) || isProcessing
+                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  : "bg-blue-600 text-white hover:bg-blue-700"
+              )}
+              aria-label="Kirim pesan"
             >
               {isProcessing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                <Send className="h-4 w-4" />
+                <Send className="w-5 h-5" />
               )}
             </Button>
-          </form>
+          </div>
+          <p className="text-xs text-gray-500 mt-2 text-center">
+            SIBER AI dapat memberikan informasi yang tidak akurat. Verifikasi fakta penting dengan dokumen resmi.
+          </p>
         </div>
       </div>
     </div>
