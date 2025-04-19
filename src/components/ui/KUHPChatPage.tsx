@@ -407,7 +407,7 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder="Ketik pesan Anda..."
-              className="w-full border-0 bg-transparent px-0 py-1 text-sm placeholder:text-gray-500 focus:outline-none resize-none pr-12 max-h-[200px] text-gray-800 overflow-y-auto"
+              className="w-full border-0 bg-transparent px-0 py-3 text-sm placeholder:text-gray-500 focus:outline-none resize-none pr-12 max-h-[200px] text-gray-800 overflow-y-auto"
               disabled={isProcessing}
             />
             
@@ -417,7 +417,7 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
               disabled={!inputMessage.trim() || isProcessing}
               className={`absolute right-3 bottom-3 p-2.5 rounded-lg flex items-center justify-center transition-colors ${
                 !inputMessage.trim() || isProcessing
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  ? 'bg-rose-200 text-rose-400 cursor-not-allowed'
                   : 'bg-rose-600 text-white hover:bg-rose-700'
               }`}
               aria-label="Kirim pesan"
@@ -430,7 +430,7 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
             </button>
           </div>
           <p className="text-xs text-gray-500 mt-2 text-center">
-            Tekan tombol kirim untuk mengirim, Shift+Enter untuk baris baru
+            KUHP AI dapat memberikan informasi yang tidak akurat. Verifikasi fakta penting.
           </p>
         </div>
       </div>
