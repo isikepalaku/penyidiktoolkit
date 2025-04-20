@@ -52,6 +52,7 @@ export type AgentType =
   | 'wassidik_chat'
   | 'undang_chat'
   | 'kuhp_chat'
+  | 'kuhap_chat'
   | 'ite_chat'
   | 'ciptakerja_chat'
   | 'kesehatan_chat'

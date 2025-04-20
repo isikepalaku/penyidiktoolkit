@@ -41,6 +41,8 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
         return <img src="/img/book.svg" alt="Google Scholar" className="h-10 w-10" />;
       case 'kuhp_chat':
         return <img src="/img/book.svg" alt="Google Scholar" className="h-10 w-10" />;
+      case 'kuhap_chat':
+        return <img src="/img/book.svg" alt="KUHAP AI" className="h-10 w-10" />;
       case 'ite_chat':
         return <img src="/img/book.svg" alt="Google Scholar" className="h-10 w-10" />;
       case 'sentiment_analyst':
@@ -75,6 +77,7 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
   // Render khusus untuk agen UU
   if (agent.type === 'undang_chat' || 
       agent.type === 'kuhp_chat' || 
+      agent.type === 'kuhap_chat' ||
       agent.type === 'ciptakerja_chat' || 
       agent.type === 'kesehatan_chat' ||
       agent.type === 'perbankan_chat') {
@@ -108,6 +111,7 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
           <span className="px-3 py-1 bg-white/80 text-blue-600 rounded-full text-sm font-medium">
             {agent.type === 'undang_chat' ? 'UU P2SK' : 
              agent.type === 'kuhp_chat' ? 'KUHP' : 
+             agent.type === 'kuhap_chat' ? 'KUHAP' : 
              agent.type === 'kesehatan_chat' ? 'UU Kesehatan' :
              agent.type === 'perbankan_chat' ? 'UU Perbankan' :
              'UU Cipta Kerja'}

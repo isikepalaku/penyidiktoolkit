@@ -11,6 +11,7 @@ import { penyidikAiAgent } from './penyidikAiAgent';
 import { dokpolAgent } from './dokpolAgent';
 import { geminiImageAgent } from './geminiImageAgent';
 import { tipidterAiAgent } from './tipidterAiAgent';
+import { kuhapAgent } from './kuhapAgent';
 import type { ExtendedAgent } from '../../types';
 
 export const agents: ExtendedAgent[] = [
@@ -38,5 +39,6 @@ export {
   penyidikAiAgent,
   dokpolAgent,
   geminiImageAgent,
-  tipidterAiAgent
+  tipidterAiAgent,
+  kuhapAgent
 };

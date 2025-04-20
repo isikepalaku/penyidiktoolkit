@@ -4,13 +4,15 @@ import { cn } from "../../utils/utils";
 interface DotBackgroundProps {
   children?: React.ReactNode;
   className?: string;
+  dotColor?: string;
 }
 
-export function DotBackground({ children, className }: DotBackgroundProps) {
+export function DotBackground({ children, className, dotColor }: DotBackgroundProps) {
   return (
     <div
       className={cn(
-        "w-full dark:bg-black bg-white dark:bg-dot-white/[0.2] bg-dot-black/[0.2] relative",
+        "w-full dark:bg-black bg-white relative",
+        dotColor ? dotColor : "dark:bg-dot-white/[0.2] bg-dot-black/[0.2]",
         className
       )}
     >

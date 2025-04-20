@@ -6,6 +6,7 @@ import ITEChatPage from '../components/ui/ITEChatPage';
 import CiptaKerjaChatPage from '../components/ui/CiptaKerjaChatPage';
 import KesehatanChatPage from '../components/ui/KesehatanChatPage';
 import PerbankanChatPage from '../components/ui/PerbankanChatPage';
+import KUHAPChatPage from '../components/ui/KUHAPChatPage';
 
 // Definisikan tipe untuk agent di UndangUndang
 interface UndangAgent {
@@ -57,6 +58,15 @@ export default function UndangUndang() {
       icon: 'brain',
       color: 'rose',
       type: 'kuhp_chat',
+      status: 'on',
+    },
+    {
+      id: 'kuhap',
+      name: 'KUHAP AI',
+      description: 'Asisten AI untuk memahami Kitab Undang-Undang Hukum Acara Pidana (KUHAP)',
+      icon: 'brain',
+      color: 'amber',
+      type: 'kuhap_chat',
       status: 'on',
     },
     {
@@ -126,6 +136,12 @@ export default function UndangUndang() {
             <KUHPChatPage onBack={handleBack} />
           </div>
         );
+      case 'kuhap_chat':
+        return (
+          <div className="fixed inset-0 z-20">
+            <KUHAPChatPage onBack={handleBack} />
+          </div>
+        );
       case 'undang_chat':
         return (
           <div className="fixed inset-0 z-20">
@@ -183,6 +199,8 @@ export default function UndangUndang() {
                   bgColor={
                     agent.type === 'kuhp_chat'
                       ? "bg-gradient-to-br from-rose-50 to-orange-50 hover:from-rose-100 hover:to-orange-100"
+                      : agent.type === 'kuhap_chat'
+                      ? "bg-gradient-to-br from-amber-50 to-yellow-50 hover:from-amber-100 hover:to-yellow-100"
                       : agent.type === 'undang_chat'
                       ? "bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100"
                       : agent.type === 'ite_chat'
