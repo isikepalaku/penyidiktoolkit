@@ -7,74 +7,9 @@
     <!-- Preload bot icon image -->
     <link rel="preload" href="/reserse.png" as="image" type="image/png" />
     <title>Penyidik Toolkit</title>
-    <!-- Tambahkan style untuk error display -->
-    <style>
-      #error-container {
-        display: none;
-        position: fixed;
-        top: 10px;
-        left: 10px;
-        right: 10px;
-        background-color: #ffebe9;
-        border: 1px solid #ff8080;
-        padding: 15px;
-        border-radius: 5px;
-        z-index: 10000;
-        color: #d00;
-        font-family: Arial, sans-serif;
-      }
-      #load-timeout-container {
-        display: none;
-        margin: 50px auto;
-        max-width: 500px;
-        text-align: center;
-        padding: 20px;
-        background-color: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      }
-    </style>
   </head>
   <body>
     <div id="root"></div>
-    
-    <!-- Error container untuk debugging -->
-    <div id="error-container"></div>
-    
-    <!-- Pesan timeout -->
-    <div id="load-timeout-container">
-      <h2>Aplikasi tidak merespon</h2>
-      <p>Terjadi masalah saat memuat aplikasi. Coba refresh halaman atau periksa konsol browser untuk informasi error.</p>
-      <p>Info teknis: <span id="firebase-domain-info"></span></p>
-      <button onclick="window.location.reload()">Refresh Halaman</button>
-    </div>
-    
-    <script>
-      // Kode untuk mendeteksi error dan menampilkan
-      window.addEventListener('error', function(event) {
-        const errorContainer = document.getElementById('error-container');
-        if (errorContainer) {
-          errorContainer.style.display = 'block';
-          errorContainer.innerHTML = `<p><strong>Error:</strong> ${event.message}</p>
-                                      <p><strong>File:</strong> ${event.filename}</p>
-                                      <p><strong>Line:</strong> ${event.lineno}:${event.colno}</p>`;
-        }
-        console.error('Caught error:', event.error);
-      });
-      
-      // Timeout detector
-      setTimeout(function() {
-        if (document.getElementById('root').children.length === 0) {
-          document.getElementById('load-timeout-container').style.display = 'block';
-          // Tampilkan info domain
-          const domainInfo = document.getElementById('firebase-domain-info');
-          if (domainInfo) {
-            domainInfo.textContent = `Domain saat ini: ${window.location.hostname}`;
-          }
-        }
-      }, 10000); // Cek setelah 10 detik
-    </script>
-    
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
