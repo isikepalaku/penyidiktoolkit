@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Users, FileText, PanelLeft, PanelRightClose, Search, MessageSquare, Home, Scale } from 'lucide-react';
 import logo from '../static/logo.svg';
+import ProfileMenu from './ProfileMenu';
 
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -74,7 +75,7 @@ const Sidebar = () => {
       <aside
         className={`${
           isOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0 fixed top-0 left-0 h-full w-64 bg-gradient-to-b from-indigo-950 to-slate-900 shadow-xl z-[175] transition-transform duration-300 ease-in-out`}
+        } lg:translate-x-0 fixed top-0 left-0 h-full w-64 bg-gradient-to-b from-indigo-950 to-slate-900 shadow-xl z-[175] transition-transform duration-300 ease-in-out flex flex-col`}
       >
         {/* Logo Container with Border */}
         <div className="relative flex items-center justify-center py-6 border-b border-indigo-900/50">
@@ -85,7 +86,7 @@ const Sidebar = () => {
         </div>
 
         {/* Navigation */}
-        <nav className="px-3 py-6">
+        <nav className="px-3 py-6 flex-grow overflow-y-auto">
           <ul className="space-y-1">
             {menuItems.map((item) => (
               <li key={item.path}>
@@ -127,6 +128,11 @@ const Sidebar = () => {
             ))}
           </ul>
         </nav>
+
+        {/* Profile Menu */}
+        <div className="px-4 py-6 border-t border-indigo-900/50 mt-auto">
+          <ProfileMenu />
+        </div>
       </aside>
     </>
   );

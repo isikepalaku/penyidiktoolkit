@@ -245,7 +245,7 @@ When adding a new chat-based agent to the UndangUndang component, follow these s
 
 3. Update Utils (src/utils/utils.ts):
  - Add agent ID to AGENT_IDS constant
- - Add case in getAgentTypeFromId function
+ - Add case in getAgentTypeFromId
  - Don't add to getTypeDisplay if it's a chat agent (these use custom display names)
 
 4. Update Agent Card (src/components/AgentCard.tsx):
@@ -383,552 +383,255 @@ Professional Color Scheme Examples:
   - Implement proper session management with initializeSession and clearChatHistory
   - Use consistent error handling and loading states
 
-## Form Implementation Lessons
+### File Upload Implementation Patterns
 
-### Form Display Pattern
-1. Agent Configuration:
-   - Define agent in src/data/agents/[agentName].ts
-   - Use ExtendedAgent interface
-   - Set proper id, name, type, status, and fields
-   - Use 'message' as field id for text inputs
-   - Use 'textarea' as const for type
-   - Export as named export for consistency
-
-2. Type Registration:
-   - Add agent type to AgentType union in types/index.ts
-   - Add agent ID to AGENT_IDS in utils.ts
-   - Add case in getAgentTypeFromId function
-   - Add case in getTypeDisplay function
-
-3. Form Rendering:
-   - Forms are rendered in Agents.tsx
-   - Use switch statement on selectedAgentData.type
-   - BaseAgentForm for text/textarea inputs
-   - ImageAgentForm for image inputs
-   - Add new agent type to appropriate case
-
-Example agent configuration:
-```typescript
-export const newAgent: ExtendedAgent = {
-  id: 'polri-new-agent',
-  name: 'New Agent',
-  description: 'Agent description',
-  type: 'new_agent',
-  status: 'on',
-  fields: [
-    {
-      id: 'message',
-      label: 'Input Label',
-      type: 'textarea' as const,
-      placeholder: 'Enter your text...'
-    }
-  ]
-};
-```
-
-Form rendering pattern in Agents.tsx:
-```typescript
-switch (selectedAgentData.type) {
-  case 'image':
-  case 'image_processor':
-    return <ImageAgentForm {...commonProps} />;
-  case 'crime_trend_analyst':
-    return <BaseAgentForm {...commonProps} textareaHeight="h-32" />;
-  case 'new_agent':  // Add new agent here
-  case 'hoax_checker':
-  case 'case_research':
-    return <BaseAgentForm {...commonProps} />;
-  default:
-    return null;
-}
-```
-
-### Common Mistakes to Avoid
-- Forgetting to add agent type to AgentType union
-- Using wrong field id (should be 'message' for text inputs)
-- Forgetting 'as const' for textarea type
-- Not adding agent to switch statement in Agents.tsx
-- Using default export instead of named export
-- Not updating AGENT_IDS and related functions in utils.ts
-
-## Flowise API Integration Lessons
-
-### Memory & Session Management
-1. Gunakan `overrideConfig` untuk session dan memory:
-```typescript
-const requestBody = {
-  question: message,
-  overrideConfig: {
-    sessionId: currentSessionId,
-    memoryKey: currentSessionId
-  },
-  history: chatHistory
-};
-```
-
-2. Selalu inisialisasi session dengan pattern:
-```typescript
-let currentSessionId: string | null = null;
-
-// Generate or retrieve session ID
-if (!currentSessionId) {
-  currentSessionId = `session_${uuidv4()}`;
-  // Reset chat history when creating new session
-  chatHistory = [];
-}
-```
-
-3. Sediakan fungsi untuk mengelola session:
-```typescript
-// Clear history and session
-export const clearChatHistory = () => {
-  chatHistory = [];
-  currentSessionId = null;
-};
-
-// Initialize session
-export const initializeSession = () => {
-  if (!currentSessionId) {
-    currentSessionId = `session_${uuidv4()}`;
-    chatHistory = [];
-  }
-};
-```
-
-4. Pastikan history terkait dengan session yang sama
-5. Reset history saat membuat session baru
-6. Batasi jumlah history yang disimpan (MAX_HISTORY = 10)
-7. Gunakan UUID untuk generate session ID yang unik
-
-### Request Format
-1. Interface untuk request:
-```typescript
-interface ChatRequest {
-  question: string;
-  overrideConfig?: {
-    sessionId: string;
-    memoryKey: string;
-  };
-  history?: ChatMessage[];
-}
-```
-
-2. Headers yang diperlukan:
-```typescript
-headers: {
-  'Content-Type': 'application/json',
-  'Authorization': `Bearer ${import.meta.env.VITE_PERKABA_API_KEY}`,
-  'Accept': 'application/json'
-}
-```
-
-### Logging Best Practices
-1. Log request details:
-```typescript
-console.group('Chat API Request');
-console.log('URL:', apiUrl);
-console.log('Session ID:', currentSessionId);
-console.log('Request Body:', JSON.stringify(requestBody, null, 2));
-console.groupEnd();
-```
-
-2. Log response details:
-```typescript
-console.group('Chat API Response');
-console.log('Status:', response.status);
-console.log('Status Text:', response.statusText);
-console.log('Headers:', Object.fromEntries(response.headers.entries()));
-console.groupEnd();
-```
-
-3. Log errors dengan detail:
-```typescript
-console.group('Chat API Error');
-console.error('Error Type:', error.constructor.name);
-console.error('Error Message:', error.message);
-console.error('Error Stack:', error.stack);
-console.groupEnd();
-```
-
-### Common Mistakes to Avoid
-1. Tidak menggunakan `overrideConfig` untuk session
-2. Tidak me-reset history saat membuat session baru
-3. Tidak menyimpan session ID
-4. Tidak mengirim history ke API
-5. Tidak membatasi jumlah history
-6. Tidak menangani error dengan proper
-7. Tidak mencatat session ID di logs
-
-## Image Processor Agent Pattern
-
-### Adding New Image Processor Agent
-1. Service File (src/services/[agentName]Service.ts):
-   - Copy structure from existing image processor service
-   - Update endpoint path (/v1/playground/agents/[endpoint-name]/runs)
-   - Customize message for specific use case
-   - Keep error handling and response parsing consistent
-
-2. Agent Configuration (src/data/agents/[agentName]Agent.ts):
-   - Use ExtendedAgent interface
-   - Set type: 'image_processor'
-   - Define standard image file field
-   - Keep configuration minimal for image processors
-
-3. Integration:
-   - Add to agents array in index.ts
-   - Add to named exports
-   - Use existing ImageAgentForm component
-   - Handle in useAgentForm hook with proper agent ID check
-
-Example Agent Setup:
-```typescript
-// Service endpoint pattern
-const url = `/v1/playground/agents/[specific-purpose]-image-agent/runs`;
-
-// Agent configuration pattern
-export const newAgent: ExtendedAgent = {
-  id: 'newagent_001',
-  name: 'Agent Name',
-  type: 'image_processor',
-  status: 'on',
-  description: 'Specific purpose description',
-  fields: [
-    {
-      id: 'image_file',
-      label: 'Upload Gambar',
-      type: 'file',
-      placeholder: 'Pilih file gambar...',
-      accept: 'image/*'
-    }
-  ]
-};
-```
-
-Common Mistakes:
-- Using wrong endpoint path format
-- Not maintaining consistent error handling
-- Forgetting to add service import to useAgentForm
-- Not checking agent ID in handleSubmit
-- Duplicating image handling logic instead of reusing
-
-### Service Pattern
-1. Semua chat service harus mengikuti pattern yang sama
-2. Gunakan interface yang konsisten
-3. Kelola session dan memory dengan cara yang sama
-4. Gunakan logging yang seragam
-5. Handle error dengan cara yang konsisten
-
-## Mobile UI Lessons
-
-### Scrollable Content in Fixed Containers
-1. Use flexbox layout for fixed position containers:
-   ```css
-   .container {
-     @apply fixed inset-0 flex flex-col;
-   }
-   ```
-2. Make content area scrollable:
-   ```css
-   .content {
-     @apply flex-1 overflow-y-auto;
-   }
-   ```
-3. Keep header fixed:
-   ```css
-   .header {
-     @apply flex items-center justify-between p-4 border-b;
-   }
-   ```
-4. Add backdrop overlay for mobile:
-   ```css
-   .overlay {
-     @apply fixed inset-0 bg-black/20 backdrop-blur-sm z-40 lg:hidden;
-   }
-   ```
-
-Common issues to avoid:
-- Double scrollbars
-- Content overflow on small screens
-- Non-scrollable content in fixed containers
-- Missing overlay for mobile interactions
-- Premature component interaction before full load
-- Uncontrolled reloads due to state changes
-
-### Mobile Chat Performance
-1. Component Mount Handling:
-```typescript
-// Track component mount state
-const [isComponentMounted, setIsComponentMounted] = useState(false);
-
-useEffect(() => {
-  setIsComponentMounted(true);
-}, []);
-
-// Show loading state until component is ready
-if (!isComponentMounted) {
-  return <LoadingView />;
-}
-```
-
-2. Scroll Optimization:
-```typescript
-const scrollToBottom = () => {
-  requestAnimationFrame(() => {
-    if (containerRef.current) {
-      containerRef.current.scrollTo({
-        top: containerRef.current.scrollHeight,
-        behavior: 'smooth'
-      });
-    }
-  });
-};
-```
-
-3. Input Handling:
-```typescript
-<AIInputWithLoading
-  onSubmit={handleSubmit}
-  disabled={!isComponentMounted || isLoading}
-  placeholder="Ketik pesan Anda..."
-/>
-```
-
-4. State Management Best Practices:
-- Track component mount state
-- Disable interactions until fully loaded
-- Use smooth scrolling with requestAnimationFrame
-- Prevent multiple submissions while loading
-- Clear timeouts and listeners on unmount
-- Handle keyboard events properly
-- Show appropriate loading states
-
-Common issues to fix:
-- Premature form submissions
-- Scroll jumps during loading
-- Missing loading indicators
-- Unhandled component state changes
-- Memory leaks from timeouts/listeners
-
-### Mobile Navigation Protection
-1. Prevent accidental chat session loss:
-```typescript
-// Handle navigation events
-useEffect(() => {
-  const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-    if (activeChat) {
-      e.preventDefault();
-      e.returnValue = '';
-    }
-  };
-
-  const handlePopState = (e: PopStateEvent) => {
-    if (activeChat) {
-      e.preventDefault();
-      if (confirm('Yakin ingin keluar? Percakapan akan hilang.')) {
-        setActiveChat(null);
-      } else {
-        window.history.pushState(null, '', window.location.pathname);
-      }
-    }
-  };
-
-  window.addEventListener('beforeunload', handleBeforeUnload);
-  window.addEventListener('popstate', handlePopState);
-
-  return () => {
-    window.removeEventListener('beforeunload', handleBeforeUnload);
-    window.removeEventListener('popstate', handlePopState);
-  };
-}, [activeChat]);
-```
-
-2. Always add confirmation for back actions:
-```typescript
-const handleBack = () => {
-  if (window.confirm('Yakin ingin kembali? Percakapan akan hilang.')) {
-    setActiveChat(null);
-  }
-};
-```
-
-Common issues to avoid:
-- Not handling browser back gesture/swipe
-- Missing confirmation dialog for session loss
-- Not managing browser history state properly
-- Not cleaning up event listeners
-- Not handling hardware back button on mobile
-
-### Mobile-First Chat Interface Design
-1. Collapsible panels untuk menghemat ruang:
-```typescript
-// Toggle panel visibility
-<button 
-  onClick={() => {
-    const panel = document.getElementById('panel-id');
-    if (panel) panel.classList.toggle('hidden');
-  }}
-  className="flex items-center gap-1"
->
-  <span>Panel Title</span>
-  <ChevronDownIcon className="w-4 h-4" />
-</button>
-
-// Panel yang dapat disembunyikan
-<div id="panel-id" className="hidden md:block">
-  {/* Panel content */}
-</div>
-```
-
-2. Gunakan ukuran yang berbeda untuk mobile dan desktop:
-```css
-.element {
-  @apply p-2 md:p-4 text-sm md:text-base;
-}
-```
-
-3. Kurangi padding dan margin di mobile:
-```css
-.container {
-  @apply p-2 md:p-4 space-y-2 md:space-y-4;
-}
-```
-
-4. Gunakan ukuran ikon yang lebih kecil di mobile:
-```css
-.icon {
-  @apply w-4 h-4 md:w-5 md:h-5;
-}
-```
-
-5. Gunakan tinggi dinamis berdasarkan viewport:
-```css
-.chat-container {
-  @apply h-[calc(100vh-12rem)] md:h-[calc(100vh-8rem)];
-}
-```
-
-6. Hindari elemen UI yang menutupi konten penting:
-   - Gunakan panel yang dapat disembunyikan untuk file preview
-   - Kurangi ukuran header di mobile
-   - Prioritaskan area chat dengan memberikan lebih banyak ruang
-   - Gunakan tombol toggle untuk menampilkan/menyembunyikan panel sekunder
-
-7. Optimasi untuk layar kecil:
-   - Gunakan input yang lebih compact
-   - Kurangi teks label menjadi lebih singkat
-   - Gunakan ikon sebagai pengganti teks jika memungkinkan
-   - Terapkan truncate untuk teks yang panjang
-
-8. Gunakan JavaScript untuk toggle panel di mobile:
-```typescript
-// Tambahkan ID ke panel
-<div id="file-preview-container" className="hidden md:flex">
-  {/* File previews */}
-</div>
-
-// Gunakan toggle button
-<button onClick={() => {
-  const panel = document.getElementById('file-preview-container');
-  if (panel) panel.classList.toggle('hidden');
-}}>
-  Toggle Files
-</button>
-```
-
-### Chat Interface Optimization Lessons
-
-1. Struktur Layout Flexbox untuk Chat Interface:
-   ```css
-   /* Container utama dengan flexbox */
-   .chat-container {
-     @apply fixed inset-0 z-20 bg-white lg:pl-64 flex flex-col;
-   }
-   
-   /* Area chat yang scrollable */
-   .chat-messages {
-     @apply flex-1 overflow-y-auto overscroll-contain;
-   }
-   
-   /* Input area yang tetap di bawah */
-   .input-area {
-     @apply border-t border-gray-200 bg-white p-4 md:px-8 pb-safe;
-   }
-   ```
-
-2. Peningkatan Tampilan Pesan:
-   - Gunakan `max-w-[85%] sm:max-w-[75%]` untuk lebar pesan yang responsif
-   - Tambahkan `rounded-tr-none` pada pesan user dan `rounded-tl-none` pada pesan bot untuk efek chat bubble
-   - Gunakan `border border-gray-200` dengan `bg-white` untuk pesan bot daripada `bg-gray-100` untuk tampilan yang lebih modern
-   - Tambahkan `shadow-sm` pada pesan untuk kedalaman visual
-   - Gunakan `items-end` untuk perataan yang lebih baik antara avatar dan pesan
-
-3. Optimasi Input Area:
-   - Gunakan container dengan border dan textarea tanpa border:
-   ```css
-   .input-container {
-     @apply relative flex w-full cursor-text flex-col rounded-xl border border-gray-300 px-4 py-3 duration-150 ease-in-out shadow-sm focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 bg-white;
-   }
-   
-   .input-textarea {
-     @apply w-full border-0 bg-transparent px-0 py-1 text-sm placeholder:text-gray-500 focus:outline-none resize-none pr-12 min-h-[40px] max-h-[200px] text-gray-800;
-   }
-   ```
-   - Posisikan tombol kirim di dalam textarea dengan `absolute right-3 bottom-3`
-   - Gunakan `rows={2}` dan `min-h-[40px]` untuk textarea agar tombol tidak terlihat terjepit
-   - Tambahkan `max-h-[200px]` untuk membatasi tinggi textarea saat konten panjang
-
-4. Peningkatan Header:
-   - Tambahkan shadow untuk memberikan kedalaman visual: `shadow-sm`
-   - Gunakan area klik yang lebih besar untuk tombol: `p-2` daripada `p-1`
-   - Tambahkan deskripsi singkat yang hanya muncul pada layar lebih besar: `hidden sm:block`
-   - Gunakan `transition-colors` untuk efek hover yang lebih halus
-
-5. Optimasi Panel Info:
-   - Gunakan `max-w-3xl mx-auto` untuk konsistensi lebar dengan konten lainnya
-   - Hapus tombol close yang redundan jika sudah ada di header
-   - Gunakan `p-4 md:p-6` untuk padding yang responsif
-   - Tambahkan `rounded-lg` dan `shadow-md` untuk tampilan yang lebih modern
-
-6. Peningkatan Contoh Pertanyaan:
-   - Tambahkan `shadow-sm` untuk kedalaman visual
-   - Gunakan `hover:bg-emerald-50 transition-colors` untuk feedback visual saat hover
-   - Tambahkan `textareaRef.current?.focus()` setelah memilih pertanyaan untuk UX yang lebih baik
-   - Gunakan `grid grid-cols-1 md:grid-cols-2 gap-2` untuk layout responsif
-
-7. Optimasi Performa Scrolling:
-   - Gunakan `requestAnimationFrame` untuk scrolling yang lebih smooth:
+1. State Management untuk File Upload:
    ```typescript
-   const scrollToBottom = () => {
-     requestAnimationFrame(() => {
-       if (containerRef.current) {
-         containerRef.current.scrollTo({
-           top: containerRef.current.scrollHeight,
-           behavior: 'smooth'
-         });
-       }
-     });
+   // State untuk tracking file
+   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+   // State untuk progress
+   const [progress, setProgress] = useState<{status: string, percent: number}>({
+     status: 'preparing',
+     percent: 0
+   });
+   const [showProgress, setShowProgress] = useState(false);
+   ```
+
+2. Implementasi File Input dan Handler:
+   ```typescript
+   // Ref untuk input file yang disembunyikan
+   const fileInputRef = useRef<HTMLInputElement>(null);
+   
+   // Handler untuk perubahan file
+   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+     if (e.target.files) {
+       const filesArray = Array.from(e.target.files);
+       setSelectedFiles(prev => [...prev, ...filesArray]);
+     }
+   };
+   
+   // Handler untuk menghapus file
+   const handleRemoveFile = (indexToRemove: number) => {
+     setSelectedFiles(prev => prev.filter((_, index) => index !== indexToRemove));
+   };
+   
+   // Fungsi untuk membuka dialog file
+   const handleOpenFileDialog = () => {
+     if (fileInputRef.current) {
+       fileInputRef.current.click();
+     }
    };
    ```
-   - Tambahkan `overscroll-contain` untuk mencegah bouncing pada iOS
-   - Gunakan `useEffect` dengan dependency `[messages.length]` untuk scroll otomatis saat pesan baru
 
-8. Perbaikan Responsivitas:
-   - Gunakan `space-y-6` daripada `space-y-4` untuk pemisahan pesan yang lebih baik
-   - Tambahkan `px-4 md:px-8` untuk padding horizontal yang responsif
-   - Gunakan `text-sm md:text-base` untuk ukuran teks yang responsif
-   - Terapkan `max-w-3xl mx-auto` pada semua container konten untuk konsistensi
+3. Komponen Progress Bar:
+   ```typescript
+   // Progress bar component
+   const ProgressBar = ({ percent = 0, status = 'uploading' }) => {
+     const getStatusText = () => {
+       switch (status) {
+         case 'preparing': return 'Mempersiapkan...';
+         case 'uploading': return 'Mengunggah file...';
+         case 'processing': return 'Memproses dokumen...';
+         case 'completed': return 'Selesai!';
+         default: return 'Memproses...';
+       }
+     };
+     
+     const getColor = () => {
+       switch (status) {
+         case 'completed': return 'bg-green-500';
+         case 'processing': return 'bg-blue-500';
+         case 'uploading': return 'bg-amber-500';
+         default: return 'bg-blue-500';
+       }
+     };
+     
+     return (
+       <div className="w-full mb-3">
+         <div className="flex justify-between items-center mb-1">
+           <span className="text-sm font-medium text-gray-700">{getStatusText()}</span>
+           <span className="text-sm font-medium text-gray-700">{percent}%</span>
+         </div>
+         <div className="w-full bg-gray-200 rounded-full h-2.5">
+           <div 
+             className={`h-2.5 rounded-full ${getColor()} transition-all duration-500 ease-in-out`} 
+             style={{ width: `${percent}%` }}
+           ></div>
+         </div>
+       </div>
+     );
+   };
+   ```
 
-9. Peningkatan Aksesibilitas:
-   - Tambahkan `aria-label` pada tombol: `aria-label="Kirim pesan"`
-   - Gunakan `disabled` state dengan styling yang jelas untuk tombol yang tidak aktif
-   - Tambahkan `aria-live="polite"` pada area pesan untuk screen reader
-   - Pastikan kontras warna memenuhi standar WCAG
+4. UI Elements untuk File Upload:
+   ```typescript
+   {/* File Upload Button */}
+   <button
+     type="button"
+     onClick={handleOpenFileDialog}
+     disabled={isProcessing}
+     className="absolute left-2 bottom-3 p-2 rounded-lg text-gray-500 hover:text-blue-500 hover:bg-blue-50 transition-colors z-20"
+     aria-label="Upload file"
+   >
+     <Paperclip className="w-5 h-5" />
+   </button>
+   
+   {/* Hidden file input */}
+   <input 
+     type="file" 
+     ref={fileInputRef}
+     onChange={handleFileChange}
+     className="hidden"
+     multiple
+     accept=".pdf,.doc,.docx,.txt,.csv,.xls,.xlsx,.jpg,.jpeg,.png"
+   />
+   
+   {/* File Preview Area */}
+   {selectedFiles.length > 0 && (
+     <div className="mb-3 flex flex-wrap gap-2">
+       {selectedFiles.map((file, index) => (
+         <div 
+           key={index}
+           className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-1 flex items-center gap-2 text-sm text-blue-700"
+         >
+           <File className="w-4 h-4" />
+           <span className="truncate max-w-[150px]">{file.name}</span>
+           <button 
+             onClick={() => handleRemoveFile(index)}
+             className="text-blue-500 hover:text-blue-700"
+             aria-label="Hapus file"
+           >
+             <XIcon className="w-4 h-4" />
+           </button>
+         </div>
+       ))}
+     </div>
+   )}
+   
+   {/* Progress Bar UI */}
+   {showProgress && (
+     <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4 shadow-sm">
+       <ProgressBar 
+         percent={progress.percent} 
+         status={progress.status}
+       />
+       <p className="text-xs text-gray-500 italic">
+         {progress.status === 'uploading' 
+           ? 'Mengunggah file besar memerlukan waktu, mohon jangan refresh halaman.' 
+           : progress.status === 'processing'
+           ? 'AI sedang menganalisis dokumen, proses ini mungkin memerlukan beberapa menit untuk file besar.'
+           : 'Sedang memproses...'}
+       </p>
+     </div>
+   )}
+   ```
 
-10. Optimasi untuk Perangkat Mobile:
-    - Gunakan `pb-safe` untuk padding yang aman di perangkat dengan notch/home indicator
-    - Hindari penggunaan `position: fixed` untuk input area pada perangkat mobile
-    - Gunakan flexbox layout untuk menghindari masalah dengan keyboard mobile
-    - Tambahkan `focus-within:ring-1` untuk feedback visual yang lebih baik saat focus
+5. Integrasi dengan Progress API:
+   ```typescript
+   // Setup progress listener
+   useEffect(() => {
+     const unsubscribe = onProgress((progressInfo) => {
+       setProgress({
+         status: progressInfo.status,
+         percent: progressInfo.percent || 0
+       });
+       
+       if (progressInfo.status === 'completed') {
+         // Hide progress after completion + delay
+         setTimeout(() => {
+           setShowProgress(false);
+         }, 1000);
+       } else {
+         setShowProgress(true);
+       }
+     });
+     
+     return () => {
+       unsubscribe();
+     };
+   }, []);
+   ```
+
+6. File Size Checking:
+   ```typescript
+   // Check if any file is large (> 5MB)
+   const hasLargeFile = selectedFiles.some(file => file.size > 5 * 1024 * 1024);
+   if (hasLargeFile) {
+     setShowProgress(true);
+   }
+   
+   // Log file sizes sebelum upload
+   if (selectedFiles.length > 0) {
+     console.log('Uploading files:');
+     selectedFiles.forEach((file, index) => {
+       console.log(`File ${index + 1}: ${file.name} - ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+     });
+   }
+   ```
+
+7. Error Handling untuk Upload File:
+   ```typescript
+   // Fungsi untuk menampilkan error yang lebih spesifik
+   const getErrorMessage = (error: any): string => {
+     if (!navigator.onLine) {
+       return 'Perangkat Anda sedang offline. Silakan periksa koneksi internet dan coba lagi.';
+     }
+     
+     if (error.message) {
+       // Jika error spesifik tentang ukuran file
+       if (error.message.includes('File terlalu besar')) {
+         return 'File terlalu besar. Harap gunakan file dengan ukuran lebih kecil (maksimal 50MB).';
+       }
+       
+       // Jika error timeout
+       if (error.message.includes('timeout') || error.message.includes('timed out')) {
+         return 'Permintaan timeout. File mungkin terlalu besar atau koneksi terlalu lambat.';
+       }
+       
+       // Jika error spesifik tentang rate limit
+       if (error.message.includes('Terlalu banyak permintaan')) {
+         return 'Terlalu banyak permintaan dalam waktu singkat. Silakan tunggu beberapa saat dan coba lagi.';
+       }
+       
+       // Jika ada pesan error spesifik lainnya, tampilkan
+       return error.message;
+     }
+     
+     // Default error message
+     return 'Terjadi masalah koneksi. Silakan periksa koneksi internet Anda dan coba lagi.';
+   };
+   ```
+
+8. Best Practices untuk File Upload:
+   - Gunakan accept attribute untuk membatasi jenis file yang dapat diunggah
+   - Tampilkan progress bar khususnya untuk file besar
+   - Berikan feedback visual untuk status upload (warna berbeda untuk status berbeda)
+   - Tampilkan pesan informatif selama proses upload
+   - Implementasikan mekanisme untuk menghapus file sebelum upload
+   - Truncate nama file yang terlalu panjang dengan class `truncate max-w-[150px]`
+   - Log ukuran file untuk debugging
+   - Nonaktifkan tombol upload selama proses upload
+   - Berikan pesan error yang spesifik untuk masalah umum (file terlalu besar, timeout, offline)
+   - Reset selectedFiles setelah upload berhasil
+
+9. Integrasi dengan Form Submission:
+   ```typescript
+   // Tetap memungkinkan submit jika ada file yang dipilih, bahkan jika inputMessage kosong
+   if ((selectedFiles.length === 0 && !inputMessage.trim()) || isProcessing) return;
+   
+   // Jika pesan kosong tapi ada file, tampilkan pesan default
+   content: inputMessage.trim() || (selectedFiles.length > 0 ? "Tolong analisis file yang saya kirimkan." : ""),
+   
+   // Kirim pesan dengan file jika ada
+   const response = await sendChatMessage(
+     userMessage.content, 
+     selectedFiles.length > 0 ? selectedFiles : undefined
+   );
+   
+   // Reset selected files setelah berhasil mengirim
+   setSelectedFiles([]);
+   setShowProgress(false);
+   ```
 
 # Scratchpad
 
@@ -1109,3 +812,194 @@ Untuk meningkatkan pengalaman pengguna textarea input pada perangkat mobile di h
 [X] Task: Membuat Agen Narkotika AI baru
 [X] Task: Meningkatkan UX Textarea Input Mobile
 [X] Task: Mendokumentasikan perubahan di .cursorrules
+[X] Task: Perbaikan textarea input pada mobile devices di SiberChatPage.tsx
+
+## Progress dan Milestone Textarea Mobile UI
+
+Perbaikan yang telah dilakukan:
+1. Menambahkan atribut readOnly={false} secara eksplisit
+2. Menambahkan autoComplete="off" untuk mencegah masalah autofill
+3. Menambahkan focus pada komponen mount dengan setTimeout (500ms)
+4. Memperbaiki z-index untuk textarea (z-10) dan tombol (z-20)
+5. Mengubah posisi tombol dari bottom-2 menjadi bottom-3
+6. Menonaktifkan submit on Enter untuk kompatibilitas mobile
+7. Menambahkan type="button" pada tombol untuk mencegah form submission
+8. Implementasi penyesuaian tinggi textarea secara dinamis
+
+Hasil:
+- Keyboard virtual sekarang muncul dengan baik di perangkat mobile
+- Tombol dapat diklik tanpa masalah
+- Tidak ada overlap antara elemen UI
+- Tinggi textarea menyesuaikan dengan konten secara otomatis
+- UX yang lebih baik untuk pengguna mobile
+
+## Progress Implementasi File Upload
+
+Fitur yang telah diimplementasikan:
+1. Upload dan preview beragam jenis file (.pdf, .doc, .docx, .txt, .csv, .xls, .xlsx, .jpg, .jpeg, .png)
+2. Tampilan progress bar dengan status yang berbeda (preparing, uploading, processing, completed)
+3. Kemampuan untuk menghapus file sebelum dikirim
+4. Deteksi file besar (>5MB) untuk menampilkan progress bar secara otomatis
+5. Pesan informatif sesuai dengan tahap upload (uploading, processing)
+6. Error handling spesifik untuk masalah umum dalam file upload
+7. Multiple file upload support
+8. Integrasi dengan form message (bisa kirim pesan dengan atau tanpa file)
+
+Hasil:
+- Interface yang user-friendly untuk upload file
+- Feedback visual yang jelas selama proses upload
+- Error messages yang lebih informatif
+- Integrasi mulus dengan chat interface
+- Support untuk berbagai jenis file yang relevan
+
+## Firebase Implementation Lessons
+
+### Authentication Best Practices
+
+- Gunakan `AuthContext` sebagai single source of truth untuk state autentikasi
+- Implementasikan loading state selama proses auth initialization untuk mencegah flash content
+- Implementasikan ProtectedRoute untuk mencegah akses ke halaman tertentu tanpa login
+- Gunakan atribut `referrerPolicy="no-referrer"` pada tag img saat menampilkan photoURL dari Google untuk menghindari masalah CORS
+- Implementasikan error handling untuk avatar yang gagal dimuat dengan fallback ke inisial
+- Gunakan `onAuthStateChanged` sebagai source of truth dibanding menyimpan state user secara manual
+
+### User Management
+
+- Saat mengubah email, selalu lakukan re-otentikasi terlebih dahulu:
+  ```typescript
+  const credential = EmailAuthProvider.credential(currentUser.email!, currentPassword);
+  await reauthenticateWithCredential(currentUser, credential);
+  await updateEmail(currentUser, email);
+  ```
+- Saat mengubah password, selalu validasi:
+  1. Password baru dan konfirmasi cocok
+  2. Password memenuhi kriteria keamanan (min 6 karakter)
+  3. User telah melakukan re-otentikasi
+
+- Gunakan state untuk menampilkan pesan error/success yang spesifik
+  ```typescript
+  setMessage({ 
+    type: 'error', 
+    text: error.code === 'auth/wrong-password'
+      ? 'Password saat ini salah'
+      : error.code === 'auth/requires-recent-login'
+      ? 'Silakan login ulang untuk melakukan perubahan ini'
+      : 'Gagal mengubah password'
+  });
+  ```
+
+### Profile Display
+
+- Untuk menampilkan foto profil dari Google:
+  - Selalu gunakan handler error untuk fallback ke tampilan alternatif
+  - Tambahkan atribut `referrerPolicy="no-referrer"` untuk mencegah masalah CORS
+  - Tambahkan class `object-cover` untuk memastikan gambar pas dengan container
+  - Reset error state saat user berubah
+
+- Jika tidak ada foto profil, generate inisial dari nama:
+  ```typescript
+  const getInitials = () => {
+    if (!currentUser?.displayName) return 'U';
+    return currentUser.displayName
+      .split(' ')
+      .map(name => name[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
+  ```
+
+### Form Validation
+
+- Validasi form di client side sebelum mengirim ke Firebase
+- Tampilkan pesan error yang spesifik berdasarkan Firebase error code
+- Nonaktifkan tombol submit selama proses loading
+- Reset form setelah submit berhasil
+
+### Security
+
+- Jangan simpan token Firebase di localStorage, gunakan mekanisme cookie yang secure
+- Gunakan environment variables untuk menyimpan Firebase config
+- Implementasikan validasi di sisi server melalui Firebase Rules
+- Jangan menggunakan `console.log` untuk informasi sensitif seperti error authentication yang lengkap
+- Gunakan timeout yang sesuai untuk operasi Firebase
+
+### Firestore Session Management
+
+- Hindari menyimpan nilai `undefined` ke dokumen Firestore:
+  ```typescript
+  // SALAH
+  await setDoc(docRef, {
+    field: data.value || undefined // Error: Unsupported field value: undefined
+  });
+  
+  // BENAR - Pendekatan 1: Gunakan objek update
+  const updateData = { timestamp: Timestamp.now() };
+  if (data.value) updateData.field = data.value;
+  await setDoc(docRef, updateData);
+  
+  // BENAR - Pendekatan 2: Gunakan conditional object spread
+  await setDoc(docRef, {
+    timestamp: Timestamp.now(),
+    ...(data.value ? { field: data.value } : {})
+  });
+  ```
+
+- Implementasikan mekanisme fallback untuk offline mode:
+  ```typescript
+  // Cek ketersediaan Firestore dan gunakan fallback ID jika tidak tersedia
+  const firestoreAvailable = await checkFirestoreConnection().catch(() => false);
+  if (!firestoreAvailable) {
+    console.warn('Firestore not available, using local session mode');
+    return `offline_${uuidv4()}`;
+  }
+  ```
+
+- Gunakan soft delete untuk menghapus sesi alih-alih hard delete:
+  ```typescript
+  // Tandai sesi sebagai dihapus (soft delete)
+  await setDoc(sessionRef, { 
+    deleted: true,
+    deletedAt: Timestamp.now()
+  }, { merge: true });
+  ```
+
+- Validasi kepemilikan dokumen sebelum operasi:
+  ```typescript
+  // Validasi bahwa sesi ini milik user
+  const sessionDoc = await getDoc(sessionRef);
+  if (!sessionDoc.exists() || sessionDoc.data().userId !== auth.currentUser.uid) {
+    throw new Error('Sesi tidak valid');
+  }
+  ```
+
+- Gunakan `onSnapshot` untuk sinkronisasi realtime sesi di beberapa perangkat
+
+- Implementasikan `checkFirestoreConnection` untuk verifikasi koneksi sebelum operasi database:
+  ```typescript
+  export const checkFirestoreConnection = async (): Promise<boolean> => {
+    try {
+      const testRef = doc(db, '_connection_test', 'test');
+      await setDoc(testRef, { timestamp: serverTimestamp() }, { merge: true });
+      return true;
+    } catch (error) {
+      console.error('Firestore connection error:', error);
+      return false;
+    }
+  };
+  ```
+
+- Gunakan firestore path yang konsisten untuk struktur data:
+  - `/users/{userId}` untuk data dan preferensi pengguna
+  - `/sessions/{sessionId}` untuk menyimpan metadata sesi
+  - `/sessions/{sessionId}/messages/{messageId}` untuk pesan dalam sesi
+
+- Gunakan kueri compound untuk pengambilan sesi:
+  ```typescript
+  const q = query(
+    sessionsRef, 
+    where('userId', '==', userId),
+    where('agentType', '==', 'agent-type'),
+    orderBy('updatedAt', 'desc')
+  );
+  ```
