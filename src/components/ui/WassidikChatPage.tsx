@@ -288,7 +288,7 @@ const WassidikChatPage: React.FC<WassidikChatPageProps> = ({ onBack }) => {
         {/* Chat Container */}
         <div 
           ref={chatContainerRef}
-          className="flex-1 overflow-y-auto px-4 py-6 md:px-8 relative"
+          className="flex-1 overflow-y-auto px-4 py-6 md:px-8 relative pb-32"
         >
           <div className="absolute inset-0 opacity-50">
             <DotBackground />
@@ -431,9 +431,9 @@ const WassidikChatPage: React.FC<WassidikChatPageProps> = ({ onBack }) => {
         </div>
 
         {/* Input Area */}
-        <div className="border-t border-gray-200 bg-white p-4 md:px-8 pb-6 md:pb-4">
+        <div className="border-t border-gray-200 bg-white p-4 md:px-8 pb-4">
           <div className="max-w-3xl mx-auto">
-            <div className="relative">
+            <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="relative">
               <Textarea
                 ref={textareaRef}
                 rows={1} // Start with one row
@@ -441,14 +441,15 @@ const WassidikChatPage: React.FC<WassidikChatPageProps> = ({ onBack }) => {
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
                 placeholder="Ketik pesan Anda..."
-                className="resize-none pr-12 py-3 max-h-[200px] rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm overflow-y-auto"
+                className="resize-none pl-4 pr-12 py-3 max-h-[200px] rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm overflow-y-auto"
                 disabled={isProcessing}
               />
               <Button
+                type="submit"
                 onClick={handleSubmit}
                 disabled={!inputMessage.trim() || isProcessing}
                 className={cn(
-                  "absolute right-2 bottom-2 p-2 rounded-lg",
+                  "absolute bottom-2.5 right-2.5 h-8 w-8 p-0 rounded-lg",
                   !inputMessage.trim() || isProcessing
                     ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                     : "bg-blue-600 text-white hover:bg-blue-700"
@@ -456,12 +457,12 @@ const WassidikChatPage: React.FC<WassidikChatPageProps> = ({ onBack }) => {
                 aria-label="Kirim pesan"
               >
                 {isProcessing ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <Send className="w-5 h-5" />
+                  <Send className="w-4 h-4" />
                 )}
               </Button>
-            </div>
+            </form>
             <p className="text-xs text-gray-500 mt-2 text-center">
               Wassidik AI dapat memberikan informasi yang tidak akurat. Verifikasi fakta penting dengan dokumen resmi.
             </p>

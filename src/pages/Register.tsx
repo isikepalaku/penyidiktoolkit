@@ -192,6 +192,13 @@ export default function Register() {
             {googleLoading ? 'Memproses...' : 'Daftar dengan Google'}
           </button>
         </div>
+
+        {/* Disclaimer */}
+        <div className="mt-4 bg-gray-100 dark:bg-gray-700 p-3 rounded-md">
+          <p className="text-center text-xs text-gray-600 dark:text-gray-300">
+            Registrasi diperlukan untuk mencegah akses tidak sah dan membatasi beban pada server kami, bukan untuk mengumpulkan data pribadi Anda.
+          </p>
+        </div>
         
         <div className="mt-4 text-center">
           <p className="text-sm text-gray-600 dark:text-gray-400">

@@ -168,6 +168,13 @@ export default function Login() {
             {googleLoading ? 'Memproses...' : 'Masuk dengan Google'}
           </button>
         </div>
+
+        {/* Disclaimer */}
+        <div className="mt-4 bg-gray-100 dark:bg-gray-700 p-3 rounded-md">
+          <p className="text-center text-xs text-gray-600 dark:text-gray-300">
+            Login diperlukan untuk mencegah akses tidak sah dan membatasi beban pada server kami, bukan untuk mengumpulkan data pribadi Anda.
+          </p>
+        </div>
         
         <div className="mt-4 text-center">
           <p className="text-sm text-gray-600 dark:text-gray-400">
