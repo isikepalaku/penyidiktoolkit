@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, Copy, Check, Loader2, Info, X } from 'lucide-react';
+import { ArrowLeft, Send, Copy, Check, Loader2, Info, X, ChevronDown } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { Button } from './button';
 import { Textarea } from './textarea';
@@ -27,16 +27,37 @@ interface Message {
   isAnimating?: boolean;
 }
 
-// Skeleton component for loading state - using AnimatedBotIcon, text, and pulse
+// Skeleton component for loading state - improved with more realistic structure
 const SkeletonMessage = () => (
   <div className="flex items-start space-x-3">
     <AnimatedBotIcon className="w-5 h-5 flex-shrink-0 mt-1" />
-    <div className="flex-1 space-y-2 py-1">
-      <p className="text-xs text-gray-500 italic mb-1">Sedang menyusun hasil...</p>
-      <div className="space-y-2 animate-pulse"> {/* Add animate-pulse here */}
-        <div className="h-4 bg-gray-300 rounded w-3/4"></div>
-        <div className="h-4 bg-gray-300 rounded w-1/2"></div>
-        <div className="h-4 bg-gray-300 rounded w-5/6"></div>
+    <div className="flex-1 space-y-3 py-1">
+      <p className="text-xs text-gray-500 italic mb-2">Sedang menyusun hasil...</p>
+      <div className="space-y-3 animate-pulse">
+        {/* First paragraph-like block */}
+        <div className="space-y-2">
+          <div className="h-4 bg-gray-300 rounded w-full"></div>
+          <div className="h-4 bg-gray-300 rounded w-[90%]"></div>
+          <div className="h-4 bg-gray-300 rounded w-[95%]"></div>
+        </div>
+        
+        {/* Second paragraph with space between */}
+        <div className="space-y-2">
+          <div className="h-4 bg-gray-300 rounded w-[85%]"></div>
+          <div className="h-4 bg-gray-300 rounded w-[70%]"></div>
+        </div>
+        
+        {/* Simulated list items */}
+        <div className="pl-4 space-y-2">
+          <div className="flex items-start">
+            <div className="h-3 w-3 mt-0.5 rounded-full bg-gray-300 mr-2 flex-shrink-0"></div>
+            <div className="h-4 flex-grow bg-gray-300 rounded w-[90%]"></div>
+          </div>
+          <div className="flex items-start">
+            <div className="h-3 w-3 mt-0.5 rounded-full bg-gray-300 mr-2 flex-shrink-0"></div>
+            <div className="h-4 flex-grow bg-gray-300 rounded w-[80%]"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -52,10 +73,26 @@ const PerkabaChatPage: React.FC<PerkabaChatPageProps> = ({ onBack }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
+  const [userHasScrolled, setUserHasScrolled] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const scrollTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const focusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isDesktopRef = useRef<boolean>(false);
+
+  // Reusable function to adjust textarea height
+  const adjustTextareaHeight = (textarea: HTMLTextAreaElement | null) => {
+    if (!textarea) return;
+    
+    // Reset the height temporarily to get the correct scrollHeight
+    textarea.style.height = 'auto';
+    
+    // Set the height to match content
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  };
 
   // Initialize session
   useEffect(() => {
@@ -70,50 +107,120 @@ const PerkabaChatPage: React.FC<PerkabaChatPageProps> = ({ onBack }) => {
       },
     ]);
 
+    // Detect if desktop (for Enter key handling)
+    isDesktopRef.current = window.innerWidth >= 1024;
+    
     // Focus textarea after component mounts with slight delay for mobile
-    setTimeout(() => {
+    focusTimeoutRef.current = setTimeout(() => {
       if (textareaRef.current) {
         textareaRef.current.focus();
+        // Also initialize height
+        adjustTextareaHeight(textareaRef.current);
       }
     }, 500);
     
     return () => {
       // Clear chat history when component unmounts
       clearChatHistory();
+      // Clear any hanging timeouts
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
+      }
+      if (scrollTimerRef.current) {
+        clearTimeout(scrollTimerRef.current);
+      }
     };
   }, []);
 
+  // Handle scroll detection
+  useEffect(() => {
+    const container = chatContainerRef.current;
+    if (!container) return;
+    
+    const handleScroll = () => {
+      if (!container) return;
+      
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const isScrolledToBottom = scrollHeight - scrollTop - clientHeight < 100;
+      
+      if (!isScrolledToBottom && !userHasScrolled) {
+        setUserHasScrolled(true);
+      }
+      
+      setShowScrollButton(!isScrolledToBottom);
+    };
+    
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [userHasScrolled]);
+
   // Scroll to bottom when messages change
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const scrollToBottom = () => {
-    requestAnimationFrame(() => {
-      if (chatContainerRef.current) {
-        chatContainerRef.current.scrollTo({
-          top: chatContainerRef.current.scrollHeight,
-          behavior: 'smooth',
-        });
+    if (messages.length > 0) {
+      // Reset scroll state when sending a new message
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.type === 'user') {
+        setUserHasScrolled(false);
       }
-    });
+      
+      // Only auto-scroll if user hasn't manually scrolled up
+      if (!userHasScrolled) {
+        scrollToBottom();
+      }
+    }
+  }, [messages, userHasScrolled]);
+
+  const scrollToBottom = (forceScroll = false) => {
+    try {
+      // Use requestAnimationFrame for smoother scrolling
+      requestAnimationFrame(() => {
+        if (chatContainerRef.current && (forceScroll || !userHasScrolled)) {
+          const { scrollHeight } = chatContainerRef.current;
+          
+          chatContainerRef.current.scrollTo({
+            top: scrollHeight,
+            behavior: 'smooth',
+          });
+          
+          // Fallback mechanism in case smooth scrolling doesn't work
+          if (scrollTimerRef.current) {
+            clearTimeout(scrollTimerRef.current);
+          }
+          
+          scrollTimerRef.current = setTimeout(() => {
+            if (chatContainerRef.current) {
+              chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+            }
+          }, 300);
+          
+          // Reset user scroll state if forced
+          if (forceScroll) {
+            setUserHasScrolled(false);
+            setShowScrollButton(false);
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error scrolling to bottom:', error);
+      // Fallback direct scrolling
+      if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      }
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputMessage(e.target.value);
-    // Adjust height dynamically
-    const textarea = e.target;
-    textarea.style.height = 'auto'; // Reset height to recalculate
-    textarea.style.height = `${textarea.scrollHeight}px`; // Set to scroll height
+    // Use the reusable function to adjust height
+    adjustTextareaHeight(e.target);
   };
 
-  const handleKeyDown = (_e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Remove Enter key submission for mobile compatibility
-    // Submission is handled by the Send button
-    // if (_e.key === 'Enter' && !_e.shiftKey) {
-    //   _e.preventDefault();
-    //   handleSubmit();
-    // }
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Only use Enter to submit on desktop, not on mobile
+    if (isDesktopRef.current && e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
   };
 
   const handleSubmit = async () => {
@@ -130,8 +237,11 @@ const PerkabaChatPage: React.FC<PerkabaChatPageProps> = ({ onBack }) => {
     // Reset textarea height after clearing input
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
+      textareaRef.current.blur(); // Hide keyboard on mobile
     }
     setIsProcessing(true);
+    // Reset scroll position state
+    setUserHasScrolled(false);
 
     try {
       // Add a placeholder bot message with animation
@@ -236,6 +346,10 @@ const PerkabaChatPage: React.FC<PerkabaChatPageProps> = ({ onBack }) => {
     }
   };
 
+  const handleScrollToBottom = () => {
+    scrollToBottom(true); // Force scroll to bottom
+  };
+
   // Example questions for the user
   const exampleQuestions = [
     "Apa yang dimaksud dengan SOP Lidik Sidik?",
@@ -243,6 +357,17 @@ const PerkabaChatPage: React.FC<PerkabaChatPageProps> = ({ onBack }) => {
     "Jelaskan tahapan penyelidikan menurut SOP",
     "Apa saja persyaratan untuk melakukan penyidikan?"
   ];
+
+  const handleSelectQuestion = (question: string) => {
+    setInputMessage(question);
+    // Focus and adjust height after setting content
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        adjustTextareaHeight(textareaRef.current);
+      }
+    }, 10);
+  };
 
   return (
     <div className="flex h-screen bg-gray-50 lg:pl-64">
@@ -326,12 +451,7 @@ const PerkabaChatPage: React.FC<PerkabaChatPageProps> = ({ onBack }) => {
                   {exampleQuestions.map((question, index) => (
                     <button
                       key={index}
-                      onClick={() => {
-                        setInputMessage(question);
-                        if (textareaRef.current) {
-                          textareaRef.current.focus();
-                        }
-                      }}
+                      onClick={() => handleSelectQuestion(question)}
                       className="text-left p-3 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors shadow-sm"
                     >
                       {question}
@@ -437,6 +557,17 @@ const PerkabaChatPage: React.FC<PerkabaChatPageProps> = ({ onBack }) => {
             <div ref={messagesEndRef} />
           </div>
         </div>
+
+        {/* Scroll to bottom button */}
+        {showScrollButton && (
+          <button
+            onClick={handleScrollToBottom}
+            className="fixed bottom-28 right-4 md:right-8 z-20 bg-purple-600 text-white p-2 rounded-full shadow-lg hover:bg-purple-700 transition-all duration-200 flex items-center justify-center"
+            aria-label="Scroll ke bawah"
+          >
+            <ChevronDown className="h-5 w-5" />
+          </button>
+        )}
 
         {/* Input Area */}
         <div className="border-t border-gray-200 bg-white p-4 md:px-8 pb-safe">

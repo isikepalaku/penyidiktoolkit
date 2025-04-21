@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, Copy, Check, Loader2, Info, X, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Send, Copy, Check, Loader2, Info, X, RefreshCw, ChevronDown } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { Button } from './button';
 import { Textarea } from './textarea';
@@ -36,22 +36,37 @@ interface Message {
   isAnimating?: boolean;
 }
 
-// Enhanced Skeleton component for loading state - more realistic text representation
+// Skeleton component for loading state - improved with more realistic structure
 const SkeletonMessage = () => (
   <div className="flex items-start space-x-3">
     <AnimatedBotIcon className="w-5 h-5 flex-shrink-0 mt-1" />
     <div className="flex-1 space-y-3 py-1">
-      <p className="text-xs text-gray-500 italic mb-1">Sedang menyusun hasil...</p>
+      <p className="text-xs text-gray-500 italic mb-2">Sedang menyusun hasil...</p>
       <div className="space-y-3 animate-pulse">
-        <div className="h-4 bg-gray-300 rounded w-[85%]"></div>
-        <div className="h-4 bg-gray-300 rounded w-[92%]"></div>
-        <div className="h-4 bg-gray-300 rounded w-[78%]"></div>
-        <div className="flex space-x-2">
-          <div className="h-4 bg-gray-300 rounded w-[100px]"></div>
-          <div className="h-4 bg-gray-300 rounded w-[120px]"></div>
+        {/* First paragraph-like block */}
+        <div className="space-y-2">
+          <div className="h-4 bg-gray-300 rounded w-full"></div>
+          <div className="h-4 bg-gray-300 rounded w-[90%]"></div>
+          <div className="h-4 bg-gray-300 rounded w-[95%]"></div>
         </div>
-        <div className="h-4 bg-gray-300 rounded w-[88%]"></div>
-        <div className="h-4 bg-gray-300 rounded w-[75%]"></div>
+        
+        {/* Second paragraph with space between */}
+        <div className="space-y-2">
+          <div className="h-4 bg-gray-300 rounded w-[85%]"></div>
+          <div className="h-4 bg-gray-300 rounded w-[70%]"></div>
+        </div>
+        
+        {/* Simulated list items */}
+        <div className="pl-4 space-y-2">
+          <div className="flex items-start">
+            <div className="h-3 w-3 mt-0.5 rounded-full bg-gray-300 mr-2 flex-shrink-0"></div>
+            <div className="h-4 flex-grow bg-gray-300 rounded w-[90%]"></div>
+          </div>
+          <div className="flex items-start">
+            <div className="h-3 w-3 mt-0.5 rounded-full bg-gray-300 mr-2 flex-shrink-0"></div>
+            <div className="h-4 flex-grow bg-gray-300 rounded w-[80%]"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -76,19 +91,33 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
   const [showInfo, setShowInfo] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isConnectionError, setIsConnectionError] = useState(false);
-  const [isScrollingPaused, setIsScrollingPaused] = useState(false);
+  const [userHasScrolled, setUserHasScrolled] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const scrollTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const focusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isDesktopRef = useRef<boolean>(false);
+
+  // Reusable function to adjust textarea height
+  const adjustTextareaHeight = (textarea: HTMLTextAreaElement | null) => {
+    if (!textarea) return;
+    
+    // Reset the height temporarily to get the correct scrollHeight
+    textarea.style.height = 'auto';
+    
+    // Set the height to match content
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  };
 
   useEffect(() => {
     // Initialize chat session
     try {
       initializeSession();
-      console.log('TipidkorChatPage: Session initialized');
       
-      // Set empty welcome message to trigger welcome UI if tidak ada messages yang disimpan
+      // Set empty welcome message to trigger welcome UI if tidak ada messages
       if (messages.length === 0) {
         setMessages([
           {
@@ -98,6 +127,18 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
           }
         ]);
       }
+      
+      // Detect if desktop (for Enter key handling)
+      isDesktopRef.current = window.innerWidth >= 1024;
+      
+      // Focus textarea after component mounts with slight delay for mobile
+      focusTimeoutRef.current = setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+          // Also initialize height
+          adjustTextareaHeight(textareaRef.current);
+        }
+      }, 500);
     } catch (error) {
       console.error('Error initializing session:', error);
       setHasError(true);
@@ -119,98 +160,109 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
       } catch (error) {
         console.error('Error clearing chat history:', error);
       }
+      // Clear any hanging timeouts
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
+      }
+      if (scrollTimerRef.current) {
+        clearTimeout(scrollTimerRef.current);
+      }
     };
   }, []);
 
-  // Initialize textarea resize when component mounts
-  useEffect(() => {
-    if (textareaRef.current) {
-      // Auto-focus input on mount for better UX
-      setTimeout(() => {
-        textareaRef.current?.focus();
-      }, 500);
-      
-      // Set initial height
-      adjustTextareaHeight(textareaRef.current);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!isScrollingPaused) {
-      scrollToBottom();
-    }
-  }, [messages, isScrollingPaused]);
-  
-  // Detect user scroll to pause auto-scrolling temporarily
+  // Handle scroll detection
   useEffect(() => {
     const container = chatContainerRef.current;
     if (!container) return;
     
     const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = container;
-      const isScrolledUp = scrollHeight - scrollTop - clientHeight > 100;
+      if (!container) return;
       
-      setIsScrollingPaused(isScrolledUp);
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const isScrolledToBottom = scrollHeight - scrollTop - clientHeight < 100;
+      
+      if (!isScrolledToBottom && !userHasScrolled) {
+        setUserHasScrolled(true);
+      }
+      
+      setShowScrollButton(!isScrolledToBottom);
     };
     
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [userHasScrolled]);
 
-  const scrollToBottom = () => {
-    try {
-      // Use a more reliable scrolling approach with fallbacks
-      if (chatContainerRef.current) {
-        const scrollOptions = { 
-          top: chatContainerRef.current.scrollHeight,
-          behavior: 'smooth' as ScrollBehavior
-        };
-        
-        // First try with requestAnimationFrame for smoother scrolling
-        requestAnimationFrame(() => {
-          try {
-            chatContainerRef.current?.scrollTo(scrollOptions);
-          } catch (error) {
-            console.error('Error in RAF scrolling:', error);
-            // Fallback to direct scrolling if RAF fails
-            try {
-              chatContainerRef.current!.scrollTop = chatContainerRef.current!.scrollHeight;
-            } catch (innerError) {
-              console.error('Error in fallback scrolling:', innerError);
-            }
-          }
-        });
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      // Reset scroll state when sending a new message
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.type === 'user') {
+        setUserHasScrolled(false);
       }
+      
+      // Only auto-scroll if user hasn't manually scrolled up
+      if (!userHasScrolled) {
+        scrollToBottom();
+      }
+    }
+  }, [messages, userHasScrolled]);
+
+  const scrollToBottom = (forceScroll = false) => {
+    try {
+      // Use requestAnimationFrame for smoother scrolling
+      requestAnimationFrame(() => {
+        if (chatContainerRef.current && (forceScroll || !userHasScrolled)) {
+          const { scrollHeight } = chatContainerRef.current;
+          
+          chatContainerRef.current.scrollTo({
+            top: scrollHeight,
+            behavior: 'smooth',
+          });
+          
+          // Fallback mechanism in case smooth scrolling doesn't work
+          if (scrollTimerRef.current) {
+            clearTimeout(scrollTimerRef.current);
+          }
+          
+          scrollTimerRef.current = setTimeout(() => {
+            if (chatContainerRef.current) {
+              chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+            }
+          }, 300);
+          
+          // Reset user scroll state if forced
+          if (forceScroll) {
+            setUserHasScrolled(false);
+            setShowScrollButton(false);
+          }
+        }
+      });
     } catch (error) {
       console.error('Error scrolling to bottom:', error);
+      // Fallback direct scrolling
+      if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      }
     }
-  };
-
-  // Extract the textarea adjustment logic to a reusable function
-  const adjustTextareaHeight = (textarea: HTMLTextAreaElement) => {
-    textarea.style.height = 'auto'; // Reset height to recalculate
-    
-    // Calculate the minimum height (1 row)
-    const minHeight = 24; // approximate height of one row
-    
-    // Set to the greater of scrollHeight or minHeight
-    const newHeight = Math.max(textarea.scrollHeight, minHeight);
-    textarea.style.height = `${newHeight}px`;
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputMessage(e.target.value);
-    
-    // Use the extracted function for height adjustment
+    // Use the reusable function to adjust height
     adjustTextareaHeight(e.target);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Enable Enter key submission for desktop while preserving Shift+Enter for new lines
-    if (e.key === 'Enter' && !e.shiftKey && window.innerWidth >= 768) {
+    // Only use Enter to submit on desktop, not on mobile
+    if (isDesktopRef.current && e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit();
     }
+  };
+  
+  const handleScrollToBottom = () => {
+    scrollToBottom(true); // Force scroll to bottom
   };
 
   const handleCopy = (text: string) => {
@@ -264,26 +316,23 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
     }
   };
 
-  // Example questions yang relevan dengan tindak pidana korupsi
+  // Example questions for Tipidkor
   const exampleQuestions = [
-    "Apa saja unsur yang harus dibuktikan dalam tindak pidana suap terhadap penyelenggara negara menurut UU Tipikor?",
-    "Bagaimana metode penyidik dalam menelusuri aliran dana hasil korupsi, dan apakah pembuktian terbalik berlaku?",
-    "Apa perbedaan antara gratifikasi yang wajib dilaporkan ke KPK dan gratifikasi yang dapat dijerat sebagai tindak pidana korupsi?",
-    "Bagaimana peran Aparat Pengawasan Intern Pemerintah (APIP) dalam proses penyelidikan kasus dugaan penyalahgunaan anggaran proyek daerah?"
+    "Apa unsur pidana korupsi?",
+    "Jelaskan tentang gratifikasi",
+    "Bagaimana proses pembuktian terbalik?",
+    "Apa sanksi untuk tindak pidana korupsi?"
   ];
 
   const handleSelectQuestion = (question: string) => {
     setInputMessage(question);
-    if (textareaRef.current) {
-      textareaRef.current.focus();
-      
-      // Adjust height for the new content
-      setTimeout(() => {
-        if (textareaRef.current) {
-          adjustTextareaHeight(textareaRef.current);
-        }
-      }, 0);
-    }
+    // Focus and adjust height after setting content
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        adjustTextareaHeight(textareaRef.current);
+      }
+    }, 10);
   };
 
   const handleSubmit = async () => {
@@ -300,13 +349,12 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
     // Reset textarea height after clearing input
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
+      textareaRef.current.blur(); // Hide keyboard on mobile
     }
-    
-    // Reset scrolling pause when sending a new message
-    setIsScrollingPaused(false);
-    
     setIsProcessing(true);
     setIsConnectionError(false);
+    // Reset scroll position state
+    setUserHasScrolled(false);
 
     try {
       // Add a placeholder bot message with animation
@@ -395,7 +443,7 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
             </Button>
             <div>
               <h1 className="font-semibold">TIPIDKOR AI</h1>
-              <p className="text-sm text-gray-600 hidden sm:block">Asisten untuk tindak pidana korupsi</p>
+              <p className="text-sm text-gray-600 hidden sm:block">Asisten untuk Tindak Pidana Korupsi</p>
             </div>
           </div>
         </header>
@@ -436,7 +484,7 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
           </Button>
           <div>
             <h1 className="font-semibold">TIPIDKOR AI</h1>
-            <p className="text-sm text-gray-600 hidden sm:block">Asisten untuk tindak pidana korupsi</p>
+            <p className="text-sm text-gray-600 hidden sm:block">Asisten untuk Tindak Pidana Korupsi</p>
           </div>
         </div>
         
@@ -469,7 +517,7 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
             <div className="ml-3">
               <h3 className="text-sm font-medium text-red-800">Informasi TIPIDKOR AI</h3>
               <div className="mt-2 text-sm text-red-700">
-                <p>TIPIDKOR AI merupakan asisten kepolisian yang membantu dalam penanganan tindak pidana korupsi. Asisten ini dapat menjawab pertanyaan terkait UU Tipikor, penyelidikan kasus korupsi, dan penanganan kasus-kasus tipikor.</p>
+                <p>TIPIDKOR AI merupakan asisten kepolisian yang membantu dalam penanganan tindak pidana korupsi. Asisten ini dapat menjawab pertanyaan terkait pencegahan dan penindakan korupsi, regulasi anti-korupsi, dan terminologi korupsi.</p>
               </div>
               <button 
                 className="mt-2 text-sm font-medium text-red-600 hover:text-red-500 focus:outline-none"
@@ -493,7 +541,7 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
               <div className="flex flex-col items-center justify-center h-[50vh] text-center">
                 <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-4">
                   <img 
-                    src="/img/tipidkor.svg"
+                    src="/img/krimsus.png"
                     alt="Krimsus"
                     className="w-16 h-16 object-contain"
                   />
@@ -539,21 +587,6 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
               </div>
             )}
 
-            {/* New message notification when scrolled up */}
-            {isScrollingPaused && messages.length > 1 && (
-              <div className="sticky top-2 z-10 flex justify-center">
-                <button
-                  onClick={() => {
-                    setIsScrollingPaused(false);
-                    scrollToBottom();
-                  }}
-                  className="bg-red-600 text-white px-4 py-2 rounded-full text-sm font-medium shadow-md hover:bg-red-700 transition-colors"
-                >
-                  Scroll ke bawah
-                </button>
-              </div>
-            )}
-
             {/* Chat Messages */}
             {messages.map((message, index) => (
               // Hanya tampilkan message dengan content (kecuali animating placeholder)
@@ -577,7 +610,17 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
                     {message.type === "bot" && !message.isAnimating ? (
                       <>
                         <div 
-                          className="prose prose-sm max-w-none"
+                          className="prose prose-sm max-w-none overflow-x-auto
+                                    prose-headings:font-bold prose-headings:text-red-800 prose-headings:my-4
+                                    prose-h1:text-xl prose-h2:text-lg prose-h3:text-base
+                                    prose-p:my-2 prose-p:text-gray-700
+                                    prose-ul:pl-6 prose-ul:my-2 prose-ol:pl-6 prose-ol:my-2
+                                    prose-li:my-1
+                                    prose-table:border-collapse prose-table:my-4
+                                    prose-th:bg-red-50 prose-th:p-2 prose-th:border prose-th:border-gray-300
+                                    prose-td:p-2 prose-td:border prose-td:border-gray-300
+                                    prose-strong:font-bold prose-strong:text-gray-800
+                                    prose-a:text-red-600 prose-a:underline hover:prose-a:text-red-800"
                           dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
                         />
                         <div className="flex justify-end mt-2">
@@ -610,6 +653,17 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
         </DotBackground>
       </div>
 
+      {/* Scroll to bottom button */}
+      {showScrollButton && (
+        <button
+          onClick={handleScrollToBottom}
+          className="fixed bottom-28 right-4 md:right-8 z-20 bg-red-600 text-white p-2 rounded-full shadow-lg hover:bg-red-700 transition-all duration-200 flex items-center justify-center"
+          aria-label="Scroll ke bawah"
+        >
+          <ChevronDown className="h-5 w-5" />
+        </button>
+      )}
+
       {/* Input area fixed at bottom */}
       <div className="border-t border-gray-200 bg-white p-4 md:px-8 pb-safe">
         <div className="max-w-3xl mx-auto">
@@ -621,16 +675,22 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder="Ketik pesan..."
-              className="pl-4 pr-12 py-3 max-h-[200px] rounded-xl border border-gray-300 focus:border-red-500 focus:ring-1 focus:ring-red-500 resize-none overflow-y-auto"
+              className="resize-none pl-4 pr-12 py-3 max-h-[200px] rounded-xl border border-gray-300 focus:border-red-500 focus:ring-1 focus:ring-red-500 overflow-y-auto z-10"
               disabled={isProcessing}
               readOnly={false}
               autoComplete="off"
             />
             <Button 
-              type="submit"
-              size="icon"
-              className="absolute bottom-3 right-3 h-8 w-8 bg-red-600 hover:bg-red-700 text-white rounded-lg z-20"
+              type="button"
+              onClick={handleSubmit}
               disabled={isProcessing || !inputMessage.trim()}
+              className={cn(
+                "absolute bottom-3 right-2.5 h-8 w-8 p-0 rounded-lg z-20",
+                isProcessing || !inputMessage.trim()
+                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  : "bg-red-600 text-white hover:bg-red-700"
+              )}
+              aria-label="Kirim pesan"
             >
               {isProcessing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -639,6 +699,9 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
               )}
             </Button>
           </form>
+          <p className="text-xs text-gray-500 mt-2 text-center">
+            TIPIDKOR AI dapat memberikan informasi yang tidak akurat. Verifikasi fakta penting dengan dokumen resmi.
+          </p>
         </div>
       </div>
     </div>

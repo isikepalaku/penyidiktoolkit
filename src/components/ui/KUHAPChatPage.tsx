@@ -1,13 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, Copy, Check, Loader2, BookOpen, Info, X } from 'lucide-react';
+import { ArrowLeft, Send, Copy, Check, Loader2, BookOpen, Info, X, ChevronDown } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { AnimatedBotIcon } from './animated-bot-icon';
-import { DotBackground } from './DotBackground';
 import { sendChatMessage, clearChatHistory, initializeSession } from '@/services/kuhapService';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { Textarea } from './textarea';
-import { Button } from './button';
 
 // Konfigurasi marked dan DOMPurify untuk safe link handling
 marked.setOptions({
@@ -36,16 +34,36 @@ interface Message {
   isAnimating?: boolean;
 }
 
-// Skeleton component for loading state - using AnimatedBotIcon, text, and pulse
+// Skeleton component for loading state - improved with more realistic patterns
 const SkeletonMessage = () => (
   <div className="flex items-start space-x-3 w-full">
     <AnimatedBotIcon className="w-5 h-5 flex-shrink-0 mt-1" />
-    <div className="flex-1 space-y-2 py-1">
-      <p className="text-xs text-gray-500 italic mb-1">Sedang menyusun hasil...</p>
-      <div className="space-y-2 animate-pulse">
+    <div className="flex-1 space-y-3 py-1">
+      <p className="text-xs text-gray-500 italic mb-2">Sedang menyusun hasil...</p>
+      <div className="space-y-3 animate-pulse">
+        {/* Simulate paragraphs with varying widths */}
         <div className="h-4 bg-gray-300 rounded w-3/4"></div>
-        <div className="h-4 bg-gray-300 rounded w-1/2"></div>
         <div className="h-4 bg-gray-300 rounded w-5/6"></div>
+        <div className="h-4 bg-gray-300 rounded w-2/3"></div>
+        
+        {/* Simulate gap between paragraphs */}
+        <div className="h-2"></div>
+        
+        {/* Simulate second paragraph */}
+        <div className="h-4 bg-gray-300 rounded w-4/5"></div>
+        <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+        
+        {/* Simulate a list with bullets */}
+        <div className="pl-5 space-y-2 mt-1">
+          <div className="flex items-start">
+            <div className="h-3 w-3 bg-gray-300 rounded-full flex-shrink-0 mt-0.5 mr-2"></div>
+            <div className="h-4 bg-gray-300 rounded w-2/3 flex-grow"></div>
+          </div>
+          <div className="flex items-start">
+            <div className="h-3 w-3 bg-gray-300 rounded-full flex-shrink-0 mt-0.5 mr-2"></div>
+            <div className="h-4 bg-gray-300 rounded w-3/4 flex-grow"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -61,9 +79,19 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const focusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastScrollPositionRef = useRef<number>(0);
+
+  // Reusable function to adjust textarea height
+  const adjustTextareaHeight = (textarea: HTMLTextAreaElement) => {
+    textarea.style.height = 'auto'; // Reset height
+    textarea.style.height = `${textarea.scrollHeight}px`; // Set to scroll height
+  };
 
   // Initialize session
   useEffect(() => {
@@ -78,43 +106,93 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
       }
     ]);
     
+    // Focus the textarea with a slight delay for better UX
+    focusTimeoutRef.current = setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+    }, 500);
+    
     return () => {
-      // Clear chat history when component unmounts
+      // Clear chat history and timeout when component unmounts
       clearChatHistory();
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
+      }
     };
   }, []);
 
   // Scroll to bottom when messages change
   useEffect(() => {
-    scrollToBottom();
+    // Reset user scroll state when new message is added
+    if (messages.length > 0 && !messages[messages.length-1].isAnimating) {
+      scrollToBottom();
+    }
   }, [messages]);
 
+  // Setup scroll detection
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!chatContainerRef.current) return;
+      
+      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      const isScrolledToBottom = scrollHeight - scrollTop - clientHeight < 50;
+      
+      // Show the scroll button if not near bottom
+      setShowScrollButton(!isScrolledToBottom);
+      
+      // Remember the last scroll position
+      lastScrollPositionRef.current = scrollTop;
+    };
+    
+    const chatContainer = chatContainerRef.current;
+    if (chatContainer) {
+      chatContainer.addEventListener('scroll', handleScroll);
+    }
+    
+    return () => {
+      if (chatContainer) {
+        chatContainer.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, []);
+
   const scrollToBottom = () => {
+    // Use requestAnimationFrame for smoother scrolling
     requestAnimationFrame(() => {
       if (chatContainerRef.current) {
         chatContainerRef.current.scrollTo({
           top: chatContainerRef.current.scrollHeight,
           behavior: 'smooth'
         });
+        
+        // Fallback mechanism in case the smooth scroll doesn't work
+        setTimeout(() => {
+          if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+          }
+        }, 500);
       }
     });
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputMessage(e.target.value);
-    // Adjust height dynamically
-    const textarea = e.target;
-    textarea.style.height = 'auto'; // Reset height to recalculate
-    textarea.style.height = `${textarea.scrollHeight}px`; // Set to scroll height
+    // Adjust height using the reusable function
+    if (e.target) {
+      adjustTextareaHeight(e.target);
+    }
   };
 
-  const handleKeyDown = (_e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Remove Enter key submission for mobile compatibility
-    // Submission is handled by the Send button
-    // if (_e.key === 'Enter' && !_e.shiftKey) {
-    //   _e.preventDefault();
-    //   handleSubmit();
-    // }
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Check if device is probably desktop by looking at screen size
+    const isLikelyDesktop = window.innerWidth >= 768;
+    
+    // Only enable Enter key submission on desktop devices
+    if (isLikelyDesktop && e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
   };
 
   const handleSubmit = async () => {
@@ -131,7 +209,14 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
     // Reset textarea height after clearing input
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
+      // On mobile, blur the textarea to hide the keyboard
+      if (window.innerWidth < 768) {
+        textareaRef.current.blur();
+      }
     }
+    
+    // Reset scroll state to enable auto-scrolling for the new message
+    setShowScrollButton(false);
     setIsProcessing(true);
 
     try {
@@ -152,7 +237,7 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
       // Replace the placeholder with the actual response
       setMessages(prev => {
         const newMessages = [...prev];
-        newMessages.pop(); // Remove the placeholder
+        newMessages.pop(); // Remove placeholder
         
         return [
           ...newMessages,
@@ -239,11 +324,24 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
 
   // Example questions for the user
   const exampleQuestions = [
-    "Apa yang dimaksud dengan upaya paksa dalam KUHAP?",
-    "Bagaimana prosedur penahanan menurut KUHAP?",
-    "Apa hak-hak tersangka menurut KUHAP?",
-    "Bagaimana proses pemeriksaan perkara pidana di pengadilan?"
+    "Jelaskan proses penahanan dalam KUHAP",
+    "Apa saja hak tersangka dalam penyidikan?",
+    "Bagaimana prosedur penyitaan barang bukti?",
+    "Jelaskan tahapan proses peradilan pidana"
   ];
+
+  const handleSelectQuestion = (question: string) => {
+    setInputMessage(question);
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+      // Manually adjust the height after setting content
+      setTimeout(() => {
+        if (textareaRef.current) {
+          adjustTextareaHeight(textareaRef.current);
+        }
+      }, 0);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-20 bg-white lg:pl-64 flex flex-col">
@@ -258,8 +356,8 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
             <ArrowLeft className="w-5 h-5 text-gray-700" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center w-9 h-9 bg-gray-100 rounded-full">
-              <BookOpen className="w-5 h-5 text-gray-600" />
+            <div className="flex items-center justify-center w-9 h-9 bg-sky-100 rounded-full">
+              <BookOpen className="w-5 h-5 text-sky-600" />
             </div>
             <div>
               <h1 className="font-semibold text-gray-900">KUHAP AI</h1>
@@ -291,7 +389,7 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
           </div>
           <p className="mt-1 text-xs text-gray-700">
             KUHAP AI adalah asisten berbasis kecerdasan buatan untuk membantu memahami Kitab Undang-Undang Hukum Acara Pidana (KUHAP). 
-            Asisten ini dapat membantu menjawab pertanyaan umum dan memberikan informasi tentang ketentuan-ketentuan dalam KUHAP. 
+            Asisten ini dapat membantu menjawab pertanyaan umum dan memberikan informasi tentang prosedur peradilan pidana, hak-hak tersangka, proses penyidikan, dan ketentuan-ketentuan hukum acara pidana lainnya. 
             Informasi yang diberikan bersifat umum dan sebaiknya dikonfirmasi dengan sumber resmi atau konsultasi dengan ahli hukum yang berkualifikasi.
           </p>
         </div>
@@ -305,14 +403,14 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
         {/* Welcome Message - Bold AI NAME in center */}
         {messages.length <= 1 && (
           <div className="flex flex-col items-center justify-center h-[50vh] text-center">
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+            <div className="w-20 h-20 bg-sky-100 rounded-full flex items-center justify-center mb-4">
               <img 
                 src="/img/krimsus.png"
                 alt="Krimsus"
                 className="w-16 h-16 object-contain"
               />
             </div>
-            <h1 className="text-4xl font-bold text-gray-700 mb-4">KUHAP AI</h1>
+            <h1 className="text-4xl font-bold text-sky-600 mb-4">KUHAP AI</h1>
             <p className="text-gray-600 max-w-md">
               Asisten untuk membantu Anda dengan pertanyaan seputar Kitab Undang-Undang Hukum Acara Pidana.
             </p>
@@ -328,15 +426,7 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
                 {exampleQuestions.map((question, index) => (
                   <div
                     key={index}
-                    onClick={() => {
-                      setInputMessage(question);
-                      if (textareaRef.current) {
-                        textareaRef.current.focus();
-                        // Set height based on new content
-                        textareaRef.current.style.height = 'auto';
-                        textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-                      }
-                    }}
+                    onClick={() => handleSelectQuestion(question)}
                     className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm cursor-pointer hover:bg-gray-100 transition-colors"
                   >
                     {question}
@@ -364,8 +454,8 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
                             <AnimatedBotIcon />
                           </div>
                         ) : (
-                          <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center shadow-sm">
-                            <BookOpen className="w-5 h-5 text-gray-600" />
+                          <div className="w-8 h-8 bg-sky-100 rounded-full flex items-center justify-center shadow-sm">
+                            <BookOpen className="w-5 h-5 text-sky-600" />
                           </div>
                         )}
                       </div>
@@ -375,7 +465,7 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
                       className={cn(
                         "rounded-2xl px-4 py-3 shadow-sm",
                         message.type === 'user' 
-                          ? "bg-gray-700 text-white rounded-tr-none" // User bubble now grey
+                          ? "bg-sky-600 text-white rounded-tr-none" 
                           : message.error 
                             ? "bg-red-50 text-red-800 rounded-tl-none border border-red-200" 
                             : message.isAnimating
@@ -388,7 +478,7 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
                       ) : message.type === 'bot' ? (
                         <div className="space-y-0">
                           <div 
-                            className="prose prose-sm max-w-none prose-headings:font-semibold prose-headings:text-gray-900 prose-p:text-gray-700 prose-pre:bg-gray-100 prose-pre:text-gray-800 prose-code:text-gray-800 prose-code:bg-gray-100 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-sm prose-code:font-mono prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-li:text-gray-700 prose-li:marker:text-gray-500 prose-strong:text-gray-900 prose-em:text-gray-700 prose-p:my-0.5 prose-headings:my-0.5 prose-headings:mb-0 prose-ul:my-0.5 prose-ol:my-0.5 prose-li:my-0.5 prose-pre:my-1 leading-tight [&_p]:!my-0.5 [&_br]:leading-none [&_h1+p]:!mt-0.5 [&_h2+p]:!mt-0.5 [&_h3+p]:!mt-0.5"
+                            className="prose prose-sm max-w-none prose-headings:font-semibold prose-headings:text-gray-900 prose-p:text-gray-700 prose-pre:bg-gray-100 prose-pre:text-gray-800 prose-code:text-gray-800 prose-code:bg-gray-100 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-sm prose-code:font-mono prose-a:text-sky-600 prose-a:no-underline hover:prose-a:underline prose-li:text-gray-700 prose-li:marker:text-gray-500 prose-strong:text-gray-900 prose-em:text-gray-700 prose-p:my-0.5 prose-headings:my-0.5 prose-headings:mb-0 prose-ul:my-0.5 prose-ol:my-0.5 prose-li:my-0.5 prose-pre:my-1 leading-tight [&_p]:!my-0.5 [&_br]:leading-none [&_h1+p]:!mt-0.5 [&_h2+p]:!mt-0.5 [&_h3+p]:!mt-0.5 [&_table]:overflow-x-auto [&_table]:max-w-full"
                             dangerouslySetInnerHTML={formatMessage(message.content)}
                           />
                           
@@ -398,80 +488,99 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
                               <p className="text-xs text-gray-500 font-medium mb-1">Sumber:</p>
                               <ul className="text-xs text-gray-500 space-y-1">
                                 {message.sourceDocuments.map((doc, i) => (
-                                  <li key={i} className="truncate">
-                                    {doc.metadata.title || doc.metadata.source || 'Dokumen'}
+                                  <li key={i} className="flex items-start">
+                                    <span className="inline-block w-4 flex-shrink-0">•</span>
+                                    <span>{doc.metadata.title || 'Untitled Document'}</span>
                                   </li>
                                 ))}
                               </ul>
                             </div>
                           )}
+                          
+                          {/* Copy button */}
+                          <div className="mt-2 flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => copyToClipboard(message.content)}
+                              className="text-gray-400 hover:text-gray-600 p-1 rounded-md inline-flex items-center text-xs gap-1"
+                              aria-label="Salin ke clipboard"
+                            >
+                              {copied === message.content ? (
+                                <>
+                                  <Check className="w-3 h-3" />
+                                  <span>Tersalin</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="w-3 h-3" />
+                                  <span>Salin</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
                         </div>
                       ) : (
-                        <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+                        // User message
+                        <div className="text-white break-words">{message.content}</div>
                       )}
                     </div>
-                    
-                    {message.type === 'bot' && !message.isAnimating && !message.error && (
-                      <button
-                        onClick={() => copyToClipboard(message.content)}
-                        className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity p-1 rounded-full bg-white border border-gray-200 shadow-sm hover:bg-gray-50 ml-2"
-                        aria-label="Salin pesan"
-                      >
-                        {copied === message.content ? (
-                          <Check className="w-4 h-4 text-green-500" />
-                        ) : (
-                          <Copy className="w-4 h-4 text-gray-400" />
-                        )}
-                      </button>
-                    )}
                   </div>
                 </div>
               ) : null
             ))}
+            
+            {/* Invisible div to anchor scrolling to bottom */}
             <div ref={messagesEndRef} />
           </div>
         </div>
       </div>
+      
+      {/* Scroll to bottom button */}
+      {showScrollButton && (
+        <div className="absolute right-4 bottom-32 z-10">
+          <button
+            onClick={scrollToBottom}
+            className="bg-sky-600 text-white p-2 rounded-full shadow-md hover:bg-sky-700 transition-colors"
+            aria-label="Scroll to bottom"
+          >
+            <ChevronDown className="w-5 h-5" />
+          </button>
+        </div>
+      )}
 
-      {/* Background Pattern */}
-      <DotBackground className="fixed inset-0 -z-10" dotColor="text-gray-300/20" />
-
-      {/* Input Area */}
-      <div className="fixed bottom-0 left-0 right-0 lg:left-64 bg-white border-t border-gray-200 p-4">
+      {/* Input area */}
+      <div className="fixed bottom-0 left-0 right-0 lg:pl-64 bg-white border-t border-gray-200 p-4 z-10">
         <div className="max-w-3xl mx-auto relative">
-          <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="relative">
-            <Textarea
-              ref={textareaRef}
-              rows={1}
-              value={inputMessage}
-              onChange={handleInputChange}
-              onKeyDown={handleKeyDown}
-              placeholder="Ketik pesan Anda..."
-              className="resize-none pl-3 pr-12 py-3 max-h-[200px] rounded-xl border border-gray-300 focus:border-gray-500 focus:ring-1 focus:ring-gray-500 overflow-y-auto"
-              autoComplete="off"
-              disabled={isProcessing}
-            />
-            <Button
-              type="submit"
-              size="icon"
-              className={cn(
-                "absolute right-2.5 bottom-2.5 h-8 w-8 rounded-lg",
-                inputMessage.trim() && !isProcessing
-                  ? "bg-gray-700 text-white hover:bg-gray-800" // Send button now grey
-                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
-              )}
-              disabled={!inputMessage.trim() || isProcessing}
-              aria-label="Kirim pesan"
-            >
-              {isProcessing ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4" />
-              )}
-            </Button>
-          </form>
-          <p className="text-xs text-center text-gray-500 mt-2">
-            KUHAP AI memberikan informasi umum dan tidak menggantikan nasihat hukum profesional.
+          <Textarea
+            ref={textareaRef}
+            value={inputMessage}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            placeholder="Ketik pesan Anda..."
+            className="resize-none pr-12 py-3 min-h-[52px] max-h-[200px] rounded-xl focus:border-sky-500 focus:ring-sky-500 overflow-y-auto"
+            readOnly={false}
+            autoComplete="off"
+            rows={1}
+            disabled={isProcessing}
+          />
+          
+          <button
+            onClick={handleSubmit}
+            disabled={!inputMessage.trim() || isProcessing}
+            type="button"
+            className="absolute right-3 bottom-3 p-2 rounded-lg text-white bg-sky-600 hover:bg-sky-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors z-20"
+            aria-label="Kirim pesan"
+          >
+            {isProcessing ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Send className="w-5 h-5" />
+            )}
+          </button>
+        </div>
+        
+        <div className="max-w-3xl mx-auto mt-2">
+          <p className="text-xs text-center text-gray-500">
+            KUHAP AI memberikan informasi umum dan tidak bisa menggantikan nasihat hukum profesional.
           </p>
         </div>
       </div>

@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, Copy, Check, Loader2, BookOpen, Info, X, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Send, Copy, Check, Loader2, Banknote, Info, X, ChevronDown } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { AnimatedBotIcon } from './animated-bot-icon';
-import { sendChatMessage, clearChatHistory, initializeSession } from '@/services/kuhpService';
+import { sendChatMessage, clearChatHistory, initializeSession } from '../../services/undangService';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { Textarea } from './textarea';
@@ -69,11 +69,11 @@ const SkeletonMessage = () => (
   </div>
 );
 
-interface KUHPChatPageProps {
+interface P2SKChatPageProps {
   onBack?: () => void;
 }
 
-const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
+const P2SKChatPage: React.FC<P2SKChatPageProps> = ({ onBack }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -324,10 +324,10 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
 
   // Example questions for the user
   const exampleQuestions = [
-    "Jelaskan tentang delik penggelapan dalam KUHP",
-    "Apa hukuman untuk tindak pidana penipuan?",
-    "Bagaimana unsur-unsur pidana pada pembunuhan berencana?",
-    "Jelaskan perbedaan pencurian ringan dan pencurian biasa"
+    "Apa saja bentuk tindak pidana di bidang perbankan?",
+    "Jelaskan tentang UU TPPU",
+    "Apa sanksi terkait tindak pidana pencucian uang?",
+    "Bagaimana prosedur penanganan kasus pidana perbankan?"
   ];
 
   const handleSelectQuestion = (question: string) => {
@@ -356,12 +356,12 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
             <ArrowLeft className="w-5 h-5 text-gray-700" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center w-9 h-9 bg-rose-100 rounded-full">
-              <BookOpen className="w-5 h-5 text-rose-600" />
+            <div className="flex items-center justify-center w-9 h-9 bg-blue-100 rounded-full">
+              <Banknote className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <h1 className="font-semibold text-gray-900">KUHP AI</h1>
-              <p className="text-xs text-gray-500">Kitab Undang-Undang Hukum Pidana</p>
+              <h1 className="font-semibold text-gray-900">P2SK AI</h1>
+              <p className="text-xs text-gray-500">Perbankan, Sistem Keuangan, dan Perpajakan</p>
             </div>
           </div>
         </div>
@@ -378,7 +378,7 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
       {showInfo && (
         <div className="p-4 bg-gray-50 border-b border-gray-200">
           <div className="flex justify-between items-start">
-            <h2 className="text-sm font-medium text-gray-800">Tentang KUHP AI</h2>
+            <h2 className="text-sm font-medium text-gray-800">Tentang P2SK AI</h2>
             <button
               onClick={() => setShowInfo(false)}
               className="text-gray-500 hover:text-gray-700"
@@ -388,8 +388,8 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
             </button>
           </div>
           <p className="mt-1 text-xs text-gray-700">
-            KUHP AI adalah asisten berbasis kecerdasan buatan untuk membantu memahami Kitab Undang-Undang Hukum Pidana (KUHP). 
-            Asisten ini dapat membantu menjawab pertanyaan umum dan memberikan informasi tentang delik-delik dan ketentuan-ketentuan pidana dalam KUHP. 
+            P2SK AI adalah asisten berbasis kecerdasan buatan yang berfokus pada bidang Perbankan, Sistem Pembayaran, dan Kejahatan Keuangan.
+            Asisten ini dapat membantu menjawab pertanyaan tentang tindak pidana perbankan, tindak pidana pencucian uang, dan kejahatan keuangan lainnya.
             Informasi yang diberikan bersifat umum dan sebaiknya dikonfirmasi dengan sumber resmi atau konsultasi dengan ahli hukum yang berkualifikasi.
           </p>
         </div>
@@ -403,16 +403,16 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
         {/* Welcome Message - Bold AI NAME in center */}
         {messages.length <= 1 && (
           <div className="flex flex-col items-center justify-center h-[50vh] text-center">
-            <div className="w-20 h-20 bg-rose-100 rounded-full flex items-center justify-center mb-4">
+            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-4">
               <img 
                 src="/img/krimsus.png"
                 alt="Krimsus"
                 className="w-16 h-16 object-contain"
               />
             </div>
-            <h1 className="text-4xl font-bold text-rose-600 mb-4">KUHP AI</h1>
+            <h1 className="text-4xl font-bold text-blue-600 mb-4">P2SK AI</h1>
             <p className="text-gray-600 max-w-md">
-              Asisten untuk membantu Anda dengan pertanyaan seputar Kitab Undang-Undang Hukum Pidana.
+              Asisten untuk membantu Anda dengan pertanyaan seputar Perbankan, Sistem Keuangan, dan Perpajakan.
             </p>
           </div>
         )}
@@ -454,8 +454,8 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
                             <AnimatedBotIcon />
                           </div>
                         ) : (
-                          <div className="w-8 h-8 bg-rose-100 rounded-full flex items-center justify-center shadow-sm">
-                            <BookOpen className="w-5 h-5 text-rose-600" />
+                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center shadow-sm">
+                            <Banknote className="w-5 h-5 text-blue-600" />
                           </div>
                         )}
                       </div>
@@ -465,7 +465,7 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
                       className={cn(
                         "rounded-2xl px-4 py-3 shadow-sm",
                         message.type === 'user' 
-                          ? "bg-rose-600 text-white rounded-tr-none" 
+                          ? "bg-blue-600 text-white rounded-tr-none" 
                           : message.error 
                             ? "bg-red-50 text-red-800 rounded-tl-none border border-red-200" 
                             : message.isAnimating
@@ -478,7 +478,7 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
                       ) : message.type === 'bot' ? (
                         <div className="space-y-0">
                           <div 
-                            className="prose prose-sm max-w-none prose-headings:font-semibold prose-headings:text-gray-900 prose-p:text-gray-700 prose-pre:bg-gray-100 prose-pre:text-gray-800 prose-code:text-gray-800 prose-code:bg-gray-100 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-sm prose-code:font-mono prose-a:text-rose-600 prose-a:no-underline hover:prose-a:underline prose-li:text-gray-700 prose-li:marker:text-gray-500 prose-strong:text-gray-900 prose-em:text-gray-700 prose-p:my-0.5 prose-headings:my-0.5 prose-headings:mb-0 prose-ul:my-0.5 prose-ol:my-0.5 prose-li:my-0.5 prose-pre:my-1 leading-tight [&_p]:!my-0.5 [&_br]:leading-none [&_h1+p]:!mt-0.5 [&_h2+p]:!mt-0.5 [&_h3+p]:!mt-0.5 [&_table]:overflow-x-auto [&_table]:max-w-full"
+                            className="prose prose-sm max-w-none prose-headings:font-semibold prose-headings:text-gray-900 prose-p:text-gray-700 prose-pre:bg-gray-100 prose-pre:text-gray-800 prose-code:text-gray-800 prose-code:bg-gray-100 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-sm prose-code:font-mono prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-li:text-gray-700 prose-li:marker:text-gray-500 prose-strong:text-gray-900 prose-em:text-gray-700 prose-p:my-0.5 prose-headings:my-0.5 prose-headings:mb-0 prose-ul:my-0.5 prose-ol:my-0.5 prose-li:my-0.5 prose-pre:my-1 leading-tight [&_p]:!my-0.5 [&_br]:leading-none [&_h1+p]:!mt-0.5 [&_h2+p]:!mt-0.5 [&_h3+p]:!mt-0.5 [&_table]:overflow-x-auto [&_table]:max-w-full"
                             dangerouslySetInnerHTML={formatMessage(message.content)}
                           />
                           
@@ -539,7 +539,7 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
         <div className="absolute right-4 bottom-32 z-10">
           <button
             onClick={scrollToBottom}
-            className="bg-rose-600 text-white p-2 rounded-full shadow-md hover:bg-rose-700 transition-colors"
+            className="bg-blue-600 text-white p-2 rounded-full shadow-md hover:bg-blue-700 transition-colors"
             aria-label="Scroll to bottom"
           >
             <ChevronDown className="w-5 h-5" />
@@ -556,7 +556,7 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             placeholder="Ketik pesan Anda..."
-            className="resize-none pr-12 py-3 min-h-[52px] max-h-[200px] rounded-xl focus:border-rose-500 focus:ring-rose-500 overflow-y-auto"
+            className="resize-none pr-12 py-3 min-h-[52px] max-h-[200px] rounded-xl focus:border-blue-500 focus:ring-blue-500 overflow-y-auto"
             readOnly={false}
             autoComplete="off"
             rows={1}
@@ -567,7 +567,7 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
             onClick={handleSubmit}
             disabled={!inputMessage.trim() || isProcessing}
             type="button"
-            className="absolute right-3 bottom-3 p-2 rounded-lg text-white bg-rose-600 hover:bg-rose-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors z-20"
+            className="absolute right-3 bottom-3 p-2 rounded-lg text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors z-20"
             aria-label="Kirim pesan"
           >
             {isProcessing ? (
@@ -580,7 +580,7 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
         
         <div className="max-w-3xl mx-auto mt-2">
           <p className="text-xs text-center text-gray-500">
-            KUHP AI memberikan informasi umum dan tidak bisa menggantikan nasihat hukum profesional.
+            P2SK AI memberikan informasi umum dan tidak bisa menggantikan nasihat hukum profesional.
           </p>
         </div>
       </div>
@@ -588,4 +588,4 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
   );
 };
 
-export default KUHPChatPage; 
+export default P2SKChatPage; 

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, Copy, Check, Loader2, Info, X } from 'lucide-react';
+import { ArrowLeft, Send, Copy, Check, Loader2, Info, X, ChevronDown } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { Button } from './button';
 import { Textarea } from './textarea';
@@ -27,16 +27,32 @@ interface Message {
   isAnimating?: boolean;
 }
 
-// Skeleton component for loading state - using AnimatedBotIcon, text, and pulse
+// Skeleton component for loading state - improved with more realistic patterns
 const SkeletonMessage = () => (
   <div className="flex items-start space-x-3">
     <AnimatedBotIcon className="w-5 h-5 flex-shrink-0 mt-1" />
-    <div className="flex-1 space-y-2 py-1">
+    <div className="flex-1 space-y-3 py-1">
       <p className="text-xs text-gray-500 italic mb-1">Sedang menyusun hasil...</p>
-      <div className="space-y-2 animate-pulse"> {/* Add animate-pulse here */}
-        <div className="h-4 bg-gray-300 rounded w-3/4"></div>
-        <div className="h-4 bg-gray-300 rounded w-1/2"></div>
+      <div className="space-y-3 animate-pulse">
+        {/* Paragraf dengan baris variatif */}
+        <div className="h-4 bg-gray-300 rounded w-full"></div>
         <div className="h-4 bg-gray-300 rounded w-5/6"></div>
+        <div className="h-4 bg-gray-300 rounded w-11/12"></div>
+        <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+        
+        {/* Jarak untuk pemisahan konten */}
+        <div className="h-2"></div>
+        
+        {/* Simulasi struktur daftar */}
+        <div className="pl-3 space-y-2">
+          <div className="h-3 bg-gray-300 rounded w-11/12"></div>
+          <div className="h-3 bg-gray-300 rounded w-4/5"></div>
+        </div>
+        
+        {/* Simulasi bagian kesimpulan */}
+        <div className="h-2"></div>
+        <div className="h-4 bg-gray-300 rounded w-full"></div>
+        <div className="h-4 bg-gray-300 rounded w-2/3"></div>
       </div>
     </div>
   </div>
@@ -52,10 +68,31 @@ const NarkotikaChatPage: React.FC<NarkotikaChatPageProps> = ({ onBack }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
+  const [userScrolled, setUserScrolled] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const isDesktopRef = useRef<boolean>(window.innerWidth >= 1024);
+
+  // Fungsi untuk menyesuaikan tinggi textarea secara dinamis
+  const adjustTextareaHeight = (textarea: HTMLTextAreaElement | null) => {
+    if (!textarea) return;
+    
+    // Reset height first to get the correct scrollHeight
+    textarea.style.height = 'auto';
+    
+    // Set to scrollHeight to fit content
+    textarea.style.height = `${textarea.scrollHeight}px`;
+    
+    // Ensure we respect max height
+    if (textarea.scrollHeight > 200) {
+      textarea.style.overflowY = 'auto';
+    } else {
+      textarea.style.overflowY = 'hidden';
+    }
+  };
 
   // Initialize session
   useEffect(() => {
@@ -70,43 +107,91 @@ const NarkotikaChatPage: React.FC<NarkotikaChatPageProps> = ({ onBack }) => {
       },
     ]);
     
+    // Focus textarea after component mounts with slight delay for mobile
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        adjustTextareaHeight(textareaRef.current);
+      }
+    }, 500);
+    
+    // Check if we're on desktop
+    const handleResize = () => {
+      isDesktopRef.current = window.innerWidth >= 1024;
+    };
+    
+    window.addEventListener('resize', handleResize);
+    
+    // Set up scroll detection
+    const handleScroll = () => {
+      if (!chatContainerRef.current) return;
+      
+      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
+      
+      setUserScrolled(!isAtBottom && messages.length > 1);
+      setShowScrollButton(!isAtBottom && messages.length > 1);
+    };
+    
+    const chatContainer = chatContainerRef.current;
+    if (chatContainer) {
+      chatContainer.addEventListener('scroll', handleScroll);
+    }
+    
     return () => {
       // Clear chat history when component unmounts
       clearChatHistory();
+      window.removeEventListener('resize', handleResize);
+      if (chatContainer) {
+        chatContainer.removeEventListener('scroll', handleScroll);
+      }
     };
   }, []);
 
-  // Scroll to bottom when messages change
+  // Improved scroll to bottom when messages change
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (!userScrolled || messages.length <= 2) {
+      scrollToBottom();
+    }
+  }, [messages, userScrolled]);
 
   const scrollToBottom = () => {
     requestAnimationFrame(() => {
       if (chatContainerRef.current) {
-        chatContainerRef.current.scrollTo({
-          top: chatContainerRef.current.scrollHeight,
-          behavior: 'smooth',
-        });
+        try {
+          chatContainerRef.current.scrollTo({
+            top: chatContainerRef.current.scrollHeight,
+            behavior: 'smooth',
+          });
+          
+          // Fallback mechanism for reliable scrolling
+          setTimeout(() => {
+            if (messagesEndRef.current) {
+              messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+            }
+          }, 100);
+        } catch (e) {
+          // Direct scroll fallback if smooth scrolling fails
+          console.error('Smooth scroll failed, using fallback:', e);
+          if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+          }
+        }
       }
     });
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputMessage(e.target.value);
-    // Adjust height dynamically
-    const textarea = e.target;
-    textarea.style.height = 'auto'; // Reset height to recalculate
-    textarea.style.height = `${textarea.scrollHeight}px`; // Set to scroll height
+    adjustTextareaHeight(e.target);
   };
 
-  const handleKeyDown = (_e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Remove Enter key submission for mobile compatibility
-    // Submission is handled by the Send button
-    // if (_e.key === 'Enter' && !_e.shiftKey) {
-    //   _e.preventDefault();
-    //   handleSubmit();
-    // }
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Enable Enter key submission only on desktop
+    if (e.key === 'Enter' && !e.shiftKey && isDesktopRef.current) {
+      e.preventDefault();
+      handleSubmit();
+    }
   };
 
   const handleSubmit = async () => {
@@ -118,12 +203,18 @@ const NarkotikaChatPage: React.FC<NarkotikaChatPageProps> = ({ onBack }) => {
       timestamp: new Date()
     };
 
+    // Reset user scrolled state when sending a new message
+    setUserScrolled(false);
+    setShowScrollButton(false);
+    
     setMessages(prev => [...prev, userMessage]);
     setInputMessage('');
+    
     // Reset textarea height after clearing input
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
+    
     setIsProcessing(true);
 
     try {
@@ -237,6 +328,18 @@ const NarkotikaChatPage: React.FC<NarkotikaChatPageProps> = ({ onBack }) => {
     "Apa syarat dan ketentuan rehabilitasi bagi pecandu narkotika?"
   ];
 
+  const handleExampleClick = (question: string) => {
+    setInputMessage(question);
+    // Manually adjust height for example questions
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+      // setTimeout needed to ensure state update has happened
+      setTimeout(() => {
+        adjustTextareaHeight(textareaRef.current);
+      }, 0);
+    }
+  };
+
   return (
     <div className="flex h-screen bg-gray-50 lg:pl-64">
       {/* Main Content */}
@@ -288,7 +391,7 @@ const NarkotikaChatPage: React.FC<NarkotikaChatPageProps> = ({ onBack }) => {
         {/* Chat Container */}
         <div 
           ref={chatContainerRef}
-          className="flex-1 overflow-y-auto px-4 py-6 md:px-8 relative"
+          className="flex-1 overflow-y-auto px-4 py-6 md:px-8 relative pb-32"
         >
           <div className="absolute inset-0">
             <DotBackground />
@@ -319,12 +422,7 @@ const NarkotikaChatPage: React.FC<NarkotikaChatPageProps> = ({ onBack }) => {
                   {exampleQuestions.map((question, index) => (
                     <button
                       key={index}
-                      onClick={() => {
-                        setInputMessage(question);
-                        if (textareaRef.current) {
-                          textareaRef.current.focus();
-                        }
-                      }}
+                      onClick={() => handleExampleClick(question)}
                       className="text-left p-3 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors shadow-sm"
                     >
                       {question}
@@ -430,11 +528,22 @@ const NarkotikaChatPage: React.FC<NarkotikaChatPageProps> = ({ onBack }) => {
             <div ref={messagesEndRef} />
           </div>
         </div>
+        
+        {/* Scroll to bottom button */}
+        {showScrollButton && (
+          <button
+            onClick={scrollToBottom}
+            className="fixed bottom-24 right-6 md:right-10 bg-amber-600 text-white p-2 rounded-full shadow-lg z-30 hover:bg-amber-700 transition-colors animate-bounce"
+            aria-label="Scroll ke bawah"
+          >
+            <ChevronDown className="w-5 h-5" />
+          </button>
+        )}
 
         {/* Input Area */}
         <div className="border-t border-gray-200 bg-white p-4 md:px-8 pb-6 md:pb-4">
           <div className="max-w-3xl mx-auto">
-            <div className="relative">
+            <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="relative">
               <Textarea
                 ref={textareaRef}
                 rows={1} // Start with one row
@@ -442,14 +551,17 @@ const NarkotikaChatPage: React.FC<NarkotikaChatPageProps> = ({ onBack }) => {
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
                 placeholder="Ketik pesan Anda..."
-                className="resize-none pr-12 py-3 max-h-[200px] rounded-xl border-gray-300 focus:border-amber-500 focus:ring-amber-500 shadow-sm overflow-y-auto"
+                className="resize-none pr-12 py-3 max-h-[200px] rounded-xl border-gray-300 focus:border-amber-500 focus:ring-amber-500 shadow-sm overflow-y-auto z-10"
                 disabled={isProcessing}
+                readOnly={false}
+                autoComplete="off"
               />
               <Button
+                type="button"
                 onClick={handleSubmit}
                 disabled={!inputMessage.trim() || isProcessing}
                 className={cn(
-                  "absolute right-2 bottom-2 p-2 rounded-lg",
+                  "absolute bottom-3 right-2.5 h-8 w-8 p-0 rounded-lg z-20",
                   !inputMessage.trim() || isProcessing
                     ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                     : "bg-amber-600 text-white hover:bg-amber-700"
@@ -457,12 +569,12 @@ const NarkotikaChatPage: React.FC<NarkotikaChatPageProps> = ({ onBack }) => {
                 aria-label="Kirim pesan"
               >
                 {isProcessing ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <Send className="w-5 h-5" />
+                  <Send className="w-4 h-4" />
                 )}
               </Button>
-            </div>
+            </form>
             <p className="text-xs text-gray-500 mt-2 text-center">
               Narkoba AI dapat memberikan informasi yang tidak akurat. Verifikasi fakta penting dengan dokumen resmi.
             </p>

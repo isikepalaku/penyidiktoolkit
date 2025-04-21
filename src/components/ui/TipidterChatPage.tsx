@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, Copy, Check, Loader2, Info, X, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Send, Copy, Check, Loader2, Info, X, RefreshCw, ChevronDown } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { Button } from './button';
 import { Textarea } from './textarea';
@@ -36,16 +36,37 @@ interface Message {
   isAnimating?: boolean;
 }
 
-// Skeleton component for loading state - using AnimatedBotIcon, text, and pulse
+// Skeleton component for loading state - improved with more realistic structure
 const SkeletonMessage = () => (
   <div className="flex items-start space-x-3">
     <AnimatedBotIcon className="w-5 h-5 flex-shrink-0 mt-1" />
-    <div className="flex-1 space-y-2 py-1">
-      <p className="text-xs text-gray-500 italic mb-1">Sedang menyusun hasil...</p>
-      <div className="space-y-2 animate-pulse">
-        <div className="h-4 bg-gray-300 rounded w-3/4"></div>
-        <div className="h-4 bg-gray-300 rounded w-1/2"></div>
-        <div className="h-4 bg-gray-300 rounded w-5/6"></div>
+    <div className="flex-1 space-y-3 py-1">
+      <p className="text-xs text-gray-500 italic mb-2">Sedang menyusun hasil...</p>
+      <div className="space-y-3 animate-pulse">
+        {/* First paragraph-like block */}
+        <div className="space-y-2">
+          <div className="h-4 bg-gray-300 rounded w-full"></div>
+          <div className="h-4 bg-gray-300 rounded w-[90%]"></div>
+          <div className="h-4 bg-gray-300 rounded w-[95%]"></div>
+        </div>
+        
+        {/* Second paragraph with space between */}
+        <div className="space-y-2">
+          <div className="h-4 bg-gray-300 rounded w-[85%]"></div>
+          <div className="h-4 bg-gray-300 rounded w-[70%]"></div>
+        </div>
+        
+        {/* Simulated list items */}
+        <div className="pl-4 space-y-2">
+          <div className="flex items-start">
+            <div className="h-3 w-3 mt-0.5 rounded-full bg-gray-300 mr-2 flex-shrink-0"></div>
+            <div className="h-4 flex-grow bg-gray-300 rounded w-[90%]"></div>
+          </div>
+          <div className="flex items-start">
+            <div className="h-3 w-3 mt-0.5 rounded-full bg-gray-300 mr-2 flex-shrink-0"></div>
+            <div className="h-4 flex-grow bg-gray-300 rounded w-[80%]"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -70,18 +91,33 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
   const [showInfo, setShowInfo] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isConnectionError, setIsConnectionError] = useState(false);
+  const [userHasScrolled, setUserHasScrolled] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const scrollTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const focusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isDesktopRef = useRef<boolean>(false);
+
+  // Reusable function to adjust textarea height
+  const adjustTextareaHeight = (textarea: HTMLTextAreaElement | null) => {
+    if (!textarea) return;
+    
+    // Reset the height temporarily to get the correct scrollHeight
+    textarea.style.height = 'auto';
+    
+    // Set the height to match content
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  };
 
   useEffect(() => {
     // Initialize chat session
     try {
       initializeSession();
-      console.log('TipidterChatPage: Session initialized');
       
-      // Set empty welcome message to trigger welcome UI if tidak ada messages yang disimpan
+      // Set empty welcome message to trigger welcome UI if tidak ada messages
       if (messages.length === 0) {
         setMessages([
           {
@@ -91,6 +127,18 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
           }
         ]);
       }
+      
+      // Detect if desktop (for Enter key handling)
+      isDesktopRef.current = window.innerWidth >= 1024;
+      
+      // Focus textarea after component mounts with slight delay for mobile
+      focusTimeoutRef.current = setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+          // Also initialize height
+          adjustTextareaHeight(textareaRef.current);
+        }
+      }, 500);
     } catch (error) {
       console.error('Error initializing session:', error);
       setHasError(true);
@@ -112,43 +160,109 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
       } catch (error) {
         console.error('Error clearing chat history:', error);
       }
+      // Clear any hanging timeouts
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
+      }
+      if (scrollTimerRef.current) {
+        clearTimeout(scrollTimerRef.current);
+      }
     };
   }, []);
 
+  // Handle scroll detection
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    const container = chatContainerRef.current;
+    if (!container) return;
+    
+    const handleScroll = () => {
+      if (!container) return;
+      
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const isScrolledToBottom = scrollHeight - scrollTop - clientHeight < 100;
+      
+      if (!isScrolledToBottom && !userHasScrolled) {
+        setUserHasScrolled(true);
+      }
+      
+      setShowScrollButton(!isScrolledToBottom);
+    };
+    
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [userHasScrolled]);
 
-  const scrollToBottom = () => {
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      // Reset scroll state when sending a new message
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.type === 'user') {
+        setUserHasScrolled(false);
+      }
+      
+      // Only auto-scroll if user hasn't manually scrolled up
+      if (!userHasScrolled) {
+        scrollToBottom();
+      }
+    }
+  }, [messages, userHasScrolled]);
+
+  const scrollToBottom = (forceScroll = false) => {
     try {
+      // Use requestAnimationFrame for smoother scrolling
       requestAnimationFrame(() => {
-        if (chatContainerRef.current) {
+        if (chatContainerRef.current && (forceScroll || !userHasScrolled)) {
+          const { scrollHeight } = chatContainerRef.current;
+          
           chatContainerRef.current.scrollTo({
-            top: chatContainerRef.current.scrollHeight,
+            top: scrollHeight,
             behavior: 'smooth',
           });
+          
+          // Fallback mechanism in case smooth scrolling doesn't work
+          if (scrollTimerRef.current) {
+            clearTimeout(scrollTimerRef.current);
+          }
+          
+          scrollTimerRef.current = setTimeout(() => {
+            if (chatContainerRef.current) {
+              chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+            }
+          }, 300);
+          
+          // Reset user scroll state if forced
+          if (forceScroll) {
+            setUserHasScrolled(false);
+            setShowScrollButton(false);
+          }
         }
       });
     } catch (error) {
       console.error('Error scrolling to bottom:', error);
+      // Fallback direct scrolling
+      if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      }
     }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputMessage(e.target.value);
-    // Adjust height dynamically
-    const textarea = e.target;
-    textarea.style.height = 'auto'; // Reset height to recalculate
-    textarea.style.height = `${textarea.scrollHeight}px`; // Set to scroll height
+    // Use the reusable function to adjust height
+    adjustTextareaHeight(e.target);
   };
 
-  const handleKeyDown = (_e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Remove Enter key submission for mobile compatibility
-    // Submission is handled by the Send button
-    // if (_e.key === 'Enter' && !_e.shiftKey) {
-    //   _e.preventDefault();
-    //   handleSubmit();
-    // }
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Only use Enter to submit on desktop, not on mobile
+    if (isDesktopRef.current && e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+  
+  const handleScrollToBottom = () => {
+    scrollToBottom(true); // Force scroll to bottom
   };
 
   const handleCopy = (text: string) => {
@@ -202,19 +316,23 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
     }
   };
 
-  // Contoh pertanyaan yang bisa ditanyakan
+  // Example questions for Tipidter
   const exampleQuestions = [
-    "Apa saja unsur pidana dalam kasus pembalakan liar?",
-    "Bagaimana langkah penyidik dalam mengidentifikasi legalitas dokumen kayu hasil sitaan?",
-    "Buatkan saya Draft berita acara Interogasi untuk kasus :",
-    "Dalam kasus pelanggaran standar kesehatan oleh pabrik makanan, bagaimana penyidik membuktikan unsur kelalaian atau kesengajaan menurut hukum pidana?"
+    "Apa unsur pidana pada perdagangan orang?",
+    "Jelaskan UU Tindak Pidana Perdagangan Orang",
+    "Apa saja bentuk eksploitasi dalam perdagangan orang?",
+    "Bagaimana prosedur penanganan kasus perdagangan manusia?"
   ];
 
   const handleSelectQuestion = (question: string) => {
     setInputMessage(question);
-    if (textareaRef.current) {
-      textareaRef.current.focus();
-    }
+    // Focus and adjust height after setting content
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        adjustTextareaHeight(textareaRef.current);
+      }
+    }, 10);
   };
 
   const handleSubmit = async () => {
@@ -231,9 +349,12 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
     // Reset textarea height after clearing input
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
+      textareaRef.current.blur(); // Hide keyboard on mobile
     }
     setIsProcessing(true);
     setIsConnectionError(false);
+    // Reset scroll position state
+    setUserHasScrolled(false);
 
     try {
       // Add a placeholder bot message with animation
@@ -322,7 +443,7 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
             </Button>
             <div>
               <h1 className="font-semibold">TIPIDTER AI</h1>
-              <p className="text-sm text-gray-600 hidden sm:block">Asisten untuk tindak pidana tertentu</p>
+              <p className="text-sm text-gray-600 hidden sm:block">Asisten untuk Tindak Pidana Perdagangan Orang</p>
             </div>
           </div>
         </header>
@@ -363,7 +484,7 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
           </Button>
           <div>
             <h1 className="font-semibold">TIPIDTER AI</h1>
-            <p className="text-sm text-gray-600 hidden sm:block">Asisten untuk tindak pidana tertentu</p>
+            <p className="text-sm text-gray-600 hidden sm:block">Asisten untuk Tindak Pidana Perdagangan Orang</p>
           </div>
         </div>
         
@@ -396,7 +517,7 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
             <div className="ml-3">
               <h3 className="text-sm font-medium text-orange-800">Informasi TIPIDTER AI</h3>
               <div className="mt-2 text-sm text-orange-700">
-                <p>TIPIDTER AI merupakan asisten kepolisian yang membantu dalam penanganan tindak pidana tertentu. Asisten ini dapat menjawab pertanyaan terkait prosedur penanganan kasus-kasus Tipidter seperti narkoba, pencucian uang, kejahatan siber, dan tindak pidana tertentu lainnya.</p>
+                <p>TIPIDTER AI merupakan asisten kepolisian yang membantu dalam penanganan tindak pidana perdagangan orang. Asisten ini dapat menjawab pertanyaan terkait kasus trafficking, eksploitasi manusia, dan pertanyaan seputar UU TPPO.</p>
               </div>
               <button 
                 className="mt-2 text-sm font-medium text-orange-600 hover:text-orange-500 focus:outline-none"
@@ -415,19 +536,19 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
       >
         <DotBackground>
           <div className="max-w-3xl mx-auto px-4 md:px-8 space-y-6">
-            {/* Welcome Message - Bold TIPIDKOR AI in center */}
+            {/* Welcome Message - Bold TIPIDTER AI in center */}
             {messages.length <= 1 && messages[0].content === '' && (
               <div className="flex flex-col items-center justify-center h-[50vh] text-center">
-                <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mb-4">
                   <img 
-                    src="/img/bareskrim.svg"
+                    src="/img/krimsus.png"
                     alt="Krimsus"
                     className="w-16 h-16 object-contain"
                   />
                 </div>
-                <h1 className="text-4xl font-bold text-red-600 mb-4">TIPIDTER Ai</h1>
+                <h1 className="text-4xl font-bold text-orange-600 mb-4">TIPIDTER AI</h1>
                 <p className="text-gray-600 max-w-md">
-                  Asisten untuk membantu Anda dengan pertanyaan seputar tindak pidana tertentu.
+                  Asisten untuk membantu Anda dengan pertanyaan seputar tindak pidana perdagangan orang.
                 </p>
               </div>
             )}
@@ -489,7 +610,17 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
                     {message.type === "bot" && !message.isAnimating ? (
                       <>
                         <div 
-                          className="prose prose-sm max-w-none"
+                          className="prose prose-sm max-w-none overflow-x-auto
+                                    prose-headings:font-bold prose-headings:text-orange-800 prose-headings:my-4
+                                    prose-h1:text-xl prose-h2:text-lg prose-h3:text-base
+                                    prose-p:my-2 prose-p:text-gray-700
+                                    prose-ul:pl-6 prose-ul:my-2 prose-ol:pl-6 prose-ol:my-2
+                                    prose-li:my-1
+                                    prose-table:border-collapse prose-table:my-4
+                                    prose-th:bg-orange-50 prose-th:p-2 prose-th:border prose-th:border-gray-300
+                                    prose-td:p-2 prose-td:border prose-td:border-gray-300
+                                    prose-strong:font-bold prose-strong:text-gray-800
+                                    prose-a:text-orange-600 prose-a:underline hover:prose-a:text-orange-800"
                           dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
                         />
                         <div className="flex justify-end mt-2">
@@ -522,6 +653,17 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
         </DotBackground>
       </div>
 
+      {/* Scroll to bottom button */}
+      {showScrollButton && (
+        <button
+          onClick={handleScrollToBottom}
+          className="fixed bottom-28 right-4 md:right-8 z-20 bg-orange-600 text-white p-2 rounded-full shadow-lg hover:bg-orange-700 transition-all duration-200 flex items-center justify-center"
+          aria-label="Scroll ke bawah"
+        >
+          <ChevronDown className="h-5 w-5" />
+        </button>
+      )}
+
       {/* Input area fixed at bottom */}
       <div className="border-t border-gray-200 bg-white p-4 md:px-8 pb-safe">
         <div className="max-w-3xl mx-auto">
@@ -533,14 +675,22 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder="Ketik pesan..."
-              className="pl-4 pr-12 py-3 max-h-[200px] rounded-xl border border-gray-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 resize-none overflow-y-auto"
+              className="resize-none pl-4 pr-12 py-3 max-h-[200px] rounded-xl border border-gray-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 overflow-y-auto z-10"
               disabled={isProcessing}
+              readOnly={false}
+              autoComplete="off"
             />
             <Button 
-              type="submit"
-              size="icon"
-              className="absolute bottom-2.5 right-2.5 h-8 w-8 bg-orange-600 hover:bg-orange-700 text-white rounded-lg"
+              type="button"
+              onClick={handleSubmit}
               disabled={isProcessing || !inputMessage.trim()}
+              className={cn(
+                "absolute bottom-3 right-2.5 h-8 w-8 p-0 rounded-lg z-20",
+                isProcessing || !inputMessage.trim()
+                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  : "bg-orange-600 text-white hover:bg-orange-700"
+              )}
+              aria-label="Kirim pesan"
             >
               {isProcessing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -549,6 +699,9 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
               )}
             </Button>
           </form>
+          <p className="text-xs text-gray-500 mt-2 text-center">
+            TIPIDTER AI dapat memberikan informasi yang tidak akurat. Verifikasi fakta penting dengan dokumen resmi.
+          </p>
         </div>
       </div>
     </div>

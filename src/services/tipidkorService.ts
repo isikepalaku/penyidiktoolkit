@@ -103,6 +103,7 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
 
       const headers: HeadersInit = {
         'Accept': 'application/json',
+        'Origin': window.location.origin,
       };
       
       if (API_KEY) {
@@ -112,10 +113,17 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
       const requestOptions: RequestInit = {
         method: 'POST',
         headers,
-        body: formData
+        body: formData,
+        mode: 'cors',
+        credentials: 'include'
       };
 
-      const url = `${API_BASE_URL}/v1/playground/agents/tipidkor-chat/runs`;
+      // Use relative URL instead of full URL to leverage vite proxy
+      let url = '/v1/playground/agents/tipidkor-chat/runs';
+      if (API_BASE_URL !== 'http://localhost:8000' && !API_BASE_URL.includes('localhost')) {
+        // Use full URL only when not in development
+        url = `${API_BASE_URL}/v1/playground/agents/tipidkor-chat/runs`;
+      }
       console.log('Sending request to:', url);
 
       const abortController = new AbortController();

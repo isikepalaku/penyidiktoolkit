@@ -60,19 +60,59 @@ export default defineConfig(({ mode }) => {
           secure: true,
           cookieDomainRewrite: {
             '*': ''
+          },
+          configure: (proxy, _options) => {
+            proxy.on('proxyReq', (proxyReq, req, _res) => {
+              // Log outgoing request for debugging
+              console.log('Proxying request:', req.method, req.url);
+              
+              // Add origin header to help with CORS
+              const origin = req.headers.origin || 'http://localhost:3000';
+              proxyReq.setHeader('Origin', origin);
+            });
+            
+            proxy.on('proxyRes', (proxyRes, req, _res) => {
+              // Log response headers for debugging
+              console.log('Proxy response status:', proxyRes.statusCode, 'for', req.url);
+              
+              // Ensure CORS headers are present
+              proxyRes.headers['access-control-allow-origin'] = req.headers.origin || '*';
+              proxyRes.headers['access-control-allow-methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+              proxyRes.headers['access-control-allow-headers'] = 'Content-Type, Authorization, X-API-Key';
+              proxyRes.headers['access-control-allow-credentials'] = 'true';
+              proxyRes.headers['access-control-max-age'] = '86400'; // 24 hours
+            });
           }
         },
         '/api': {
           target: 'https://flow.reserse.id',
           changeOrigin: true,
           secure: true,
-          rewrite: (path: string) => path.replace(/^\/api/, '')
+          rewrite: (path: string) => path.replace(/^\/api/, ''),
+          configure: (proxy, _options) => {
+            proxy.on('proxyRes', (proxyRes, req, _res) => {
+              // Ensure CORS headers are present
+              proxyRes.headers['access-control-allow-origin'] = req.headers.origin || '*';
+              proxyRes.headers['access-control-allow-methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+              proxyRes.headers['access-control-allow-headers'] = 'Content-Type, Authorization, X-API-Key';
+              proxyRes.headers['access-control-allow-credentials'] = 'true';
+            });
+          }
         },
         '/flowise': {
           target: 'https://flow.reserse.id',
           changeOrigin: true,
           secure: true,
-          rewrite: (path: string) => path.replace(/^\/flowise/, '')
+          rewrite: (path: string) => path.replace(/^\/flowise/, ''),
+          configure: (proxy, _options) => {
+            proxy.on('proxyRes', (proxyRes, req, _res) => {
+              // Ensure CORS headers are present
+              proxyRes.headers['access-control-allow-origin'] = req.headers.origin || '*';
+              proxyRes.headers['access-control-allow-methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+              proxyRes.headers['access-control-allow-headers'] = 'Content-Type, Authorization, X-API-Key';
+              proxyRes.headers['access-control-allow-credentials'] = 'true';
+            });
+          }
         }
       },
       allowedHosts: [

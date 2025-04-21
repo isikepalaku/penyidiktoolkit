@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, Copy, Check, Loader2, Info, X, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Send, Copy, Check, Loader2, Info, X, RefreshCw, ChevronDown } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { Button } from './button';
 import { Textarea } from './textarea';
@@ -9,10 +9,19 @@ import { sendChatMessage, initializeSession, clearChatHistory } from '@/services
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
-// Konfigurasi marked
+// Konfigurasi marked dan DOMPurify for safe link handling
 marked.setOptions({
   breaks: true,
   gfm: true,
+  headerIds: false,
+  mangle: false
+});
+
+DOMPurify.setConfig({
+  ADD_TAGS: ['a'],
+  ADD_ATTR: ['target', 'rel', 'class'],
+  FORBID_TAGS: ['style', 'script'],
+  FORBID_ATTR: ['style', 'onerror', 'onload']
 });
 
 interface Message {
@@ -27,16 +36,37 @@ interface Message {
   isAnimating?: boolean;
 }
 
-// Skeleton component for loading state - using AnimatedBotIcon, text, and pulse
+// Skeleton component for loading state - improved with more realistic structure
 const SkeletonMessage = () => (
   <div className="flex items-start space-x-3">
     <AnimatedBotIcon className="w-5 h-5 flex-shrink-0 mt-1" />
-    <div className="flex-1 space-y-2 py-1">
-      <p className="text-xs text-gray-500 italic mb-1">Sedang menyusun hasil...</p>
-      <div className="space-y-2 animate-pulse">
-        <div className="h-4 bg-gray-300 rounded w-3/4"></div>
-        <div className="h-4 bg-gray-300 rounded w-1/2"></div>
-        <div className="h-4 bg-gray-300 rounded w-5/6"></div>
+    <div className="flex-1 space-y-3 py-1">
+      <p className="text-xs text-gray-500 italic mb-2">Sedang menyusun hasil...</p>
+      <div className="space-y-3 animate-pulse">
+        {/* First paragraph-like block */}
+        <div className="space-y-2">
+          <div className="h-4 bg-gray-300 rounded w-full"></div>
+          <div className="h-4 bg-gray-300 rounded w-[90%]"></div>
+          <div className="h-4 bg-gray-300 rounded w-[95%]"></div>
+        </div>
+        
+        {/* Second paragraph with space between */}
+        <div className="space-y-2">
+          <div className="h-4 bg-gray-300 rounded w-[85%]"></div>
+          <div className="h-4 bg-gray-300 rounded w-[70%]"></div>
+        </div>
+        
+        {/* Simulated list items */}
+        <div className="pl-4 space-y-2">
+          <div className="flex items-start">
+            <div className="h-3 w-3 mt-0.5 rounded-full bg-gray-300 mr-2 flex-shrink-0"></div>
+            <div className="h-4 flex-grow bg-gray-300 rounded w-[90%]"></div>
+          </div>
+          <div className="flex items-start">
+            <div className="h-3 w-3 mt-0.5 rounded-full bg-gray-300 mr-2 flex-shrink-0"></div>
+            <div className="h-4 flex-grow bg-gray-300 rounded w-[80%]"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -61,23 +91,54 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
   const [showInfo, setShowInfo] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isConnectionError, setIsConnectionError] = useState(false);
+  const [userHasScrolled, setUserHasScrolled] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const scrollTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const focusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isDesktopRef = useRef<boolean>(false);
+
+  // Reusable function to adjust textarea height
+  const adjustTextareaHeight = (textarea: HTMLTextAreaElement | null) => {
+    if (!textarea) return;
+    
+    // Reset the height temporarily to get the correct scrollHeight
+    textarea.style.height = 'auto';
+    
+    // Set the height to match content
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  };
 
   useEffect(() => {
     // Initialize chat session
     try {
       initializeSession();
-
+      
+      // Set empty welcome message to trigger welcome UI if tidak ada messages
       if (messages.length === 0) {
-        setMessages([{
-          content: '',
-          type: 'bot',
-          timestamp: new Date(),
-        }]);
+        setMessages([
+          {
+            content: '',
+            type: 'bot',
+            timestamp: new Date(),
+          }
+        ]);
       }
+      
+      // Detect if desktop (for Enter key handling)
+      isDesktopRef.current = window.innerWidth >= 1024;
+      
+      // Focus textarea after component mounts with slight delay for mobile
+      focusTimeoutRef.current = setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+          // Also initialize height
+          adjustTextareaHeight(textareaRef.current);
+        }
+      }, 500);
     } catch (error) {
       console.error('Error initializing session:', error);
       setHasError(true);
@@ -99,43 +160,109 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
       } catch (error) {
         console.error('Error clearing chat history:', error);
       }
+      // Clear any hanging timeouts
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
+      }
+      if (scrollTimerRef.current) {
+        clearTimeout(scrollTimerRef.current);
+      }
     };
-  }, []); // Only run on mount
+  }, []);
 
+  // Handle scroll detection
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    const container = chatContainerRef.current;
+    if (!container) return;
+    
+    const handleScroll = () => {
+      if (!container) return;
+      
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const isScrolledToBottom = scrollHeight - scrollTop - clientHeight < 100;
+      
+      if (!isScrolledToBottom && !userHasScrolled) {
+        setUserHasScrolled(true);
+      }
+      
+      setShowScrollButton(!isScrolledToBottom);
+    };
+    
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [userHasScrolled]);
 
-  const scrollToBottom = () => {
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      // Reset scroll state when sending a new message
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.type === 'user') {
+        setUserHasScrolled(false);
+      }
+      
+      // Only auto-scroll if user hasn't manually scrolled up
+      if (!userHasScrolled) {
+        scrollToBottom();
+      }
+    }
+  }, [messages, userHasScrolled]);
+
+  const scrollToBottom = (forceScroll = false) => {
     try {
+      // Use requestAnimationFrame for smoother scrolling
       requestAnimationFrame(() => {
-        if (chatContainerRef.current) {
+        if (chatContainerRef.current && (forceScroll || !userHasScrolled)) {
+          const { scrollHeight } = chatContainerRef.current;
+          
           chatContainerRef.current.scrollTo({
-            top: chatContainerRef.current.scrollHeight,
+            top: scrollHeight,
             behavior: 'smooth',
           });
+          
+          // Fallback mechanism in case smooth scrolling doesn't work
+          if (scrollTimerRef.current) {
+            clearTimeout(scrollTimerRef.current);
+          }
+          
+          scrollTimerRef.current = setTimeout(() => {
+            if (chatContainerRef.current) {
+              chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+            }
+          }, 300);
+          
+          // Reset user scroll state if forced
+          if (forceScroll) {
+            setUserHasScrolled(false);
+            setShowScrollButton(false);
+          }
         }
       });
     } catch (error) {
       console.error('Error scrolling to bottom:', error);
+      // Fallback direct scrolling
+      if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      }
     }
   };
 
-  const handleInputChange = (_e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputMessage(_e.target.value);
-    // Adjust height dynamically
-    const textarea = _e.target;
-    textarea.style.height = 'auto'; // Reset height to recalculate
-    textarea.style.height = `${textarea.scrollHeight}px`; // Set to scroll height
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputMessage(e.target.value);
+    // Use the reusable function to adjust height
+    adjustTextareaHeight(e.target);
   };
 
-  const handleKeyDown = (_e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Remove Enter key submission for mobile compatibility
-    // Submission is handled by the Send button
-    // if (_e.key === 'Enter' && !_e.shiftKey) {
-    //   _e.preventDefault();
-    //   handleSubmit();
-    // }
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Only use Enter to submit on desktop, not on mobile
+    if (isDesktopRef.current && e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+  
+  const handleScrollToBottom = () => {
+    scrollToBottom(true); // Force scroll to bottom
   };
 
   const handleCopy = (text: string) => {
@@ -146,9 +273,13 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
 
   const formatMessage = (content: string) => {
     try {
+      // Pastikan content ada dan bukan string kosong
       if (!content) return '';
       
+      // Parse markdown menjadi HTML
       const rawHtml = marked.parse(content);
+      
+      // Sanitasi HTML untuk mencegah XSS
       const sanitizedHtml = DOMPurify.sanitize(rawHtml);
       
       return sanitizedHtml;
@@ -162,6 +293,7 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
     setHasError(false);
     setIsConnectionError(false);
     
+    // Reinitialize session
     try {
       initializeSession();
     } catch (error) {
@@ -184,11 +316,23 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
     }
   };
 
+  // Example questions for Fismondev
+  const exampleQuestions = [
+    "Apa unsur pidana pada penipuan pajak?",
+    "Jelaskan tentang UU TPPU",
+    "Bagaimana prosedur penanganan kasus money laundering?",
+    "Apa sanksi untuk kejahatan valas?"
+  ];
+
   const handleSelectQuestion = (question: string) => {
     setInputMessage(question);
-    if (textareaRef.current) {
-      textareaRef.current.focus();
-    }
+    // Focus and adjust height after setting content
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        adjustTextareaHeight(textareaRef.current);
+      }
+    }, 10);
   };
 
   const handleSubmit = async () => {
@@ -205,11 +349,15 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
     // Reset textarea height after clearing input
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
+      textareaRef.current.blur(); // Hide keyboard on mobile
     }
     setIsProcessing(true);
     setIsConnectionError(false);
+    // Reset scroll position state
+    setUserHasScrolled(false);
 
     try {
+      // Add a placeholder bot message with animation
       setMessages((prev) => [
         ...prev,
         {
@@ -222,16 +370,19 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
 
       const response = await sendChatMessage(userMessage.content);
 
+      // Replace the placeholder with the actual response
       setMessages((prev) => {
         const newMessages = [...prev];
+        // Remove the last message (placeholder)
         newMessages.pop();
         
+        // Add the actual response
         newMessages.push({
           content: response.text,
           type: 'bot',
           timestamp: new Date(),
           sourceDocuments: response.sourceDocuments,
-          error: response.error,
+          error: !!response.error,
         });
         
         return newMessages;
@@ -239,6 +390,7 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
     } catch (error) {
       console.error('Error sending message:', error);
       
+      // Check if it's a network error
       const isNetworkError = error instanceof TypeError && 
         (error.message.includes('network') || 
          error.message.includes('fetch') || 
@@ -248,10 +400,13 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
         setIsConnectionError(true);
       }
       
+      // Replace the placeholder with an error message
       setMessages((prev) => {
         const newMessages = [...prev];
+        // Remove the last message (placeholder)
         newMessages.pop();
         
+        // Add error message
         newMessages.push({
           content: isNetworkError 
             ? 'Terjadi masalah koneksi. Silakan periksa koneksi internet Anda dan coba lagi.' 
@@ -265,20 +420,14 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
       });
     } finally {
       setIsProcessing(false);
+      // Focus the textarea after sending
       if (textareaRef.current) {
         textareaRef.current.focus();
       }
     }
   };
 
-  // Example questions yang relevan dengan fiskal, moneter, dan devisa
-  const exampleQuestions = [
-    "Apa sanksi pidana bagi pihak yang menghimpun dana masyarakat tanpa izin OJK sebagaimana diatur dalam UU P2SK?",
-    "Bentuk tindak pidana dalam pemberian fidusia fiktif atau ganda oleh pelaku usaha pembiayaan",
-    "Apakah pengelolaan dana nasabah oleh bank tanpa pencatatan sesuai prinsip kehatian-hatian termasuk tindak pidana perbankan menurut UU P2SK?",
-    "Bagaimana jika perusahaan asuransi yang menjual polis unit link tanpa transparansi risiko, dan apakah hal itu dapat dikategorikan sebagai penipuan keuangan?"
-  ];
-
+  // Render error states
   if (hasError) {
     return (
       <div className="fixed inset-0 z-20 bg-white lg:pl-64 flex flex-col">
@@ -294,7 +443,7 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
             </Button>
             <div>
               <h1 className="font-semibold">FISMONDEV AI</h1>
-              <p className="text-sm text-gray-600 hidden sm:block">Asisten untuk tindak pidana fiskal, moneter, dan devisa</p>
+              <p className="text-sm text-gray-600 hidden sm:block">Asisten untuk Fiskal, Moneter, dan Devisa</p>
             </div>
           </div>
         </header>
@@ -335,7 +484,7 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
           </Button>
           <div>
             <h1 className="font-semibold">FISMONDEV AI</h1>
-            <p className="text-sm text-gray-600 hidden sm:block">Asisten untuk tindak pidana fiskal, moneter, dan devisa</p>
+            <p className="text-sm text-gray-600 hidden sm:block">Asisten untuk Fiskal, Moneter, dan Devisa</p>
           </div>
         </div>
         
@@ -368,7 +517,7 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
             <div className="ml-3">
               <h3 className="text-sm font-medium text-green-800">Informasi FISMONDEV AI</h3>
               <div className="mt-2 text-sm text-green-700">
-                <p>FISMONDEV AI merupakan asisten kepolisian yang membantu dalam penanganan tindak pidana fiskal, moneter, dan devisa. Asisten ini dapat menjawab pertanyaan terkait UU terkait, penyelidikan kasus, dan penanganan kasus-kasus tindak pidana di bidang tersebut.</p>
+                <p>FISMONDEV AI merupakan asisten kepolisian yang membantu dalam penanganan tindak pidana di bidang fiskal, moneter, dan devisa. Asisten ini dapat menjawab pertanyaan terkait pencucian uang, penipuan pajak, kejahatan valuta asing, dan kejahatan perbankan.</p>
               </div>
               <button 
                 className="mt-2 text-sm font-medium text-green-600 hover:text-green-500 focus:outline-none"
@@ -387,24 +536,24 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
       >
         <DotBackground>
           <div className="max-w-3xl mx-auto px-4 md:px-8 space-y-6">
-            {/* Welcome Message */}
+            {/* Welcome Message - Bold FISMONDEV AI in center */}
             {messages.length <= 1 && messages[0].content === '' && (
               <div className="flex flex-col items-center justify-center h-[50vh] text-center">
                 <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
                   <img 
-                    src="/img/bareskrim.svg"
+                    src="/img/krimsus.png"
                     alt="Krimsus"
                     className="w-16 h-16 object-contain"
                   />
                 </div>
                 <h1 className="text-4xl font-bold text-green-600 mb-4">FISMONDEV AI</h1>
                 <p className="text-gray-600 max-w-md">
-                  Asisten untuk membantu Anda dengan pertanyaan seputar tindak pidana fiskal, moneter, dan devisa.
+                  Asisten untuk membantu Anda dengan pertanyaan seputar tindak pidana di bidang fiskal, moneter, dan devisa.
                 </p>
               </div>
             )}
 
-            {/* Example Questions */}
+            {/* Example Questions - only show at the beginning */}
             {messages.length <= 1 && (
               <div className="space-y-4">
                 <h3 className="text-sm font-medium text-gray-500">Contoh pertanyaan:</h3>
@@ -440,6 +589,7 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
 
             {/* Chat Messages */}
             {messages.map((message, index) => (
+              // Hanya tampilkan message dengan content (kecuali animating placeholder)
               (message.content || message.isAnimating) && (
                 <div
                   key={index}
@@ -460,7 +610,17 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
                     {message.type === "bot" && !message.isAnimating ? (
                       <>
                         <div 
-                          className="prose prose-sm max-w-none"
+                          className="prose prose-sm max-w-none overflow-x-auto
+                                    prose-headings:font-bold prose-headings:text-green-800 prose-headings:my-4
+                                    prose-h1:text-xl prose-h2:text-lg prose-h3:text-base
+                                    prose-p:my-2 prose-p:text-gray-700
+                                    prose-ul:pl-6 prose-ul:my-2 prose-ol:pl-6 prose-ol:my-2
+                                    prose-li:my-1
+                                    prose-table:border-collapse prose-table:my-4
+                                    prose-th:bg-green-50 prose-th:p-2 prose-th:border prose-th:border-gray-300
+                                    prose-td:p-2 prose-td:border prose-td:border-gray-300
+                                    prose-strong:font-bold prose-strong:text-gray-800
+                                    prose-a:text-green-600 prose-a:underline hover:prose-a:text-green-800"
                           dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
                         />
                         <div className="flex justify-end mt-2">
@@ -493,7 +653,18 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
         </DotBackground>
       </div>
 
-      {/* Input area */}
+      {/* Scroll to bottom button */}
+      {showScrollButton && (
+        <button
+          onClick={handleScrollToBottom}
+          className="fixed bottom-28 right-4 md:right-8 z-20 bg-green-600 text-white p-2 rounded-full shadow-lg hover:bg-green-700 transition-all duration-200 flex items-center justify-center"
+          aria-label="Scroll ke bawah"
+        >
+          <ChevronDown className="h-5 w-5" />
+        </button>
+      )}
+
+      {/* Input area fixed at bottom */}
       <div className="border-t border-gray-200 bg-white p-4 md:px-8 pb-safe">
         <div className="max-w-3xl mx-auto">
           <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="relative">
@@ -504,14 +675,22 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder="Ketik pesan..."
-              className="pl-4 pr-12 py-3 max-h-[200px] rounded-xl border border-gray-300 focus:border-green-500 focus:ring-1 focus:ring-green-500 resize-none overflow-y-auto"
+              className="resize-none pl-4 pr-12 py-3 max-h-[200px] rounded-xl border border-gray-300 focus:border-green-500 focus:ring-1 focus:ring-green-500 overflow-y-auto z-10"
               disabled={isProcessing}
+              readOnly={false}
+              autoComplete="off"
             />
             <Button 
-              type="submit"
-              size="icon"
-              className="absolute bottom-2.5 right-2.5 h-8 w-8 bg-green-600 hover:bg-green-700 text-white rounded-lg"
+              type="button"
+              onClick={handleSubmit}
               disabled={isProcessing || !inputMessage.trim()}
+              className={cn(
+                "absolute bottom-3 right-2.5 h-8 w-8 p-0 rounded-lg z-20",
+                isProcessing || !inputMessage.trim()
+                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  : "bg-green-600 text-white hover:bg-green-700"
+              )}
+              aria-label="Kirim pesan"
             >
               {isProcessing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -520,6 +699,9 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
               )}
             </Button>
           </form>
+          <p className="text-xs text-gray-500 mt-2 text-center">
+            FISMONDEV AI dapat memberikan informasi yang tidak akurat. Verifikasi fakta penting dengan dokumen resmi.
+          </p>
         </div>
       </div>
     </div>

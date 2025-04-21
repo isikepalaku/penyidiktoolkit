@@ -128,6 +128,8 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isSessionInitialized = useRef<boolean>(false);
+  // Add focus ref for auto-focusing the textarea
+  const focusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Setup progress listener
   useEffect(() => {
@@ -190,6 +192,21 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
       window.removeEventListener('error', handleError);
     };
     // Jangan hapus session saat unmount agar memory tetap terjaga
+  }, []);
+
+  // Add focus on component mount with delay
+  useEffect(() => {
+    focusTimeoutRef.current = setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+    }, 500);
+
+    return () => {
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -288,22 +305,24 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
   };
 
   const handleSubmit = async () => {
-    // Tetap memungkinkan submit jika ada file yang dipilih, bahkan jika inputMessage kosong
     if ((selectedFiles.length === 0 && !inputMessage.trim()) || isProcessing) return;
 
+    const userMessageContent = inputMessage.trim() || (selectedFiles.length > 0 ? "Analisis file berikut" : "");
     const userMessage: Message = {
-      // Jika pesan kosong tapi ada file, tampilkan pesan default
-      content: inputMessage.trim() || (selectedFiles.length > 0 ? "Tolong analisis file yang saya kirimkan." : ""),
-      type: 'user',
+      content: userMessageContent,
+      type: "user",
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
-    setInputMessage('');
-    // Reset textarea height after clearing input
+    // Clear input and reset height immediately
+    setInputMessage("");
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
+      textareaRef.current.blur(); // Remove focus to hide keyboard on mobile
     }
+    
+    // Add user message to state
+    setMessages((prev) => [...prev, userMessage]);
     setIsProcessing(true);
     setIsConnectionError(false);
     
@@ -747,7 +766,7 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder="Ketik pesan Anda atau upload file..."
-              className="resize-none pr-12 py-3 max-h-[200px] rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm overflow-y-auto z-10"
+              className="resize-none pr-12 py-3 pl-10 max-h-[200px] rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm overflow-y-auto z-10"
               disabled={isProcessing}
               readOnly={false}
               autoComplete="off"
