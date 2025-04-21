@@ -36,16 +36,22 @@ interface Message {
   isAnimating?: boolean;
 }
 
-// Skeleton component for loading state - using AnimatedBotIcon, text, and pulse
+// Enhanced Skeleton component for loading state - more realistic text representation
 const SkeletonMessage = () => (
   <div className="flex items-start space-x-3">
     <AnimatedBotIcon className="w-5 h-5 flex-shrink-0 mt-1" />
-    <div className="flex-1 space-y-2 py-1">
+    <div className="flex-1 space-y-3 py-1">
       <p className="text-xs text-gray-500 italic mb-1">Sedang menyusun hasil...</p>
-      <div className="space-y-2 animate-pulse">
-        <div className="h-4 bg-gray-300 rounded w-3/4"></div>
-        <div className="h-4 bg-gray-300 rounded w-1/2"></div>
-        <div className="h-4 bg-gray-300 rounded w-5/6"></div>
+      <div className="space-y-3 animate-pulse">
+        <div className="h-4 bg-gray-300 rounded w-[85%]"></div>
+        <div className="h-4 bg-gray-300 rounded w-[92%]"></div>
+        <div className="h-4 bg-gray-300 rounded w-[78%]"></div>
+        <div className="flex space-x-2">
+          <div className="h-4 bg-gray-300 rounded w-[100px]"></div>
+          <div className="h-4 bg-gray-300 rounded w-[120px]"></div>
+        </div>
+        <div className="h-4 bg-gray-300 rounded w-[88%]"></div>
+        <div className="h-4 bg-gray-300 rounded w-[75%]"></div>
       </div>
     </div>
   </div>
@@ -70,6 +76,7 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
   const [showInfo, setShowInfo] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isConnectionError, setIsConnectionError] = useState(false);
+  const [isScrollingPaused, setIsScrollingPaused] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -115,40 +122,95 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
     };
   }, []);
 
+  // Initialize textarea resize when component mounts
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (textareaRef.current) {
+      // Auto-focus input on mount for better UX
+      setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 500);
+      
+      // Set initial height
+      adjustTextareaHeight(textareaRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isScrollingPaused) {
+      scrollToBottom();
+    }
+  }, [messages, isScrollingPaused]);
+  
+  // Detect user scroll to pause auto-scrolling temporarily
+  useEffect(() => {
+    const container = chatContainerRef.current;
+    if (!container) return;
+    
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const isScrolledUp = scrollHeight - scrollTop - clientHeight > 100;
+      
+      setIsScrollingPaused(isScrolledUp);
+    };
+    
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const scrollToBottom = () => {
     try {
-      requestAnimationFrame(() => {
-        if (chatContainerRef.current) {
-          chatContainerRef.current.scrollTo({
-            top: chatContainerRef.current.scrollHeight,
-            behavior: 'smooth',
-          });
-        }
-      });
+      // Use a more reliable scrolling approach with fallbacks
+      if (chatContainerRef.current) {
+        const scrollOptions = { 
+          top: chatContainerRef.current.scrollHeight,
+          behavior: 'smooth' as ScrollBehavior
+        };
+        
+        // First try with requestAnimationFrame for smoother scrolling
+        requestAnimationFrame(() => {
+          try {
+            chatContainerRef.current?.scrollTo(scrollOptions);
+          } catch (error) {
+            console.error('Error in RAF scrolling:', error);
+            // Fallback to direct scrolling if RAF fails
+            try {
+              chatContainerRef.current!.scrollTop = chatContainerRef.current!.scrollHeight;
+            } catch (innerError) {
+              console.error('Error in fallback scrolling:', innerError);
+            }
+          }
+        });
+      }
     } catch (error) {
       console.error('Error scrolling to bottom:', error);
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputMessage(e.target.value);
-    // Adjust height dynamically
-    const textarea = e.target;
+  // Extract the textarea adjustment logic to a reusable function
+  const adjustTextareaHeight = (textarea: HTMLTextAreaElement) => {
     textarea.style.height = 'auto'; // Reset height to recalculate
-    textarea.style.height = `${textarea.scrollHeight}px`; // Set to scroll height
+    
+    // Calculate the minimum height (1 row)
+    const minHeight = 24; // approximate height of one row
+    
+    // Set to the greater of scrollHeight or minHeight
+    const newHeight = Math.max(textarea.scrollHeight, minHeight);
+    textarea.style.height = `${newHeight}px`;
   };
 
-  const handleKeyDown = (_e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Remove Enter key submission for mobile compatibility
-    // Submission is handled by the Send button
-    // if (_e.key === 'Enter' && !_e.shiftKey) {
-    //   _e.preventDefault();
-    //   handleSubmit();
-    // }
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputMessage(e.target.value);
+    
+    // Use the extracted function for height adjustment
+    adjustTextareaHeight(e.target);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Enable Enter key submission for desktop while preserving Shift+Enter for new lines
+    if (e.key === 'Enter' && !e.shiftKey && window.innerWidth >= 768) {
+      e.preventDefault();
+      handleSubmit();
+    }
   };
 
   const handleCopy = (text: string) => {
@@ -214,6 +276,13 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
     setInputMessage(question);
     if (textareaRef.current) {
       textareaRef.current.focus();
+      
+      // Adjust height for the new content
+      setTimeout(() => {
+        if (textareaRef.current) {
+          adjustTextareaHeight(textareaRef.current);
+        }
+      }, 0);
     }
   };
 
@@ -232,6 +301,10 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
+    
+    // Reset scrolling pause when sending a new message
+    setIsScrollingPaused(false);
+    
     setIsProcessing(true);
     setIsConnectionError(false);
 
@@ -466,6 +539,21 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
               </div>
             )}
 
+            {/* New message notification when scrolled up */}
+            {isScrollingPaused && messages.length > 1 && (
+              <div className="sticky top-2 z-10 flex justify-center">
+                <button
+                  onClick={() => {
+                    setIsScrollingPaused(false);
+                    scrollToBottom();
+                  }}
+                  className="bg-red-600 text-white px-4 py-2 rounded-full text-sm font-medium shadow-md hover:bg-red-700 transition-colors"
+                >
+                  Scroll ke bawah
+                </button>
+              </div>
+            )}
+
             {/* Chat Messages */}
             {messages.map((message, index) => (
               // Hanya tampilkan message dengan content (kecuali animating placeholder)
@@ -535,11 +623,13 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
               placeholder="Ketik pesan..."
               className="pl-4 pr-12 py-3 max-h-[200px] rounded-xl border border-gray-300 focus:border-red-500 focus:ring-1 focus:ring-red-500 resize-none overflow-y-auto"
               disabled={isProcessing}
+              readOnly={false}
+              autoComplete="off"
             />
             <Button 
               type="submit"
               size="icon"
-              className="absolute bottom-2.5 right-2.5 h-8 w-8 bg-red-600 hover:bg-red-700 text-white rounded-lg"
+              className="absolute bottom-3 right-3 h-8 w-8 bg-red-600 hover:bg-red-700 text-white rounded-lg z-20"
               disabled={isProcessing || !inputMessage.trim()}
             >
               {isProcessing ? (
