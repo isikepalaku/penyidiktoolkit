@@ -12,6 +12,22 @@ export default function TimelineDemo() {
     <div className="w-full h-[500px] overflow-y-auto border rounded-md p-4 bg-background">
       <Timeline>
       <TimelineItem status="done">
+          <TimelineHeading>Toolkit Ai CDR analisis</TimelineHeading>
+          <TimelineDot status="done" />
+          <TimelineLine done />
+          <TimelineContent>
+          Analisis data tanpa software i2 analyst, flexibel dengan graph visual dan otomatisasi analisis node hanya dengan perintah via chat.
+          </TimelineContent>
+        </TimelineItem>
+      <TimelineItem status="done">
+          <TimelineHeading>Penyidik Narkotika dan Krimum</TimelineHeading>
+          <TimelineDot status="done" />
+          <TimelineLine done />
+          <TimelineContent>
+            Penambahan asisten penyidik narkotika dan krimum, menggunakan model ai reasoning dan tehnik RAG yang lebih efektif dari versi sebelumnya.
+          </TimelineContent>
+        </TimelineItem>
+      <TimelineItem status="done">
           <TimelineHeading>Analisis Dokumen</TimelineHeading>
           <TimelineDot status="done" />
           <TimelineLine done />
