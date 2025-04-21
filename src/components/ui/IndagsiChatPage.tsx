@@ -318,10 +318,10 @@ const IndagsiChatPage: React.FC<IndagsiChatPageProps> = ({ onBack }) => {
 
   // Example questions for Indagsi
   const exampleQuestions = [
-    "Apa ketentuan UU tentang ekspor?",
-    "Jelaskan regulasi perdagangan internasional",
-    "Bagaimana aturan impor barang mewah?",
-    "Apa sanksi pelanggaran perdagangan?"
+    "Apakah menjual barang dengan merek palsu (tiruan) termasuk tindak pidana perdagangan?",
+    "Jelaskan pasal yang mengatur penjualan pakaian bekas (thrift) atau barang lama dari luar negeri?",
+    "Apa sanksi pidana bagi penjual pestisida tanpa ijin edar?",
+    "Jelaskan tindak pidana bagi produsen atau penjual kosmetik yang tidak memiliki izin edar (BPOM)?",
   ];
 
   const handleSelectQuestion = (question: string) => {

@@ -1,6 +1,18 @@
+/* Import font Inter dari Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Font Smoothing untuk tampilan lebih halus seperti ChatGPT */
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+}
 
 /* Custom styles */
 .hide-scrollbar::-webkit-scrollbar {
@@ -74,6 +86,8 @@
   }
   body {
     @apply bg-background text-foreground;
+    letter-spacing: -0.011em; /* Mirip dengan ChatGPT */
+    line-height: 1.5;
   }
 }
 

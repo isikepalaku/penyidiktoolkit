@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, Copy, Check, Loader2, Info, X, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Send, Copy, Check, Loader2, Info, X, ChevronDown, Paperclip, File } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { Button } from './button';
 import { Textarea } from './textarea';
 import { AnimatedBotIcon } from './animated-bot-icon';
 import { DotBackground } from './DotBackground';
-import { sendChatMessage, clearChatHistory, initializeSession } from '@/services/ppaPpoService';
+import { sendChatMessage, clearChatHistory, initializeSession, onProgress } from '@/services/reskrimumService';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
@@ -58,11 +58,48 @@ const SkeletonMessage = () => (
   </div>
 );
 
-interface PpaPpoChatPageProps {
+// Progress bar component
+const ProgressBar = ({ percent = 0, status = 'uploading' }) => {
+  const getStatusText = () => {
+    switch (status) {
+      case 'preparing': return 'Mempersiapkan...';
+      case 'uploading': return 'Mengunggah file...';
+      case 'processing': return 'Memproses dokumen...';
+      case 'completed': return 'Selesai!';
+      default: return 'Memproses...';
+    }
+  };
+  
+  const getColor = () => {
+    switch (status) {
+      case 'completed': return 'bg-green-500';
+      case 'processing': return 'bg-indigo-500';
+      case 'uploading': return 'bg-amber-500';
+      default: return 'bg-indigo-500';
+    }
+  };
+  
+  return (
+    <div className="w-full mb-3">
+      <div className="flex justify-between items-center mb-1">
+        <span className="text-sm font-medium text-gray-700">{getStatusText()}</span>
+        <span className="text-sm font-medium text-gray-700">{percent}%</span>
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-2.5">
+        <div 
+          className={`h-2.5 rounded-full ${getColor()} transition-all duration-500 ease-in-out`} 
+          style={{ width: `${percent}%` }}
+        ></div>
+      </div>
+    </div>
+  );
+};
+
+interface ReskrimumChatPageProps {
   onBack?: () => void;
 }
 
-const PpaPpoChatPage: React.FC<PpaPpoChatPageProps> = ({ onBack }) => {
+const ReskrimumChatPage: React.FC<ReskrimumChatPageProps> = ({ onBack }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -70,10 +107,17 @@ const PpaPpoChatPage: React.FC<PpaPpoChatPageProps> = ({ onBack }) => {
   const [showInfo, setShowInfo] = useState(false);
   const [userScrolled, setUserScrolled] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [progress, setProgress] = useState<{status: string, percent: number}>({
+    status: 'preparing',
+    percent: 0
+  });
+  const [showProgress, setShowProgress] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const isDesktopRef = useRef<boolean>(window.innerWidth >= 1024);
 
   // Fungsi untuk menyesuaikan tinggi textarea secara dinamis
@@ -138,6 +182,23 @@ const PpaPpoChatPage: React.FC<PpaPpoChatPageProps> = ({ onBack }) => {
       chatContainer.addEventListener('scroll', handleScroll);
     }
     
+    // Setup progress listener for file uploads
+    const unsubscribe = onProgress((progressInfo) => {
+      setProgress({
+        status: progressInfo.status,
+        percent: progressInfo.percent || 0
+      });
+      
+      if (progressInfo.status === 'completed') {
+        // Hide progress after completion + delay
+        setTimeout(() => {
+          setShowProgress(false);
+        }, 1000);
+      } else {
+        setShowProgress(true);
+      }
+    });
+    
     return () => {
       // Clear chat history when component unmounts
       clearChatHistory();
@@ -145,6 +206,7 @@ const PpaPpoChatPage: React.FC<PpaPpoChatPageProps> = ({ onBack }) => {
       if (chatContainer) {
         chatContainer.removeEventListener('scroll', handleScroll);
       }
+      unsubscribe();
     };
   }, []);
 
@@ -193,12 +255,32 @@ const PpaPpoChatPage: React.FC<PpaPpoChatPageProps> = ({ onBack }) => {
       handleSubmit();
     }
   };
+  
+  // Handler untuk file input
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files);
+      setSelectedFiles(prev => [...prev, ...filesArray]);
+    }
+  };
+  
+  // Handler untuk menghapus file
+  const handleRemoveFile = (indexToRemove: number) => {
+    setSelectedFiles(prev => prev.filter((_, index) => index !== indexToRemove));
+  };
+  
+  // Fungsi untuk membuka dialog file
+  const handleOpenFileDialog = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
 
   const handleSubmit = async () => {
-    if (!inputMessage.trim() || isProcessing) return;
+    if ((selectedFiles.length === 0 && !inputMessage.trim()) || isProcessing) return;
 
     const userMessage: Message = {
-      content: inputMessage.trim(),
+      content: inputMessage.trim() || (selectedFiles.length > 0 ? "Tolong analisis file yang saya kirimkan." : ""),
       type: 'user',
       timestamp: new Date()
     };
@@ -229,8 +311,28 @@ const PpaPpoChatPage: React.FC<PpaPpoChatPageProps> = ({ onBack }) => {
         },
       ]);
       
+      // Check if any file is large (> 5MB)
+      const hasLargeFile = selectedFiles.some(file => file.size > 5 * 1024 * 1024);
+      if (hasLargeFile) {
+        setShowProgress(true);
+      }
+      
+      // Log file sizes sebelum upload
+      if (selectedFiles.length > 0) {
+        console.log('Uploading files:');
+        selectedFiles.forEach((file, index) => {
+          console.log(`File ${index + 1}: ${file.name} - ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+        });
+      }
+      
       // Send message to API
-      const response = await sendChatMessage(userMessage.content);
+      const response = await sendChatMessage(
+        userMessage.content, 
+        selectedFiles.length > 0 ? selectedFiles : undefined
+      );
+      
+      // Reset selected files after sending
+      setSelectedFiles([]);
       
       // Replace the placeholder with the actual response
       setMessages((prev) => {
@@ -254,6 +356,39 @@ const PpaPpoChatPage: React.FC<PpaPpoChatPageProps> = ({ onBack }) => {
     } catch (error) {
       console.error('Error sending message:', error);
       
+      // Reset selected files on error
+      setSelectedFiles([]);
+      
+      // Get error message
+      const getErrorMessage = (error: any): string => {
+        if (!navigator.onLine) {
+          return 'Perangkat Anda sedang offline. Silakan periksa koneksi internet dan coba lagi.';
+        }
+        
+        if (error.message) {
+          // Jika error spesifik tentang ukuran file
+          if (error.message.includes('File terlalu besar')) {
+            return 'File terlalu besar. Harap gunakan file dengan ukuran lebih kecil (maksimal 50MB).';
+          }
+          
+          // Jika error timeout
+          if (error.message.includes('timeout') || error.message.includes('timed out')) {
+            return 'Permintaan timeout. File mungkin terlalu besar atau koneksi terlalu lambat.';
+          }
+          
+          // Jika error spesifik tentang rate limit
+          if (error.message.includes('Terlalu banyak permintaan')) {
+            return 'Terlalu banyak permintaan dalam waktu singkat. Silakan tunggu beberapa saat dan coba lagi.';
+          }
+          
+          // Jika ada pesan error spesifik lainnya, tampilkan
+          return error.message;
+        }
+        
+        // Default error message
+        return 'Terjadi masalah koneksi. Silakan periksa koneksi internet Anda dan coba lagi.';
+      };
+      
       // Replace the placeholder with an error message
       setMessages((prev) => {
         const newMessages = [...prev];
@@ -263,7 +398,7 @@ const PpaPpoChatPage: React.FC<PpaPpoChatPageProps> = ({ onBack }) => {
         
         if (placeholderIndex !== -1) {
           newMessages[placeholderIndex] = {
-            content: 'Maaf, terjadi kesalahan saat memproses pesan Anda. Silakan coba lagi.',
+            content: getErrorMessage(error),
             type: 'bot',
             timestamp: new Date(),
             error: true,
@@ -274,6 +409,7 @@ const PpaPpoChatPage: React.FC<PpaPpoChatPageProps> = ({ onBack }) => {
       });
     } finally {
       setIsProcessing(false);
+      setShowProgress(false);
       // Focus the textarea after sending
       if (textareaRef.current) {
         textareaRef.current.focus();
@@ -297,16 +433,22 @@ const PpaPpoChatPage: React.FC<PpaPpoChatPageProps> = ({ onBack }) => {
 
   const formatMessage = (content: string) => {
     try {
+      // Pastikan content ada dan bukan string kosong
+      if (!content) return '';
+      
+      // Preprocessor sederhana: ganti karakter newline yang di-escape
+      let processedContent = content.replace(/\\n/g, '\n');
+      
       // Convert markdown to HTML
-      const html = marked(content);
+      const rawHtml = marked.parse(processedContent);
       
       // Sanitize HTML to prevent XSS
-      const sanitizedHtml = DOMPurify.sanitize(html);
+      const sanitizedHtml = DOMPurify.sanitize(rawHtml);
       
       return sanitizedHtml;
     } catch (error) {
       console.error('Error formatting message:', error);
-      return content;
+      return 'Error formatting message.';
     }
   };
 
@@ -322,10 +464,10 @@ const PpaPpoChatPage: React.FC<PpaPpoChatPageProps> = ({ onBack }) => {
 
   // Example questions for the user
   const exampleQuestions = [
-    "Apa unsur-unsur yang harus dipenuhi agar eksploitasi terhadap perempuan atau anak dapat dijerat sebagai tindak pidana perdagangan orang menurut Pasal 2 UU No. 21 Tahun 2007 tentang TPPO?",
-    "Dalam kasus kekerasan seksual terhadap anak, bagaimana membuktikan unsur 'pembujukan atau tipu muslihat' yang diatur dalam Pasal 76D juncto Pasal 81 UU Perlindungan Anak?",
-    "Apakah pihak yang menyediakan atau memfasilitasi tempat untuk eksploitasi seksual terhadap perempuan dan anak dapat dijerat dengan pasal pidana khusus TPPO dan pidana umum secara bersamaan?",
-    "Dalam kasus perdagangan anak lintas wilayah, kapan perbuatan tersebut memenuhi unsur pidana internasional sesuai ketentuan Palermo Protocol (Protokol PBB tentang TPPO) yang telah diratifikasi oleh Indonesia?"
+    "Apa saja unsur-unsur tindak pidana pencurian?",
+    "Jelaskan perbedaan antara pencurian biasa dan pencurian dengan kekerasan",
+    "Bagaimana prosedur penanganan kasus pencurian kendaraan bermotor?",
+    "Apa syarat untuk menetapkan tersangka dalam kasus pembunuhan?"
   ];
 
   const handleExampleClick = (question: string) => {
@@ -355,16 +497,16 @@ const PpaPpoChatPage: React.FC<PpaPpoChatPageProps> = ({ onBack }) => {
               <ArrowLeft className="w-5 h-5 text-gray-700" />
             </button>
             <div className="flex items-center gap-2">
-              <div>
+              <div className="flex items-center justify-center w-9 h-9 bg-indigo-100 rounded-full">
                 <img 
-                  src="/img/krimum.svg"
-                  alt="Krimsus"
+                  src="/img/krimsus.png"
+                  alt="Reskrimum"
                   className="w-7 h-7 object-contain"
                 />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">PPA PPO AI</h2>
-                <p className="text-xs text-gray-500">Asisten Tindak Pidana Perempuan dan Anak & PPO</p>
+                <h2 className="text-lg font-semibold text-gray-900">Reskrimum AI</h2>
+                <p className="text-xs text-gray-500">Asisten Tindak Pidana Kriminal Umum</p>
               </div>
             </div>
           </div>
@@ -379,11 +521,11 @@ const PpaPpoChatPage: React.FC<PpaPpoChatPageProps> = ({ onBack }) => {
 
         {/* Info Panel */}
         {showInfo && (
-          <div className="bg-pink-50 border-b border-pink-200 p-3 text-sm text-pink-800">
+          <div className="bg-indigo-50 border-b border-indigo-200 p-3 text-sm text-indigo-800">
             <div className="max-w-3xl mx-auto">
-              <p className="mb-2"><strong>Tentang PPA PPO AI:</strong></p>
-              <p>PPA PPO AI adalah asisten yang memberikan informasi terkait tindak pidana terhadap perempuan dan anak serta perdagangan orang berdasarkan perundang-undangan yang berlaku di Indonesia.</p>
-              <p className="mt-2 text-xs text-pink-600">Catatan: PPA PPO AI dapat memberikan informasi yang tidak akurat. Verifikasi fakta penting dengan dokumen resmi.</p>
+              <p className="mb-2"><strong>Tentang Reskrimum AI:</strong></p>
+              <p>Reskrimum AI adalah asisten yang memberikan informasi tentang tindak pidana konvensional seperti pencurian, pembunuhan, penganiayaan dan lainnya berdasarkan KUHP dan perundang-undangan terkait.</p>
+              <p className="mt-2 text-xs text-indigo-600">Catatan: Reskrimum AI dapat memberikan informasi yang tidak akurat. Verifikasi fakta penting dengan dokumen resmi.</p>
             </div>
           </div>
         )}
@@ -391,25 +533,25 @@ const PpaPpoChatPage: React.FC<PpaPpoChatPageProps> = ({ onBack }) => {
         {/* Chat Container */}
         <div 
           ref={chatContainerRef}
-          className="flex-1 overflow-y-auto overscroll-contain px-4 py-6 md:px-8 relative pb-32"
+          className="flex-1 overflow-y-auto px-4 py-6 md:px-8 relative pb-32"
         >
           <div className="absolute inset-0">
             <DotBackground />
           </div>
           <div className="max-w-3xl mx-auto relative z-10 space-y-6">
-            {/* Welcome Message - Bold PPA PPO AI in center */}
+            {/* Welcome Message - Bold RESKRIMUM AI in center */}
             {messages.length <= 1 && (
               <div className="flex flex-col items-center justify-center h-[50vh] text-center">
-                <div>
+                <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
                   <img 
-                    src="/img/krimum.svg"
-                    alt="Krimsus"
+                    src="/img/krimsus.png"
+                    alt="Reskrimum"
                     className="w-16 h-16 object-contain"
                   />
                 </div>
-                <h1 className="text-4xl font-bold text-pink-600 mb-4">PPA PPO AI</h1>
+                <h1 className="text-4xl font-bold text-indigo-600 mb-4">RESKRIMUM AI</h1>
                 <p className="text-gray-600 max-w-md">
-                  Asisten untuk membantu Anda dengan pertanyaan seputar tindak pidana terhadap perempuan dan anak serta perdagangan orang.
+                  Asisten untuk membantu Anda dengan pertanyaan seputar tindak pidana konvensional seperti pencurian, pembunuhan, dan penganiayaan.
                 </p>
               </div>
             )}
@@ -429,6 +571,23 @@ const PpaPpoChatPage: React.FC<PpaPpoChatPageProps> = ({ onBack }) => {
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+            
+            {/* Progress Bar UI */}
+            {showProgress && (
+              <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4 shadow-sm">
+                <ProgressBar 
+                  percent={progress.percent} 
+                  status={progress.status}
+                />
+                <p className="text-xs text-gray-500 italic">
+                  {progress.status === 'uploading' 
+                    ? 'Mengunggah file besar memerlukan waktu, mohon jangan refresh halaman.' 
+                    : progress.status === 'processing'
+                    ? 'AI sedang menganalisis dokumen, proses ini mungkin memerlukan beberapa menit untuk file besar.'
+                    : 'Sedang memproses...'}
+                </p>
               </div>
             )}
 
@@ -451,11 +610,11 @@ const PpaPpoChatPage: React.FC<PpaPpoChatPageProps> = ({ onBack }) => {
                         <div className="flex-shrink-0 mr-2 mb-1">
                            {/* Gunakan AnimatedBotIcon atau ikon statis */}
                            {message.isAnimating ? (
-                            <AnimatedBotIcon className="w-8 h-8 text-pink-600" />
+                            <AnimatedBotIcon className="w-8 h-8 text-indigo-600" />
                           ) : (
-                            <div className="w-8 h-8 rounded-full bg-pink-600 flex items-center justify-center text-white shadow-sm">
+                            <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-sm">
                               {/* Ganti ikon jika perlu */}
-                              <img src="/img/krimum.svg" alt="Krimsus" className="w-5 h-5 object-contain" />
+                              <img src="/img/krimsus.png" alt="Reskrimum" className="w-5 h-5 object-contain" />
                             </div>
                           )}
                         </div>
@@ -478,7 +637,17 @@ const PpaPpoChatPage: React.FC<PpaPpoChatPageProps> = ({ onBack }) => {
                         ) : (
                           <div>
                             <div
-                              className="prose prose-sm max-w-none break-words prose-headings:font-semibold prose-headings:text-gray-900 prose-p:text-gray-700 prose-pre:bg-gray-100 prose-pre:text-gray-800 prose-code:text-gray-800 prose-code:bg-gray-100 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-sm prose-code:font-mono prose-a:text-pink-600 prose-a:no-underline hover:prose-a:underline prose-li:text-gray-700 prose-li:marker:text-gray-500 prose-strong:text-gray-900 prose-em:text-gray-700 prose-p:my-0.5 prose-headings:my-0.5 prose-headings:mb-0 prose-ul:my-0.5 prose-ol:my-0.5 prose-li:my-0.5 prose-pre:my-1 leading-tight [&_p]:!my-0.5 [&_br]:leading-none [&_h1+p]:!mt-0.5 [&_h2+p]:!mt-0.5 [&_h3+p]:!mt-0.5"
+                              className="prose prose-sm max-w-none overflow-x-auto
+                                        prose-headings:font-bold prose-headings:text-indigo-800 prose-headings:my-4
+                                        prose-h1:text-xl prose-h2:text-lg prose-h3:text-base
+                                        prose-p:my-2 prose-p:text-gray-700
+                                        prose-ul:pl-6 prose-ul:my-2 prose-ol:pl-6 prose-ol:my-2
+                                        prose-li:my-1
+                                        prose-table:border-collapse prose-table:my-4
+                                        prose-th:bg-indigo-50 prose-th:p-2 prose-th:border prose-th:border-gray-300
+                                        prose-td:p-2 prose-td:border prose-td:border-gray-300
+                                        prose-strong:font-bold prose-strong:text-gray-800
+                                        prose-a:text-indigo-600 prose-a:underline hover:prose-a:text-indigo-800"
                               dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
                             />
 
@@ -491,7 +660,7 @@ const PpaPpoChatPage: React.FC<PpaPpoChatPageProps> = ({ onBack }) => {
                                   {message.sourceDocuments.map((doc, idx) => (
                                     <li key={idx} className="break-all">
                                       {/* Memperbaiki akses metadata untuk menghindari linter error */}
-                                      {doc.metadata.source || doc.metadata.title || 'Dokumen UU PPA PPO'}
+                                      {doc.metadata.source || doc.metadata.title || 'Dokumen Tindak Pidana Umum'}
                                     </li>
                                   ))}
                                 </ul>
@@ -528,12 +697,12 @@ const PpaPpoChatPage: React.FC<PpaPpoChatPageProps> = ({ onBack }) => {
             <div ref={messagesEndRef} />
           </div>
         </div>
-
+        
         {/* Scroll to bottom button */}
         {showScrollButton && (
           <button
             onClick={scrollToBottom}
-            className="fixed bottom-24 right-6 md:right-10 bg-pink-600 text-white p-2 rounded-full shadow-lg z-30 hover:bg-pink-700 transition-colors animate-bounce"
+            className="fixed bottom-24 right-6 md:right-10 bg-indigo-600 text-white p-2 rounded-full shadow-lg z-30 hover:bg-indigo-700 transition-colors animate-bounce"
             aria-label="Scroll ke bawah"
           >
             <ChevronDown className="w-5 h-5" />
@@ -541,8 +710,30 @@ const PpaPpoChatPage: React.FC<PpaPpoChatPageProps> = ({ onBack }) => {
         )}
 
         {/* Input Area */}
-        <div className="border-t border-gray-200 bg-white p-4 md:px-8 pb-safe">
+        <div className="border-t border-gray-200 bg-white p-4 md:px-8 pb-6 md:pb-4">
           <div className="max-w-3xl mx-auto">
+            {/* File Preview Area */}
+            {selectedFiles.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {selectedFiles.map((file, index) => (
+                  <div 
+                    key={index}
+                    className="bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-1 flex items-center gap-2 text-sm text-indigo-700"
+                  >
+                    <File className="w-4 h-4" />
+                    <span className="truncate max-w-[150px]">{file.name}</span>
+                    <button 
+                      onClick={() => handleRemoveFile(index)}
+                      className="text-indigo-500 hover:text-indigo-700"
+                      aria-label="Hapus file"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          
             <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="relative">
               <Textarea
                 ref={textareaRef}
@@ -551,20 +742,42 @@ const PpaPpoChatPage: React.FC<PpaPpoChatPageProps> = ({ onBack }) => {
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
                 placeholder="Ketik pesan Anda..."
-                className="resize-none pl-4 pr-12 py-3 max-h-[200px] rounded-xl border-gray-300 focus:border-pink-500 focus:ring-pink-500 shadow-sm overflow-y-auto z-10"
+                className="resize-none pr-12 py-3 max-h-[200px] rounded-xl border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 shadow-sm overflow-y-auto z-10"
                 disabled={isProcessing}
                 readOnly={false}
                 autoComplete="off"
               />
+              
+              {/* File Upload Button */}
+              <button
+                type="button"
+                onClick={handleOpenFileDialog}
+                disabled={isProcessing}
+                className="absolute left-2 bottom-3 p-2 rounded-lg text-gray-500 hover:text-indigo-500 hover:bg-indigo-50 transition-colors z-20"
+                aria-label="Upload file"
+              >
+                <Paperclip className="w-5 h-5" />
+              </button>
+              
+              {/* Hidden file input */}
+              <input 
+                type="file" 
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
+                multiple
+                accept=".pdf,.doc,.docx,.txt,.csv,.xls,.xlsx,.jpg,.jpeg,.png"
+              />
+              
               <Button
                 type="button"
                 onClick={handleSubmit}
-                disabled={!inputMessage.trim() || isProcessing}
+                disabled={(selectedFiles.length === 0 && !inputMessage.trim()) || isProcessing}
                 className={cn(
                   "absolute bottom-3 right-2.5 h-8 w-8 p-0 rounded-lg z-20",
-                  !inputMessage.trim() || isProcessing
+                  (selectedFiles.length === 0 && !inputMessage.trim()) || isProcessing
                     ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                    : "bg-pink-600 text-white hover:bg-pink-700"
+                    : "bg-indigo-600 text-white hover:bg-indigo-700"
                 )}
                 aria-label="Kirim pesan"
               >
@@ -576,7 +789,7 @@ const PpaPpoChatPage: React.FC<PpaPpoChatPageProps> = ({ onBack }) => {
               </Button>
             </form>
             <p className="text-xs text-gray-500 mt-2 text-center">
-              PPA PPO AI dapat memberikan informasi yang tidak akurat. Verifikasi fakta penting dengan dokumen resmi.
+              Reskrimum AI dapat memberikan informasi yang tidak akurat. Verifikasi fakta penting dengan dokumen resmi.
             </p>
           </div>
         </div>
@@ -585,4 +798,4 @@ const PpaPpoChatPage: React.FC<PpaPpoChatPageProps> = ({ onBack }) => {
   );
 };
 
-export default PpaPpoChatPage; 
+export default ReskrimumChatPage; 

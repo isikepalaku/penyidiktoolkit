@@ -10,6 +10,7 @@ import { siberAgent } from '@/data/agents/siberAgent';
 import { tipidterAiAgent } from '@/data/agents/tipidterAiAgent';
 import { narkotikaAgent } from '@/data/agents/narkotikaAgent';
 import { ppaPpoAgent } from '@/data/agents/ppaPpoAgent';
+import { reskrimumAgent } from '@/data/agents/reskrimumAgent';
 import SiberChatPage from '@/components/ui/SiberChatPage';
 import FismondevChatPage from '@/components/ui/FismondevChatPage';
 import IndagsiChatPage from '@/components/ui/IndagsiChatPage';
@@ -17,6 +18,7 @@ import TipidkorChatPage from '@/components/ui/TipidkorChatPage';
 import TipidterChatPage from '@/components/ui/TipidterChatPage';
 import NarkotikaChatPage from '@/components/ui/NarkotikaChatPage';
 import PpaPpoChatPage from '@/components/ui/PpaPpoChatPage';
+import ReskrimumChatPage from '@/components/ui/ReskrimumChatPage';
 
 // Key untuk menyimpan data di localStorage
 const SELECTED_AGENT_KEY = 'penyidikai-selected-agent';
@@ -182,6 +184,15 @@ export default function PenyidikAi() {
       status: ppaPpoAgent.status,
       color: 'pink',
       icon: 'users'
+    },
+    {
+      id: reskrimumAgent.id,
+      name: reskrimumAgent.name,
+      description: reskrimumAgent.description,
+      type: reskrimumAgent.type,
+      status: reskrimumAgent.status,
+      color: 'indigo',
+      icon: 'file-text'
     }
   ];
 
@@ -267,6 +278,12 @@ export default function PenyidikAi() {
           return (
             <div className="fixed inset-0 z-20">
               <PpaPpoChatPage onBack={handleBack} />
+            </div>
+          );
+        case 'reskrimum_chat':
+          return (
+            <div className="fixed inset-0 z-20">
+              <ReskrimumChatPage onBack={handleBack} />
             </div>
           );
         default:

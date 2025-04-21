@@ -318,10 +318,10 @@ const FismondevChatPage: React.FC<FismondevChatPageProps> = ({ onBack }) => {
 
   // Example questions for Fismondev
   const exampleQuestions = [
-    "Apa unsur pidana pada penipuan pajak?",
-    "Jelaskan tentang UU TPPU",
-    "Bagaimana prosedur penanganan kasus money laundering?",
-    "Apa sanksi untuk kejahatan valas?"
+    "Apakah pengalihan objek jaminan fidusia tanpa izin tertulis dari pihak penerima fidusia dapat dijerat dengan pidana, dan pasal mana yang dilanggar?",
+    "Dalam kasus kredit macet di bank, kapan penggunaan jaminan palsu dapat dikenakan tindak pidana perbankan sesuai dengan Undang-Undang Perbankan?",
+    "Jelaskan unsur pidana terkait pemalsuan dokumen klaim asuransi menurut ketentuan hukum pidana umum maupun UU Perasuransian?",
+    "Apakah tindakan debitur yang sengaja mengalihkan atau menyembunyikan barang yang menjadi objek fidusia dapat memenuhi unsur pidana penipuan atau penggelapan menurut KUHP dan UU Fidusia?"
   ];
 
   const handleSelectQuestion = (question: string) => {

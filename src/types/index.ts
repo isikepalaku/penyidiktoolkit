@@ -69,7 +69,8 @@ export type AgentType =
   | 'indagsi_chat'
   | 'narkotika_chat'
   | 'pdf_image_analyzer'
-  | 'ppa_ppo_chat';
+  | 'ppa_ppo_chat'
+  | 'reskrimum_chat';
 
 export interface ExtendedAgent {
   id: string;

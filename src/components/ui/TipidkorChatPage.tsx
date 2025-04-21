@@ -318,10 +318,10 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
 
   // Example questions for Tipidkor
   const exampleQuestions = [
-    "Apa unsur pidana korupsi?",
-    "Jelaskan tentang gratifikasi",
-    "Bagaimana proses pembuktian terbalik?",
-    "Apa sanksi untuk tindak pidana korupsi?"
+    "Apakah tindakan pejabat pertanahan yang menerbitkan SHM kawasan hutan merupakan tindak pidana korupsi?",
+    "Dalam kasus pengadaan barang/jasa pemerintah, kapan tindakan mark-up harga bisa dikategorikan sebagai perbuatan melawan hukum menurut UU Tipikor?",
+    "Jelaskan bagaimana membedakan tindak pidana suap (Pasal 5 atau Pasal 12 UU Tipikor) dengan gratifikasi (Pasal 12B UU Tipikor) dalam penyidikan kasus pemberian uang kepada pejabat negara?",
+    "Apakah tindakan pejabat pemerintah yang menyetujui pembayaran proyek sebelum pekerjaan selesai dapat dijerat dengan Pasal 2 atau Pasal 3 UU Tipikor?"
   ];
 
   const handleSelectQuestion = (question: string) => {

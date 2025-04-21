@@ -322,10 +322,10 @@ const NarkotikaChatPage: React.FC<NarkotikaChatPageProps> = ({ onBack }) => {
 
   // Example questions for the user
   const exampleQuestions = [
-    "Apa hukuman untuk kepemilikan narkotika golongan I?",
-    "Jelaskan perbedaan antara penyalahguna dan pengedar narkotika",
-    "Bagaimana prosedur penangkapan dalam kasus narkotika?",
-    "Apa syarat dan ketentuan rehabilitasi bagi pecandu narkotika?"
+    "Dalam penyidikan kasus kepemilikan narkotika, bagaimana cara membuktikan unsur 'menguasai' menurut Pasal 112 UU Narkotika?",
+    "Apa perbedaan penerapan Pasal 111 dan Pasal 114 UU Narkotika terkait kepemilikan ganja, khususnya antara unsur 'memiliki' dan 'menguasai untuk dijual'?",
+    "Apakah pemilik tempat atau fasilitas yang secara sengaja digunakan untuk kegiatan penyalahgunaan narkotika dapat dikenakan pidana berdasarkan Pasal 131 UU Narkotika?",
+    "Bagaimana menentukan bahwa suatu zat termasuk dalam kategori psikotropika golongan I atau II, dan implikasinya dalam penerapan pasal pidana menurut UU Psikotropika?"
   ];
 
   const handleExampleClick = (question: string) => {
