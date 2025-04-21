@@ -742,7 +742,7 @@ const ReskrimumChatPage: React.FC<ReskrimumChatPageProps> = ({ onBack }) => {
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
                 placeholder="Ketik pesan Anda..."
-                className="resize-none pr-12 py-3 max-h-[200px] rounded-xl border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 shadow-sm overflow-y-auto z-10"
+                className="resize-none pr-12 py-3 pl-10 max-h-[200px] rounded-xl border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 shadow-sm overflow-y-auto z-10"
                 disabled={isProcessing}
                 readOnly={false}
                 autoComplete="off"
