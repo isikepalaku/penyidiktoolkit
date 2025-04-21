@@ -70,6 +70,13 @@ const EMPChatPage: React.FC<EMPChatPageProps> = ({ onBack }) => {
       },
     ]);
     
+    // Focus textarea after component mounts with slight delay for mobile
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+    }, 500);
+    
     return () => {
       // Clear chat history when component unmounts
       clearChatHistory();
@@ -288,7 +295,7 @@ const EMPChatPage: React.FC<EMPChatPageProps> = ({ onBack }) => {
         {/* Chat Container */}
         <div 
           ref={chatContainerRef}
-          className="flex-1 overflow-y-auto px-4 py-6 md:px-8 relative pb-32"
+          className="flex-1 overflow-y-auto overscroll-contain px-4 py-6 md:px-8 relative pb-32"
         >
           <div className="absolute inset-0 opacity-50">
             <DotBackground />
@@ -431,7 +438,7 @@ const EMPChatPage: React.FC<EMPChatPageProps> = ({ onBack }) => {
         </div>
 
         {/* Input Area */}
-        <div className="border-t border-gray-200 bg-white p-4 md:px-8 pb-4">
+        <div className="border-t border-gray-200 bg-white p-4 md:px-8 pb-safe">
           <div className="max-w-3xl mx-auto">
             <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="relative">
               <Textarea
@@ -441,15 +448,17 @@ const EMPChatPage: React.FC<EMPChatPageProps> = ({ onBack }) => {
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
                 placeholder="Ketik pesan Anda..."
-                className="resize-none pl-4 pr-12 py-3 max-h-[200px] rounded-xl border-gray-300 focus:border-amber-500 focus:ring-amber-500 shadow-sm overflow-y-auto"
+                className="resize-none pl-4 pr-12 py-3 max-h-[200px] rounded-xl border-gray-300 focus:border-amber-500 focus:ring-amber-500 shadow-sm overflow-y-auto z-10"
                 disabled={isProcessing}
+                readOnly={false}
+                autoComplete="off"
               />
               <Button
-                type="submit"
+                type="button"
                 onClick={handleSubmit}
                 disabled={!inputMessage.trim() || isProcessing}
                 className={cn(
-                  "absolute bottom-2.5 right-2.5 h-8 w-8 p-0 rounded-lg",
+                  "absolute bottom-3 right-2.5 h-8 w-8 p-0 rounded-lg z-20",
                   !inputMessage.trim() || isProcessing
                     ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                     : "bg-amber-600 text-white hover:bg-amber-700"
