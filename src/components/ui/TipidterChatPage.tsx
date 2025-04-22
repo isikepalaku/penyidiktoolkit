@@ -548,7 +548,7 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
                 </div>
                 <h1 className="text-4xl font-bold text-orange-600 mb-4">TIPIDTER AI</h1>
                 <p className="text-gray-600 max-w-md">
-                  Asisten untuk membantu Anda dengan pertanyaan seputar tindak pidana perdagangan orang.
+                  Asisten penyidik  lintas sektor seperti kejahatan kehutanan, cyber crime, pelanggaran ketenagakerjaan dan transmigrasi, serta kejahatan terhadap lingkungan dan sumber daya.
                 </p>
               </div>
             )}
