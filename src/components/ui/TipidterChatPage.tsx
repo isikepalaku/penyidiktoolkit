@@ -318,10 +318,10 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
 
   // Example questions for Tipidter
   const exampleQuestions = [
-    "Apa unsur pidana pada perdagangan orang?",
-    "Jelaskan UU Tindak Pidana Perdagangan Orang",
-    "Apa saja bentuk eksploitasi dalam perdagangan orang?",
-    "Bagaimana prosedur penanganan kasus perdagangan manusia?"
+    "Apakah pengangkutan hasil hutan tanpa dokumen SKSHH (Surat Keterangan Sahnya Hasil Hutan) termasuk tindak pidana kehutanan sesuai dengan Pasal 83 UU No.18 Tahun 2013 tentang Pencegahan dan Pemberantasan Perusakan Hutan?",
+    "Dalam kasus kecelakaan kerja yang menyebabkan kematian pekerja, unsur-unsur hukum apa saja yang harus dibuktikan agar pemberi kerja dapat dijerat pidana Ketenagakerjaan?",
+    "Apakah kegiatan pembuangan limbah B3 (Bahan Berbahaya dan Beracun) secara ilegal ke lingkungan hidup dapat langsung dijerat dengan pidana?",
+    "Apakah tindakan perusahaan yang mempekerjakan tenaga kerja tanpa izin di kawasan hutan lindung, sekaligus melakukan eksploitasi sumber daya alam tanpa izin lingkungan, dapat dikenakan pidana secara kumulatif?"
   ];
 
   const handleSelectQuestion = (question: string) => {
