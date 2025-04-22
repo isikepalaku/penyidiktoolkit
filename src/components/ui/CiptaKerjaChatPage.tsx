@@ -333,7 +333,7 @@ const CiptaKerjaChatPage: React.FC<CiptaKerjaChatPageProps> = ({ onBack }) => {
                     className={cn(
                       "rounded-2xl px-4 py-3 shadow-sm",
                       message.type === 'user' 
-                        ? "bg-slate-600 text-white rounded-tr-none" 
+                        ? "bg-gray-100 text-gray-900 rounded-tr-none" 
                         : message.error 
                           ? "bg-red-50 text-red-800 rounded-tl-none border border-red-200" 
                           : message.isAnimating // Styling untuk container skeleton

@@ -597,7 +597,7 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
         className="flex-1 overflow-y-auto overscroll-contain pb-32 pt-4"
       >
         <DotBackground>
-          <div className="max-w-3xl mx-auto px-4 md:px-8 space-y-6">
+          <div className="max-w-5xl mx-auto px-4 md:px-8 space-y-6">
             {/* Welcome Message - Bold SIBER AI in center */}
             {messages.length <= 1 && messages[0].content === '' && (
               <div className="flex flex-col items-center justify-center h-[50vh] text-center">
@@ -676,7 +676,7 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
                 >
                   <div
                     className={cn(
-                      "flex flex-col max-w-[85%] sm:max-w-[75%] rounded-xl p-4 shadow-sm",
+                      "flex flex-col max-w-[90%] sm:max-w-[85%] md:max-w-[80%] lg:max-w-[75%] rounded-xl p-4 shadow-sm",
                       message.type === "user"
                         ? "bg-gray-100 text-gray-900 rounded-tr-none"
                         : message.error
@@ -689,7 +689,7 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
                     {message.type === "bot" && !message.isAnimating ? (
                       <>
                         <div 
-                          className="prose prose-sm max-w-none overflow-x-auto
+                          className="prose prose-sm max-w-none md:prose-base lg:prose-lg overflow-x-auto
                                     prose-headings:font-bold prose-headings:text-blue-800 prose-headings:my-4
                                     prose-h1:text-xl prose-h2:text-lg prose-h3:text-base
                                     prose-p:my-2 prose-p:text-gray-700
@@ -735,7 +735,7 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
 
       {/* Input area fixed at bottom */}
       <div className="border-t border-gray-200 bg-white p-4 md:px-8 pb-safe">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-5xl mx-auto px-4 md:px-8">
           {/* File Preview Area */}
           {selectedFiles.length > 0 && (
             <div className="mb-3 flex flex-wrap gap-2">

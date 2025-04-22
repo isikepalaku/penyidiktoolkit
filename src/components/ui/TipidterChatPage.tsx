@@ -318,8 +318,8 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
 
   // Example questions for Tipidter
   const exampleQuestions = [
-    "Apakah pengangkutan hasil hutan tanpa dokumen SKSHH (Surat Keterangan Sahnya Hasil Hutan) termasuk tindak pidana kehutanan sesuai dengan Pasal 83 UU No.18 Tahun 2013 tentang Pencegahan dan Pemberantasan Perusakan Hutan?",
-    "Dalam kasus kecelakaan kerja yang menyebabkan kematian pekerja, unsur-unsur hukum apa saja yang harus dibuktikan agar pemberi kerja dapat dijerat pidana Ketenagakerjaan?",
+    "Apakah pengangkutan hasil hutan tanpa dokumen SKSHH (Surat Keterangan Sahnya Hasil Hutan) termasuk tindak pidana kehutanan ?",
+    "Dalam kasus kecelakaan kerja yang menyebabkan kematian pekerja, apakah termasuk pidana Ketenagakerjaan?",
     "Apakah kegiatan pembuangan limbah B3 (Bahan Berbahaya dan Beracun) secara ilegal ke lingkungan hidup dapat langsung dijerat dengan pidana?",
     "Apakah tindakan perusahaan yang mempekerjakan tenaga kerja tanpa izin di kawasan hutan lindung, sekaligus melakukan eksploitasi sumber daya alam tanpa izin lingkungan, dapat dikenakan pidana secara kumulatif?"
   ];
@@ -443,7 +443,7 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
             </Button>
             <div>
               <h1 className="font-semibold">TIPIDTER AI</h1>
-              <p className="text-sm text-gray-600 hidden sm:block">Asisten untuk Tindak Pidana Perdagangan Orang</p>
+              <p className="text-sm text-gray-600 hidden sm:block">Asisten untuk Tindak Pidana tertentu</p>
             </div>
           </div>
         </header>
@@ -484,7 +484,7 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
           </Button>
           <div>
             <h1 className="font-semibold">TIPIDTER AI</h1>
-            <p className="text-sm text-gray-600 hidden sm:block">Asisten untuk Tindak Pidana Perdagangan Orang</p>
+            <p className="text-sm text-gray-600 hidden sm:block">Asisten untuk Tindak Pidana tertentu</p>
           </div>
         </div>
         
@@ -517,7 +517,7 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
             <div className="ml-3">
               <h3 className="text-sm font-medium text-orange-800">Informasi TIPIDTER AI</h3>
               <div className="mt-2 text-sm text-orange-700">
-                <p>TIPIDTER AI merupakan asisten kepolisian yang membantu dalam penanganan tindak pidana perdagangan orang. Asisten ini dapat menjawab pertanyaan terkait kasus trafficking, eksploitasi manusia, dan pertanyaan seputar UU TPPO.</p>
+                <p>TIPIDTER AI yang membantu menjawab tindak pidana tertentu</p>
               </div>
               <button 
                 className="mt-2 text-sm font-medium text-orange-600 hover:text-orange-500 focus:outline-none"
@@ -535,7 +535,7 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
         className="flex-1 overflow-y-auto overscroll-contain pb-32 pt-4"
       >
         <DotBackground>
-          <div className="max-w-3xl mx-auto px-4 md:px-8 space-y-6">
+          <div className="max-w-5xl mx-auto px-4 md:px-8 space-y-6">
             {/* Welcome Message - Bold TIPIDTER AI in center */}
             {messages.length <= 1 && messages[0].content === '' && (
               <div className="flex flex-col items-center justify-center h-[50vh] text-center">
@@ -548,7 +548,7 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
                 </div>
                 <h1 className="text-4xl font-bold text-orange-600 mb-4">TIPIDTER AI</h1>
                 <p className="text-gray-600 max-w-md">
-                  Asisten penyidik  lintas sektor seperti kejahatan kehutanan, pelanggaran ketenagakerjaan dan transmigrasi, serta kejahatan terhadap lingkungan dan sumber daya.
+                  Asisten penyidik ahli dalam pidana tertentu kejahatan kehutanan, pelanggaran ketenagakerjaan dan transmigrasi, serta kejahatan terhadap lingkungan dan sumber daya.
                 </p>
               </div>
             )}
@@ -597,7 +597,7 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
                 >
                   <div
                     className={cn(
-                      "flex flex-col max-w-[85%] sm:max-w-[75%] rounded-xl p-4 shadow-sm",
+                      "flex flex-col max-w-[90%] sm:max-w-[85%] md:max-w-[80%] lg:max-w-[75%] rounded-xl p-4 shadow-sm",
                       message.type === "user"
                         ? "bg-gray-100 text-gray-900 rounded-tr-none"
                         : message.error
@@ -610,7 +610,7 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
                     {message.type === "bot" && !message.isAnimating ? (
                       <>
                         <div 
-                          className="prose prose-sm max-w-none overflow-x-auto
+                          className="prose prose-sm max-w-none md:prose-base lg:prose-lg overflow-x-auto
                                     prose-headings:font-bold prose-headings:text-orange-800 prose-headings:my-4
                                     prose-h1:text-xl prose-h2:text-lg prose-h3:text-base
                                     prose-p:my-2 prose-p:text-gray-700
@@ -666,7 +666,7 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
 
       {/* Input area fixed at bottom */}
       <div className="border-t border-gray-200 bg-white p-4 md:px-8 pb-safe">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-5xl mx-auto px-4 md:px-8">
           <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="relative">
             <Textarea
               ref={textareaRef}

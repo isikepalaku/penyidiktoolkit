@@ -396,7 +396,7 @@ const PpaPpoChatPage: React.FC<PpaPpoChatPageProps> = ({ onBack }) => {
           <div className="absolute inset-0">
             <DotBackground />
           </div>
-          <div className="max-w-3xl mx-auto relative z-10 space-y-6">
+          <div className="max-w-5xl mx-auto relative z-10 space-y-6">
             {/* Welcome Message - Bold PPA PPO AI in center */}
             {messages.length <= 1 && (
               <div className="flex flex-col items-center justify-center h-[50vh] text-center">
@@ -443,7 +443,7 @@ const PpaPpoChatPage: React.FC<PpaPpoChatPageProps> = ({ onBack }) => {
                     }`}
                   >
                     <div
-                      className={`flex items-end ${message.isAnimating ? 'w-full' : 'max-w-[85%] sm:max-w-[75%]'} ${
+                      className={`flex items-end ${message.isAnimating ? 'w-full' : 'max-w-[90%] sm:max-w-[85%] md:max-w-[80%] lg:max-w-[75%]'} ${
                         message.type === 'user' ? 'flex-row-reverse' : 'flex-row'
                       }`}
                     >
@@ -464,7 +464,7 @@ const PpaPpoChatPage: React.FC<PpaPpoChatPageProps> = ({ onBack }) => {
                       <div
                         className={`rounded-2xl px-4 py-3 ${
                           message.type === 'user'
-                            ? 'bg-gray-700 text-white rounded-tr-none shadow-sm'
+                            ? 'bg-gray-100 text-gray-900 rounded-tr-none shadow-sm'
                             : message.error
                             ? 'bg-red-50 text-red-800 rounded-tl-none border border-red-200'
                             : message.isAnimating // Style khusus untuk skeleton
@@ -478,7 +478,7 @@ const PpaPpoChatPage: React.FC<PpaPpoChatPageProps> = ({ onBack }) => {
                         ) : (
                           <div>
                             <div
-                              className="prose prose-sm max-w-none break-words prose-headings:font-semibold prose-headings:text-gray-900 prose-p:text-gray-700 prose-pre:bg-gray-100 prose-pre:text-gray-800 prose-code:text-gray-800 prose-code:bg-gray-100 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-sm prose-code:font-mono prose-a:text-pink-600 prose-a:no-underline hover:prose-a:underline prose-li:text-gray-700 prose-li:marker:text-gray-500 prose-strong:text-gray-900 prose-em:text-gray-700 prose-p:my-0.5 prose-headings:my-0.5 prose-headings:mb-0 prose-ul:my-0.5 prose-ol:my-0.5 prose-li:my-0.5 prose-pre:my-1 leading-tight [&_p]:!my-0.5 [&_br]:leading-none [&_h1+p]:!mt-0.5 [&_h2+p]:!mt-0.5 [&_h3+p]:!mt-0.5"
+                              className="prose prose-sm max-w-none md:prose-base lg:prose-lg break-words prose-headings:font-semibold prose-headings:text-gray-900 prose-p:text-gray-700 prose-pre:bg-gray-100 prose-pre:text-gray-800 prose-code:text-gray-800 prose-code:bg-gray-100 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-sm prose-code:font-mono prose-a:text-pink-600 prose-a:no-underline hover:prose-a:underline prose-li:text-gray-700 prose-li:marker:text-gray-500 prose-strong:text-gray-900 prose-em:text-gray-700 prose-p:my-0.5 prose-headings:my-0.5 prose-headings:mb-0 prose-ul:my-0.5 prose-ol:my-0.5 prose-li:my-0.5 prose-pre:my-1 leading-tight [&_p]:!my-0.5 [&_br]:leading-none [&_h1+p]:!mt-0.5 [&_h2+p]:!mt-0.5 [&_h3+p]:!mt-0.5"
                               dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
                             />
 
@@ -542,7 +542,7 @@ const PpaPpoChatPage: React.FC<PpaPpoChatPageProps> = ({ onBack }) => {
 
         {/* Input Area */}
         <div className="border-t border-gray-200 bg-white p-4 md:px-8 pb-safe">
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-5xl mx-auto px-4 md:px-8">
             <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="relative">
               <Textarea
                 ref={textareaRef}

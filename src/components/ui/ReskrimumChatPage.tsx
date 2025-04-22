@@ -538,7 +538,7 @@ const ReskrimumChatPage: React.FC<ReskrimumChatPageProps> = ({ onBack }) => {
           <div className="absolute inset-0">
             <DotBackground />
           </div>
-          <div className="max-w-3xl mx-auto relative z-10 space-y-6">
+          <div className="max-w-5xl mx-auto relative z-10 space-y-6">
             {/* Welcome Message - Bold RESKRIMUM AI in center */}
             {messages.length <= 1 && (
               <div className="flex flex-col items-center justify-center h-[50vh] text-center">
@@ -602,7 +602,7 @@ const ReskrimumChatPage: React.FC<ReskrimumChatPageProps> = ({ onBack }) => {
                     }`}
                   >
                     <div
-                      className={`flex items-end ${message.isAnimating ? 'w-full' : 'max-w-[85%] sm:max-w-[75%]'} ${
+                      className={`flex items-end ${message.isAnimating ? 'w-full' : 'max-w-[90%] sm:max-w-[85%] md:max-w-[80%] lg:max-w-[75%]'} ${
                         message.type === 'user' ? 'flex-row-reverse' : 'flex-row'
                       }`}
                     >
@@ -623,7 +623,7 @@ const ReskrimumChatPage: React.FC<ReskrimumChatPageProps> = ({ onBack }) => {
                       <div
                         className={`rounded-2xl px-4 py-3 ${
                           message.type === 'user'
-                            ? 'bg-gray-700 text-white rounded-tr-none shadow-sm'
+                            ? 'bg-gray-100 text-gray-900 rounded-tr-none shadow-sm'
                             : message.error
                             ? 'bg-red-50 text-red-800 rounded-tl-none border border-red-200'
                             : message.isAnimating // Style khusus untuk skeleton
@@ -637,7 +637,7 @@ const ReskrimumChatPage: React.FC<ReskrimumChatPageProps> = ({ onBack }) => {
                         ) : (
                           <div>
                             <div
-                              className="prose prose-sm max-w-none overflow-x-auto
+                              className="prose prose-sm max-w-none md:prose-base lg:prose-lg overflow-x-auto
                                         prose-headings:font-bold prose-headings:text-indigo-800 prose-headings:my-4
                                         prose-h1:text-xl prose-h2:text-lg prose-h3:text-base
                                         prose-p:my-2 prose-p:text-gray-700
@@ -711,7 +711,7 @@ const ReskrimumChatPage: React.FC<ReskrimumChatPageProps> = ({ onBack }) => {
 
         {/* Input Area */}
         <div className="border-t border-gray-200 bg-white p-4 md:px-8 pb-6 md:pb-4">
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-5xl mx-auto px-4 md:px-8">
             {/* File Preview Area */}
             {selectedFiles.length > 0 && (
               <div className="mb-3 flex flex-wrap gap-2">

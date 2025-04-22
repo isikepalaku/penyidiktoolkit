@@ -296,7 +296,7 @@ const PerbankanChatPage: React.FC<PerbankanChatPageProps> = ({ onBack }) => {
                   <div
                     className={`rounded-2xl px-4 py-3 ${
                       message.type === 'user'
-                        ? 'bg-indigo-600 text-white rounded-tr-none shadow-sm'
+                        ? 'bg-gray-100 text-gray-900 rounded-tr-none shadow-sm'
                         : message.error
                         ? 'bg-red-50 text-red-800 rounded-tl-none border border-red-200'
                         : message.isAnimating
