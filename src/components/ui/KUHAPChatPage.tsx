@@ -520,7 +520,7 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
                         </div>
                       ) : (
                         // User message
-                        <div className="text-white break-words">{message.content}</div>
+                        <div className="whitespace-pre-wrap break-words">{message.content}</div>
                       )}
                     </div>
                   </div>

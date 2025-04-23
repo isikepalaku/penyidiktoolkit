@@ -464,10 +464,10 @@ const ReskrimumChatPage: React.FC<ReskrimumChatPageProps> = ({ onBack }) => {
 
   // Example questions for the user
   const exampleQuestions = [
-    "Apa saja unsur-unsur tindak pidana pencurian?",
-    "Jelaskan perbedaan antara pencurian biasa dan pencurian dengan kekerasan",
-    "Bagaimana prosedur penanganan kasus pencurian kendaraan bermotor?",
-    "Apa syarat untuk menetapkan tersangka dalam kasus pembunuhan?"
+    "Bagaimana prosedur teknis pengumpulan dan analisis sidik jari di tempat kejadian perkara (TKP) untuk menguatkan pasal-pasal pembobolan?",
+    "Apa langkah-langkah pemeriksaan barang bukti digital (chat, e-mail, metadata) dan cara memelihara integritas rantai penguasaan (chain of custody) untuk mendukung dakwaan penipuan",
+    "Prosedur apa yang diterapkan untuk menelusuri perubahan data di Kantor Pertanahan (e-registry) guna mengungkap dugaan pemalsuan akta jual beli?",
+    "Prosedur apa saja dalam pemeriksaan dan pengujian bahan peledak di laboratorium forensik (BI-PTK) agar hasil analisis dapat dipertanggungjawabkan secara ilmiah?"
   ];
 
   const handleExampleClick = (question: string) => {
@@ -551,7 +551,7 @@ const ReskrimumChatPage: React.FC<ReskrimumChatPageProps> = ({ onBack }) => {
                 </div>
                 <h1 className="text-4xl font-bold text-indigo-600 mb-4">RESKRIMUM AI</h1>
                 <p className="text-gray-600 max-w-md">
-                  Asisten untuk membantu Anda dengan pertanyaan seputar tindak pidana konvensional seperti pencurian, pembunuhan, dan penganiayaan.
+                  Asisten Ai yang memahami konteks undang-undang tindak pidana umum, pemilu, agraria dan terorisme.
                 </p>
               </div>
             )}
