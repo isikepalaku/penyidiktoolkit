@@ -100,7 +100,21 @@ export default {
   				'50%': {
   					opacity: '.5'
   				}
-  			}
+  			},
+  			'fade-in': {
+  				'0%': { opacity: '0' },
+  				'100%': { opacity: '1' },
+  			},
+  			bounce: {
+  				'0%, 100%': {
+  					transform: 'translateY(0)',
+  					animationTimingFunction: 'cubic-bezier(0.8, 0, 1, 1)',
+  				},
+  				'50%': {
+  					transform: 'translateY(-25%)',
+  					animationTimingFunction: 'cubic-bezier(0, 0, 0.2, 1)',
+  				},
+  			},
   		},
   		animation: {
   			'slide-left': 'slideLeft 0.3s ease-out',
@@ -109,7 +123,9 @@ export default {
   			slideRight: 'slideRight 0.4s ease-out',
   			fadeIn: 'fadeIn 0.3s ease-out',
   			spin: 'spin 1s linear infinite',
-  			pulse: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+  			pulse: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+  			'fade-in': 'fade-in 0.5s ease-in-out',
+  			bounce: 'bounce 1s infinite',
   		},
   		borderRadius: {
   			lg: 'var(--radius)',

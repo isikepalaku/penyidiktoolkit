@@ -4,6 +4,7 @@ import { resolve } from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import tsconfigPaths from 'vite-tsconfig-paths';
+import { VitePWA } from 'vite-plugin-pwa';
 
 // Load environment variables
 dotenv.config();
@@ -26,7 +27,100 @@ export default defineConfig(({ mode }) => {
 
   return {
     base: '/',
-    plugins: [react(), tsconfigPaths()],
+    plugins: [
+      react(), 
+      tsconfigPaths(),
+      VitePWA({
+        registerType: 'autoUpdate',
+        includeAssets: ['favicon.png', 'reserse.png', 'logo.svg'],
+        manifest: {
+          name: 'Penyidik Toolkit',
+          short_name: 'Penyidik',
+          description: 'Toolkit untuk penyidik dalam penanganan kasus',
+          theme_color: '#1e40af',
+          background_color: '#ffffff',
+          display: 'standalone',
+          icons: [
+            {
+              src: 'img/reserse.png',
+              sizes: '192x192',
+              type: 'image/png',
+              purpose: 'any'
+            },
+            {
+              src: 'img/reserse.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'any maskable'
+            }
+          ],
+          start_url: '/',
+          scope: '/',
+          orientation: 'portrait',
+          prefer_related_applications: false,
+          categories: ['productivity', 'utilities'],
+          screenshots: [
+            {
+              src: 'screenshot1.png',
+              sizes: '1280x720',
+              type: 'image/png',
+              form_factor: 'wide'
+            }
+          ]
+        },
+        workbox: {
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,gif,webp,woff,woff2,ttf,eot}'],
+          runtimeCaching: [
+            {
+              urlPattern: /^https:\/\/api\.reserse\.id\/.*/i,
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'api-cache',
+                expiration: {
+                  maxEntries: 100,
+                  maxAgeSeconds: 60 * 60 * 24 // 24 hours
+                },
+                networkTimeoutSeconds: 10,
+                cacheableResponse: {
+                  statuses: [0, 200]
+                }
+              }
+            },
+            {
+              urlPattern: /^https:\/\/flow\.reserse\.id\/.*/i,
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'flow-cache',
+                expiration: {
+                  maxEntries: 100,
+                  maxAgeSeconds: 60 * 60 * 24 // 24 hours
+                },
+                networkTimeoutSeconds: 10,
+                cacheableResponse: {
+                  statuses: [0, 200]
+                }
+              }
+            }
+          ],
+          cleanupOutdatedCaches: true,
+          sourcemap: true
+        },
+        devOptions: {
+          enabled: true,
+          type: 'module',
+          navigateFallback: 'index.html'
+        },
+        injectRegister: 'auto',
+        strategies: 'generateSW',
+        srcDir: 'src',
+        filename: 'sw.ts',
+        injectManifest: {
+          swSrc: 'src/sw.ts',
+          swDest: 'dist/sw.js',
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,gif,webp,woff,woff2,ttf,eot}']
+        }
+      })
+    ],
     optimizeDeps: {
       include: [
         'react',
