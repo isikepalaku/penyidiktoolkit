@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Home from './pages/Home';
 import Agents from './pages/Agents';
@@ -17,6 +18,26 @@ import { useAuth } from './auth/AuthContext';
 import { NotificationHandler } from './components/NotificationHandler';
 import { PWAInstallButton } from './components/PWAInstallButton';
 import { SplashScreen } from './components/SplashScreen';
+import { trackPageView } from './services/analytics';
+
+// Komponen untuk tracking route changes
+function RouteTracker() {
+  const location = useLocation();
+  
+  useEffect(() => {
+    // Track setiap kali path berubah
+    const pageName = location.pathname === '/' ? 'home' : location.pathname.substring(1);
+    trackPageView(pageName, {
+      previous_page: sessionStorage.getItem('lastPage') || 'none',
+      search_params: location.search
+    });
+    
+    // Simpan halaman ini untuk digunakan di pageview berikutnya
+    sessionStorage.setItem('lastPage', pageName);
+  }, [location]);
+  
+  return null;
+}
 
 function App() {
   const { currentUser } = useAuth();
@@ -27,6 +48,7 @@ function App() {
       <NotificationHandler showNotification={true} />
       <PWAInstallButton />
       <Router>
+        <RouteTracker />
         <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
           {/* Tampilkan Sidebar hanya jika user sudah login */}
           {currentUser && <Sidebar />}

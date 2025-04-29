@@ -45,10 +45,10 @@ export function SplashScreen() {
         
         <div className={`flex flex-col items-center space-y-2 transition-all duration-700 ${isTextVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
           <h1 className="text-3xl font-bold text-blue-600">
-            Reserse AI
+            Penyidik Toolkit
           </h1>
           <p className="text-sm text-gray-500">
-            by Zandregs
+            by Reserse Ai
           </p>
           <div className="flex space-x-1 mt-2">
             <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>

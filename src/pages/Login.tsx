@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { trackAuth, ANALYTICS_EVENTS } from '../services/analytics';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -18,9 +19,20 @@ export default function Login() {
       setError('');
       setLoading(true);
       await logIn(email, password);
+      
+      // Track successful login
+      trackAuth(ANALYTICS_EVENTS.LOGIN, 'email');
+      
       navigate('/'); // Redirect ke homepage setelah login
     } catch (error: any) {
       console.error('Login error:', error);
+      
+      // Track login error
+      trackAuth(ANALYTICS_EVENTS.LOGIN, 'email', { 
+        success: false, 
+        error_code: error.code 
+      });
+      
       setError(
         error.code === 'auth/invalid-credential'
           ? 'Email atau password salah'
@@ -38,9 +50,20 @@ export default function Login() {
       setError('');
       setGoogleLoading(true);
       await signInWithGoogle();
+      
+      // Track successful Google login
+      trackAuth(ANALYTICS_EVENTS.LOGIN, 'google');
+      
       navigate('/');
     } catch (error: any) {
       console.error('Google sign-in error:', error);
+      
+      // Track Google login error
+      trackAuth(ANALYTICS_EVENTS.LOGIN, 'google', { 
+        success: false, 
+        error_code: error.code 
+      });
+      
       setError(
         error.code === 'auth/popup-closed-by-user'
           ? 'Login dibatalkan'

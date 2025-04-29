@@ -1,19 +1,20 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, setPersistence, browserSessionPersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getAnalytics, logEvent } from "firebase/analytics";
 
 // Deteksi environment
 const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
 
 // Konfigurasi Firebase
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  // Gunakan secara eksplisit domain Firebase untuk autentikasi
-  authDomain: "reserse-7b7bc.firebaseapp.com", // Ganti dari VITE_FIREBASE_AUTH_DOMAIN untuk mengatasi masalah cache
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
+  apiKey: "AIzaSyCMvKkbh4MvoRJzc9oVxKWdE-WUwTw4knc",
+  authDomain: "reserse-7b7bc.firebaseapp.com",
+  projectId: "reserse-7b7bc",
+  storageBucket: "reserse-7b7bc.firebasestorage.app",
+  messagingSenderId: "201560378144",
+  appId: "1:201560378144:web:5a9aeaae20fe33c5e22545",
+  measurementId: "G-PFBE72WFDK"
 };
 
 // Inisialisasi Firebase dengan nama instance unik jika di development
@@ -22,6 +23,19 @@ const app = initializeApp(firebaseConfig, instanceName);
 
 // Inisialisasi Firebase Authentication
 export const auth = getAuth(app);
+
+// Inisialisasi Firebase Analytics hanya jika bukan di localhost
+export const analytics = !isLocalhost ? getAnalytics(app) : null;
+
+// Fungsi untuk log event analytics dengan pengecekan
+export const logAnalyticsEvent = (eventName: string, eventParams: Record<string, any> = {}) => {
+  if (analytics) {
+    logEvent(analytics, eventName, eventParams);
+    console.log(`Analytics event logged: ${eventName}`, eventParams);
+  } else {
+    console.log(`Analytics disabled in development: ${eventName}`, eventParams);
+  }
+};
 
 // Ubah persistensi ke session untuk menghindari cache jangka panjang di development
 if (isLocalhost) {

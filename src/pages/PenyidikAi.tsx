@@ -19,6 +19,7 @@ import TipidterChatPage from '@/components/ui/TipidterChatPage';
 import NarkotikaChatPage from '@/components/ui/NarkotikaChatPage';
 import PpaPpoChatPage from '@/components/ui/PpaPpoChatPage';
 import ReskrimumChatPage from '@/components/ui/ReskrimumChatPage';
+import { trackFeatureUsage, ANALYTICS_EVENTS } from '@/services/analytics';
 
 // Key untuk menyimpan data di localStorage
 const SELECTED_AGENT_KEY = 'penyidikai-selected-agent';
@@ -52,6 +53,16 @@ export default function PenyidikAi() {
     try {
       if (selectedAgent) {
         localStorage.setItem(SELECTED_AGENT_KEY, selectedAgent);
+        
+        // Track pemilihan agen
+        const agent = agents.find(a => a.id === selectedAgent);
+        if (agent) {
+          trackFeatureUsage('penyidik_ai_agent_selected', {
+            agent_id: agent.id,
+            agent_name: agent.name,
+            agent_type: agent.type
+          });
+        }
         
         // Tambahkan parameter direct=true ke URL saat agent dipilih
         const url = new URL(window.location.href);
@@ -200,12 +211,38 @@ export default function PenyidikAi() {
 
   const handleBack = () => {
     if (window.confirm('Apakah Anda yakin ingin kembali? Semua percakapan akan hilang.')) {
+      // Track kembali ke halaman pemilihan agen
+      if (selectedAgent) {
+        const agent = agents.find(a => a.id === selectedAgent);
+        if (agent) {
+          trackFeatureUsage('penyidik_ai_session_ended', {
+            agent_id: agent.id,
+            agent_name: agent.name,
+            agent_type: agent.type,
+            action: 'back'
+          });
+        }
+      }
+      
       setSelectedAgent(null);
     }
   };
 
   // Reset agent selection without confirmation - untuk tombol reset cepat
   const handleReset = () => {
+    // Track reset session
+    if (selectedAgent) {
+      const agent = agents.find(a => a.id === selectedAgent);
+      if (agent) {
+        trackFeatureUsage('penyidik_ai_session_ended', {
+          agent_id: agent.id,
+          agent_name: agent.name,
+          agent_type: agent.type,
+          action: 'reset'
+        });
+      }
+    }
+    
     setSelectedAgent(null);
     localStorage.removeItem(SELECTED_AGENT_KEY);
     
