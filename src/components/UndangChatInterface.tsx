@@ -112,6 +112,20 @@ export default function UndangChatInterface({ sendMessage }: UndangChatInterface
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
+  // Trigger custom event when chat starts
+  useEffect(() => {
+    // Only if component mounted to avoid triggering on initial render
+    if (isComponentMounted && messages.length > 0) {
+      // Check if this is the first user message
+      const userMessages = messages.filter(msg => msg.type === 'user');
+      if (userMessages.length === 1) {
+        // Dispatch custom event for PWA install button to listen to
+        window.dispatchEvent(new CustomEvent('chatStarted'));
+        console.log('Chat started event dispatched from UndangChatInterface');
+      }
+    }
+  }, [messages, isComponentMounted]);
+
   const scrollToBottom = useCallback(() => {
     requestAnimationFrame(() => {
       if (chatContainerRef.current) {

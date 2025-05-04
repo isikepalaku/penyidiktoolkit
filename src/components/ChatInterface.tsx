@@ -121,6 +121,17 @@ export default function ChatInterface({ sendMessage }: ChatInterfaceProps) {
     setIsComponentMounted(true);
   }, []);
 
+  // Trigger custom event when chat starts
+  useEffect(() => {
+    // Check if this is the first user message (i.e., when length changes from 0 to 1 or from 1 to 2 if there's a welcome message)
+    if ((messages.length === 1 && messages[0].type === 'user') || 
+        (messages.length === 2 && messages[0].type === 'bot' && messages[1].type === 'user')) {
+      // Dispatch custom event for PWA install button to listen to
+      window.dispatchEvent(new CustomEvent('chatStarted'));
+      console.log('Chat started event dispatched');
+    }
+  }, [messages]);
+
   const scrollToBottom = () => {
     requestAnimationFrame(() => {
       if (chatContainerRef.current) {

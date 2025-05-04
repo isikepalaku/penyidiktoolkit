@@ -4,6 +4,11 @@ import { trackPWA, ANALYTICS_EVENTS } from '../services/analytics';
 export function usePWAInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstallable, setIsInstallable] = useState(false);
+  // Tambahkan state untuk menyimpan preferensi penampilan
+  const [hideInstallPrompt, setHideInstallPrompt] = useState(() => {
+    // Cek apakah user pernah menutup prompt sebelumnya
+    return localStorage.getItem('hideInstallPrompt') === 'true';
+  });
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -11,7 +16,11 @@ export function usePWAInstall() {
       e.preventDefault();
       // Simpan event untuk digunakan nanti
       setDeferredPrompt(e);
-      setIsInstallable(true);
+      
+      // Hanya tampilkan jika user belum pernah menutup prompt
+      if (!localStorage.getItem('hideInstallPrompt')) {
+        setIsInstallable(true);
+      }
       
       // Track bahwa prompt install tersedia
       trackPWA('pwa_installable', {
@@ -29,13 +38,34 @@ export function usePWAInstall() {
         platform: navigator.platform,
         userAgent: navigator.userAgent
       });
+      
+      // Reset state setelah aplikasi diinstall
+      setIsInstallable(false);
+      setDeferredPrompt(null);
+      localStorage.setItem('hideInstallPrompt', 'true');
     };
     
     window.addEventListener('appinstalled', handleAppInstalled);
+    
+    // Event listener untuk mendeteksi ketika pengguna memulai percakapan
+    const handleChatStarted = () => {
+      // Pengguna memulai percakapan, sembunyikan tombol install
+      setHideInstallPrompt(true);
+      // Simpan preferensi untuk sementara dalam session storage
+      sessionStorage.setItem('hideInstallPromptTemporary', 'true');
+    };
+    
+    window.addEventListener('chatStarted', handleChatStarted);
+    
+    // Cek apakah user sedang dalam percakapan (dari session storage)
+    if (sessionStorage.getItem('hideInstallPromptTemporary') === 'true') {
+      setHideInstallPrompt(true);
+    }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
       window.removeEventListener('appinstalled', handleAppInstalled);
+      window.removeEventListener('chatStarted', handleChatStarted);
     };
   }, []);
 
@@ -65,15 +95,32 @@ export function usePWAInstall() {
       trackPWA('pwa_install_rejected', {
         platform: navigator.platform
       });
+      
+      // User menolak, simpan preferensi untuk tidak menampilkan lagi dalam waktu dekat
+      localStorage.setItem('hideInstallPrompt', 'true');
     }
 
     // Reset state
     setDeferredPrompt(null);
     setIsInstallable(false);
   };
+  
+  // Fungsi untuk menutup tombol install secara manual
+  const dismissInstallPrompt = () => {
+    setIsInstallable(false);
+    setHideInstallPrompt(true);
+    localStorage.setItem('hideInstallPrompt', 'true');
+    
+    // Track bahwa user menutup prompt
+    trackPWA('pwa_install_dismissed', {
+      platform: navigator.platform
+    });
+  };
 
   return {
-    isInstallable,
-    promptInstall
+    // Hanya kembalikan isInstallable=true jika memenuhi semua kondisi
+    isInstallable: isInstallable && !hideInstallPrompt,
+    promptInstall,
+    dismissInstallPrompt
   };
 } 
