@@ -31,7 +31,7 @@ export default defineConfig(({ mode }) => {
       react(), 
       tsconfigPaths(),
       VitePWA({
-        registerType: 'autoUpdate',
+        registerType: 'prompt',
         includeAssets: ['favicon.png', 'reserse.png', 'logo.svg'],
         manifest: {
           name: 'Penyidik Toolkit',
@@ -58,67 +58,83 @@ export default defineConfig(({ mode }) => {
           scope: '/',
           orientation: 'portrait',
           prefer_related_applications: false,
-          categories: ['productivity', 'utilities'],
-          screenshots: [
-            {
-              src: 'screenshot1.png',
-              sizes: '1280x720',
-              type: 'image/png',
-              form_factor: 'wide'
-            }
-          ]
+          categories: ['productivity', 'utilities']
         },
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,gif,webp,woff,woff2,ttf,eot}'],
+          globPatterns: [
+            '**/*.{js,css,html}', 
+            '**/assets/*.{png,svg,jpg,jpeg,webp}'
+          ],
+          maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
           runtimeCaching: [
             {
-              urlPattern: /^https:\/\/api\.reserse\.id\/.*/i,
-              handler: 'NetworkFirst',
+              urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/i,
+              handler: 'CacheFirst',
               options: {
-                cacheName: 'api-cache',
+                cacheName: 'images-cache',
                 expiration: {
-                  maxEntries: 100,
-                  maxAgeSeconds: 60 * 60 * 24 // 24 hours
-                },
-                networkTimeoutSeconds: 10,
-                cacheableResponse: {
-                  statuses: [0, 200]
+                  maxEntries: 50,
+                  maxAgeSeconds: 30 * 24 * 60 * 60
                 }
               }
             },
             {
+              urlPattern: /\.(?:woff|woff2|ttf|eot)$/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'fonts-cache',
+                expiration: {
+                  maxEntries: 20,
+                  maxAgeSeconds: 60 * 24 * 60 * 60
+                }
+              }
+            },
+            {
+              urlPattern: /\.(?:js|css)$/i,
+              handler: 'StaleWhileRevalidate',
+              options: {
+                cacheName: 'assets-cache',
+                expiration: {
+                  maxEntries: 50,
+                  maxAgeSeconds: 3 * 24 * 60 * 60
+                }
+              }
+            },
+            {
+              urlPattern: /^https:\/\/api\.reserse\.id\/.*/i,
+              handler: 'NetworkOnly',
+              options: {
+                cacheName: 'api-cache',
+                expiration: {
+                  maxEntries: 50,
+                  maxAgeSeconds: 5 * 60
+                },
+                networkTimeoutSeconds: 5
+              }
+            },
+            {
               urlPattern: /^https:\/\/flow\.reserse\.id\/.*/i,
-              handler: 'NetworkFirst',
+              handler: 'NetworkOnly',
               options: {
                 cacheName: 'flow-cache',
                 expiration: {
-                  maxEntries: 100,
-                  maxAgeSeconds: 60 * 60 * 24 // 24 hours
+                  maxEntries: 50,
+                  maxAgeSeconds: 5 * 60
                 },
-                networkTimeoutSeconds: 10,
-                cacheableResponse: {
-                  statuses: [0, 200]
-                }
+                networkTimeoutSeconds: 5
               }
             }
           ],
           cleanupOutdatedCaches: true,
-          sourcemap: true
+          sourcemap: mode === 'development'
         },
         devOptions: {
-          enabled: true,
+          enabled: false,
           type: 'module',
           navigateFallback: 'index.html'
         },
-        injectRegister: 'auto',
-        strategies: 'generateSW',
-        srcDir: 'src',
-        filename: 'sw.ts',
-        injectManifest: {
-          swSrc: 'src/sw.ts',
-          swDest: 'dist/sw.js',
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,gif,webp,woff,woff2,ttf,eot}']
-        }
+        disable: mode !== 'production',
+        strategies: 'generateSW'
       })
     ],
     optimizeDeps: {
@@ -145,7 +161,7 @@ export default defineConfig(({ mode }) => {
         allow: ['.', 'node_modules']
       },
       hmr: {
-        overlay: false // Disable HMR overlay to prevent k8s config errors
+        overlay: false
       },
       proxy: {
         '/v1': {
@@ -157,24 +173,20 @@ export default defineConfig(({ mode }) => {
           },
           configure: (proxy, _options) => {
             proxy.on('proxyReq', (proxyReq, req, _res) => {
-              // Log outgoing request for debugging
               console.log('Proxying request:', req.method, req.url);
               
-              // Add origin header to help with CORS
               const origin = req.headers.origin || 'http://localhost:3000';
               proxyReq.setHeader('Origin', origin);
             });
             
             proxy.on('proxyRes', (proxyRes, req, _res) => {
-              // Log response headers for debugging
               console.log('Proxy response status:', proxyRes.statusCode, 'for', req.url);
               
-              // Ensure CORS headers are present
               proxyRes.headers['access-control-allow-origin'] = req.headers.origin || '*';
               proxyRes.headers['access-control-allow-methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
               proxyRes.headers['access-control-allow-headers'] = 'Content-Type, Authorization, X-API-Key';
               proxyRes.headers['access-control-allow-credentials'] = 'true';
-              proxyRes.headers['access-control-max-age'] = '86400'; // 24 hours
+              proxyRes.headers['access-control-max-age'] = '86400';
             });
           }
         },
@@ -185,7 +197,6 @@ export default defineConfig(({ mode }) => {
           rewrite: (path: string) => path.replace(/^\/api/, ''),
           configure: (proxy, _options) => {
             proxy.on('proxyRes', (proxyRes, req, _res) => {
-              // Ensure CORS headers are present
               proxyRes.headers['access-control-allow-origin'] = req.headers.origin || '*';
               proxyRes.headers['access-control-allow-methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
               proxyRes.headers['access-control-allow-headers'] = 'Content-Type, Authorization, X-API-Key';
@@ -200,7 +211,6 @@ export default defineConfig(({ mode }) => {
           rewrite: (path: string) => path.replace(/^\/flowise/, ''),
           configure: (proxy, _options) => {
             proxy.on('proxyRes', (proxyRes, req, _res) => {
-              // Ensure CORS headers are present
               proxyRes.headers['access-control-allow-origin'] = req.headers.origin || '*';
               proxyRes.headers['access-control-allow-methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
               proxyRes.headers['access-control-allow-headers'] = 'Content-Type, Authorization, X-API-Key';

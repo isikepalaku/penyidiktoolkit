@@ -51,89 +51,88 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
       console.log('Print completed');
     },
     pageStyle: `
-      @media print {
-        @page {
-          margin: 10mm;
-          size: A4;
-        }
+      /* Pastikan semua aturan @import berada di awal, jika diperlukan */
+      @page {
+        margin: 10mm;
+        size: A4;
+      }
 
-        body {
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-          line-height: 1.5;
-          position: relative;
-        }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        line-height: 1.5;
+        position: relative;
+      }
 
-        .no-print {
-          display: none !important;
-        }
+      .no-print {
+        display: none !important;
+      }
 
-        /* Watermark styling */
-        #watermark {
-          position: fixed !important;
-          bottom: 10mm !important;
-          right: 10mm !important;
-          z-index: 9999 !important;
-          display: block !important;
-          opacity: 0.7 !important;
-          width: 15mm !important;
-          height: 15mm !important;
-          -webkit-print-color-adjust: exact !important;
-          color-adjust: exact !important;
-        }
+      /* Watermark styling */
+      #watermark {
+        position: fixed !important;
+        bottom: 10mm !important;
+        right: 10mm !important;
+        z-index: 9999 !important;
+        display: block !important;
+        opacity: 0.7 !important;
+        width: 15mm !important;
+        height: 15mm !important;
+        -webkit-print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
 
-        #watermark img {
-          width: 100% !important;
-          height: 100% !important;
-          object-fit: contain !important;
-        }
+      #watermark img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: contain !important;
+      }
 
-        /* URL breaking */
-        a {
-          word-break: break-all !important;
-          overflow-wrap: anywhere !important;
-        }
+      /* URL breaking */
+      a {
+        word-break: break-all !important;
+        overflow-wrap: anywhere !important;
+      }
 
-        /* Allow tables to extend to full width */
-        table {
-          width: 100% !important;
-          table-layout: fixed !important;
-        }
+      /* Allow tables to extend to full width */
+      table {
+        width: 100% !important;
+        table-layout: fixed !important;
+      }
 
-        /* Make sure URLs in links break properly */
-        a, p, li {
-          max-width: 100% !important;
-          word-break: break-word !important;
-        }
+      /* Make sure URLs in links break properly */
+      a, p, li {
+        max-width: 100% !important;
+        word-break: break-word !important;
+      }
 
-        /* Citations section for printing */
-        .citations-print-section {
-          display: block !important;
-          margin-top: 2em !important;
-          padding-top: 1em !important;
-          border-top: 1px solid #e5e7eb !important;
-        }
+      /* Citations section for printing */
+      .citations-print-section {
+        display: block !important;
+        margin-top: 2em !important;
+        padding-top: 1em !important;
+        border-top: 1px solid #e5e7eb !important;
+      }
 
-        /* Add page numbers */
-        .content-wrapper::after {
-          content: "Halaman " counter(page) " dari " counter(pages);
-          position: fixed;
-          bottom: 10mm;
-          left: 0;
-          right: 0;
-          font-size: 8pt;
-          text-align: center;
-          color: #666;
-        }
+      /* Add page numbers */
+      .content-wrapper::after {
+        content: "Halaman " counter(page) " dari " counter(pages);
+        position: fixed;
+        bottom: 10mm;
+        left: 0;
+        right: 0;
+        font-size: 8pt;
+        text-align: center;
+        color: #666;
+      }
 
-        /* Footer text */
-        .content-wrapper::before {
-          content: "Penyidik Toolkit";
-          position: fixed;
-          bottom: 10mm;
-          right: 25mm;
-          font-size: 10pt;
-          color: #999;
-        }
+      /* Footer text */
+      .content-wrapper::before {
+        content: "Penyidik Toolkit";
+        position: fixed;
+        bottom: 10mm;
+        right: 25mm;
+        font-size: 10pt;
+        color: #999;
       }
     `,
   });

@@ -143,107 +143,122 @@ const styles = StyleSheet.create({
   },
 });
 
-// Penanganan URL panjang
+// Perbaikan #1: Cache hasil regex untuk mengurangi beban komputasi
+const cleanHtmlCache = new Map<string, string>();
+const cleanHtml = (html: string) => {
+  if (cleanHtmlCache.has(html)) {
+    return cleanHtmlCache.get(html) as string;
+  }
+  
+  const result = html
+    .replace(/<.*?>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .trim();
+  
+  cleanHtmlCache.set(html, result);
+  return result;
+};
+
+// Perbaikan #2: Optimasi Penanganan URL panjang
 const formatLongUrl = (url: string) => {
   if (url.length <= 50) return url;
   
-  // Pecah URL menjadi beberapa bagian dengan ukuran maksimal 50 karakter
-  const segments = [];
-  for (let i = 0; i < url.length; i += 50) {
-    segments.push(url.substring(i, i + 50));
-  }
-  
-  // Render setiap segmen sebagai Text terpisah
   return (
     <View wrap={false}>
-      {segments.map((segment, i) => (
-        <Text key={i} style={styles.link}>
-          {segment}{i < segments.length - 1 ? "-" : ""}
-        </Text>
-      ))}
+      <Text style={styles.link}>
+        {url.substring(0, 47)}...
+      </Text>
     </View>
   );
 };
 
-// Helper function yang ditingkatkan untuk mengubah HTML ke komponen React-PDF
-const convertHtmlToReactPdf = (html: string) => {
-  // Implementasi yang lebih baik untuk menangani berbagai elemen HTML
-  
-  // Ekstrak headings
-  const h1Matches = html.match(/<h1[^>]*>(.*?)<\/h1>/gi) || [];
-  const h2Matches = html.match(/<h2[^>]*>(.*?)<\/h2>/gi) || [];
-  const h3Matches = html.match(/<h3[^>]*>(.*?)<\/h3>/gi) || [];
-  
-  // Ekstrak paragraf dan list items
-  const paragraphs = html.match(/<p[^>]*>(.*?)<\/p>/gi) || [];
-  const listItems = html.match(/<li[^>]*>(.*?)<\/li>/gi) || [];
-  
-  // Ekstrak tables jika ada
-  const tables = html.match(/<table[^>]*>(.*?)<\/table>/gi) || [];
-  
-  // Ekstrak code blocks
-  const codeBlocks = html.match(/<pre[^>]*>(.*?)<\/pre>/gi) || [];
-  
-  // Jika tidak ada matches apapun, kembalikan teks polos
-  if (h1Matches.length === 0 && h2Matches.length === 0 && h3Matches.length === 0 &&
-      paragraphs.length === 0 && listItems.length === 0 && tables.length === 0 && 
-      codeBlocks.length === 0) {
-    // Fallback ke implementasi sederhana
-    const cleanText = html
-      .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/<p>(.*?)<\/p>/gi, '$1\n\n')
-      .replace(/<h2>(.*?)<\/h2>/gi, '$1\n')
-      .replace(/<h3>(.*?)<\/h3>/gi, '$1\n')
-      .replace(/<li>(.*?)<\/li>/gi, '• $1\n')
-      .replace(/<ul>(.*?)<\/ul>/gi, '$1\n')
-      .replace(/<ol>(.*?)<\/ol>/gi, '$1\n')
-      .replace(/<.*?>/g, '');
+// Helper function yang dioptimalkan untuk mengubah HTML ke komponen React-PDF
+const htmlMatchCache = new Map<string, {
+  h1: RegExpMatchArray | null;
+  h2: RegExpMatchArray | null;
+  h3: RegExpMatchArray | null;
+  paragraphs: RegExpMatchArray | null;
+  listItems: RegExpMatchArray | null;
+  tables: RegExpMatchArray | null;
+  codeBlocks: RegExpMatchArray | null;
+}>();
 
-    return cleanText.split('\n').map((line, i) => {
-      if (!line.trim()) return null;
-      return <Text key={i} style={styles.paragraph}>{line}</Text>;
+const convertHtmlToReactPdf = (html: string) => {
+  // Gunakan cache untuk menghindari operasi regex yang berulang
+  if (!htmlMatchCache.has(html)) {
+    // Ekstrak komponen HTML dengan regex yang dioptimalkan
+    htmlMatchCache.set(html, {
+      h1: html.match(/<h1[^>]*>(.*?)<\/h1>/gi),
+      h2: html.match(/<h2[^>]*>(.*?)<\/h2>/gi),
+      h3: html.match(/<h3[^>]*>(.*?)<\/h3>/gi),
+      paragraphs: html.match(/<p[^>]*>(.*?)<\/p>/gi),
+      listItems: html.match(/<li[^>]*>(.*?)<\/li>/gi),
+      tables: html.match(/<table[^>]*>(.*?)<\/table>/gi),
+      codeBlocks: html.match(/<pre[^>]*>(.*?)<\/pre>/gi)
     });
   }
   
-  // Konversi HTML menjadi teks polos untuk digunakan sebagai konten
-  const cleanHtml = (html: string) => {
-    return html
-      .replace(/<.*?>/g, '')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .trim();
-  };
+  const matches = htmlMatchCache.get(html)!;
+  const { h1, h2, h3, paragraphs, listItems, tables, codeBlocks } = matches;
+  
+  // Jika tidak ada matches apapun, kembalikan teks polos
+  if ((!h1 || h1.length === 0) && 
+      (!h2 || h2.length === 0) && 
+      (!h3 || h3.length === 0) &&
+      (!paragraphs || paragraphs.length === 0) && 
+      (!listItems || listItems.length === 0) && 
+      (!tables || tables.length === 0) && 
+      (!codeBlocks || codeBlocks.length === 0)) {
+    // Fallback ke implementasi sederhana lebih efisien
+    const cleanText = html
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/?p>/gi, '\n')
+      .replace(/<\/?h[1-6]>/gi, '\n')
+      .replace(/<li>(.*?)<\/li>/gi, '• $1\n')
+      .replace(/<\/?[^>]+(>|$)/g, '');
+
+    return cleanText.split('\n').filter(Boolean).map((line, i) => (
+      <Text key={i} style={styles.paragraph}>{line.trim()}</Text>
+    ));
+  }
   
   // Hasil konversi
   const result: React.ReactNode[] = [];
   
-  // Proses headings
-  h1Matches.forEach((match, i) => {
-    const content = cleanHtml(match);
-    result.push(<Text key={`h1-${i}`} style={styles.title}>{content}</Text>);
-  });
+  // Proses headings, paragraf, dll secara efisien
+  if (h1 && h1.length > 0) {
+    h1.forEach((match, i) => {
+      const content = cleanHtml(match);
+      result.push(<Text key={`h1-${i}`} style={styles.title}>{content}</Text>);
+    });
+  }
   
-  h2Matches.forEach((match, i) => {
-    const content = cleanHtml(match);
-    result.push(<Text key={`h2-${i}`} style={styles.heading2}>{content}</Text>);
-  });
+  if (h2 && h2.length > 0) {
+    h2.forEach((match, i) => {
+      const content = cleanHtml(match);
+      result.push(<Text key={`h2-${i}`} style={styles.heading2}>{content}</Text>);
+    });
+  }
   
-  h3Matches.forEach((match, i) => {
-    const content = cleanHtml(match);
-    result.push(<Text key={`h3-${i}`} style={styles.heading3}>{content}</Text>);
-  });
+  if (h3 && h3.length > 0) {
+    h3.forEach((match, i) => {
+      const content = cleanHtml(match);
+      result.push(<Text key={`h3-${i}`} style={styles.heading3}>{content}</Text>);
+    });
+  }
   
-  // Proses paragraf
-  paragraphs.forEach((match, i) => {
-    const content = cleanHtml(match);
-    result.push(<Text key={`p-${i}`} style={styles.paragraph}>{content}</Text>);
-  });
+  if (paragraphs && paragraphs.length > 0) {
+    paragraphs.forEach((match, i) => {
+      const content = cleanHtml(match);
+      result.push(<Text key={`p-${i}`} style={styles.paragraph}>{content}</Text>);
+    });
+  }
   
-  // Proses list items
-  if (listItems.length > 0) {
+  if (listItems && listItems.length > 0) {
     listItems.forEach((match, i) => {
       const content = cleanHtml(match);
       result.push(
@@ -252,128 +267,136 @@ const convertHtmlToReactPdf = (html: string) => {
     });
   }
   
-  // Proses code blocks
-  codeBlocks.forEach((match, i) => {
-    const content = cleanHtml(match);
-    result.push(
-      <Text key={`code-${i}`} style={styles.codeBlock}>{content}</Text>
-    );
-  });
-  
-  // Untuk tabel, kita butuh implementasi yang lebih kompleks
-  // Ini sangat disederhanakan untuk contoh
-  tables.forEach((tableHtml, tableIndex) => {
-    // Ekstrak rows
-    const rowsMatch = tableHtml.match(/<tr[^>]*>(.*?)<\/tr>/gi) || [];
-    
-    if (rowsMatch.length > 0) {
-      // Tambahkan komponen tabel
+  if (codeBlocks && codeBlocks.length > 0) {
+    codeBlocks.forEach((match, i) => {
+      const content = cleanHtml(match);
       result.push(
-        <View key={`table-${tableIndex}`} style={styles.table}>
-          {rowsMatch.map((rowHtml, rowIndex) => {
-            // Ekstrak cells
-            const cellsMatch = rowHtml.match(/<t[hd][^>]*>(.*?)<\/t[hd]>/gi) || [];
-            
-            return (
-              <View 
-                key={`row-${rowIndex}`} 
-                style={styles.tableRow}>
-                {cellsMatch.map((cellHtml, cellIndex) => {
-                  const isTh = cellHtml.startsWith('<th');
-                  const content = cleanHtml(cellHtml);
-                  
-                  return (
-                    <View 
-                      key={`cell-${cellIndex}`} 
-                      style={isTh ? styles.tableHeaderCell : styles.tableCell}
-                    >
-                      <Text style={isTh ? styles.tableHeaderText : styles.tableCellText}>
-                        {content}
-                      </Text>
-                    </View>
-                  );
-                })}
-              </View>
-            );
-          })}
-        </View>
+        <Text key={`code-${i}`} style={styles.codeBlock}>{content}</Text>
       );
-    }
-  });
+    });
+  }
+  
+  if (tables && tables.length > 0) {
+    tables.forEach((tableHtml, tableIndex) => {
+      // Ekstrak rows - Gunakan regex yang lebih efisien
+      const rowsMatch = tableHtml.match(/<tr[^>]*>(.*?)<\/tr>/gi);
+      
+      if (rowsMatch && rowsMatch.length > 0) {
+        const tableRows = rowsMatch.map((rowHtml, rowIndex) => {
+          // Ekstrak cells - Gunakan regex yang lebih efisien
+          const cellsMatch = rowHtml.match(/<t[hd][^>]*>(.*?)<\/t[hd]>/gi);
+          
+          if (!cellsMatch) return null;
+          
+          return (
+            <View key={`row-${rowIndex}`} style={styles.tableRow}>
+              {cellsMatch.map((cellHtml, cellIndex) => {
+                const isTh = cellHtml.startsWith('<th');
+                const content = cleanHtml(cellHtml);
+                
+                return (
+                  <View 
+                    key={`cell-${cellIndex}`} 
+                    style={isTh ? styles.tableHeaderCell : styles.tableCell}
+                  >
+                    <Text style={isTh ? styles.tableHeaderText : styles.tableCellText}>
+                      {content}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          );
+        }).filter(Boolean);
+        
+        result.push(
+          <View key={`table-${tableIndex}`} style={styles.table}>
+            {tableRows}
+          </View>
+        );
+      }
+    });
+  }
   
   return result;
 };
 
+// Optimasi: Gunakan memoization untuk fungsi processContent
+const processContentCache = new Map<string, React.ReactNode[]>();
+
 // Fungsi untuk memproses konten menjadi komponen React-PDF
 const processContent = (content: string) => {
+  // Gunakan cache jika sudah pernah memproses konten ini
+  if (processContentCache.has(content)) {
+    return processContentCache.get(content);
+  }
+  
+  let result: React.ReactNode[] = [];
+  
   try {
     // Coba parse sebagai JSON jika memungkinkan
     const parsedJson = JSON.parse(content);
     
     if (parsedJson && typeof parsedJson === 'object') {
       // Render struktur JSON sesuai formatnya
-      return (
-        <>
-          {parsedJson.ringkasan_kasus && (
-            <>
-              <Text style={styles.heading2}>Ringkasan Kasus</Text>
-              <Text style={styles.paragraph}>{parsedJson.ringkasan_kasus}</Text>
-            </>
-          )}
-          
-          {parsedJson.temuan_utama && Array.isArray(parsedJson.temuan_utama) && (
-            <>
-              <Text style={styles.heading2}>Temuan Utama</Text>
-              {parsedJson.temuan_utama.map((item: string, index: number) => (
-                <Text key={index} style={styles.listItem}>• {item}</Text>
-              ))}
-            </>
-          )}
-          
-          {parsedJson.analisis_hukum && (
-            <>
-              <Text style={styles.heading2}>Analisis Hukum</Text>
-              <Text style={styles.paragraph}>{parsedJson.analisis_hukum}</Text>
-            </>
-          )}
-          
-          {parsedJson.referensi && Array.isArray(parsedJson.referensi) && (
-            <>
-              <Text style={styles.heading2}>Referensi</Text>
-              {parsedJson.referensi.map((item: string, index: number) => (
-                <View key={index} style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-                  <Text style={styles.referenceItem}>• </Text>
-                  {item.startsWith('http') ? (
-                    <Link src={item} style={styles.link}>
-                      {formatLongUrl(item)}
-                    </Link>
-                  ) : (
-                    <Text style={styles.referenceItem}>{item}</Text>
-                  )}
-                </View>
-              ))}
-            </>
-          )}
-          
-          {parsedJson.modus_operandi && (
-            <>
-              <Text style={styles.heading2}>Modus Operandi</Text>
-              <Text style={styles.paragraph}>{parsedJson.modus_operandi}</Text>
-            </>
-          )}
-        </>
-      );
+      result = [
+        ...(parsedJson.ringkasan_kasus ? [
+          <Text key="ringkasan-title" style={styles.heading2}>Ringkasan Kasus</Text>,
+          <Text key="ringkasan-content" style={styles.paragraph}>{parsedJson.ringkasan_kasus}</Text>
+        ] : []),
+        
+        ...(parsedJson.temuan_utama && Array.isArray(parsedJson.temuan_utama) ? [
+          <Text key="temuan-title" style={styles.heading2}>Temuan Utama</Text>,
+          ...(parsedJson.temuan_utama.map((item: string, index: number) => (
+            <Text key={`temuan-${index}`} style={styles.listItem}>• {item}</Text>
+          )))
+        ] : []),
+        
+        ...(parsedJson.analisis_hukum ? [
+          <Text key="analisis-title" style={styles.heading2}>Analisis Hukum</Text>,
+          <Text key="analisis-content" style={styles.paragraph}>{parsedJson.analisis_hukum}</Text>
+        ] : []),
+        
+        ...(parsedJson.referensi && Array.isArray(parsedJson.referensi) ? [
+          <Text key="referensi-title" style={styles.heading2}>Referensi</Text>,
+          ...(parsedJson.referensi.map((item: string, index: number) => (
+            <View key={`ref-${index}`} style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+              <Text style={styles.referenceItem}>• </Text>
+              {item.startsWith('http') ? (
+                <Link src={item} style={styles.link}>
+                  {formatLongUrl(item)}
+                </Link>
+              ) : (
+                <Text style={styles.referenceItem}>{item}</Text>
+              )}
+            </View>
+          )))
+        ] : []),
+        
+        ...(parsedJson.modus_operandi ? [
+          <Text key="modus-title" style={styles.heading2}>Modus Operandi</Text>,
+          <Text key="modus-content" style={styles.paragraph}>{parsedJson.modus_operandi}</Text>
+        ] : [])
+      ];
+      
+      // Simpan hasil ke cache sebelum mengembalikan
+      processContentCache.set(content, result);
+      return result;
     }
   } catch (e) {
     // Bukan JSON, lanjutkan dengan konversi markdown
   }
   
-  // Konversi markdown ke HTML
+  // Konversi markdown ke HTML - minimize calls
   const html = marked(content);
   const sanitizedHtml = DOMPurify.sanitize(html);
   
   // Konversi HTML ke komponen React-PDF
-  return convertHtmlToReactPdf(sanitizedHtml);
+  result = convertHtmlToReactPdf(sanitizedHtml);
+  
+  // Cache result
+  processContentCache.set(content, result);
+  return result;
 };
 
 interface ResultPDFProps {
@@ -382,8 +405,8 @@ interface ResultPDFProps {
   citations?: Citation[];
 }
 
-// Komponen PDF utama
-const ResultPDFContent: React.FC<ResultPDFProps> = ({ content, title, citations }) => {
+// Komponen PDF utama dengan optimasi
+const ResultPDFContent: React.FC<ResultPDFProps> = React.memo(({ content, title, citations }) => {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -406,9 +429,8 @@ const ResultPDFContent: React.FC<ResultPDFProps> = ({ content, title, citations 
           {/* Logo watermark */}
           <Image src="/1.png" style={styles.watermark} />
           
-          {/* Footer dengan nomor halaman */}
-          <br />
-          <br />
+          {/* Footer dengan nomor halaman - gunakan View dengan margin daripada <br> tags */}
+          <View style={{ marginTop: 20 }} />
           <Text
             style={styles.footer}
             render={({ pageNumber, totalPages }) => (
@@ -420,7 +442,7 @@ const ResultPDFContent: React.FC<ResultPDFProps> = ({ content, title, citations 
       </Page>
     </Document>
   );
-};
+});
 
 // Komponen PDFViewer untuk menampilkan preview PDF
 export const ResultPDFViewer: React.FC<ResultPDFProps> = (props) => {
