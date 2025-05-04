@@ -18,6 +18,7 @@
     "@radix-ui/react-label": "^2.1.1",
     "@radix-ui/react-select": "^2.1.4",
     "@radix-ui/react-slot": "^1.1.1",
+    "@react-pdf/renderer": "^4.3.0",
     "@splinetool/react-spline": "^4.0.0",
     "@splinetool/runtime": "^1.9.59",
     "@supabase/supabase-js": "^2.39.8",

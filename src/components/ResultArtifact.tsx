@@ -3,6 +3,7 @@ import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { X, Copy, Check, Printer, FileText, Info, Eye, FileType, FileImage, File as FileIconGeneric } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
+import { ResultPDFDownloadLink } from './ResultPDF';
 
 // Konfigurasi marked
 marked.setOptions({
@@ -52,7 +53,7 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
     pageStyle: `
       @media print {
         @page {
-          margin: 20mm;
+          margin: 10mm;
           size: A4;
         }
 
@@ -66,36 +67,72 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
           display: none !important;
         }
 
-        .watermark-container {
+        /* Watermark styling */
+        #watermark {
           position: fixed !important;
-          bottom: 0mm !important;
-          right: 0mm !important;
+          bottom: 10mm !important;
+          right: 10mm !important;
           z-index: 9999 !important;
-          pointer-events: none !important;
           display: block !important;
-        }
-
-        .watermark-image {
-          width: 15mm !important;
-          height: auto !important;
           opacity: 0.7 !important;
-          display: block !important;
+          width: 15mm !important;
+          height: 15mm !important;
           -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
           color-adjust: exact !important;
         }
 
-        #watermark {
-          display: block !important;
-          visibility: visible !important;
+        #watermark img {
+          width: 100% !important;
+          height: 100% !important;
+          object-fit: contain !important;
         }
 
-        /* Tampilkan citations di hasil cetak meskipun tersembunyi di UI */
+        /* URL breaking */
+        a {
+          word-break: break-all !important;
+          overflow-wrap: anywhere !important;
+        }
+
+        /* Allow tables to extend to full width */
+        table {
+          width: 100% !important;
+          table-layout: fixed !important;
+        }
+
+        /* Make sure URLs in links break properly */
+        a, p, li {
+          max-width: 100% !important;
+          word-break: break-word !important;
+        }
+
+        /* Citations section for printing */
         .citations-print-section {
           display: block !important;
           margin-top: 2em !important;
           padding-top: 1em !important;
           border-top: 1px solid #e5e7eb !important;
+        }
+
+        /* Add page numbers */
+        .content-wrapper::after {
+          content: "Halaman " counter(page) " dari " counter(pages);
+          position: fixed;
+          bottom: 10mm;
+          left: 0;
+          right: 0;
+          font-size: 8pt;
+          text-align: center;
+          color: #666;
+        }
+
+        /* Footer text */
+        .content-wrapper::before {
+          content: "Penyidik Toolkit";
+          position: fixed;
+          bottom: 10mm;
+          right: 25mm;
+          font-size: 10pt;
+          color: #999;
         }
       }
     `,
@@ -123,9 +160,10 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
     if (jsonData.referensi && Array.isArray(jsonData.referensi)) {
       markdown += `## Referensi\n\n`;
       jsonData.referensi.forEach((item: string) => {
-        // Attempt to make links clickable if they look like URLs
+        // Format links to be text only if too long (untuk mencegah URLs panjang)
         if (item.startsWith('http://') || item.startsWith('https://')) {
-          markdown += `- [${item}](${item})\n`;
+          const displayUrl = item.length > 60 ? item.substring(0, 57) + '...' : item;
+          markdown += `- [${displayUrl}](${item})\n`;
         } else {
           markdown += `- ${item}\n`;
         }
@@ -254,13 +292,36 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
 
   const formatMarkdown = (content: string) => {
     try {
+      // Pre-process teks untuk URL panjang
+      const processedText = content
+        // Deteksi URL panjang dalam markdown dan tambahkan soft hyphens untuk word breaking
+        .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]{50,})\)/g, (_, text, url) => {
+          // Wrap URL dengan kode khusus yang akan diproses oleh CSS
+          return `[${text}](${url.replace(/\//g, '\\/').replace(/\./g, '\\.')})`; 
+        })
+        // Deteksi URL langsung di teks (bukan dalam markdown link)
+        .replace(/(https?:\/\/[^\s]{50,})/g, (url) => {
+          // Buat URL dapat wrap
+          return url.replace(/\//g, '\\/').replace(/\./g, '\\.');
+        });
+
       // Convert markdown to HTML
-      const html = marked(content);
+      const html = marked(processedText);
       
       // Sanitize HTML to prevent XSS
       const sanitizedHtml = DOMPurify.sanitize(html);
       
-      return sanitizedHtml;
+      // Tambahkan beberapa perbaikan untuk URL yang panjang
+      const enhancedHtml = sanitizedHtml
+        // Tambahkan class khusus untuk URL panjang
+        .replace(/<a\s+href="([^"]+)"/g, '<a href="$1" class="break-all overflow-wrap-anywhere"')
+        // Untuk pre dan code blocks, tambahkan class overflow-x-auto
+        .replace(/<pre>/g, '<pre class="overflow-x-auto whitespace-pre-wrap">')
+        // Untuk tabel, tambahkan container dengan overflow-x-auto
+        .replace(/<table>/g, '<div class="overflow-x-auto w-full"><table class="min-w-full">') 
+        .replace(/<\/table>/g, '</table></div>');
+      
+      return enhancedHtml;
     } catch (error) {
       console.error('Error formatting markdown:', error);
       return content;
@@ -270,6 +331,18 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
   useEffect(() => {
     const event = new CustomEvent('analysisComplete');
     window.dispatchEvent(event);
+    
+    // Setup watermark dan pastikan siap untuk print/export
+    const watermark = document.getElementById('watermark');
+    if (watermark) {
+      console.log('Watermark element initialized');
+      
+      // Preload logo image untuk memastikan tersedia saat export
+      const logoImg = new Image();
+      logoImg.src = '/1.png';
+      logoImg.onload = () => console.log('Logo image loaded successfully');
+      logoImg.onerror = (e) => console.error('Failed to load logo image', e);
+    }
   }, []);
 
   return (
@@ -318,6 +391,15 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
               <Printer className="w-4 h-4" />
               <span>Cetak</span>
             </button>
+            
+            {/* PDF Download Link dengan React-PDF */}
+            <ResultPDFDownloadLink 
+              content={content}
+              title={title}
+              citations={citations}
+              fileName={`${title || 'Hasil-Analisis'}.pdf`}
+            />
+            
             <button
               onClick={handleCopy}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm 
@@ -349,20 +431,31 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
             </button>
           </div>
         </div>
-
+        
         <div ref={contentRef} className="w-full">
-          <div className="watermark-container" style={{ position: 'fixed', bottom: '0mm', right: '0mm', zIndex: 9999 }}>
+          {/* Watermark container - tersembunyi secara default, hanya ditampilkan saat export/print */}
+          <div 
+            id="watermark" 
+            style={{ 
+              position: 'fixed', 
+              bottom: '10mm', 
+              right: '10mm', 
+              zIndex: 9999, 
+              opacity: 0.7,
+              width: '15mm',
+              height: '15mm',
+              display: 'none',
+              pointerEvents: 'none'
+            }}
+          >
             <img 
-              src="/1.png"
-              alt=""
-              className="watermark-image"
-              id="watermark"
+              src="/1.png" 
+              alt="Logo" 
               style={{ 
-                width: '15mm',
-                height: 'auto',
-                opacity: 0.7,
-                display: 'none'
-              }}
+                width: '100%', 
+                height: '100%', 
+                objectFit: 'contain' 
+              }} 
             />
           </div>
           
@@ -427,12 +520,14 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
               [&_ul>li>ul]:mt-2 [&_ul>li>ul]:ml-4
               [&_ul>li>ul>li]:relative [&_ul>li>ul>li]:pl-1 [&_ul>li>ul>li]:mb-1
               [&_ul>li>ul>li]:marker:text-gray-500
-              prose-strong:text-gray-900 prose-strong:font-bold"
+              prose-strong:text-gray-900 prose-strong:font-bold
+              [&_a]:break-words [&_a]:overflow-wrap-anywhere [&_a]:word-break-all
+              [&_a]:text-blue-600 [&_a]:no-underline hover:[&_a]:underline"
             >
               {/* processContent now returns ready-to-format Markdown */}
               <div dangerouslySetInnerHTML={{ __html: formatMarkdown(processContent(content)) }} />
             </div>
-
+          
             {/* Citations section for printing only - hidden in UI but visible in print */}
             {citations && citations.length > 0 && (
               <div className="hidden citations-print-section">
