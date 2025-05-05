@@ -33,6 +33,13 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     color: '#333333',
   },
+  subtitle: {
+    fontSize: 16,
+    fontWeight: 700,
+    marginTop: 5,
+    marginBottom: 15,
+    color: '#444444',
+  },
   heading2: {
     fontSize: 16,
     fontWeight: 700,
@@ -141,6 +148,19 @@ const styles = StyleSheet.create({
     fontFamily: 'Courier',
     color: '#333333',
   },
+  sectionDivider: {
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    borderTopStyle: 'solid',
+    marginVertical: 12,
+  },
+  listBullet: {
+    width: 10,
+    marginRight: 5,
+  },
+  listContainer: {
+    marginVertical: 8,
+  },
 });
 
 // Perbaikan #1: Cache hasil regex untuk mengurangi beban komputasi
@@ -219,7 +239,13 @@ const convertHtmlToReactPdf = (html: string) => {
       .replace(/<\/?p>/gi, '\n')
       .replace(/<\/?h[1-6]>/gi, '\n')
       .replace(/<li>(.*?)<\/li>/gi, '• $1\n')
-      .replace(/<\/?[^>]+(>|$)/g, '');
+      .replace(/<\/?[^>]+(>|$)/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .trim();
 
     return cleanText.split('\n').filter(Boolean).map((line, i) => (
       <Text key={i} style={styles.paragraph}>{line.trim()}</Text>
@@ -233,49 +259,95 @@ const convertHtmlToReactPdf = (html: string) => {
   if (h1 && h1.length > 0) {
     h1.forEach((match, i) => {
       const content = cleanHtml(match);
-      result.push(<Text key={`h1-${i}`} style={styles.title}>{content}</Text>);
+      result.push(
+        <Text key={`h1-${i}`} style={styles.title}>{content}</Text>,
+        // Tambahkan sedikit spasi setelah heading
+        <View key={`h1-space-${i}`} style={{ marginBottom: 5 }} />
+      );
     });
   }
   
   if (h2 && h2.length > 0) {
     h2.forEach((match, i) => {
       const content = cleanHtml(match);
-      result.push(<Text key={`h2-${i}`} style={styles.heading2}>{content}</Text>);
+      result.push(
+        <Text key={`h2-${i}`} style={styles.heading2}>{content}</Text>,
+        // Tambahkan sedikit spasi setelah heading
+        <View key={`h2-space-${i}`} style={{ marginBottom: 3 }} />
+      );
     });
   }
   
   if (h3 && h3.length > 0) {
     h3.forEach((match, i) => {
       const content = cleanHtml(match);
-      result.push(<Text key={`h3-${i}`} style={styles.heading3}>{content}</Text>);
+      result.push(
+        <Text key={`h3-${i}`} style={styles.heading3}>{content}</Text>,
+        // Tambahkan sedikit spasi setelah heading
+        <View key={`h3-space-${i}`} style={{ marginBottom: 2 }} />
+      );
     });
   }
   
+  // Proses paragraphs dengan spasi yang benar
   if (paragraphs && paragraphs.length > 0) {
     paragraphs.forEach((match, i) => {
       const content = cleanHtml(match);
-      result.push(<Text key={`p-${i}`} style={styles.paragraph}>{content}</Text>);
+      // Jangan tambahkan paragraf kosong
+      if (content.trim()) {
+        result.push(
+          <Text key={`p-${i}`} style={{...styles.paragraph, marginBottom: 8}}>{content}</Text>
+        );
+      }
     });
   }
+  
+  // Proses list dengan bullets yang benar
+  let inList = false;
+  let currentListItems: React.ReactNode[] = [];
   
   if (listItems && listItems.length > 0) {
     listItems.forEach((match, i) => {
       const content = cleanHtml(match);
-      result.push(
-        <Text key={`li-${i}`} style={styles.listItem}>• {content}</Text>
+      
+      if (!inList) {
+        // Mulai list baru
+        inList = true;
+        currentListItems = [];
+      }
+      
+      currentListItems.push(
+        <View key={`list-item-${i}`} style={{ flexDirection: 'row', marginBottom: 3 }}>
+          <Text style={{ width: 10, marginRight: 5 }}>•</Text>
+          <Text style={{ flex: 1, ...styles.listItem }}>{content}</Text>
+        </View>
       );
+      
+      // Jika ini item terakhir atau berikutnya bukan list item, tutup list
+      if (i === listItems.length - 1) {
+        result.push(
+          <View key={`list-${i}`} style={{ marginVertical: 5 }}>
+            {currentListItems}
+          </View>
+        );
+        inList = false;
+      }
     });
   }
   
+  // Proses code blocks dengan styling yang benar
   if (codeBlocks && codeBlocks.length > 0) {
     codeBlocks.forEach((match, i) => {
       const content = cleanHtml(match);
       result.push(
-        <Text key={`code-${i}`} style={styles.codeBlock}>{content}</Text>
+        <View key={`code-${i}`} style={{ backgroundColor: '#F5F5F5', padding: 5, marginVertical: 5, borderRadius: 3 }}>
+          <Text style={styles.codeBlock}>{content}</Text>
+        </View>
       );
     });
   }
   
+  // Proses tables dengan layout yang lebih baik
   if (tables && tables.length > 0) {
     tables.forEach((tableHtml, tableIndex) => {
       // Ekstrak rows - Gunakan regex yang lebih efisien
@@ -289,7 +361,10 @@ const convertHtmlToReactPdf = (html: string) => {
           if (!cellsMatch) return null;
           
           return (
-            <View key={`row-${rowIndex}`} style={styles.tableRow}>
+            <View key={`row-${rowIndex}`} style={{
+              ...styles.tableRow,
+              backgroundColor: rowIndex === 0 ? '#F5F5F5' : (rowIndex % 2 === 0 ? '#FAFAFA' : '#FFFFFF')
+            }}>
               {cellsMatch.map((cellHtml, cellIndex) => {
                 const isTh = cellHtml.startsWith('<th');
                 const content = cleanHtml(cellHtml);
@@ -310,7 +385,7 @@ const convertHtmlToReactPdf = (html: string) => {
         }).filter(Boolean);
         
         result.push(
-          <View key={`table-${tableIndex}`} style={styles.table}>
+          <View key={`table-${tableIndex}`} style={{...styles.table, marginVertical: 10, borderWidth: 1, borderColor: '#E5E7EB'}}>
             {tableRows}
           </View>
         );
@@ -333,11 +408,77 @@ const processContent = (content: string) => {
   
   let result: React.ReactNode[] = [];
   
+  // Deteksi pola Analisis Perkara
+  if (content.includes("Analisis Perkara:") || content.includes("Hasil Analisis Penelitian Kasus")) {
+    // Split konten berdasarkan heading yang bisa diidentifikasi
+    const sections = content.split(/\n(?=(?:[A-Z][a-z]+ )+[A-Z][a-z]+:)|(?=.*Hasil Analisis Penelitian Kasus)/g);
+    
+    let title = "Hasil Analisis Penelitian Kasus";
+    
+    // Jika bagian pertama adalah judul (Hasil Analisis)
+    if (sections[0].trim().startsWith("Hasil Analisis")) {
+      title = sections[0].trim();
+      sections.shift(); // Hapus judul dari sections
+    }
+    
+    // Tambahkan judul utama
+    result.push(<Text key="main-title" style={styles.title}>{title}</Text>);
+    
+    // Proses setiap bagian
+    sections.forEach((section, index) => {
+      const lines = section.trim().split("\n");
+      
+      // Cek apakah line pertama adalah heading (seperti "Analisis Perkara:", "Ringkasan Eksekutif:", dll)
+      if (lines[0].match(/^[A-Z][\w\s]+:/) || lines[0].includes("Analisis Perkara:")) {
+        const heading = lines[0].trim();
+        result.push(
+          <Text key={`section-heading-${index}`} style={styles.heading2}>{heading}</Text>
+        );
+        
+        // Gabungkan sisa teks sebagai paragraf
+        const paragraphText = lines.slice(1).join("\n").trim();
+        if (paragraphText) {
+          // Split menjadi paragraf individual berdasarkan blank lines
+          const paragraphs = paragraphText.split(/\n\s*\n/);
+          paragraphs.forEach((para, paraIndex) => {
+            if (para.trim()) {
+              result.push(
+                <Text key={`para-${index}-${paraIndex}`} style={{...styles.paragraph, marginBottom: 8}}>
+                  {para.trim()}
+                </Text>
+              );
+            }
+          });
+        }
+        
+        // Tambahkan divider setelah setiap bagian kecuali yang terakhir
+        if (index < sections.length - 1) {
+          result.push(
+            <View key={`divider-${index}`} style={styles.sectionDivider} />
+          );
+        }
+      } else {
+        // Jika tidak ada heading, perlakukan seluruh bagian sebagai satu paragraf
+        if (section.trim()) {
+          result.push(
+            <Text key={`plain-para-${index}`} style={styles.paragraph}>
+              {section.trim()}
+            </Text>
+          );
+        }
+      }
+    });
+    
+    // Cache dan return hasilnya
+    processContentCache.set(content, result);
+    return result;
+  }
+  
   try {
     // Coba parse sebagai JSON jika memungkinkan
     const parsedJson = JSON.parse(content);
     
-    if (parsedJson && typeof parsedJson === 'object') {
+    if (parsedJson && typeof parsedJson === 'object' && parsedJson.ringkasan_kasus) {
       // Render struktur JSON sesuai formatnya
       result = [
         ...(parsedJson.ringkasan_kasus ? [
@@ -387,8 +528,74 @@ const processContent = (content: string) => {
     // Bukan JSON, lanjutkan dengan konversi markdown
   }
   
-  // Konversi markdown ke HTML - minimize calls
-  const html = marked(content);
+  // Handle analisis medis
+  if (content.startsWith('Tentu, berikut adalah analisis gambar medis')) {
+    const processedContent = content
+      .replace(/\r\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .replace(/^(#{1,6} .+)/gm, '$1\n')
+      .replace(/^(\d+\.\s+.+)\n(?=\d+\.)/gm, '$1\n\n')
+      .replace(/^(\*{3} \d+\. .+ \*{3})/gm, '$1\n')
+      .replace(/^([^-*].+)\n(?=\*{3} \d+\.)/gm, '$1\n\n')
+      .replace(/(\*\*[^:]+:\*\*)(?!\s)/g, '$1 ')
+      .replace(/^(\s{4}\*)/gm, '    *')
+      .replace(/(\d+\.)\s+/g, '$1 ')
+      .replace(/(\n)(?=[^\n])/g, '$1')
+      .trim();
+      
+    const html = marked(processedContent);
+    const sanitizedHtml = DOMPurify.sanitize(html);
+    result = convertHtmlToReactPdf(sanitizedHtml);
+    processContentCache.set(content, result);
+    return result;
+  }
+  
+  // Handle transkrip
+  if (content.includes('[Pembicara')) {
+    const parts = content.split(/\n(?=Metadata)/);
+    const transcript = parts[0];
+    const rest = parts.slice(1);
+    
+    const formattedTranscript = transcript
+      .split(/(\[Pembicara \d+\]:)/)
+      .map((part, index) => {
+        if (part.match(/^\[Pembicara \d+\]:$/)) {
+          return index > 0 ? `\n${part} ` : `${part} `;
+        }
+        return part;
+      })
+      .join('')
+      .trim()
+      .replace(/\n{2,}/g, '\n');
+    
+    const metadata = rest.length > 0 
+      ? '\n\n## Metadata\n\n' + rest[0]
+          .replace(/^\s*Metadata\s*\n*/i, '')
+          .replace(/\[([^\]]+)\]/g, '**$1**')
+          .trim()
+      : '';
+
+    const processedContent = `# Hasil Transkripsi\n\n${formattedTranscript}${metadata}`;
+    const html = marked(processedContent);
+    const sanitizedHtml = DOMPurify.sanitize(html);
+    result = convertHtmlToReactPdf(sanitizedHtml);
+    processContentCache.set(content, result);
+    return result;
+  }
+  
+  // Standarisasi format teks untuk kasus umum
+  const processedContent = content
+    .replace(/\r\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/^(\d+\.)\s*/gm, '$1 ')
+    .replace(/(\n\d+\.)(?!\n\d)/g, '\n\n$1')
+    .replace(/(\n\d+\.[^\n]+)(?!\n\d+\.)/g, '$1\n')
+    .replace(/^(\d+\.[^\n]+)\n([^\d\n][^\n]+)/gm, '$1\n\n$2')
+    .replace(/^([^\d\n][^\n]+)\n(\d+\.)/gm, '$1\n\n$2')
+    .trim();
+  
+  // Konversi markdown ke HTML
+  const html = marked(processedContent);
   const sanitizedHtml = DOMPurify.sanitize(html);
   
   // Konversi HTML ke komponen React-PDF
@@ -407,16 +614,39 @@ interface ResultPDFProps {
 
 // Komponen PDF utama dengan optimasi
 const ResultPDFContent: React.FC<ResultPDFProps> = React.memo(({ content, title, citations }) => {
+  // Dapatkan tanggal dan waktu saat ini untuk header
+  const currentDate = new Date();
+  const formattedDate = new Intl.DateTimeFormat('id-ID', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(currentDate);
+  
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <View style={styles.section}>
+        {/* Header dokumen dengan tanggal/waktu */}
+        <View style={{ 
+          position: 'absolute', 
+          top: 10, 
+          right: 20, 
+          fontSize: 8, 
+          color: '#777777',
+          textAlign: 'right'
+        }}>
+          <Text>Dibuat pada: {formattedDate}</Text>
+        </View>
+        
+        <View style={{...styles.section, paddingHorizontal: 10, paddingVertical: 15}}>
           {title && <Text style={styles.title}>{title}</Text>}
           
           {processContent(content)}
           
           {citations && citations.length > 0 && (
             <>
+              <View style={{ marginTop: 20 }} />
               <Text style={styles.citationsTitle}>Sumber Dokumen</Text>
               {citations.map((citation, index) => (
                 <Text key={index} style={styles.citationItem}>
@@ -429,16 +659,24 @@ const ResultPDFContent: React.FC<ResultPDFProps> = React.memo(({ content, title,
           {/* Logo watermark */}
           <Image src="/1.png" style={styles.watermark} />
           
-          {/* Footer dengan nomor halaman - gunakan View dengan margin daripada <br> tags */}
-          <View style={{ marginTop: 20 }} />
-          <Text
-            style={styles.footer}
-            render={({ pageNumber, totalPages }) => (
-              `Halaman ${pageNumber} dari ${totalPages} | Penyidik Toolkit`
-            )}
-            fixed
-          />
+          {/* Area kosong untuk footer - pastikan tidak tertimpa konten */}
+          <View style={{ marginTop: 40 }} />
         </View>
+        
+        {/* Footer dengan nomor halaman dan info lembaga */}
+        <Text
+          style={{
+            ...styles.footer,
+            paddingBottom: 10,
+            borderTopWidth: 0.5,
+            borderTopColor: '#DDDDDD',
+            paddingTop: 7,
+          }}
+          render={({ pageNumber, totalPages }) => (
+            `Halaman ${pageNumber} dari ${totalPages} | Penyidik Toolkit`
+          )}
+          fixed
+        />
       </Page>
     </Document>
   );
