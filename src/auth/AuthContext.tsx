@@ -8,9 +8,14 @@ import {
   updateProfile,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+  setPersistence,
+  browserLocalPersistence,
   sendPasswordResetEmail
 } from 'firebase/auth';
 import { auth } from '../firebase';
+import { isIOS, isSafari } from '../utils/browserDetect';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -34,6 +39,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function signUp(email: string, password: string, displayName?: string) {
     try {
+      // Pastikan persistence diatur dengan baik
+      await setPersistence(auth, browserLocalPersistence);
+      
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
       // Update profile jika displayName disediakan
@@ -51,6 +59,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function logIn(email: string, password: string) {
     try {
+      // Pastikan persistence diatur dengan baik
+      await setPersistence(auth, browserLocalPersistence);
+      
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log("User berhasil login:", userCredential.user);
       return userCredential.user;
@@ -62,11 +73,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function signInWithGoogle() {
     try {
+      // Pastikan persistence diatur dengan baik
+      await setPersistence(auth, browserLocalPersistence);
+      
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
-      const result = await signInWithPopup(auth, provider);
-      console.log("User berhasil login dengan Google:", result.user);
-      return result.user;
+      
+      // Gunakan redirect untuk Safari/iOS dan popup untuk browser lainnya
+      if (isIOS() || isSafari()) {
+        console.log("Menggunakan signInWithRedirect untuk Safari/iOS");
+        await signInWithRedirect(auth, provider);
+        return null;
+      } else {
+        const result = await signInWithPopup(auth, provider);
+        console.log("User berhasil login dengan Google (popup):", result.user);
+        return result.user;
+      }
     } catch (error: any) {
       console.error("Error saat login dengan Google:", error);
       throw error;
@@ -94,6 +116,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
+    // Atur persistence saat inisialisasi
+    setPersistence(auth, browserLocalPersistence)
+      .catch(error => {
+        console.error("Error saat mengatur persistence:", error);
+      });
+    
+    // Cek hasil redirect jika ada
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result && result.user) {
+          console.log("User berhasil login dengan Google (redirect):", result.user);
+          setCurrentUser(result.user);
+        }
+      })
+      .catch((error) => {
+        console.error("Error saat mendapatkan hasil redirect:", error);
+      });
+    
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
       setLoading(false);

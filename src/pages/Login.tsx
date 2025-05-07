@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { trackAuth, ANALYTICS_EVENTS } from '../services/analytics';
+import { isIOS, isSafari } from '../utils/browserDetect';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -9,8 +10,25 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const navigate = useNavigate();
   const { logIn, signInWithGoogle } = useAuth();
+
+  // Cek jika pengguna baru kembali dari redirect Google
+  useEffect(() => {
+    // Parameter URL yang menunjukkan error dari redirect
+    const urlParams = new URLSearchParams(window.location.search);
+    const authError = urlParams.get('error');
+    
+    if (authError) {
+      setError('Gagal login dengan Google. Silakan coba lagi atau gunakan login manual.');
+    }
+    
+    // Handle proses login setelah redirect (jika ada)
+    if (urlParams.has('googleRedirect')) {
+      setIsRedirecting(false);
+    }
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -38,6 +56,8 @@ export default function Login() {
           ? 'Email atau password salah'
           : error.code === 'auth/too-many-requests'
           ? 'Terlalu banyak percobaan gagal. Silakan coba lagi nanti'
+          : error.code === 'auth/network-request-failed'
+          ? 'Kesalahan jaringan. Periksa koneksi internet Anda'
           : 'Gagal masuk. Silakan coba lagi'
       );
     } finally {
@@ -49,14 +69,25 @@ export default function Login() {
     try {
       setError('');
       setGoogleLoading(true);
+      
+      // Jika pada Safari/iOS, tampilkan indikator redirect
+      if (isIOS() || isSafari()) {
+        setIsRedirecting(true);
+      }
+      
       await signInWithGoogle();
       
       // Track successful Google login
       trackAuth(ANALYTICS_EVENTS.LOGIN, 'google');
       
-      navigate('/');
+      // Untuk browser non-Safari, redirect langsung
+      if (!(isIOS() || isSafari())) {
+        navigate('/');
+      }
     } catch (error: any) {
       console.error('Google sign-in error:', error);
+      
+      setIsRedirecting(false);
       
       // Track Google login error
       trackAuth(ANALYTICS_EVENTS.LOGIN, 'google', { 
@@ -69,11 +100,31 @@ export default function Login() {
           ? 'Login dibatalkan'
           : error.code === 'auth/cancelled-popup-request'
           ? 'Permintaan popup dibatalkan'
+          : error.code === 'auth/network-request-failed'
+          ? 'Kesalahan jaringan. Periksa koneksi internet Anda'
+          : error.code === 'auth/popup-blocked'
+          ? 'Browser memblokir popup. Silakan izinkan popup atau gunakan login email'
           : 'Gagal masuk dengan Google. Silakan coba lagi'
       );
     } finally {
-      setGoogleLoading(false);
+      if (!(isIOS() || isSafari())) {
+        setGoogleLoading(false);
+      }
     }
+  }
+
+  // Content untuk status "sedang dialihkan" pada Safari/iOS
+  if (isRedirecting) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-100 dark:from-gray-800 dark:via-gray-900 dark:to-black py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-6 bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Mengalihkan ke Google</h2>
+          <p className="text-gray-600 dark:text-gray-300">Harap tunggu, Anda sedang dialihkan ke halaman login Google...</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">Jika Anda tidak dialihkan dalam beberapa detik, <button onClick={() => setIsRedirecting(false)} className="text-blue-500 hover:underline">klik disini</button> untuk kembali.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -198,6 +249,15 @@ export default function Login() {
             Login diperlukan untuk mencegah akses tidak sah dan membatasi beban pada server kami, bukan untuk mengumpulkan data pribadi Anda.
           </p>
         </div>
+        
+        {/* Browser compatibility warning for Safari/iOS */}
+        {(isIOS() || isSafari()) && (
+          <div className="mt-2 bg-yellow-50 dark:bg-yellow-900 p-3 rounded-md">
+            <p className="text-center text-xs text-yellow-700 dark:text-yellow-300">
+              Jika Anda mengalami masalah login di browser Safari, coba gunakan Chrome atau browser lain.
+            </p>
+          </div>
+        )}
         
         <div className="mt-4 text-center">
           <p className="text-sm text-gray-600 dark:text-gray-400">
