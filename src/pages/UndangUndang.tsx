@@ -178,40 +178,43 @@ export default function UndangUndang() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-12">
       {selectedAgentId ? (
         renderContent()
       ) : (
         <>
-          <div className="flex items-center mb-6">
-            <h1 className="text-2xl font-bold">Undang-Undang AI</h1>
+          <div className="mb-12 text-center">
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Undang-Undang AI</h1>
+            <p className="mt-2 text-lg text-gray-600 dark:text-gray-400">
+              Pilih Asisten AI untuk membantu Anda memahami berbagai peraturan perundang-undangan.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {agents.map((agent) => (
               <div
                 key={agent.id}
                 onClick={() => setSelectedAgentId(agent.id)}
-                className="cursor-pointer"
+                className="cursor-pointer rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 ease-in-out overflow-hidden"
               >
                 <AgentCard
                   agent={agent as any}
                   bgColor={
                     agent.type === 'kuhp_chat'
-                      ? "bg-gradient-to-br from-rose-50 to-orange-50 hover:from-rose-100 hover:to-orange-100"
+                      ? "bg-gradient-to-br from-rose-50 to-orange-50"
                       : agent.type === 'kuhap_chat'
-                      ? "bg-gradient-to-br from-amber-50 to-yellow-50 hover:from-amber-100 hover:to-yellow-100"
+                      ? "bg-gradient-to-br from-amber-50 to-yellow-50"
                       : agent.type === 'undang_chat'
-                      ? "bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100"
+                      ? "bg-gradient-to-br from-blue-50 to-indigo-50"
                       : agent.type === 'ite_chat'
-                      ? "bg-gradient-to-br from-cyan-50 to-sky-50 hover:from-cyan-100 hover:to-sky-100"
+                      ? "bg-gradient-to-br from-cyan-50 to-sky-50"
                       : agent.type === 'ciptakerja_chat'
-                      ? "bg-gradient-to-br from-slate-50 to-gray-50 hover:from-slate-100 hover:to-gray-100"
+                      ? "bg-gradient-to-br from-slate-50 to-gray-50"
                       : agent.type === 'kesehatan_chat'
-                      ? "bg-gradient-to-br from-emerald-50 to-green-50 hover:from-emerald-100 hover:to-green-100"
+                      ? "bg-gradient-to-br from-emerald-50 to-green-50"
                       : agent.type === 'perbankan_chat'
-                      ? "bg-gradient-to-br from-indigo-50 to-purple-50 hover:from-indigo-100 hover:to-purple-100"
-                      : "bg-gradient-to-br from-gray-50 to-slate-50 hover:from-gray-100 hover:to-slate-100"
+                      ? "bg-gradient-to-br from-indigo-50 to-purple-50"
+                      : "bg-gradient-to-br from-gray-50 to-slate-50"
                   }
                 />
               </div>

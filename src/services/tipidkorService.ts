@@ -6,6 +6,7 @@
 
 import { env } from '@/config/env';
 import { v4 as uuidv4 } from 'uuid';
+import { getAuth } from 'firebase/auth';
 
 const API_KEY = import.meta.env.VITE_API_KEY;
 const MAX_RETRIES = 3;
@@ -16,7 +17,75 @@ const API_BASE_URL = env.apiUrl || 'http://localhost:8000';
 // Store session ID
 let currentSessionId: string | null = null;
 
+// Rate limit info
+let rateLimitRemaining: number | null = null;
+let rateLimitReset: number | null = null;
+
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+/**
+ * Mendapatkan Firebase auth token jika user sudah login
+ */
+const getFirebaseToken = async (): Promise<string | null> => {
+  try {
+    const auth = getAuth();
+    const user = auth.currentUser;
+    
+    if (!user) {
+      console.log('TIPIDKOR: No authenticated user found');
+      return null;
+    }
+    
+    const token = await user.getIdToken();
+    return token;
+  } catch (error) {
+    console.error('TIPIDKOR: Error getting Firebase token:', error);
+    return null;
+  }
+};
+
+/**
+ * Mendapatkan pesan rate limit yang informatif
+ */
+const getRateLimitMessage = (): string => {
+  if (rateLimitRemaining === 0 && rateLimitReset) {
+    // Konversi waktu reset ke dalam format yang mudah dibaca
+    const resetDate = new Date(rateLimitReset * 1000);
+    const now = new Date();
+    const diffSeconds = Math.floor((resetDate.getTime() - now.getTime()) / 1000);
+    
+    if (diffSeconds <= 0) {
+      return 'Batas permintaan tercapai. Silakan coba lagi.';
+    }
+    
+    if (diffSeconds < 60) {
+      return `Batas permintaan tercapai. Silakan coba lagi dalam ${diffSeconds} detik.`;
+    }
+    
+    const minutes = Math.floor(diffSeconds / 60);
+    return `Batas permintaan tercapai. Silakan coba lagi dalam ${minutes} menit.`;
+  }
+  
+  return 'Terlalu banyak permintaan. Silakan tunggu beberapa saat sebelum mencoba lagi.';
+};
+
+/**
+ * Ekstrak informasi rate limit dari header respons
+ */
+const extractRateLimitInfo = (response: Response): void => {
+  const remaining = response.headers.get('X-RateLimit-Remaining');
+  const reset = response.headers.get('X-RateLimit-Reset');
+  
+  if (remaining) {
+    rateLimitRemaining = parseInt(remaining, 10);
+    console.log('TIPIDKOR: Rate limit remaining:', rateLimitRemaining);
+  }
+  
+  if (reset) {
+    rateLimitReset = parseInt(reset, 10);
+    console.log('TIPIDKOR: Rate limit reset timestamp:', rateLimitReset);
+  }
+};
 
 const parseResponse = async (response: Response) => {
   const text = await response.text();
@@ -109,6 +178,13 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
       if (API_KEY) {
         headers['X-API-Key'] = API_KEY;
       }
+      
+      // Tambahkan Firebase auth token jika tersedia
+      const firebaseToken = await getFirebaseToken();
+      if (firebaseToken) {
+        headers['Authorization'] = `Bearer ${firebaseToken}`;
+        console.log('TIPIDKOR: Firebase token added to request');
+      }
 
       const requestOptions: RequestInit = {
         method: 'POST',
@@ -134,6 +210,9 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
       
       clearTimeout(timeoutId);
 
+      // Ekstrak informasi rate limit
+      extractRateLimitInfo(response);
+
       if (abortController.signal.aborted) {
         throw new Error('Request timed out after 10 minutes');
       }
@@ -143,7 +222,8 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
         console.error('Error response:', errorText);
         
         if (response.status === 429) {
-          throw new Error('Terlalu banyak permintaan. Silakan tunggu beberapa saat sebelum mencoba lagi.');
+          // Gunakan pesan rate limit yang lebih informatif
+          throw new Error(getRateLimitMessage());
         }
         
         if (response.status >= 500 && retries < MAX_RETRIES) {

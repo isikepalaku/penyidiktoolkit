@@ -23,8 +23,8 @@ const TimelineDemo = lazy(() => {
 
 // Memoize the static content
 const AboutSection = memo(() => (
-  <div className="bg-white dark:bg-gray-800 rounded-lg p-6 mb-8 shadow-md">
-    <h2 className="text-xl font-semibold mb-3 text-gray-800 dark:text-gray-200">
+  <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg flex-1">
+    <h2 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
       Tentang Reserse AI
     </h2>
     <p className="text-gray-600 dark:text-gray-300 mb-4">
@@ -46,29 +46,39 @@ const AboutSection = memo(() => (
 
 export default function Home() {
   return (
-    <DotBackground className="min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+    <DotBackground className="min-h-screen py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header with subtitle */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="h-8 w-1 bg-blue-500 rounded-full"></div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">RESERSE AI</h1>
+        <div className="mb-10 text-center">
+          <div className="inline-flex items-center gap-3 mb-2">
+            {/* Optional: Larger decorative element if desired, or remove for cleaner look */}
+            {/* <div className="h-10 w-1.5 bg-blue-600 rounded-full"></div> */}
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white">RESERSE AI</h1>
           </div>
-          <div className="flex items-center gap-2 ml-11">
-            <p className="text-base text-gray-600 dark:text-gray-300">
+          <div className="flex items-center justify-center gap-2">
+            <p className="text-lg text-gray-600 dark:text-gray-400">
               Timeline Tools Reserse AI
             </p>
-            <CheckCircle2 className="w-4 h-4 text-green-500" />
+            <CheckCircle2 className="w-5 h-5 text-green-500" />
           </div>
         </div>
 
-        <AboutSection />
+        {/* Main content area with cards */}
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* About Section Card */}
+          <div className="lg:w-1/3">
+            <AboutSection />
+          </div>
 
-        {/* Timeline content */}
-        <div className="mt-4">
-          <Suspense fallback={<LoadingPlaceholder />}>
-            <TimelineDemo />
-          </Suspense>
+          {/* Timeline content Card */}
+          <div className="lg:w-2/3 bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+            <h2 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
+              Timeline Pengembangan Reserse AI
+            </h2>
+            <Suspense fallback={<LoadingPlaceholder />}>
+              <TimelineDemo />
+            </Suspense>
+          </div>
         </div>
       </div>
     </DotBackground>
