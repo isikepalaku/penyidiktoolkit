@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
-// Define environment schema with most fields optional
+// Define environment schema dengan apiKey wajib dari env
 const envSchema = z.object({
   // API settings (untuk api.reserse.id)
-  apiKey: z.string().default('ag-wUJyLXzHxWyNMnzRXlPJjRNs4n18NZIbRrGpgxvYGSY'),
+  apiKey: z.string(), // tanpa default, wajib dari .env
   apiUrl: z.string().default('https://api.reserse.id'),
 
   // Perkaba API settings (untuk flow.reserse.id)
@@ -47,9 +47,9 @@ if (!parsed.success) {
   console.log('✅ Environment variables loaded successfully');
 }
 
-// Export the environment with default values yang sesuai dengan .env
+// Export the environment tanpa fallback apiKey agar tidak bocor
 export const env = parsed.success ? parsed.data : envSchema.parse({
-  apiKey: 'ag-wUJyLXzHxWyNMnzRXlPJjRNs4n18NZIbRrGpgxvYGSY',
+  // apiKey: ... // JANGAN ADA
   apiUrl: 'https://api.reserse.id',
   perkabaApiUrl: 'https://flow.reserse.id',
   perkabaApiKey: 'kzeL0g3LzjRzG9a0-jgbay441zTkAaGgC1mu0jVs330',
