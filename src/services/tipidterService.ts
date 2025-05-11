@@ -222,6 +222,7 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
 
       const headers: HeadersInit = {
         'Accept': 'application/json',
+        'X-User-ID': userId,
       };
       
       if (API_KEY) {

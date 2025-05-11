@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, Copy, Check, Loader2, Info, X, RefreshCw, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Send, Copy, Check, Loader2, Info, X, RefreshCw, ChevronDown, AlertCircle, Clock } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { Button } from './button';
 import { Textarea } from './textarea';
@@ -34,6 +34,7 @@ interface Message {
   }>;
   error?: boolean;
   isAnimating?: boolean;
+  isRateLimit?: boolean;
 }
 
 // Skeleton component for loading state - improved with more realistic structure
@@ -400,20 +401,24 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
         setIsConnectionError(true);
       }
       
+      // Check if it's a rate limit error
+      const isRateLimitError = error instanceof Error && 
+        (error.message.includes('Terlalu banyak permintaan') || 
+         error.message.includes('429'));
+      
       // Replace the placeholder with an error message
       setMessages((prev) => {
         const newMessages = [...prev];
         // Remove the last message (placeholder)
         newMessages.pop();
         
-        // Add error message
+        // Add error message with enhanced styling
         newMessages.push({
-          content: isNetworkError 
-            ? 'Permintaan Terlalu banyak, coba lagi dalam 2 menit. (dengan bertumbuhnya pengguna, saat ini kami membatasi permintaan untuk menjaga kualitas layanan)' 
-            : 'Dengan bertumbuhnya pengguna, saat ini kami membatasi permintaan (1 permintaan dalam 2 menit) untuk menjaga kualitas layanan',
+          content: 'rate_limit_error', // Special marker for rate limit errors
           type: 'bot',
           timestamp: new Date(),
           error: true,
+          isRateLimit: isRateLimitError || (!isNetworkError), // Assume rate limit unless clearly network error
         });
         
         return newMessages;
@@ -601,7 +606,7 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
                       message.type === "user"
                         ? "bg-gray-100 text-gray-900 rounded-tr-none"
                         : message.error
-                        ? "bg-red-50 text-gray-800 rounded-tl-none border border-red-200"
+                        ? "bg-amber-50 text-gray-800 rounded-tl-none border border-amber-200"
                         : message.isAnimating
                         ? "bg-white text-gray-800 rounded-tl-none border border-gray-200 w-full"
                         : "bg-white text-gray-800 rounded-tl-none border border-gray-200"
@@ -609,26 +614,52 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
                   >
                     {message.type === "bot" && !message.isAnimating ? (
                       <>
-                        <div 
-                          className="prose prose-sm max-w-none md:prose-base lg:prose-lg overflow-x-auto
-                                    prose-headings:font-bold prose-headings:text-orange-800 prose-headings:my-4
-                                    prose-h1:text-xl prose-h2:text-lg prose-h3:text-base
-                                    prose-p:my-2 prose-p:text-gray-700
-                                    prose-ul:pl-6 prose-ul:my-2 prose-ol:pl-6 prose-ol:my-2
-                                    prose-li:my-1
-                                    prose-table:border-collapse prose-table:my-4
-                                    prose-th:bg-orange-50 prose-th:p-2 prose-th:border prose-th:border-gray-300
-                                    prose-td:p-2 prose-td:border prose-td:border-gray-300
-                                    prose-strong:font-bold prose-strong:text-gray-800
-                                    prose-a:text-orange-600 prose-a:underline hover:prose-a:text-orange-800"
-                          dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
-                        />
+                        {message.content === 'rate_limit_error' ? (
+                          // Tampilan khusus untuk error rate limit
+                          <div className="space-y-3">
+                            <div className="flex items-start gap-3">
+                              <AlertCircle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                              <div>
+                                <h3 className="font-medium text-amber-800">Batas Permintaan Tercapai</h3>
+                                <p className="text-amber-700 mt-1">
+                                  Dengan bertumbuhnya pengguna, kami membatasi permintaan untuk menjaga kualitas layanan.
+                                </p>
+                              </div>
+                            </div>
+                            
+                            <div className="bg-amber-100 rounded-lg p-3 flex items-center gap-2 text-amber-800">
+                              <Clock className="h-4 w-4 flex-shrink-0" />
+                              <span className="text-sm">Silakan coba lagi dalam 2 menit.</span>
+                            </div>
+                            
+                            <p className="text-sm text-gray-600 italic pt-1">
+                              Terima kasih atas pengertian Anda. Kami terus meningkatkan infrastruktur kami untuk melayani Anda lebih baik.
+                            </p>
+                          </div>
+                        ) : (
+                          <div 
+                            className="prose prose-sm max-w-none md:prose-base lg:prose-lg overflow-x-auto
+                                      prose-headings:font-bold prose-headings:text-orange-800 prose-headings:my-4
+                                      prose-h1:text-xl prose-h2:text-lg prose-h3:text-base
+                                      prose-p:my-2 prose-p:text-gray-700
+                                      prose-ul:pl-6 prose-ul:my-2 prose-ol:pl-6 prose-ol:my-2
+                                      prose-li:my-1
+                                      prose-table:border-collapse prose-table:my-4
+                                      prose-th:bg-orange-50 prose-th:p-2 prose-th:border prose-th:border-gray-300
+                                      prose-td:p-2 prose-td:border prose-td:border-gray-300
+                                      prose-strong:font-bold prose-strong:text-gray-800
+                                      prose-a:text-orange-600 prose-a:underline hover:prose-a:text-orange-800"
+                            dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
+                          />
+                        )}
                         <div className="flex justify-end mt-2">
                           <Button
                             variant="ghost"
                             size="sm"
                             className="h-7 px-3"
-                            onClick={() => handleCopy(message.content)}
+                            onClick={() => handleCopy(message.content === 'rate_limit_error' ? 
+                              "Batas permintaan tercapai. Silakan coba lagi dalam 2 menit." : 
+                              message.content)}
                           >
                             {copied === message.content ? (
                               <Check className="h-3.5 w-3.5 text-green-500" />

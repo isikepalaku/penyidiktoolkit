@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, Copy, Check, Loader2, Info, X } from 'lucide-react';
+import { ArrowLeft, Send, Copy, Check, Loader2, Info, X, AlertCircle, Clock } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { Button } from './button';
 import { Textarea } from './textarea';
@@ -25,6 +25,7 @@ interface Message {
   }>;
   error?: boolean;
   isAnimating?: boolean;
+  isRateLimit?: boolean;
 }
 
 // Skeleton component for loading state - using AnimatedBotIcon, text, and pulse
@@ -170,6 +171,11 @@ const BantekChatPage: React.FC<BantekChatPageProps> = ({ onBack }) => {
     } catch (error) {
       console.error('Error sending message:', error);
       
+      // Check if it's a rate limit error
+      const isRateLimitError = error instanceof Error && 
+        (error.message.includes('Terlalu banyak permintaan') || 
+         error.message.includes('429'));
+      
       // Replace the placeholder with an error message
       setMessages((prev) => {
         const newMessages = [...prev];
@@ -179,10 +185,11 @@ const BantekChatPage: React.FC<BantekChatPageProps> = ({ onBack }) => {
         
         if (placeholderIndex !== -1) {
           newMessages[placeholderIndex] = {
-            content: 'Dengan bertumbuhnya pengguna, saat ini kami membatasi permintaan (1 permintaan dalam 2 menit) untuk menjaga kualitas layanan',
+            content: 'rate_limit_error', // Special marker for rate limit errors
             type: 'bot',
             timestamp: new Date(),
             error: true,
+            isRateLimit: isRateLimitError,
           };
         }
         
@@ -375,7 +382,7 @@ const BantekChatPage: React.FC<BantekChatPageProps> = ({ onBack }) => {
                           message.type === 'user'
                             ? 'bg-gray-100 text-gray-900 rounded-tr-none shadow-sm' // Sesuaikan warna user
                             : message.error
-                            ? 'bg-red-50 text-red-800 rounded-tl-none border border-red-200'
+                            ? 'bg-amber-50 text-amber-800 rounded-tl-none border border-amber-200'
                             : message.isAnimating // Style khusus untuk skeleton
                             ? 'bg-white text-gray-800 rounded-tl-none border border-gray-200 w-full' 
                             : 'bg-white text-gray-800 rounded-tl-none border border-gray-200 shadow-sm'
@@ -384,6 +391,49 @@ const BantekChatPage: React.FC<BantekChatPageProps> = ({ onBack }) => {
                         {/* Tampilkan SkeletonMessage jika sedang animasi */}
                         {message.isAnimating ? (
                           <SkeletonMessage />
+                        ) : message.content === 'rate_limit_error' ? (
+                          <div className="space-y-3">
+                            <div className="flex items-start gap-3">
+                              <AlertCircle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                              <div>
+                                <h3 className="font-medium text-amber-800">Batas Permintaan Tercapai</h3>
+                                <p className="text-amber-700 mt-1">
+                                  Dengan bertumbuhnya pengguna, kami membatasi permintaan untuk menjaga kualitas layanan.
+                                </p>
+                              </div>
+                            </div>
+                            
+                            <div className="bg-amber-100 rounded-lg p-3 flex items-center gap-2 text-amber-800">
+                              <Clock className="h-4 w-4 flex-shrink-0" />
+                              <span className="text-sm">Silakan coba lagi dalam 2 menit.</span>
+                            </div>
+                            
+                            <p className="text-sm text-gray-600 italic pt-1">
+                              Terima kasih atas pengertian Anda. Kami terus meningkatkan infrastruktur kami untuk melayani Anda lebih baik.
+                            </p>
+                            
+                            {message.type === 'bot' && !message.isAnimating && (
+                              <button
+                                onClick={() => copyToClipboard(
+                                  "Batas permintaan tercapai. Silakan coba lagi dalam 2 menit."
+                                )}
+                                className="mt-1 text-xs text-gray-500 hover:text-gray-700 flex items-center"
+                                aria-label="Salin pesan"
+                              >
+                                {copied === message.content ? (
+                                  <>
+                                    <Check className="w-3 h-3 mr-1" />
+                                    Disalin
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3 h-3 mr-1" />
+                                    Salin
+                                  </>
+                                )}
+                              </button>
+                            )}
+                          </div>
                         ) : (
                           <div>
                             <div

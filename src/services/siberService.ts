@@ -203,6 +203,7 @@ export const sendChatMessage = async (message: string, files?: File[]): Promise<
 
       const headers: HeadersInit = {
         'Accept': 'application/json',
+        'X-User-ID': currentUserId as string,
       };
       
       if (API_KEY) {

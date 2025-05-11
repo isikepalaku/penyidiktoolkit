@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, Copy, Check, Loader2, Info, X, RefreshCw, Paperclip, File, X as XIcon } from 'lucide-react';
+import { ArrowLeft, Send, Copy, Check, Loader2, Info, X, RefreshCw, Paperclip, File, X as XIcon, AlertCircle, Clock } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { Button } from './button';
 import { Textarea } from './textarea';
@@ -34,6 +34,7 @@ interface Message {
   }>;
   error?: boolean;
   isAnimating?: boolean;
+  isRateLimit?: boolean;
 }
 
 interface SiberChatPageProps {
@@ -292,16 +293,16 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
       }
       
       // Jika error spesifik tentang rate limit
-      if (error.message.includes('Terlalu banyak permintaan')) {
-        return 'Terlalu banyak permintaan dalam waktu singkat. Silakan tunggu beberapa saat dan coba lagi.';
+      if (error.message.includes('Terlalu banyak permintaan') || error.message.includes('429')) {
+        return 'rate_limit_error';
       }
       
       // Jika ada pesan error spesifik lainnya, tampilkan
       return error.message;
     }
     
-    // Default error message
-    return 'Permintaan Terlalu banyak, coba lagi dalam 2 menit. (dengan bertumbuhnya pengguna, saat ini kami membatasi permintaan untuk menjaga kualitas layanan)';
+    // Default error message for rate limit
+    return 'rate_limit_error';
   };
 
   const handleSubmit = async () => {
@@ -398,6 +399,10 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
       // Reset progress display
       setShowProgress(false);
       
+      // Check if it's a rate limit error
+      const errorMsg = getErrorMessage(error);
+      const isRateLimitError = errorMsg === 'rate_limit_error';
+      
       // Replace the placeholder with an error message
       setMessages((prev) => {
         const newMessages = [...prev];
@@ -406,10 +411,11 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
         
         // Add error message with specific details
         newMessages.push({
-          content: getErrorMessage(error),
+          content: errorMsg,
           type: 'bot',
           timestamp: new Date(),
           error: true,
+          isRateLimit: isRateLimitError,
         });
         
         return newMessages;
@@ -668,7 +674,6 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
 
             {/* Chat Messages */}
             {messages.map((message, index) => (
-              // Hanya tampilkan message dengan content (kecuali animating placeholder)
               (message.content || message.isAnimating) && (
                 <div
                   key={index}
@@ -680,7 +685,7 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
                       message.type === "user"
                         ? "bg-gray-100 text-gray-900 rounded-tr-none"
                         : message.error
-                        ? "bg-red-50 text-gray-800 rounded-tl-none border border-red-200"
+                        ? "bg-amber-50 text-gray-800 rounded-tl-none border border-amber-200"
                         : message.isAnimating
                         ? "bg-white text-gray-800 rounded-tl-none border border-gray-200 w-full"
                         : "bg-white text-gray-800 rounded-tl-none border border-gray-200"
@@ -688,26 +693,52 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
                   >
                     {message.type === "bot" && !message.isAnimating ? (
                       <>
-                        <div 
-                          className="prose prose-sm max-w-none md:prose-base lg:prose-lg overflow-x-auto
-                                    prose-headings:font-bold prose-headings:text-blue-800 prose-headings:my-4
-                                    prose-h1:text-xl prose-h2:text-lg prose-h3:text-base
-                                    prose-p:my-2 prose-p:text-gray-700
-                                    prose-ul:pl-6 prose-ul:my-2 prose-ol:pl-6 prose-ol:my-2
-                                    prose-li:my-1
-                                    prose-table:border-collapse prose-table:my-4
-                                    prose-th:bg-blue-50 prose-th:p-2 prose-th:border prose-th:border-gray-300
-                                    prose-td:p-2 prose-td:border prose-td:border-gray-300
-                                    prose-strong:font-bold prose-strong:text-gray-800
-                                    prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-800"
-                          dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
-                        />
+                        {message.content === 'rate_limit_error' ? (
+                          // Tampilan khusus untuk error rate limit
+                          <div className="space-y-3">
+                            <div className="flex items-start gap-3">
+                              <AlertCircle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                              <div>
+                                <h3 className="font-medium text-amber-800">Batas Permintaan Tercapai</h3>
+                                <p className="text-amber-700 mt-1">
+                                  Dengan bertumbuhnya pengguna, kami membatasi permintaan untuk menjaga kualitas layanan.
+                                </p>
+                              </div>
+                            </div>
+                            
+                            <div className="bg-amber-100 rounded-lg p-3 flex items-center gap-2 text-amber-800">
+                              <Clock className="h-4 w-4 flex-shrink-0" />
+                              <span className="text-sm">Silakan coba lagi dalam 2 menit.</span>
+                            </div>
+                            
+                            <p className="text-sm text-gray-600 italic pt-1">
+                              Terima kasih atas pengertian Anda. Kami terus meningkatkan infrastruktur kami untuk melayani Anda lebih baik.
+                            </p>
+                          </div>
+                        ) : (
+                          <div 
+                            className="prose prose-sm max-w-none md:prose-base lg:prose-lg overflow-x-auto
+                                      prose-headings:font-bold prose-headings:text-blue-800 prose-headings:my-4
+                                      prose-h1:text-xl prose-h2:text-lg prose-h3:text-base
+                                      prose-p:my-2 prose-p:text-gray-700
+                                      prose-ul:pl-6 prose-ul:my-2 prose-ol:pl-6 prose-ol:my-2
+                                      prose-li:my-1
+                                      prose-table:border-collapse prose-table:my-4
+                                      prose-th:bg-blue-50 prose-th:p-2 prose-th:border prose-th:border-gray-300
+                                      prose-td:p-2 prose-td:border prose-td:border-gray-300
+                                      prose-strong:font-bold prose-strong:text-gray-800
+                                      prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-800"
+                            dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
+                          />
+                        )}
                         <div className="flex justify-end mt-2">
                           <Button
                             variant="ghost"
                             size="sm"
                             className="h-7 px-3"
-                            onClick={() => handleCopy(message.content)}
+                            onClick={() => handleCopy(message.content === 'rate_limit_error' ? 
+                              "Batas permintaan tercapai. Silakan coba lagi dalam 2 menit." : 
+                              message.content)}
                           >
                             {copied === message.content ? (
                               <Check className="h-3.5 w-3.5 text-green-500" />
