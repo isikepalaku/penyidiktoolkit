@@ -289,7 +289,7 @@ const WassidikChatPage: React.FC<WassidikChatPageProps> = ({ onBack }) => {
         
         if (placeholderIndex !== -1) {
           newMessages[placeholderIndex] = {
-            content: 'Maaf, terjadi kesalahan saat memproses pesan Anda. Silakan coba lagi.',
+            content: 'Dengan bertumbuhnya pengguna, saat ini kami membatasi permintaan (1 permintaan dalam 2 menit) untuk menjaga kualitas layanan',
             type: 'bot',
             timestamp: new Date(),
             error: true,

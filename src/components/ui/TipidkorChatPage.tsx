@@ -410,7 +410,7 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
         newMessages.push({
           content: isNetworkError 
             ? 'Permintaan Terlalu banyak, coba lagi dalam 2 menit. (dengan bertumbuhnya pengguna, saat ini kami membatasi permintaan untuk menjaga kualitas layanan)' 
-            : 'Maaf, terjadi kesalahan saat memproses pesan Anda. Silakan coba lagi.',
+            : 'Dengan bertumbuhnya pengguna, saat ini kami membatasi permintaan (1 permintaan dalam 2 menit) untuk menjaga kualitas layanan',
           type: 'bot',
           timestamp: new Date(),
           error: true,

@@ -262,7 +262,7 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
         return [
           ...newMessages,
           {
-            content: 'Maaf, terjadi kesalahan saat memproses pesan Anda. Silakan coba lagi.',
+            content: 'Dengan bertumbuhnya pengguna, saat ini kami membatasi permintaan (1 permintaan dalam 2 menit) untuk menjaga kualitas layanan',
             type: 'bot',
             timestamp: new Date(),
             error: true,
