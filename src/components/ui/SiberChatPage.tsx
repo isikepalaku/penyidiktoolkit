@@ -301,7 +301,7 @@ const SiberChatPage: React.FC<SiberChatPageProps> = ({ onBack }) => {
     }
     
     // Default error message
-    return 'Terjadi masalah koneksi. Silakan periksa koneksi internet Anda dan coba lagi.';
+    return 'Permintaan Terlalu banyak, coba lagi dalam 2 menit. (dengan bertumbuhnya pengguna, saat ini kami membatasi permintaan untuk menjaga kualitas layanan)';
   };
 
   const handleSubmit = async () => {

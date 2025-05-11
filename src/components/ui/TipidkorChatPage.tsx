@@ -409,7 +409,7 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
         // Add error message
         newMessages.push({
           content: isNetworkError 
-            ? 'Terjadi masalah koneksi. Silakan periksa koneksi internet Anda dan coba lagi.' 
+            ? 'Permintaan Terlalu banyak, coba lagi dalam 2 menit. (dengan bertumbuhnya pengguna, saat ini kami membatasi permintaan untuk menjaga kualitas layanan)' 
             : 'Maaf, terjadi kesalahan saat memproses pesan Anda. Silakan coba lagi.',
           type: 'bot',
           timestamp: new Date(),

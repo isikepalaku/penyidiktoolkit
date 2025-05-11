@@ -386,7 +386,7 @@ const ReskrimumChatPage: React.FC<ReskrimumChatPageProps> = ({ onBack }) => {
         }
         
         // Default error message
-        return 'Terjadi masalah koneksi. Silakan periksa koneksi internet Anda dan coba lagi.';
+        return 'Permintaan Terlalu banyak, coba lagi dalam 2 menit. (dengan bertumbuhnya pengguna, saat ini kami membatasi permintaan untuk menjaga kualitas layanan)';
       };
       
       // Replace the placeholder with an error message
