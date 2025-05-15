@@ -29,7 +29,8 @@ export const submitAgentAnalysis = async (
 
       const headers: HeadersInit = {
         'Accept': 'application/json',
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'X-Internal-Service-Request': 'true'
       };
       
       if (API_KEY) {

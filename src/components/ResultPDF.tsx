@@ -163,27 +163,18 @@ const styles = StyleSheet.create({
   },
 });
 
-// Perbaikan #1: Cache hasil regex untuk mengurangi beban komputasi
-const cleanHtmlCache = new Map<string, string>();
-const cleanHtml = (html: string) => {
-  if (cleanHtmlCache.has(html)) {
-    return cleanHtmlCache.get(html) as string;
-  }
-  
-  const result = html
-    .replace(/<.*?>/g, '')
+// Helper untuk membersihkan teks
+const cleanText = (text: string): string => {
+  return text
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .trim();
-  
-  cleanHtmlCache.set(html, result);
-  return result;
 };
 
-// Perbaikan #2: Optimasi Penanganan URL panjang
+// Format URL panjang
 const formatLongUrl = (url: string) => {
   if (url.length <= 50) return url;
   
@@ -196,223 +187,189 @@ const formatLongUrl = (url: string) => {
   );
 };
 
-// Helper function yang dioptimalkan untuk mengubah HTML ke komponen React-PDF
-const htmlMatchCache = new Map<string, {
-  h1: RegExpMatchArray | null;
-  h2: RegExpMatchArray | null;
-  h3: RegExpMatchArray | null;
-  paragraphs: RegExpMatchArray | null;
-  listItems: RegExpMatchArray | null;
-  tables: RegExpMatchArray | null;
-  codeBlocks: RegExpMatchArray | null;
-}>();
+// Fungsi untuk merender token inline dalam teks
+const renderInlineContent = (text: string): React.ReactNode => {
+  // Handle teks biasa
+  return <Text>{cleanText(text)}</Text>;
+};
 
-const convertHtmlToReactPdf = (html: string) => {
-  // Gunakan cache untuk menghindari operasi regex yang berulang
-  if (!htmlMatchCache.has(html)) {
-    // Ekstrak komponen HTML dengan regex yang dioptimalkan
-    htmlMatchCache.set(html, {
-      h1: html.match(/<h1[^>]*>(.*?)<\/h1>/gi),
-      h2: html.match(/<h2[^>]*>(.*?)<\/h2>/gi),
-      h3: html.match(/<h3[^>]*>(.*?)<\/h3>/gi),
-      paragraphs: html.match(/<p[^>]*>(.*?)<\/p>/gi),
-      listItems: html.match(/<li[^>]*>(.*?)<\/li>/gi),
-      tables: html.match(/<table[^>]*>(.*?)<\/table>/gi),
-      codeBlocks: html.match(/<pre[^>]*>(.*?)<\/pre>/gi)
-    });
-  }
-  
-  const matches = htmlMatchCache.get(html)!;
-  const { h1, h2, h3, paragraphs, listItems, tables, codeBlocks } = matches;
-  
-  // Jika tidak ada matches apapun, kembalikan teks polos
-  if ((!h1 || h1.length === 0) && 
-      (!h2 || h2.length === 0) && 
-      (!h3 || h3.length === 0) &&
-      (!paragraphs || paragraphs.length === 0) && 
-      (!listItems || listItems.length === 0) && 
-      (!tables || tables.length === 0) && 
-      (!codeBlocks || codeBlocks.length === 0)) {
-    // Fallback ke implementasi sederhana lebih efisien
-    const cleanText = html
-      .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/<\/?p>/gi, '\n')
-      .replace(/<\/?h[1-6]>/gi, '\n')
-      .replace(/<li>(.*?)<\/li>/gi, '• $1\n')
-      .replace(/<\/?[^>]+(>|$)/g, '')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .trim();
-
-    return cleanText.split('\n').filter(Boolean).map((line, i) => (
-      <Text key={i} style={styles.paragraph}>{line.trim()}</Text>
-    ));
-  }
-  
-  // Hasil konversi
+// Fungsi baru: Mengonversi token marked.js ke komponen React-PDF
+const renderTokensToPdf = (tokens: marked.Token[]): React.ReactNode[] => {
   const result: React.ReactNode[] = [];
   
-  // Proses headings, paragraf, dll secara efisien
-  if (h1 && h1.length > 0) {
-    h1.forEach((match, i) => {
-      const content = cleanHtml(match);
-      result.push(
-        <Text key={`h1-${i}`} style={styles.title}>{content}</Text>,
-        // Tambahkan sedikit spasi setelah heading
-        <View key={`h1-space-${i}`} style={{ marginBottom: 5 }} />
-      );
-    });
-  }
-  
-  if (h2 && h2.length > 0) {
-    h2.forEach((match, i) => {
-      const content = cleanHtml(match);
-      result.push(
-        <Text key={`h2-${i}`} style={styles.heading2}>{content}</Text>,
-        // Tambahkan sedikit spasi setelah heading
-        <View key={`h2-space-${i}`} style={{ marginBottom: 3 }} />
-      );
-    });
-  }
-  
-  if (h3 && h3.length > 0) {
-    h3.forEach((match, i) => {
-      const content = cleanHtml(match);
-      result.push(
-        <Text key={`h3-${i}`} style={styles.heading3}>{content}</Text>,
-        // Tambahkan sedikit spasi setelah heading
-        <View key={`h3-space-${i}`} style={{ marginBottom: 2 }} />
-      );
-    });
-  }
-  
-  // Proses paragraphs dengan spasi yang benar
-  if (paragraphs && paragraphs.length > 0) {
-    paragraphs.forEach((match, i) => {
-      const content = cleanHtml(match);
-      // Jangan tambahkan paragraf kosong
-      if (content.trim()) {
-        result.push(
-          <Text key={`p-${i}`} style={{...styles.paragraph, marginBottom: 8}}>{content}</Text>
-        );
-      }
-    });
-  }
-  
-  // Proses list dengan bullets yang benar
-  let inList = false;
-  let currentListItems: React.ReactNode[] = [];
-  
-  if (listItems && listItems.length > 0) {
-    listItems.forEach((match, i) => {
-      const content = cleanHtml(match);
-      
-      if (!inList) {
-        // Mulai list baru
-        inList = true;
-        currentListItems = [];
-      }
-      
-      currentListItems.push(
-        <View key={`list-item-${i}`} style={{ flexDirection: 'row', marginBottom: 3 }}>
-          <Text style={{ width: 10, marginRight: 5 }}>•</Text>
-          <Text style={{ flex: 1, ...styles.listItem }}>{content}</Text>
-        </View>
-      );
-      
-      // Jika ini item terakhir atau berikutnya bukan list item, tutup list
-      if (i === listItems.length - 1) {
-        result.push(
-          <View key={`list-${i}`} style={{ marginVertical: 5 }}>
-            {currentListItems}
-          </View>
-        );
-        inList = false;
-      }
-    });
-  }
-  
-  // Proses code blocks dengan styling yang benar
-  if (codeBlocks && codeBlocks.length > 0) {
-    codeBlocks.forEach((match, i) => {
-      const content = cleanHtml(match);
-      result.push(
-        <View key={`code-${i}`} style={{ backgroundColor: '#F5F5F5', padding: 5, marginVertical: 5, borderRadius: 3 }}>
-          <Text style={styles.codeBlock}>{content}</Text>
-        </View>
-      );
-    });
-  }
-  
-  // Proses tables dengan layout yang lebih baik
-  if (tables && tables.length > 0) {
-    tables.forEach((tableHtml, tableIndex) => {
-      // Ekstrak rows - Gunakan regex yang lebih efisien
-      const rowsMatch = tableHtml.match(/<tr[^>]*>(.*?)<\/tr>/gi);
-      
-      if (rowsMatch && rowsMatch.length > 0) {
-        const tableRows = rowsMatch.map((rowHtml, rowIndex) => {
-          // Ekstrak cells - Gunakan regex yang lebih efisien
-          const cellsMatch = rowHtml.match(/<t[hd][^>]*>(.*?)<\/t[hd]>/gi);
-          
-          if (!cellsMatch) return null;
-          
-          return (
-            <View key={`row-${rowIndex}`} style={{
-              ...styles.tableRow,
-              backgroundColor: rowIndex === 0 ? '#F5F5F5' : (rowIndex % 2 === 0 ? '#FAFAFA' : '#FFFFFF')
-            }}>
-              {cellsMatch.map((cellHtml, cellIndex) => {
-                const isTh = cellHtml.startsWith('<th');
-                const content = cleanHtml(cellHtml);
-                
-                return (
-                  <View 
-                    key={`cell-${cellIndex}`} 
-                    style={isTh ? styles.tableHeaderCell : styles.tableCell}
-                  >
-                    <Text style={isTh ? styles.tableHeaderText : styles.tableCellText}>
-                      {content}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
-          );
-        }).filter(Boolean);
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
+    
+    switch (token.type) {
+      case 'heading':
+        const headingToken = token as marked.Tokens.Heading;
+        const headingText = cleanText(headingToken.text);
+        
+        // Pilih style berdasarkan level heading
+        let headingStyle;
+        switch (headingToken.depth) {
+          case 1:
+            headingStyle = styles.title;
+            break;
+          case 2:
+            headingStyle = styles.heading2;
+            break;
+          case 3:
+            headingStyle = styles.heading3;
+            break;
+          default:
+            headingStyle = styles.heading3;
+        }
         
         result.push(
-          <View key={`table-${tableIndex}`} style={{...styles.table, marginVertical: 10, borderWidth: 1, borderColor: '#E5E7EB'}}>
-            {tableRows}
+          <Text key={`heading-${i}`} style={headingStyle}>{headingText}</Text>,
+          <View key={`heading-space-${i}`} style={{ marginBottom: headingToken.depth === 1 ? 5 : 3 }} />
+        );
+        break;
+        
+      case 'paragraph':
+        const paragraphToken = token as marked.Tokens.Paragraph;
+        const paragraphText = cleanText(paragraphToken.text);
+        
+        // Jangan tambahkan paragraf kosong
+        if (paragraphText.trim()) {
+          result.push(
+            <Text key={`para-${i}`} style={{...styles.paragraph, marginBottom: 8}}>
+              {paragraphText}
+            </Text>
+          );
+        }
+        break;
+        
+      case 'list':
+        const listToken = token as marked.Tokens.List;
+        const listItems = listToken.items.map((item, itemIndex) => {
+          const itemText = cleanText(item.text);
+          return (
+            <View key={`list-item-${i}-${itemIndex}`} style={{ flexDirection: 'row', marginBottom: 3 }}>
+              <Text style={{ width: 10, marginRight: 5 }}>•</Text>
+              <Text style={{ flex: 1, ...styles.listItem }}>{itemText}</Text>
+            </View>
+          );
+        });
+        
+        result.push(
+          <View key={`list-${i}`} style={{ marginVertical: 5 }}>
+            {listItems}
           </View>
         );
-      }
-    });
+        break;
+        
+      case 'code':
+        const codeToken = token as marked.Tokens.Code;
+        const codeText = codeToken.text;
+        
+        result.push(
+          <View key={`code-${i}`} style={{ backgroundColor: '#F5F5F5', padding: 5, marginVertical: 5, borderRadius: 3 }}>
+            <Text style={styles.codeBlock}>{codeText}</Text>
+          </View>
+        );
+        break;
+        
+      case 'table':
+        const tableToken = token as marked.Tokens.Table;
+        
+        // Buat baris header
+        const headerCells = tableToken.header.map((cell, cellIndex) => (
+          <View 
+            key={`header-cell-${cellIndex}`} 
+            style={styles.tableHeaderCell}
+          >
+            <Text style={styles.tableHeaderText}>
+              {typeof cell === 'string' ? cleanText(cell) : cleanText(String(cell))}
+            </Text>
+          </View>
+        ));
+        
+        const headerRow = (
+          <View key={`header-row`} style={{...styles.tableRow, backgroundColor: '#F5F5F5'}}>
+            {headerCells}
+          </View>
+        );
+        
+        // Buat baris data
+        const dataRows = tableToken.rows.map((row, rowIndex) => {
+          const cells = row.map((cell, cellIndex) => (
+            <View 
+              key={`cell-${rowIndex}-${cellIndex}`} 
+              style={styles.tableCell}
+            >
+              <Text style={styles.tableCellText}>
+                {typeof cell === 'string' ? cleanText(cell) : cleanText(String(cell))}
+              </Text>
+            </View>
+          ));
+          
+          return (
+            <View 
+              key={`row-${rowIndex}`} 
+              style={{...styles.tableRow, backgroundColor: rowIndex % 2 === 0 ? '#FAFAFA' : '#FFFFFF'}}
+            >
+              {cells}
+            </View>
+          );
+        });
+        
+        result.push(
+          <View key={`table-${i}`} style={{...styles.table, marginVertical: 10, borderWidth: 1, borderColor: '#E5E7EB'}}>
+            {headerRow}
+            {dataRows}
+          </View>
+        );
+        break;
+        
+      case 'hr':
+        result.push(
+          <View key={`hr-${i}`} style={styles.sectionDivider} />
+        );
+        break;
+        
+      case 'blockquote':
+        const blockquoteToken = token as marked.Tokens.Blockquote;
+        const blockquoteText = cleanText(blockquoteToken.text);
+        
+        result.push(
+          <View key={`blockquote-${i}`} style={{ marginVertical: 5, paddingLeft: 10, borderLeftWidth: 3, borderLeftColor: '#E5E7EB' }}>
+            <Text style={{...styles.paragraph, fontStyle: 'italic', color: '#4B5563'}}>{blockquoteText}</Text>
+          </View>
+        );
+        break;
+        
+      case 'space':
+        result.push(
+          <View key={`space-${i}`} style={{ marginVertical: 5 }} />
+        );
+        break;
+        
+      default:
+        // Untuk token yang tidak dikenali, coba ambil teks jika ada
+        if ('text' in token) {
+          const textContent = (token as any).text;
+          if (textContent && typeof textContent === 'string' && textContent.trim()) {
+            result.push(
+              <Text key={`unknown-${i}`} style={styles.paragraph}>{cleanText(textContent)}</Text>
+            );
+          }
+        }
+    }
   }
   
   return result;
 };
 
-// Optimasi: Gunakan memoization untuk fungsi processContent
-const processContentCache = new Map<string, React.ReactNode[]>();
-
 // Fungsi untuk memproses konten menjadi komponen React-PDF
-const processContent = (content: string) => {
-  // Gunakan cache jika sudah pernah memproses konten ini
-  if (processContentCache.has(content)) {
-    return processContentCache.get(content);
-  }
-  
-  let result: React.ReactNode[] = [];
-  
-  // Deteksi pola Analisis Perkara
+const processContent = (content: string): React.ReactNode[] => {
+  // Pemrosesan khusus untuk struktur analisis perkara
   if (content.includes("Analisis Perkara:") || content.includes("Hasil Analisis Penelitian Kasus")) {
-    // Split konten berdasarkan heading yang bisa diidentifikasi
+    // Biarkan pemrosesan khusus ini seperti sebelumnya
     const sections = content.split(/\n(?=(?:[A-Z][a-z]+ )+[A-Z][a-z]+:)|(?=.*Hasil Analisis Penelitian Kasus)/g);
     
+    const result: React.ReactNode[] = [];
     let title = "Hasil Analisis Penelitian Kasus";
     
     // Jika bagian pertama adalah judul (Hasil Analisis)
@@ -428,7 +385,7 @@ const processContent = (content: string) => {
     sections.forEach((section, index) => {
       const lines = section.trim().split("\n");
       
-      // Cek apakah line pertama adalah heading (seperti "Analisis Perkara:", "Ringkasan Eksekutif:", dll)
+      // Cek apakah line pertama adalah heading
       if (lines[0].match(/^[A-Z][\w\s]+:/) || lines[0].includes("Analisis Perkara:")) {
         const heading = lines[0].trim();
         result.push(
@@ -469,8 +426,6 @@ const processContent = (content: string) => {
       }
     });
     
-    // Cache dan return hasilnya
-    processContentCache.set(content, result);
     return result;
   }
   
@@ -480,7 +435,7 @@ const processContent = (content: string) => {
     
     if (parsedJson && typeof parsedJson === 'object' && parsedJson.ringkasan_kasus) {
       // Render struktur JSON sesuai formatnya
-      result = [
+      const result = [
         ...(parsedJson.ringkasan_kasus ? [
           <Text key="ringkasan-title" style={styles.heading2}>Ringkasan Kasus</Text>,
           <Text key="ringkasan-content" style={styles.paragraph}>{parsedJson.ringkasan_kasus}</Text>
@@ -520,8 +475,6 @@ const processContent = (content: string) => {
         ] : [])
       ];
       
-      // Simpan hasil ke cache sebelum mengembalikan
-      processContentCache.set(content, result);
       return result;
     }
   } catch (e) {
@@ -543,11 +496,11 @@ const processContent = (content: string) => {
       .replace(/(\n)(?=[^\n])/g, '$1')
       .trim();
       
-    const html = marked(processedContent);
-    const sanitizedHtml = DOMPurify.sanitize(html);
-    result = convertHtmlToReactPdf(sanitizedHtml);
-    processContentCache.set(content, result);
-    return result;
+    // Parse markdown menjadi tokens
+    const tokens = marked.lexer(processedContent);
+    
+    // Gunakan fungsi baru untuk merender tokens ke komponen React-PDF
+    return renderTokensToPdf(tokens);
   }
   
   // Handle transkrip
@@ -575,12 +528,14 @@ const processContent = (content: string) => {
           .trim()
       : '';
 
+    // Gabungkan konten transkripsi dengan format markdown
     const processedContent = `# Hasil Transkripsi\n\n${formattedTranscript}${metadata}`;
-    const html = marked(processedContent);
-    const sanitizedHtml = DOMPurify.sanitize(html);
-    result = convertHtmlToReactPdf(sanitizedHtml);
-    processContentCache.set(content, result);
-    return result;
+    
+    // Parse ke tokens
+    const tokens = marked.lexer(processedContent);
+    
+    // Render tokens ke komponen React-PDF
+    return renderTokensToPdf(tokens);
   }
   
   // Standarisasi format teks untuk kasus umum
@@ -594,16 +549,11 @@ const processContent = (content: string) => {
     .replace(/^([^\d\n][^\n]+)\n(\d+\.)/gm, '$1\n\n$2')
     .trim();
   
-  // Konversi markdown ke HTML
-  const html = marked(processedContent);
-  const sanitizedHtml = DOMPurify.sanitize(html);
+  // Parse markdown ke tokens dan pertahankan urutan struktur dokumen
+  const tokens = marked.lexer(processedContent);
   
-  // Konversi HTML ke komponen React-PDF
-  result = convertHtmlToReactPdf(sanitizedHtml);
-  
-  // Cache result
-  processContentCache.set(content, result);
-  return result;
+  // Render tokens ke komponen React-PDF
+  return renderTokensToPdf(tokens);
 };
 
 interface ResultPDFProps {
