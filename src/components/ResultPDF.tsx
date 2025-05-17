@@ -1,7 +1,7 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Font, Image, Link, PDFViewer, PDFDownloadLink } from '@react-pdf/renderer';
 import { Citation } from './ResultArtifact';
-import DOMPurify from 'dompurify';
+
 import { marked } from 'marked';
 import { Download } from 'lucide-react';
 
@@ -187,10 +187,111 @@ const formatLongUrl = (url: string) => {
   );
 };
 
-// Fungsi untuk merender token inline dalam teks
-const renderInlineContent = (text: string): React.ReactNode => {
-  // Handle teks biasa
-  return <Text>{cleanText(text)}</Text>;
+// Fungsi untuk memproses teks dengan format inline
+const processInlineFormatting = (text: string): React.ReactNode[] => {
+  // Pastikan text adalah string
+  if (!text || typeof text !== 'string') {
+    return [<Text key="empty"></Text>];
+  }
+
+    // Proses bold: **text**
+  
+  // Cari semua bold text
+  const segments: {text: string, isBold: boolean, isItalic: boolean}[] = [];
+  let remainingText = text;
+  
+  // Proses bold (**text**)
+  let boldMatches = [...remainingText.matchAll(/\*\*(.*?)\*\*/g)];
+  for (const match of boldMatches) {
+    if (match.index !== undefined) {
+      // Tambahkan teks sebelum bold
+      if (match.index > 0) {
+        segments.push({
+          text: remainingText.substring(0, match.index),
+          isBold: false,
+          isItalic: false
+        });
+      }
+      
+      // Tambahkan teks bold
+      segments.push({
+        text: match[1],
+        isBold: true,
+        isItalic: false
+      });
+      
+      // Update remaining text
+      remainingText = remainingText.substring(match.index + match[0].length);
+    }
+  }
+  
+  // Proses italic (*text*)
+  remainingText = segments.length > 0 ? remainingText : text;
+  if (remainingText) {
+    segments.push({
+      text: remainingText,
+      isBold: false,
+      isItalic: false
+    });
+  }
+  
+  // Proses semua segmen untuk italic
+  const finalSegments: {text: string, isBold: boolean, isItalic: boolean}[] = [];
+  for (const segment of segments) {
+    if (segment.isBold) {
+      finalSegments.push(segment);
+      continue;
+    }
+    
+    let italicRemainingText = segment.text;
+    let italicMatches = [...italicRemainingText.matchAll(/\*(.*?)\*/g)];
+    
+    if (italicMatches.length === 0) {
+      finalSegments.push(segment);
+      continue;
+    }
+    
+    let lastItalicIndex = 0;
+    for (const italicMatch of italicMatches) {
+      if (italicMatch.index !== undefined) {
+        // Tambahkan teks sebelum italic
+        if (italicMatch.index > lastItalicIndex) {
+          finalSegments.push({
+            text: italicRemainingText.substring(lastItalicIndex, italicMatch.index),
+            isBold: segment.isBold,
+            isItalic: false
+          });
+        }
+        
+        // Tambahkan teks italic
+        finalSegments.push({
+          text: italicMatch[1],
+          isBold: segment.isBold,
+          isItalic: true
+        });
+        
+        lastItalicIndex = italicMatch.index + italicMatch[0].length;
+      }
+    }
+    
+    // Tambahkan sisa teks
+    if (lastItalicIndex < italicRemainingText.length) {
+      finalSegments.push({
+        text: italicRemainingText.substring(lastItalicIndex),
+        isBold: segment.isBold,
+        isItalic: false
+      });
+    }
+  }
+  
+  // Render semua segmen
+  return finalSegments.map((segment, i) => {
+    const style: any = {};
+    if (segment.isBold) style.fontWeight = 700;
+    if (segment.isItalic) style.fontStyle = 'italic';
+    
+    return <Text key={`inline-${i}`} style={style}>{cleanText(segment.text)}</Text>;
+  });
 };
 
 // Fungsi baru: Mengonversi token marked.js ke komponen React-PDF
@@ -229,13 +330,11 @@ const renderTokensToPdf = (tokens: marked.Token[]): React.ReactNode[] => {
         
       case 'paragraph':
         const paragraphToken = token as marked.Tokens.Paragraph;
-        const paragraphText = cleanText(paragraphToken.text);
-        
-        // Jangan tambahkan paragraf kosong
-        if (paragraphText.trim()) {
+        // Untuk paragraf, gunakan processInlineFormatting untuk menangani format dalam paragraf
+        if (paragraphToken.text && paragraphToken.text.trim()) {
           result.push(
-            <Text key={`para-${i}`} style={{...styles.paragraph, marginBottom: 8}}>
-              {paragraphText}
+            <Text key={`para-${i}`} style={styles.paragraph}>
+              {processInlineFormatting(paragraphToken.text)}
             </Text>
           );
         }
@@ -244,11 +343,31 @@ const renderTokensToPdf = (tokens: marked.Token[]): React.ReactNode[] => {
       case 'list':
         const listToken = token as marked.Tokens.List;
         const listItems = listToken.items.map((item, itemIndex) => {
-          const itemText = cleanText(item.text);
+          // Gunakan processInlineFormatting untuk format dalam list items
+          let prefix = '•';
+          if (listToken.ordered) {
+            // Pastikan start adalah number atau default ke 1
+            const start = typeof listToken.start === 'number' ? listToken.start : 1;
+            prefix = `${start + itemIndex}.`;
+          }
+          
           return (
             <View key={`list-item-${i}-${itemIndex}`} style={{ flexDirection: 'row', marginBottom: 3 }}>
-              <Text style={{ width: 10, marginRight: 5 }}>•</Text>
-              <Text style={{ flex: 1, ...styles.listItem }}>{itemText}</Text>
+              <Text style={{ width: listToken.ordered ? 15 : 10, marginRight: 5 }}>{prefix}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.listItem}>
+                  {/* Support untuk format inline dalam list items */}
+                  {processInlineFormatting(item.text)}
+                </Text>
+                
+                {/* Jika ada task list atau sublist */}
+                {item.task && (
+                  <View style={{ flexDirection: 'row', marginTop: 2 }}>
+                    <Text style={{ width: 15, marginRight: 5 }}>{item.checked ? '☑' : '☐'}</Text>
+                    <Text style={styles.listItem}>{item.text}</Text>
+                  </View>
+                )}
+              </View>
             </View>
           );
         });
@@ -274,6 +393,48 @@ const renderTokensToPdf = (tokens: marked.Token[]): React.ReactNode[] => {
       case 'table':
         const tableToken = token as marked.Tokens.Table;
         
+        // Fungsi untuk memproses sel tabel dengan benar
+        const processCellContent = (cell: any): React.ReactNode => {
+          if (cell === null || cell === undefined) {
+            return <Text></Text>;
+          }
+          if (typeof cell === 'string') {
+            // Gunakan processInlineFormatting untuk format dalam sel tabel
+            return <>{processInlineFormatting(cell)}</>;
+          }
+          if (typeof cell === 'number' || typeof cell === 'boolean') {
+            return <Text>{String(cell)}</Text>;
+          }
+          if (typeof cell === 'object') {
+            // Jika sel adalah token marked.js
+            if (cell.text) {
+              return <>{processInlineFormatting(cell.text)}</>;
+            }
+            if (cell.tokens) {
+              // Gabungkan semua teks dari token
+              const textContent = cell.tokens.map((token: any) => 
+                token.text ? token.text : ''
+              ).join(' ');
+              return <>{processInlineFormatting(textContent)}</>;
+            }
+            // Jika sel adalah array
+            if (Array.isArray(cell)) {
+              const textContent = cell.map(item => {
+                if (typeof item === 'string') return item;
+                if (item && item.text) return item.text;
+                return String(item);
+              }).join(' ');
+              return <>{processInlineFormatting(textContent)}</>;
+            }
+          }
+          // Fallback jika tidak ada cara lain untuk mendapatkan teks
+          try {
+            return <Text>{cleanText(JSON.stringify(cell))}</Text>;
+          } catch (e) {
+            return <Text></Text>;
+          }
+        };
+
         // Buat baris header
         const headerCells = tableToken.header.map((cell, cellIndex) => (
           <View 
@@ -281,7 +442,7 @@ const renderTokensToPdf = (tokens: marked.Token[]): React.ReactNode[] => {
             style={styles.tableHeaderCell}
           >
             <Text style={styles.tableHeaderText}>
-              {typeof cell === 'string' ? cleanText(cell) : cleanText(String(cell))}
+              {processCellContent(cell)}
             </Text>
           </View>
         ));
@@ -300,7 +461,7 @@ const renderTokensToPdf = (tokens: marked.Token[]): React.ReactNode[] => {
               style={styles.tableCell}
             >
               <Text style={styles.tableCellText}>
-                {typeof cell === 'string' ? cleanText(cell) : cleanText(String(cell))}
+                {processCellContent(cell)}
               </Text>
             </View>
           ));
@@ -331,11 +492,13 @@ const renderTokensToPdf = (tokens: marked.Token[]): React.ReactNode[] => {
         
       case 'blockquote':
         const blockquoteToken = token as marked.Tokens.Blockquote;
-        const blockquoteText = cleanText(blockquoteToken.text);
+        // Gunakan processInlineFormatting untuk format dalam blockquote
         
         result.push(
           <View key={`blockquote-${i}`} style={{ marginVertical: 5, paddingLeft: 10, borderLeftWidth: 3, borderLeftColor: '#E5E7EB' }}>
-            <Text style={{...styles.paragraph, fontStyle: 'italic', color: '#4B5563'}}>{blockquoteText}</Text>
+            <Text style={{...styles.paragraph, fontStyle: 'italic', color: '#4B5563'}}>
+              {processInlineFormatting(blockquoteToken.text)}
+            </Text>
           </View>
         );
         break;
@@ -352,7 +515,9 @@ const renderTokensToPdf = (tokens: marked.Token[]): React.ReactNode[] => {
           const textContent = (token as any).text;
           if (textContent && typeof textContent === 'string' && textContent.trim()) {
             result.push(
-              <Text key={`unknown-${i}`} style={styles.paragraph}>{cleanText(textContent)}</Text>
+              <Text key={`unknown-${i}`} style={styles.paragraph}>
+                {processInlineFormatting(textContent)}
+              </Text>
             );
           }
         }
