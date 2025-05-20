@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Sidebar from './components/Sidebar';
 import Home from './pages/Home';
 import Agents from './pages/Agents';
@@ -39,18 +39,45 @@ function RouteTracker() {
   return null;
 }
 
-function App() {
-  const { currentUser } = useAuth();
+function AppContent() {
+  const { currentUser, loading } = useAuth();
+  const [splashFinished, setSplashFinished] = useState(false);
   
-  console.log('TIPIDTER APP: Rendering App component', { 
+  console.log('TIPIDTER APP: Rendering App content', { 
     isAuthenticated: !!currentUser,
     userEmail: currentUser?.email,
-    userStatus: currentUser?.user_metadata?.registration_status 
+    userStatus: currentUser?.user_metadata?.registration_status,
+    authLoading: loading,
+    splashFinished 
   });
 
+  // Handle splash screen completion
+  useEffect(() => {
+    // Wait for splash screen to finish (2.5s) + small buffer
+    const timer = setTimeout(() => {
+      setSplashFinished(true);
+    }, 2700);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Show splash screen if it's not finished yet
+  if (!splashFinished) {
+    return <SplashScreen />;
+  }
+
+  // Show loading indicator if auth is still loading
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+        <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        <p className="mt-4 text-lg text-gray-600">Memuat sesi pengguna...</p>
+      </div>
+    );
+  }
+
   return (
-    <ErrorBoundary>
-      <SplashScreen />
+    <>
       <NotificationHandler showNotification={true} />
       <PWAInstallButton />
       <Router>
@@ -124,6 +151,14 @@ function App() {
           </main>
         </div>
       </Router>
+    </>
+  );
+}
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <AppContent />
     </ErrorBoundary>
   );
 }

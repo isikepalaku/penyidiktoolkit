@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 
@@ -6,15 +6,20 @@ export default function AuthCallback() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const isMounted = useRef(true);
 
   useEffect(() => {
+    // Set isMounted flag
+    isMounted.current = true;
+    
     // Parse URL hash dan handle OAuth callback
     const handleOAuthCallback = async () => {
       try {
+        if (!isMounted.current) return;
         setLoading(true);
         
         // Tambahkan logging untuk debug
-        console.log("AuthCallback: Starting callback handling", window.location.href);
+        console.log("TIPIDTER AUTH CALLBACK: Starting callback handling", window.location.href);
         
         // Parse URL parameters untuk debugging
         const urlParams = new URLSearchParams(window.location.search);
@@ -25,43 +30,56 @@ export default function AuthCallback() {
         if (errorParam) {
           const errorCode = urlParams.get('error_code') || hashParams.get('error_code');
           const errorDesc = urlParams.get('error_description') || hashParams.get('error_description');
-          console.error('Error in URL parameters:', { error: errorParam, error_code: errorCode, error_description: errorDesc });
-          setError(`${errorParam}: ${errorDesc}`);
+          console.error('TIPIDTER AUTH CALLBACK: Error in URL parameters:', { error: errorParam, error_code: errorCode, error_description: errorDesc });
+          if (isMounted.current) {
+            setError(`${errorParam}: ${errorDesc}`);
+            setLoading(false);
+          }
           return;
         }
         
         // Tambahkan delay untuk memastikan session tersimpan di browser
         // Perbaikan: Tambahkan delay yang lebih lama untuk memastikan semua database operations selesai
-        console.log("Waiting for session to be fully established...");
+        console.log("TIPIDTER AUTH CALLBACK: Waiting for session to be fully established...");
         await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        if (!isMounted.current) return;
         
         // Ambil session dari browser storage
         const { data, error } = await supabase.auth.getSession();
-        console.log("AuthCallback: Session check result", data, error);
+        console.log("TIPIDTER AUTH CALLBACK: Session check result", data, error);
         
         if (error) {
-          console.error('Error during OAuth callback:', error);
-          setError(error.message);
+          console.error('TIPIDTER AUTH CALLBACK: Error during OAuth callback:', error);
+          if (isMounted.current) {
+            setError(error.message);
+            setLoading(false);
+          }
           return;
         }
         
         if (!data?.session?.user) {
-          console.error('No session found after OAuth callback');
-          setError('No session found after OAuth callback');
+          console.error('TIPIDTER AUTH CALLBACK: No session found after OAuth callback');
+          if (isMounted.current) {
+            setError('No session found after OAuth callback');
+            setLoading(false);
+          }
           return;
         }
         
         const { user } = data.session;
-        console.log("AuthCallback: User data from session", user);
+        console.log("TIPIDTER AUTH CALLBACK: User data from session", user);
         
         // Periksa apakah user sudah memiliki status registrasi
         // Jika belum, tetapkan ke 'pending'
         if (!user.user_metadata?.registration_status) {
-          console.log('Setting OAuth user registration_status to pending...');
+          console.log('TIPIDTER AUTH CALLBACK: Setting OAuth user registration_status to pending...');
           
           try {
             // Perbaikan: Tambahkan delay sebelum update untuk memastikan trigger database telah selesai
             await new Promise(resolve => setTimeout(resolve, 500));
+            
+            if (!isMounted.current) return;
             
             const { data: updateData, error: updateError } = await supabase.auth.updateUser({
               data: { 
@@ -74,26 +92,33 @@ export default function AuthCallback() {
             });
             
             if (updateError) {
-              console.error('Error updating user metadata:', updateError);
+              console.error('TIPIDTER AUTH CALLBACK: Error updating user metadata:', updateError);
               // Tambahkan retry logic jika update gagal
-              console.log('Retrying update after delay...');
-              await new Promise(resolve => setTimeout(resolve, 1000));
+              console.log('TIPIDTER AUTH CALLBACK: Retrying update after delay...');
               
-              const { data: retryData, error: retryError } = await supabase.auth.updateUser({
-                data: { registration_status: 'pending' }
-              });
-              
-              if (retryError) {
-                console.error('Retry update failed:', retryError);
-              } else {
-                console.log('Retry update successful:', retryData);
+              if (isMounted.current) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                if (!isMounted.current) return;
+                
+                const { data: retryData, error: retryError } = await supabase.auth.updateUser({
+                  data: { registration_status: 'pending' }
+                });
+                
+                if (retryError) {
+                  console.error('TIPIDTER AUTH CALLBACK: Retry update failed:', retryError);
+                } else {
+                  console.log('TIPIDTER AUTH CALLBACK: Retry update successful:', retryData);
+                }
               }
             } else {
-              console.log('User metadata updated successfully:', updateData);
+              console.log('TIPIDTER AUTH CALLBACK: User metadata updated successfully:', updateData);
             }
             
             // Tambahkan fallback untuk memastikan user_profiles dibuat
             try {
+              if (!isMounted.current) return;
+              
               // Coba akses RPC untuk memastikan profile ada
               const { error: rpcError } = await supabase.rpc('ensure_user_profile', {
                 user_id_param: user.id,
@@ -101,26 +126,30 @@ export default function AuthCallback() {
               });
               
               if (rpcError) {
-                console.log('RPC not available or error:', rpcError);
+                console.log('TIPIDTER AUTH CALLBACK: RPC not available or error:', rpcError);
                 // Jika RPC tidak tersedia, tidak masalah, lanjutkan saja
               }
             } catch (profileErr) {
-              console.log('Profile fallback error (non-critical):', profileErr);
+              console.log('TIPIDTER AUTH CALLBACK: Profile fallback error (non-critical):', profileErr);
             }
             
           } catch (updateErr) {
-            console.error('Exception updating user metadata:', updateErr);
+            console.error('TIPIDTER AUTH CALLBACK: Exception updating user metadata:', updateErr);
             // Tetap lanjutkan proses meskipun ada error
           }
         }
         
+        if (!isMounted.current) return;
+        
         // Tambahkan delay akhir untuk memastikan semua operasi database selesai
         await new Promise(resolve => setTimeout(resolve, 500));
+        
+        if (!isMounted.current) return;
         
         // Tunda navigasi ke halaman yang sesuai berdasarkan status
         // Gunakan metadata yang sudah ada di user object
         const registrationStatus = user.user_metadata?.registration_status || 'pending';
-        console.log(`AuthCallback: Redirecting based on status: ${registrationStatus}`);
+        console.log(`TIPIDTER AUTH CALLBACK: Redirecting based on status: ${registrationStatus}`);
         
         if (registrationStatus === 'pending') {
           navigate('/pending-approval');
@@ -131,14 +160,21 @@ export default function AuthCallback() {
           navigate('/pending-approval');
         }
       } catch (err: any) {
-        console.error('Unexpected error in OAuth callback:', err);
-        setError('Terjadi kesalahan tak terduga. Silakan coba lagi.');
-      } finally {
-        setLoading(false);
+        console.error('TIPIDTER AUTH CALLBACK: Unexpected error in OAuth callback:', err);
+        if (isMounted.current) {
+          setError('Terjadi kesalahan tak terduga. Silakan coba lagi.');
+          setLoading(false);
+        }
       }
     };
     
     handleOAuthCallback();
+    
+    // Set cleanup function to prevent state updates after unmount
+    return () => {
+      console.log('TIPIDTER AUTH CALLBACK: Component unmounting');
+      isMounted.current = false;
+    };
   }, [navigate]);
   
   if (loading) {

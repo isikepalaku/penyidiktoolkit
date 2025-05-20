@@ -1,35 +1,56 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 export function SplashScreen() {
   const [isVisible, setIsVisible] = useState(true);
   const [isLogoVisible, setIsLogoVisible] = useState(false);
   const [isTextVisible, setIsTextVisible] = useState(false);
+  const isMounted = useRef(true);
 
   useEffect(() => {
+    // Flag untuk mengecek apakah komponen masih terpasang
+    isMounted.current = true;
+    
+    console.log("TIPIDTER SPLASH: Splash screen mounted");
+    
     // Animasi logo muncul terlebih dahulu
     const logoTimer = setTimeout(() => {
-      setIsLogoVisible(true);
+      if (isMounted.current) {
+        setIsLogoVisible(true);
+      }
     }, 300);
 
     // Kemudian animasi teks muncul
     const textTimer = setTimeout(() => {
-      setIsTextVisible(true);
+      if (isMounted.current) {
+        setIsTextVisible(true);
+      }
     }, 800);
 
     // Splash screen menghilang setelah 2.5 detik
     const hideTimer = setTimeout(() => {
-      setIsVisible(false);
+      if (isMounted.current) {
+        console.log("TIPIDTER SPLASH: Hiding splash screen");
+        setIsVisible(false);
+      }
     }, 2500);
 
     return () => {
+      // Batalkan semua timer dan tandai komponen sebagai unmounted
+      isMounted.current = false;
+      console.log("TIPIDTER SPLASH: Splash screen unmounting, clearing timers");
       clearTimeout(logoTimer);
       clearTimeout(textTimer);
       clearTimeout(hideTimer);
     };
   }, []);
 
-  if (!isVisible) return null;
+  // Renderkan hanya jika masih visible
+  if (!isVisible) {
+    console.log("TIPIDTER SPLASH: Splash screen not rendering (hidden)");
+    return null;
+  }
 
+  console.log("TIPIDTER SPLASH: Rendering splash screen");
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-white">
       <div className="flex flex-col items-center space-y-6">
