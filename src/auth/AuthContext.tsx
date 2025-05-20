@@ -15,10 +15,28 @@ interface AuthContextType {
   updateMyRegistrationStatus: (newStatus: string) => Promise<{ user: User | null, error: any | null }>;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+// Inisialisasi dengan nilai default untuk menghindari null
+const defaultAuthContext: AuthContextType = {
+  currentUser: null,
+  session: null,
+  loading: true,
+  signUp: async () => ({ user: null, error: new Error('Auth context not initialized') }),
+  logIn: async () => ({ user: null, error: new Error('Auth context not initialized') }),
+  logOut: async () => ({ error: new Error('Auth context not initialized') }),
+  signInWithGoogle: async () => ({ user: null, session: null, error: new Error('Auth context not initialized') }),
+  resetPassword: async () => ({ error: new Error('Auth context not initialized') }),
+  updateMyRegistrationStatus: async () => ({ user: null, error: new Error('Auth context not initialized') }),
+};
+
+const AuthContext = createContext<AuthContextType>(defaultAuthContext);
 
 export function useAuth() {
-  return useContext(AuthContext) as AuthContextType;
+  const context = useContext(AuthContext);
+  if (context === null) {
+    console.error('useAuth harus digunakan di dalam AuthProvider');
+    return defaultAuthContext;
+  }
+  return context;
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
