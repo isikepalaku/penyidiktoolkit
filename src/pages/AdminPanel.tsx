@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { User } from '@supabase/supabase-js';
 import { useAuth } from '../auth/AuthContext';
 import { supabase } from '../supabaseClient';
 
 // Interface untuk data pengguna yang diperluas dengan status registrasi
+// @ts-ignore - Digunakan untuk type checking
 interface ExtendedUser extends User {
   user_metadata: {
     registration_status: string;
@@ -21,6 +22,27 @@ interface DBUserWithStatus {
   full_name: string;
 }
 
+// Error boundary component untuk menangkap error rendering
+function ErrorFallback({ error, resetErrorBoundary }: { error: Error, resetErrorBoundary: () => void }) {
+  return (
+    <div className="min-h-screen py-10 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-md">
+        <h1 className="text-2xl font-bold mb-6 text-red-600">Kesalahan Aplikasi</h1>
+        <p className="mb-4">Terjadi kesalahan saat menampilkan halaman ini.</p>
+        <pre className="bg-gray-100 p-4 rounded text-sm overflow-auto max-h-60 mb-4">
+          {error.message}
+        </pre>
+        <button
+          onClick={resetErrorBoundary}
+          className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Coba Lagi
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPanel() {
   const { currentUser, session } = useAuth();
   const [pendingUsers, setPendingUsers] = useState<DBUserWithStatus[]>([]);
@@ -29,9 +51,20 @@ export default function AdminPanel() {
   const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [renderKey, setRenderKey] = useState(0); // Key untuk force re-render jika terjadi error
+
+  // Reset error state jika terjadi error
+  const handleRenderError = useCallback(() => {
+    console.log("Handling render error, forcing re-render");
+    setRenderKey(prev => prev + 1);
+    setConfirmDelete(null); // Reset confirm state yang mungkin menyebabkan error
+  }, []);
 
   // Periksa apakah pengguna saat ini adalah admin
   useEffect(() => {
+    let isMounted = true;
+    
     async function checkAdminStatus() {
       if (!currentUser) {
         console.log("No current user, cannot check admin status");
@@ -45,7 +78,7 @@ export default function AdminPanel() {
         // BYPASS: Hard-coded override for specific user ID
         if (currentUser.id === '24115401-3163-4c0a-8b2f-ebe7f19c46ed') {
           console.log("BYPASS: Setting admin status to TRUE for specific user");
-          setIsAdmin(true);
+          if (isMounted) setIsAdmin(true);
           return;
         }
         
@@ -55,7 +88,7 @@ export default function AdminPanel() {
         // Cek dulu dari metadata (lebih cepat)
         if (currentUser.user_metadata?.role === 'admin') {
           console.log("User is admin based on metadata");
-          setIsAdmin(true);
+          if (isMounted) setIsAdmin(true);
           return;
         }
         
@@ -84,32 +117,40 @@ export default function AdminPanel() {
           
           if (!adminError && adminData) {
             console.log("User is admin based on direct table query");
-            setIsAdmin(true);
+            if (isMounted) setIsAdmin(true);
             return;
           }
           
-          setIsAdmin(false);
+          if (isMounted) setIsAdmin(false);
           return;
         }
         
         console.log("Admin check result:", data);
-        setIsAdmin(data === true);
+        if (isMounted) setIsAdmin(data === true);
       } catch (err) {
         console.error("Error checking admin status:", err);
-        setIsAdmin(false);
+        if (isMounted) setIsAdmin(false);
       }
     }
     
     checkAdminStatus();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [currentUser, session]);
 
   // Dapatkan daftar pengguna jika pengguna saat ini adalah admin
   useEffect(() => {
     if (!isAdmin) return;
     
+    let isMounted = true;
+    
     const fetchUsers = async () => {
-      setLoading(true);
-      setError(null);
+      if (isMounted) {
+        setLoading(true);
+        setError(null);
+      }
       
       try {
         console.log("Fetching users...");
@@ -143,9 +184,11 @@ export default function AdminPanel() {
               }
             });
             
-            setPendingUsers(pending);
-            setApprovedUsers(approved);
-            setLoading(false);
+            if (isMounted) {
+              setPendingUsers(pending);
+              setApprovedUsers(approved);
+              setLoading(false);
+            }
             return;
           }
         }
@@ -163,8 +206,10 @@ export default function AdminPanel() {
           
           if (rawError) {
             console.error("Raw query error:", rawError);
-            setError(`Gagal mengambil data pengguna: ${error.message}`);
-            setLoading(false);
+            if (isMounted) {
+              setError(`Gagal mengambil data pengguna: ${error.message}`);
+              setLoading(false);
+            }
             return;
           }
           
@@ -183,8 +228,10 @@ export default function AdminPanel() {
             console.log("Transformed data:", transformedData);
             data = transformedData;
           } else {
-            setError('Tidak bisa mendapatkan data pengguna');
-            setLoading(false);
+            if (isMounted) {
+              setError('Tidak bisa mendapatkan data pengguna');
+              setLoading(false);
+            }
             return;
           }
         } else {
@@ -207,17 +254,27 @@ export default function AdminPanel() {
           console.warn("Data is not an array or is null:", data);
         }
         
-        setPendingUsers(pending);
-        setApprovedUsers(approved);
+        if (isMounted) {
+          setPendingUsers(pending);
+          setApprovedUsers(approved);
+        }
       } catch (error: any) {
         console.error("Error fetching users:", error);
-        setError(`Terjadi kesalahan: ${error.message}`);
+        if (isMounted) {
+          setError(`Terjadi kesalahan: ${error.message}`);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
     
     fetchUsers();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [isAdmin, success]); // Re-fetch jika status isAdmin berubah atau ada perubahan status sukses
 
   // Approve pengguna
@@ -404,6 +461,67 @@ export default function AdminPanel() {
     }
   };
 
+  // Hapus pengguna
+  const deleteUser = async (userId: string) => {
+    try {
+      setSuccess(null);
+      setError(null);
+      setConfirmDelete(null);
+      
+      console.log("Deleting user:", userId);
+      
+      // PENDEKATAN 1: Gunakan fungsi Edge
+      console.log("Using Edge Function for deletion");
+      try {
+        const { data: edgeData, error: edgeError } = await supabase.functions.invoke('admin/delete-user', {
+          body: { userId },
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`
+          }
+        });
+        
+        if (edgeError) {
+          console.error("Edge Function error:", edgeError);
+          throw new Error(edgeError.message);
+        }
+        
+        console.log("Edge Function result:", edgeData);
+        setSuccess("Pengguna berhasil dihapus");
+        
+        // Update status lokal untuk UI
+        setApprovedUsers(prev => prev.filter(user => user.id !== userId));
+        return;
+      } catch (edgeErr: any) {
+        console.error("Edge Function approach failed:", edgeErr);
+        
+        // PENDEKATAN 2 (FALLBACK): Gunakan admin API
+        console.log("Using admin API as fallback");
+        try {
+          const { error: deleteError } = await supabase.auth.admin.deleteUser(userId);
+          
+          if (deleteError) {
+            console.error("Admin API delete error:", deleteError);
+            throw new Error(deleteError.message);
+          }
+          
+          console.log("User deletion successful");
+          setSuccess("Pengguna berhasil dihapus");
+          
+          // Update status lokal untuk UI
+          setApprovedUsers(prev => prev.filter(user => user.id !== userId));
+          return;
+        } catch (deleteErr: any) {
+          console.error("All deletion approaches failed:", deleteErr);
+          setError(`Gagal menghapus pengguna: ${deleteErr.message}`);
+          return;
+        }
+      }
+    } catch (error: any) {
+      console.error("Error deleting user:", error);
+      setError(`Terjadi kesalahan: ${error.message}`);
+    }
+  };
+
   // Tampilkan pesan akses ditolak jika bukan admin
   if (!isAdmin) {
     return (
@@ -417,132 +535,174 @@ export default function AdminPanel() {
     );
   }
 
-  return (
-    <div className="min-h-screen py-10 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-2xl font-bold mb-8">Panel Admin</h1>
+  // Wrap render dalam try-catch untuk menangkap error render
+  try {
+    return (
+      <div className="min-h-screen py-10 px-4 sm:px-6 lg:px-8" key={renderKey}>
+        <div className="max-w-6xl mx-auto">
+          <h1 className="text-2xl font-bold mb-8">Panel Admin</h1>
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-            {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
-            {success}
-          </div>
-        )}
-
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        ) : (
-          <div className="space-y-10">
-            {/* Pengguna yang menunggu persetujuan */}
-            <div>
-              <h2 className="text-xl font-semibold mb-4">Menunggu Persetujuan ({pendingUsers.length})</h2>
-              
-              {pendingUsers.length === 0 ? (
-                <p>Tidak ada pengguna yang menunggu persetujuan.</p>
-              ) : (
-                <div className="bg-white shadow overflow-hidden rounded-lg">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Email
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Nama
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Tanggal Daftar
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Aksi
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {pendingUsers.map(user => (
-                        <tr key={user.id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {user.email}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {user.full_name || "-"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {new Date(user.created_at).toLocaleDateString()}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button
-                              onClick={() => approveUser(user.id)}
-                              className="bg-green-600 text-white py-1 px-3 rounded mr-2 hover:bg-green-700"
-                            >
-                              Setujui
-                            </button>
-                            <button
-                              onClick={() => rejectUser(user.id)}
-                              className="bg-red-600 text-white py-1 px-3 rounded hover:bg-red-700"
-                            >
-                              Tolak
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+          {error && (
+            <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+              {error}
             </div>
+          )}
 
-            {/* Pengguna yang disetujui */}
-            <div>
-              <h2 className="text-xl font-semibold mb-4">Pengguna Disetujui ({approvedUsers.length})</h2>
-              
-              {approvedUsers.length === 0 ? (
-                <p>Belum ada pengguna yang disetujui.</p>
-              ) : (
-                <div className="bg-white shadow overflow-hidden rounded-lg">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Email
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Nama
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Tanggal Daftar
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {approvedUsers.map(user => (
-                        <tr key={user.id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {user.email}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {user.full_name || "-"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {new Date(user.created_at).toLocaleDateString()}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+          {success && (
+            <div className="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
+              {success}
             </div>
-          </div>
-        )}
+          )}
+
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : (
+            <div className="space-y-10">
+              {/* Pengguna yang menunggu persetujuan */}
+              <div>
+                <h2 className="text-xl font-semibold mb-4">Menunggu Persetujuan ({pendingUsers.length})</h2>
+                
+                {pendingUsers.length === 0 ? (
+                  <p>Tidak ada pengguna yang menunggu persetujuan.</p>
+                ) : (
+                  <div className="bg-white shadow overflow-x-auto overflow-y-hidden rounded-lg">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Email
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Nama
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Tanggal Daftar
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Aksi
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {pendingUsers.map(user => (
+                          <tr key={`pending-${user.id}`}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {user.email}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {user.full_name || "-"}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {new Date(user.created_at).toLocaleDateString()}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <button
+                                onClick={() => approveUser(user.id)}
+                                className="bg-green-600 text-white py-1 px-3 rounded mr-2 hover:bg-green-700"
+                              >
+                                Setujui
+                              </button>
+                              <button
+                                onClick={() => rejectUser(user.id)}
+                                className="bg-red-600 text-white py-1 px-3 rounded hover:bg-red-700"
+                              >
+                                Tolak
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Pengguna yang disetujui */}
+              <div>
+                <h2 className="text-xl font-semibold mb-4">Pengguna Disetujui ({approvedUsers.length})</h2>
+                
+                {approvedUsers.length === 0 ? (
+                  <p>Belum ada pengguna yang disetujui.</p>
+                ) : (
+                  <div className="bg-white shadow overflow-x-auto overflow-y-hidden rounded-lg">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Email
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Nama
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Tanggal Daftar
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Aksi
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {approvedUsers.map(user => (
+                          <tr key={`approved-${user.id}`}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {user.email}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {user.full_name || "-"}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {new Date(user.created_at).toLocaleDateString()}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              {confirmDelete === user.id ? (
+                                <div className="flex flex-wrap gap-1 items-center">
+                                  <span className="text-sm text-red-600 mr-1">Yakin?</span>
+                                  <button
+                                    onClick={() => deleteUser(user.id)}
+                                    className="bg-red-600 text-white py-1 px-3 rounded mr-1 hover:bg-red-700"
+                                  >
+                                    Ya
+                                  </button>
+                                  <button
+                                    onClick={() => setConfirmDelete(null)}
+                                    className="bg-gray-500 text-white py-1 px-3 rounded hover:bg-gray-600"
+                                  >
+                                    Batal
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => setConfirmDelete(user.id)}
+                                  className="bg-red-600 text-white py-1 px-3 rounded hover:bg-red-700"
+                                >
+                                  Hapus
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  } catch (renderError) {
+    console.error("Render error caught:", renderError);
+    handleRenderError();
+    
+    return (
+      <ErrorFallback 
+        error={renderError instanceof Error ? renderError : new Error("Terjadi kesalahan saat render")} 
+        resetErrorBoundary={handleRenderError} 
+      />
+    );
+  }
 } 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Users, FileText, PanelLeft, PanelRightClose, Search, MessageSquare, Home, Scale, ShieldAlert } from 'lucide-react';
-import logo from '../static/logo.svg';
+import logo from '../static/logoreserse.png';
 import ProfileMenu from './ProfileMenu';
 import { useAuth } from '../auth/AuthContext';
 import { supabase } from '../supabaseClient';

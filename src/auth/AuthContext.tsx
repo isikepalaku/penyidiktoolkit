@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../supabaseClient'; // Mengimpor supabase client
 
@@ -39,22 +39,80 @@ export function useAuth() {
   return context;
 }
 
+// ErrorFallback untuk AuthProvider
+function AuthErrorFallback({ error, resetError }: { error: Error, resetError: () => void }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+      <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
+        <h2 className="text-2xl font-bold text-red-600 mb-4">Kesalahan Autentikasi</h2>
+        <p className="text-gray-700 mb-4">
+          Terjadi masalah saat menginisialisasi autentikasi. Silakan refresh halaman.
+        </p>
+        <pre className="bg-gray-100 p-4 rounded text-sm overflow-auto max-h-48 mb-4">
+          {error.message}
+        </pre>
+        <button
+          onClick={resetError}
+          className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Coba Lagi
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// LoadingFallback untuk AuthProvider
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+      <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      <p className="mt-4 text-lg text-gray-600">Memuat sesi pengguna...</p>
+    </div>
+  );
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [renderKey, setRenderKey] = useState(0); // Key untuk force re-render
+
+  // Handle render error
+  const handleRenderError = useCallback(() => {
+    console.log("AUTH: Handling render error, forcing re-render");
+    setRenderKey(prev => prev + 1);
+    setError(null);
+    setLoading(false);
+    
+    // Coba dapatkan session yang valid lagi
+    supabase.auth.getSession()
+      .then(({ data }) => {
+        if (data?.session) {
+          setSession(data.session);
+          setCurrentUser(data.session.user);
+        }
+      })
+      .catch(err => {
+        console.error("AUTH: Error re-fetching session:", err);
+      });
+  }, []);
 
   // Reset loading state dengan force after timeout untuk mencegah infinite loading
   useEffect(() => {
+    let isMounted = true;
     const timer = setTimeout(() => {
-      if (loading) {
+      if (loading && isMounted) {
         console.log("TIPIDTER AUTH: Force ending loading state after timeout");
         setLoading(false);
       }
     }, 5000); // 5 detik timeout
 
-    return () => clearTimeout(timer);
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
   }, [loading]);
 
   async function signUp(email: string, password: string, displayName?: string) {
@@ -200,6 +258,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
   
   useEffect(() => {
+    let isMounted = true;
     setLoading(true);
     setError(null);
     
@@ -218,12 +277,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log("TIPIDTER AUTH: Registration status:", session.user.user_metadata?.registration_status || "undefined");
         }
         
-        setSession(session);
-        setCurrentUser(session?.user ?? null);
+        if (isMounted) {
+          setSession(session);
+          setCurrentUser(session?.user ?? null);
+        }
       })
       .catch(error => {
         console.error("TIPIDTER AUTH: Error getting initial session:", error);
-        setError(error instanceof Error ? error : new Error('Unknown error during session fetch'));
+        if (isMounted) {
+          setError(error instanceof Error ? error : new Error('Unknown error during session fetch'));
+        }
       })
       .finally(() => {
         console.log("TIPIDTER AUTH: Finished get session call");
@@ -274,8 +337,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   } else {
                     console.log("TIPIDTER AUTH: OAuth user registration status set to pending:", data.user);
                     // Update state dengan user yang sudah diperbarui
-                    setCurrentUser(data.user);
-                    if (session) {
+                    if (isMounted) {
+                      setCurrentUser(data.user);
+                    }
+                    if (session && isMounted) {
                       // Buat objek session baru dengan user yang diperbarui
                       const updatedSession: Session = {
                         ...session,
@@ -291,8 +356,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               }
             }
             
-            setSession(session);
-            setCurrentUser(session?.user ?? null);
+            if (isMounted) {
+              setSession(session);
+              setCurrentUser(session?.user ?? null);
+            }
           }
         );
         
@@ -300,7 +367,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return listener;
       } catch (listenerError) {
         console.error("TIPIDTER AUTH: Error setting up auth listener", listenerError);
-        setError(listenerError instanceof Error ? listenerError : new Error('Error setting up auth listener'));
+        if (isMounted) {
+          setError(listenerError instanceof Error ? listenerError : new Error('Error setting up auth listener'));
+        }
         throw listenerError; // Rethrow untuk .finally handler
       }
     })
@@ -309,11 +378,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
     .finally(() => {
       console.log("TIPIDTER AUTH: Complete auth initialization");
-      setLoading(false); // Sangat penting: selalu akhiri loading state
+      if (isMounted) {
+        // Setel timeout kecil untuk memastikan state tidak berubah terlalu cepat
+        // yang dapat menyebabkan masalah rendering di mobile
+        setTimeout(() => {
+          if (isMounted) {
+            setLoading(false); // Sangat penting: selalu akhiri loading state
+          }
+        }, 100);
+      }
     });
 
     // Cleanup function
     return () => {
+      isMounted = false;
       console.log("TIPIDTER AUTH: Cleaning up auth listeners");
       if (authListener?.data?.subscription) {
         try {
@@ -325,30 +403,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Tambahkan fallback rendering yang muncul jika error terjadi
-  if (error) {
-    console.error("TIPIDTER AUTH: Rendering error fallback UI due to:", error);
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Kesalahan Autentikasi</h2>
-          <p className="text-gray-700 mb-4">
-            Terjadi masalah saat menginisialisasi autentikasi. Silakan refresh halaman.
-          </p>
-          <pre className="bg-gray-100 p-4 rounded text-sm overflow-auto max-h-48 mb-4">
-            {error.message}
-          </pre>
-          <button
-            onClick={() => window.location.reload()}
-            className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Refresh Halaman
-          </button>
-        </div>
-      </div>
-    );
-  }
-
+  // Nilai Akhir untuk Provider
   const value = {
     currentUser,
     session,
@@ -361,22 +416,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     updateMyRegistrationStatus
   };
 
-  // Tentatif render fallback content sederhana selama loading
-  if (loading) {
-    console.log("TIPIDTER AUTH: Rendering loading fallback UI");
+  // Coba render dengan errorBoundary
+  try {
+    // Jika loading, tampilkan loading state yang stabil
+    if (loading) {
+      console.log("TIPIDTER AUTH: Rendering loading fallback UI");
+      return <LoadingFallback />;
+    }
+
+    // Jika error, tampilkan UI error yang bisa di-reset
+    if (error) {
+      console.error("TIPIDTER AUTH: Rendering error fallback UI due to:", error);
+      return <AuthErrorFallback error={error} resetError={handleRenderError} />;
+    }
+
+    // Render normal content dengan key untuk memaksa re-render jika diperlukan
+    console.log("TIPIDTER AUTH: Rendering actual content");
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center">
-        <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-        <p className="mt-4 text-lg text-gray-600">Memuat sesi pengguna...</p>
-        {/* Sembunyikan children selama loading */}
-      </div>
+      <AuthContext.Provider value={value} key={renderKey}>
+        {children}
+      </AuthContext.Provider>
+    );
+  } catch (renderError) {
+    console.error("TIPIDTER AUTH: Render error caught:", renderError);
+    // Handle render error dengan menampilkan error fallback
+    return (
+      <AuthErrorFallback 
+        error={renderError instanceof Error ? renderError : new Error("Error saat render auth provider")} 
+        resetError={handleRenderError} 
+      />
     );
   }
-
-  console.log("TIPIDTER AUTH: Rendering actual content");
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
 } 
