@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 
 export function SplashScreen() {
-  const [isVisible, setIsVisible] = useState(true);
   const [isLogoVisible, setIsLogoVisible] = useState(false);
   const [isTextVisible, setIsTextVisible] = useState(false);
   const isMounted = useRef(true);
@@ -26,29 +25,14 @@ export function SplashScreen() {
       }
     }, 800);
 
-    // Splash screen menghilang setelah 2.5 detik
-    const hideTimer = setTimeout(() => {
-      if (isMounted.current) {
-        console.log("TIPIDTER SPLASH: Hiding splash screen");
-        setIsVisible(false);
-      }
-    }, 2500);
-
     return () => {
       // Batalkan semua timer dan tandai komponen sebagai unmounted
       isMounted.current = false;
       console.log("TIPIDTER SPLASH: Splash screen unmounting, clearing timers");
       clearTimeout(logoTimer);
       clearTimeout(textTimer);
-      clearTimeout(hideTimer);
     };
   }, []);
-
-  // Renderkan hanya jika masih visible
-  if (!isVisible) {
-    console.log("TIPIDTER SPLASH: Splash screen not rendering (hidden)");
-    return null;
-  }
 
   console.log("TIPIDTER SPLASH: Rendering splash screen");
   return (
@@ -61,6 +45,7 @@ export function SplashScreen() {
             src="/img/reserse.png" 
             alt="Reserse AI" 
             className="w-40 h-40 animate-pulse"
+            onError={(e) => console.error("TIPIDTER SPLASH: Logo failed to load", e)}
           />
         </div>
         

@@ -1,6 +1,9 @@
 /// <reference types="vite-plugin-pwa/client" />
 import { registerSW } from 'virtual:pwa-register';
 
+// Variable to store service worker registration
+let swRegistration: ServiceWorkerRegistration | null = null;
+
 export function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     console.log('Service Worker didukung di browser ini');
@@ -20,6 +23,9 @@ export function registerServiceWorker() {
       onRegistered(registration: ServiceWorkerRegistration | undefined) {
         if (registration) {
           console.log('Service Worker berhasil didaftarkan:', registration);
+          
+          // Store registration for later use with notifications
+          swRegistration = registration;
           
           // Check for updates every hour
           setInterval(() => {
@@ -61,28 +67,68 @@ export function registerServiceWorker() {
   }
 }
 
-// Fungsi untuk mengirim notifikasi
+// Store SW registration when available
+const storeRegistration = (registration: ServiceWorkerRegistration) => {
+  swRegistration = registration;
+};
+
+// Fungsi untuk mengirim notifikasi - menggunakan ServiceWorkerRegistration jika tersedia
 export async function sendNotification(title: string, options?: NotificationOptions) {
   if (!('Notification' in window)) {
     console.log('Browser ini tidak mendukung notifikasi desktop');
     return;
   }
 
-  if (Notification.permission === 'granted') {
-    const notification = new Notification(title, {
-      icon: '/img/reserse.png',
-      badge: '/img/reserse.png',
-      ...options
-    });
-
-    notification.onclick = function() {
-      window.focus();
-      this.close();
-    };
-  } else if (Notification.permission !== 'denied') {
+  // Pastikan permission diberikan
+  if (Notification.permission !== 'granted') {
     const permission = await Notification.requestPermission();
-    if (permission === 'granted') {
-      sendNotification(title, options);
+    if (permission !== 'granted') {
+      console.log('Izin notifikasi ditolak');
+      return;
     }
+  }
+  
+  const notificationOptions = {
+    icon: '/img/reserse.png',
+    badge: '/img/reserse.png',
+    ...options
+  };
+  
+  try {
+    // Cara 1: Gunakan registration yang telah disimpan
+    if (swRegistration) {
+      await swRegistration.showNotification(title, notificationOptions);
+      return;
+    }
+    
+    // Cara 2: Dapatkan registration dari navigator.serviceWorker
+    if ('serviceWorker' in navigator) {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        // Simpan untuk penggunaan berikutnya
+        storeRegistration(registration);
+        await registration.showNotification(title, notificationOptions);
+        return;
+      } catch (err) {
+        console.warn('Tidak dapat menggunakan service worker untuk notifikasi:', err);
+      }
+    }
+    
+    // Cara 3: Fallback ke non-service worker notification (hanya desktop)
+    console.log('Fallback ke notifikasi tanpa service worker (mungkin tidak berfungsi di mobile)');
+    // Perlu cek tambahan karena ini bisa gagal di mobile
+    if (typeof Notification === 'function') {
+      try {
+        const notification = new Notification(title, notificationOptions);
+        notification.onclick = function() {
+          window.focus();
+          this.close();
+        };
+      } catch (err) {
+        console.error('Gagal menampilkan notifikasi:', err);
+      }
+    }
+  } catch (error) {
+    console.error('Error saat menampilkan notifikasi:', error);
   }
 } 

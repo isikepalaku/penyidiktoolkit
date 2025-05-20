@@ -20,8 +20,12 @@ import ProtectedRoute from './auth/ProtectedRoute';
 import { useAuth } from './auth/AuthContext';
 import { NotificationHandler } from './components/NotificationHandler';
 import { PWAInstallButton } from './components/PWAInstallButton';
-import { SplashScreen } from './components/SplashScreen';
 import ErrorBoundary from './components/ErrorBoundary';
+
+// Deteksi apakah ini perangkat mobile
+const isMobile = () => {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
 
 // Komponen untuk tracking route changes
 function RouteTracker() {
@@ -41,30 +45,15 @@ function RouteTracker() {
 
 function AppContent() {
   const { currentUser, loading } = useAuth();
-  const [splashFinished, setSplashFinished] = useState(false);
+  const [isDesktop] = useState(!isMobile());
   
   console.log('TIPIDTER APP: Rendering App content', { 
     isAuthenticated: !!currentUser,
     userEmail: currentUser?.email,
     userStatus: currentUser?.user_metadata?.registration_status,
     authLoading: loading,
-    splashFinished 
+    isDesktop
   });
-
-  // Handle splash screen completion
-  useEffect(() => {
-    // Wait for splash screen to finish (2.5s) + small buffer
-    const timer = setTimeout(() => {
-      setSplashFinished(true);
-    }, 2700);
-    
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Show splash screen if it's not finished yet
-  if (!splashFinished) {
-    return <SplashScreen />;
-  }
 
   // Show loading indicator if auth is still loading
   if (loading) {
@@ -78,7 +67,9 @@ function AppContent() {
 
   return (
     <>
-      <NotificationHandler showNotification={true} />
+      {/* Tampilkan notifikasi hanya jika ini adalah perangkat desktop */}
+      {isDesktop && <NotificationHandler showNotification={true} />}
+      
       <PWAInstallButton />
       <Router>
         <RouteTracker />

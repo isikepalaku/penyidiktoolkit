@@ -49,6 +49,58 @@
     <!-- Preload bot icon image -->
     <link rel="preload" href="/reserse.png" as="image" type="image/png" />
     <title>Penyidik Toolkit</title>
+    
+    <!-- Script untuk menangani PWA splash screen di iOS -->
+    <script>
+      // Deteksi iOS dan tampilan PWA
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.platform) || 
+                   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || 
+                                (window.navigator.standalone === true);
+                                
+      // Fungsi untuk setup root dengan delay jika diperlukan
+      function setupRoot() {
+        console.log('TIPIDTER SPLASH: Setting up root element', { isIOS, isInStandaloneMode });
+        const rootElement = document.getElementById('root');
+        
+        if (rootElement) {
+          // Tambahkan class loading state
+          rootElement.className = 'pwa-loading'; 
+        }
+        
+        // Tandai document bahwa sedang dalam proses loading
+        document.documentElement.classList.add('pwa-initializing');
+      }
+      
+      // Setup root element dengan delay kecil
+      if (isIOS && isInStandaloneMode) {
+        console.log('TIPIDTER SPLASH: iOS in standalone mode detected, delaying React init');
+        // Untuk iOS dengan PWA, tambahkan delay lebih panjang untuk native splash finish
+        window.addEventListener('load', function() {
+          setTimeout(setupRoot, 200);
+        });
+      } else {
+        // Untuk browser biasa, setup langsung
+        window.addEventListener('DOMContentLoaded', setupRoot);
+      }
+    </script>
+    
+    <style>
+      /* Style untuk mobile splash screen */
+      .pwa-initializing {
+        overflow: hidden;
+      }
+      
+      .pwa-loading {
+        opacity: 0;
+        transition: opacity 0.3s ease-in;
+      }
+      
+      /* Tampilkan root element setelah React siap */
+      #root:not(.pwa-loading) {
+        opacity: 1;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
