@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 
@@ -11,12 +11,27 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const navigate = useNavigate();
-  const { signUp, signInWithGoogle } = useAuth();
+  const { signUp, signInWithGoogle, currentUser } = useAuth();
+
+  useEffect(() => {
+    if (currentUser) {
+      navigate('/');
+    }
+  }, [currentUser, navigate]);
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.hash.replace('#', '?'));
+    const authError = urlParams.get('error_description') || urlParams.get('error');
+    
+    if (authError) {
+      setError(`Gagal daftar dengan Google: ${authError}`);
+      window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+    }
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     
-    // Validasi form
     if (password !== confirmPassword) {
       return setError('Password tidak cocok');
     }
@@ -28,19 +43,23 @@ export default function Register() {
     try {
       setError('');
       setLoading(true);
-      await signUp(email, password, displayName);
-      navigate('/'); // Redirect ke homepage setelah pendaftaran
+      const { user, error: signUpError } = await signUp(email, password, displayName);
+      
+      if (signUpError) {
+        console.error('Register error (Supabase):', signUpError);
+        setError(signUpError.message || 'Gagal membuat akun. Silakan coba lagi.');
+      } else if (user) {
+        navigate('/');
+      } else {
+        setError('Pendaftaran berhasil! Silakan cek email Anda untuk melanjutkan.');
+        setDisplayName('');
+        setEmail('');
+        setPassword('');
+        setConfirmPassword('');
+      }
     } catch (error: any) {
-      console.error('Register error:', error);
-      setError(
-        error.code === 'auth/email-already-in-use'
-          ? 'Email sudah digunakan'
-          : error.code === 'auth/weak-password'
-          ? 'Password terlalu lemah'
-          : error.code === 'auth/invalid-email'
-          ? 'Format email tidak valid'
-          : 'Gagal membuat akun. Silakan coba lagi'
-      );
+      console.error('Unexpected Register error:', error);
+      setError('Gagal membuat akun. Terjadi kesalahan tak terduga.');
     } finally {
       setLoading(false);
     }
@@ -50,18 +69,16 @@ export default function Register() {
     try {
       setError('');
       setGoogleLoading(true);
-      await signInWithGoogle();
-      navigate('/');
+      const { error: googleError } = await signInWithGoogle();
+      
+      if (googleError) {
+        console.error('Google sign-in error (Supabase) for Register:', googleError);
+        setError(googleError.message || 'Gagal mendaftar dengan Google. Silakan coba lagi.');
+        setGoogleLoading(false);
+      }
     } catch (error: any) {
-      console.error('Google sign-in error:', error);
-      setError(
-        error.code === 'auth/popup-closed-by-user'
-          ? 'Login dibatalkan'
-          : error.code === 'auth/cancelled-popup-request'
-          ? 'Permintaan popup dibatalkan'
-          : 'Gagal mendaftar dengan Google. Silakan coba lagi'
-      );
-    } finally {
+      console.error('Unexpected Google sign-in error for Register:', error);
+      setError('Gagal mendaftar dengan Google. Terjadi kesalahan tak terduga.');
       setGoogleLoading(false);
     }
   }
@@ -193,7 +210,6 @@ export default function Register() {
           </button>
         </div>
 
-        {/* Disclaimer */}
         <div className="mt-4 bg-gray-100 dark:bg-gray-700 p-3 rounded-md">
           <p className="text-center text-xs text-gray-600 dark:text-gray-300">
             Registrasi diperlukan untuk mencegah akses tidak sah dan membatasi beban pada server kami, bukan untuk mengumpulkan data pribadi Anda.

@@ -1,15 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../auth/AuthContext';
-import { updateProfile, updateEmail, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
+import { supabase } from '../supabaseClient';
 
 export default function Profile() {
   const { currentUser } = useAuth();
-  const [displayName, setDisplayName] = useState(currentUser?.displayName || '');
+  
+  const [displayName, setDisplayName] = useState(currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || '');
   const [email, setEmail] = useState(currentUser?.email || '');
-  const [currentPassword, setCurrentPassword] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (currentUser) {
+      setDisplayName(currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || '');
+      setEmail(currentUser.email || '');
+    }
+  }, [currentUser]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,38 +26,65 @@ export default function Profile() {
     setLoading(true);
     setMessage(null);
     
+    let emailChanged = false;
+    let profileDataChanged = false;
+
     try {
-      // Jika email berubah, perlu re-authenticate dulu
-      if (email !== currentUser.email && currentPassword) {
-        const credential = EmailAuthProvider.credential(
-          currentUser.email!,
-          currentPassword
-        );
-        await reauthenticateWithCredential(currentUser, credential);
-        await updateEmail(currentUser, email);
+      const updates: { email?: string; data?: any } = {};
+
+      if (email !== currentUser.email) {
+        updates.email = email;
+        emailChanged = true;
       }
       
-      // Update displayName
-      if (displayName !== currentUser.displayName) {
-        await updateProfile(currentUser, { displayName });
+      if (displayName !== (currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || '')) {
+        updates.data = { ...currentUser.user_metadata, full_name: displayName };
+        profileDataChanged = true;
       }
       
-      setMessage({ type: 'success', text: 'Profil berhasil diperbarui' });
-      setIsEditing(false);
-      setCurrentPassword('');
+      if (emailChanged || profileDataChanged) {
+        const { error: updateError } = await supabase.auth.updateUser(updates);
+
+        if (updateError) {
+          console.error('Error updating profile (Supabase):', updateError);
+          setMessage({ 
+            type: 'error', 
+            text: updateError.message || 'Gagal memperbarui profil.'
+          });
+        } else {
+          let successMessage = 'Profil berhasil diperbarui.';
+          if (emailChanged) {
+            successMessage += ' Silakan cek email baru Anda untuk konfirmasi perubahan alamat email.';
+          }
+          setMessage({ type: 'success', text: successMessage });
+          setIsEditing(false);
+        }
+      } else {
+        setMessage({ type: 'info', text: 'Tidak ada perubahan untuk disimpan.' } as any);
+        setIsEditing(false);
+      }
+      
     } catch (error: any) {
-      console.error('Error updating profile:', error);
+      console.error('Unexpected error updating profile:', error);
       setMessage({ 
         type: 'error', 
-        text: error.code === 'auth/requires-recent-login'
-          ? 'Silakan masukkan password Anda untuk mengkonfirmasi perubahan'
-          : error.code === 'auth/invalid-credential'
-          ? 'Password salah'
-          : 'Gagal memperbarui profil' 
+        text: 'Gagal memperbarui profil. Terjadi kesalahan tak terduga.' 
       });
     } finally {
       setLoading(false);
     }
+  };
+
+  const getInitials = () => {
+    if (!currentUser) return 'U';
+    const name = currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0];
+    if (!name) return 'U';
+    return name
+      .split(' ')
+      .map((n: string) => n[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
   };
 
   return (
@@ -66,7 +100,7 @@ export default function Profile() {
         </div>
         
         {message && (
-          <div className={`px-4 py-3 ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+          <div className={`px-4 py-3 ${message.type === 'success' ? 'bg-green-50 text-green-700' : message.type === 'error' ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700'}`}>
             {message.text}
           </div>
         )}
@@ -74,13 +108,11 @@ export default function Profile() {
         <div className="px-4 py-5 sm:p-6">
           <div className="flex items-center gap-4 mb-6">
             <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center text-white text-2xl font-medium">
-              {currentUser?.displayName 
-                ? currentUser.displayName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
-                : 'U'}
+              {getInitials()}
             </div>
             <div>
               <h3 className="text-xl font-medium text-gray-900 dark:text-white">
-                {currentUser?.displayName || 'Pengguna'}
+                {currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'Pengguna'}
               </h3>
               <p className="text-gray-500 dark:text-gray-400">
                 {currentUser?.email}
@@ -101,7 +133,7 @@ export default function Profile() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Nama
+                  Nama (akan tampil sebagai {displayName})
                 </label>
                 <input
                   type="text"
@@ -124,24 +156,12 @@ export default function Profile() {
                   className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   placeholder="Email Anda"
                 />
+                {email !== currentUser?.email && (
+                    <p className="mt-2 text-sm text-yellow-600 dark:text-yellow-400">
+                        Mengubah email memerlukan konfirmasi melalui link yang akan dikirim ke alamat email baru Anda.
+                    </p>
+                )}
               </div>
-              
-              {email !== currentUser?.email && (
-                <div>
-                  <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Password Saat Ini (diperlukan untuk mengubah email)
-                  </label>
-                  <input
-                    type="password"
-                    id="currentPassword"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    placeholder="Masukkan password saat ini"
-                    required={email !== currentUser?.email}
-                  />
-                </div>
-              )}
               
               <div className="flex gap-4">
                 <button
@@ -155,9 +175,8 @@ export default function Profile() {
                   type="button"
                   onClick={() => {
                     setIsEditing(false);
-                    setDisplayName(currentUser?.displayName || '');
+                    setDisplayName(currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || '');
                     setEmail(currentUser?.email || '');
-                    setCurrentPassword('');
                     setMessage(null);
                   }}
                   className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-600 dark:text-white dark:border-gray-700 dark:hover:bg-gray-700"
@@ -172,7 +191,7 @@ export default function Profile() {
                 <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4">
                   <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Nama Lengkap</dt>
                   <dd className="mt-1 text-sm text-gray-900 dark:text-white sm:mt-0 sm:col-span-2">
-                    {currentUser?.displayName || 'Belum diatur'}
+                    {currentUser?.user_metadata?.full_name || 'Belum diatur'}
                   </dd>
                 </div>
                 <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4">
@@ -184,13 +203,10 @@ export default function Profile() {
                 <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4">
                   <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Akun dibuat pada</dt>
                   <dd className="mt-1 text-sm text-gray-900 dark:text-white sm:mt-0 sm:col-span-2">
-                    {currentUser?.metadata.creationTime 
-                      ? new Date(currentUser.metadata.creationTime).toLocaleString('id-ID', {
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
+                    {currentUser?.created_at 
+                      ? new Date(currentUser.created_at).toLocaleString('id-ID', {
+                          day: 'numeric', month: 'long', year: 'numeric',
+                          hour: '2-digit', minute: '2-digit'
                         })
                       : '-'}
                   </dd>
@@ -198,13 +214,10 @@ export default function Profile() {
                 <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4">
                   <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Login terakhir</dt>
                   <dd className="mt-1 text-sm text-gray-900 dark:text-white sm:mt-0 sm:col-span-2">
-                    {currentUser?.metadata.lastSignInTime 
-                      ? new Date(currentUser.metadata.lastSignInTime).toLocaleString('id-ID', {
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
+                    {currentUser?.last_sign_in_at
+                      ? new Date(currentUser.last_sign_in_at).toLocaleString('id-ID', {
+                          day: 'numeric', month: 'long', year: 'numeric',
+                          hour: '2-digit', minute: '2-digit'
                         })
                       : '-'}
                   </dd>
@@ -212,7 +225,7 @@ export default function Profile() {
                 <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4">
                   <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Email diverifikasi</dt>
                   <dd className="mt-1 text-sm text-gray-900 dark:text-white sm:mt-0 sm:col-span-2">
-                    {currentUser?.emailVerified ? 'Ya' : 'Tidak'}
+                    {currentUser?.email_confirmed_at ? 'Ya' : 'Tidak'}
                   </dd>
                 </div>
               </dl>

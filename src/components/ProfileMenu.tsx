@@ -41,25 +41,62 @@ export default function ProfileMenu() {
     };
   }, []);
 
+  // Mendapatkan nama tampilan pengguna dari Supabase
+  const getDisplayName = () => {
+    if (currentUser?.user_metadata?.full_name) {
+      return currentUser.user_metadata.full_name;
+    }
+    if (currentUser?.user_metadata?.name) {
+      return currentUser.user_metadata.name;
+    }
+    return 'Pengguna';
+  };
+
   // User avatar or initials
   const getInitials = () => {
-    if (!currentUser?.displayName) return 'U';
-    return currentUser.displayName
+    const displayName = getDisplayName();
+    if (displayName === 'Pengguna') return 'P';
+    
+    return displayName
       .split(' ')
-      .map(name => name[0])
+      .map((name: string) => name[0])
       .join('')
       .toUpperCase()
       .substring(0, 2);
   };
 
-  // Cek apakah user memiliki photoURL (dari Google) dan tidak ada error
-  const shouldShowPhoto = Boolean(currentUser?.photoURL) && !avatarError;
+  // Mendapatkan URL avatar dari Supabase
+  const getAvatarUrl = () => {
+    // Cek avatar dari user_metadata
+    if (currentUser?.user_metadata?.avatar_url) {
+      return currentUser.user_metadata.avatar_url;
+    }
+    // Cek identities untuk avatar dari provider (Google, dll)
+    const identities = currentUser?.identities;
+    if (identities && identities.length > 0) {
+      // Cek provider identity untuk avatar (biasanya Google)
+      const providerIdentity = identities.find(identity => 
+        identity.provider === 'google' || identity.provider === 'github'
+      );
+      
+      if (providerIdentity?.identity_data?.avatar_url) {
+        return providerIdentity.identity_data.avatar_url;
+      }
+    }
+    return null;
+  };
+
+  // Cek apakah user memiliki avatar dan tidak ada error
+  const avatarUrl = getAvatarUrl();
+  const shouldShowPhoto = Boolean(avatarUrl) && !avatarError;
 
   // Handler untuk error loading gambar
   const handleImageError = () => {
-    console.log('Avatar image failed to load:', currentUser?.photoURL);
+    console.log('Avatar image failed to load:', avatarUrl);
     setAvatarError(true);
   };
+
+  const displayName = getDisplayName();
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -71,7 +108,7 @@ export default function ProfileMenu() {
       >
         {shouldShowPhoto ? (
           <img 
-            src={currentUser?.photoURL!} 
+            src={avatarUrl!} 
             alt="Profile" 
             className="w-8 h-8 rounded-full border border-gray-300 dark:border-gray-600 object-cover"
             onError={handleImageError}
@@ -82,8 +119,8 @@ export default function ProfileMenu() {
             {getInitials()}
           </div>
         )}
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-200 hidden md:block">
-          {currentUser?.displayName || 'User'}
+        <span className="text-sm font-medium text-white hidden md:block">
+          {displayName}
         </span>
       </button>
 
@@ -93,7 +130,7 @@ export default function ProfileMenu() {
             <div className="flex items-center mb-2">
               {shouldShowPhoto ? (
                 <img 
-                  src={currentUser?.photoURL!} 
+                  src={avatarUrl!} 
                   alt="Profile" 
                   className="w-10 h-10 rounded-full border border-gray-300 dark:border-gray-600 mr-3 object-cover"
                   onError={handleImageError}
@@ -106,7 +143,7 @@ export default function ProfileMenu() {
               )}
               <div>
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  {currentUser?.displayName || 'User'}
+                  {displayName}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                   {currentUser?.email}

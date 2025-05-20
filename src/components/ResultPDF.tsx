@@ -807,11 +807,85 @@ export const ResultPDFViewer: React.FC<ResultPDFProps> = (props) => {
 };
 
 // Komponen untuk download link PDF
-export const ResultPDFDownloadLink: React.FC<ResultPDFProps & { fileName?: string }> = ({ 
+export const ResultPDFDownloadLink: React.FC<ResultPDFProps & { 
+  fileName?: string;
+  onError?: (error: Error) => void;
+}> = ({ 
   fileName, 
+  onError,
   ...props 
 }) => {
   const safeFileName = fileName || 'hasil-analisis.pdf';
+  const [error, setError] = React.useState<Error | null>(null);
+  
+  // Reset error when props change
+  React.useEffect(() => {
+    setError(null);
+  }, [props.content]);
+
+  // Notify parent when error occurs
+  React.useEffect(() => {
+    if (error && onError) {
+      onError(error);
+    }
+  }, [error, onError]);
+  
+  // Handle direct download if PDFDownloadLink fails
+  const handleManualDownload = async () => {
+    try {
+      console.log('Attempting manual PDF download...');
+      
+      // Import PDFRenderer dynamically to prevent render errors
+      const { pdf } = await import('@react-pdf/renderer');
+      
+      // Generate PDF blob
+      const blob = await pdf(<ResultPDFContent {...props} />).toBlob();
+      
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = safeFileName;
+      link.click();
+      
+      // Clean up
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+      setError(null);
+    } catch (err) {
+      console.error('Error during manual PDF download:', err);
+      const newError = err instanceof Error ? err : new Error('Gagal membuat PDF');
+      setError(newError);
+      
+      // Fallback to simple text download if PDF fails
+      try {
+        const textBlob = new Blob([props.content], { type: 'text/plain' });
+        const textUrl = URL.createObjectURL(textBlob);
+        const link = document.createElement('a');
+        link.href = textUrl;
+        link.download = safeFileName.replace('.pdf', '.txt');
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(textUrl), 100);
+      } catch (textErr) {
+        console.error('Even text fallback failed:', textErr);
+      }
+    }
+  };
+  
+  // If there was an error with PDFDownloadLink, show manual download button
+  if (error) {
+    return (
+      <button
+        onClick={handleManualDownload}
+        className="flex items-center gap-1.5 px-3 py-1.5 text-sm 
+          rounded-lg transition-all duration-200
+          bg-blue-600 text-white
+          hover:bg-blue-700"
+      >
+        <Download className="w-4 h-4" />
+        <span>Unduh PDF</span>
+      </button>
+    );
+  }
   
   return (
     <PDFDownloadLink 
@@ -822,12 +896,24 @@ export const ResultPDFDownloadLink: React.FC<ResultPDFProps & { fileName?: strin
         bg-blue-600 text-white
         hover:bg-blue-700"
     >
-      {({ loading }) => (
-        <>
-          <Download className="w-4 h-4" />
-          <span>{loading ? 'Menyiapkan PDF...' : 'Unduh PDF'}</span>
-        </>
-      )}
+      {({ loading, error: linkError, blob, url }) => {
+        // Handle error in render function
+        if (linkError && !error) {
+          console.error('PDFDownloadLink render error:', linkError);
+          setTimeout(() => setError(linkError), 0);
+        }
+        
+        // Tambahkan logging untuk debug
+        if (blob) console.log('PDF blob available:', !!blob);
+        if (url) console.log('PDF URL available:', !!url);
+        
+        return (
+          <>
+            <Download className="w-4 h-4" />
+            <span>{loading ? 'Menyiapkan PDF...' : 'Unduh PDF'}</span>
+          </>
+        );
+      }}
     </PDFDownloadLink>
   );
 };

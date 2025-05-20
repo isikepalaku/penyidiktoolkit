@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
-import { X, Copy, Check, Printer, FileText, Info, Eye, FileType, FileImage, File as FileIconGeneric } from 'lucide-react';
+import { X, Copy, Check, Printer, FileText, Info, Eye, FileType, FileImage, File as FileIconGeneric, AlertCircle } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 import { ResultPDFDownloadLink } from './ResultPDF';
 
@@ -34,6 +34,7 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
   const [showCitations, setShowCitations] = useState(true); // Default tampilkan citation
   const [hoveredCitation, setHoveredCitation] = useState<number | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
   const handleCopy = async () => {
     try {
@@ -327,6 +328,18 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
     }
   };
 
+  // Handler untuk reset error status PDF
+  const handleResetPdfError = () => {
+    setPdfError(null);
+    console.log('PDF error status reset');
+  };
+  
+  // Error handler untuk PDF generation
+  const handlePdfError = (error: Error) => {
+    console.error('PDF generation error:', error);
+    setPdfError(error.message || 'Gagal membuat PDF. Silakan coba lagi.');
+  };
+
   useEffect(() => {
     const event = new CustomEvent('analysisComplete');
     window.dispatchEvent(event);
@@ -392,12 +405,33 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
             </button>
             
             {/* PDF Download Link dengan React-PDF */}
-            <ResultPDFDownloadLink 
-              content={content}
-              title={title}
-              citations={citations}
-              fileName={`${title || 'Hasil-Analisis'}.pdf`}
-            />
+            {pdfError ? (
+              <div className="relative">
+                <button
+                  onClick={handleResetPdfError}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm 
+                    rounded-lg transition-all duration-200
+                    bg-red-100 text-red-700
+                    hover:bg-red-200"
+                  title="Gagal men-generate PDF, klik untuk mencoba lagi"
+                >
+                  <AlertCircle className="w-4 h-4" />
+                  <span>Coba Lagi</span>
+                </button>
+                <div className="absolute bottom-full mb-2 right-0 bg-white text-xs p-2 rounded shadow-lg border border-red-200 w-60">
+                  <p className="text-red-600 font-medium">Error: {pdfError}</p>
+                  <p className="text-gray-600 mt-1">Silakan coba format lain seperti cetak atau salin teks.</p>
+                </div>
+              </div>
+            ) : (
+              <ResultPDFDownloadLink 
+                content={content}
+                title={title}
+                citations={citations}
+                fileName={`${title || 'Hasil-Analisis'}.pdf`}
+                onError={handlePdfError}
+              />
+            )}
             
             <button
               onClick={handleCopy}

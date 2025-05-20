@@ -6,6 +6,7 @@
 
 import { env } from '@/config/env';
 import { v4 as uuidv4 } from 'uuid';
+import { supabase } from '../supabaseClient';
 
 const API_KEY = import.meta.env.VITE_API_KEY;
 const MAX_RETRIES = 3;
@@ -13,8 +14,9 @@ const RETRY_DELAY = 1000;
 const FETCH_TIMEOUT = 600000; // 10 minutes timeout - matching nginx server timeout
 const API_BASE_URL = env.apiUrl || 'http://localhost:8000';
 
-// Store session ID
+// Store session ID dan user ID
 let currentSessionId: string | null = null;
+let currentUserId: string | null = null;
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -57,12 +59,29 @@ export interface ChatResponse {
  * Membuat session ID baru jika belum ada
  * Session ID digunakan oleh backend untuk mengelola konteks percakapan
  */
-export const initializeSession = () => {
+export const initializeSession = async () => {
+  // Cek apakah pengguna login dengan Supabase
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  // Jika pengguna login, gunakan Supabase user ID
+  if (session?.user?.id) {
+    currentUserId = session.user.id;
+    console.log('KUHAP: Using authenticated user ID:', currentUserId);
+  } 
+  // Jika tidak ada session Supabase, gunakan UUID
+  else if (!currentUserId) {
+    currentUserId = `anon_${uuidv4()}`;
+    console.log('KUHAP: Created new anonymous user ID:', currentUserId);
+  }
+  
+  // Buat session ID baru untuk percakapan jika belum ada
   if (!currentSessionId) {
     currentSessionId = `session_${uuidv4()}`;
     console.log('KUHAP: Created new session ID:', currentSessionId);
+    console.log('KUHAP: User ID:', currentUserId, 'Session ID:', currentSessionId);
   } else {
     console.log('KUHAP: Using existing session ID:', currentSessionId);
+    console.log('KUHAP: User ID:', currentUserId, 'Session ID:', currentSessionId);
   }
 };
 
@@ -72,100 +91,132 @@ export const initializeSession = () => {
 export const clearChatHistory = () => {
   console.log('KUHAP: Clearing chat history and session');
   currentSessionId = null;
+  // Tetap mempertahankan user ID untuk konsistensi
+  console.log('KUHAP: Kept user ID:', currentUserId);
 };
 
 export const sendChatMessage = async (message: string): Promise<ChatResponse> => {
   let retries = 0;
 
-  // Generate or retrieve session ID
-  if (!currentSessionId) {
-    initializeSession();
-  }
-  
-  while (retries <= MAX_RETRIES) {
-    try {
-      console.log(`Attempt ${retries + 1} of ${MAX_RETRIES + 1}`);
-      
-      const formData = new FormData();
-      formData.append('message', message.trim());
-      formData.append('agent_id', 'kuhap-chat');
-      formData.append('stream', 'false');
-      formData.append('monitor', 'false');
-      formData.append('session_id', currentSessionId as string);
-      formData.append('user_id', currentSessionId as string);
-
-      console.log('Sending request with FormData:', {
-        message: message.trim().substring(0, 50) + (message.length > 50 ? '...' : ''),
-        agent_id: 'kuhap-chat',
-        session_id: currentSessionId
-      });
-
-      const headers: HeadersInit = {
-        'Accept': 'application/json',
-      };
-      
-      if (API_KEY) {
-        headers['X-API-Key'] = API_KEY;
-      }
-
-      const requestOptions: RequestInit = {
-        method: 'POST',
-        headers,
-        body: formData
-      };
-
-      const url = `${API_BASE_URL}/v1/playground/agents/kuhap-chat/runs`;
-      console.log('Sending request to:', url);
-
-      const abortController = new AbortController();
-      const timeoutId = setTimeout(() => abortController.abort(), FETCH_TIMEOUT);
-      
-      requestOptions.signal = abortController.signal;
-      const response = await fetch(url, requestOptions);
-      
-      clearTimeout(timeoutId);
-
-      if (abortController.signal.aborted) {
-        throw new Error('Request timed out after 10 minutes');
-      }
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
+  try {
+    // Generate or retrieve session ID
+    if (!currentSessionId || !currentUserId) {
+      await initializeSession();
+    }
+    
+    // Double-check after initialization
+    if (!currentSessionId || !currentUserId) {
+      throw new Error('Tidak dapat menginisialisasi session atau user ID');
+    }
+    
+    while (retries <= MAX_RETRIES) {
+      try {
+        console.log(`Attempt ${retries + 1} of ${MAX_RETRIES + 1}`);
         
-        if (response.status === 429) {
-          throw new Error('Terlalu banyak permintaan. Silakan tunggu beberapa saat sebelum mencoba lagi.');
+        const formData = new FormData();
+        formData.append('message', message.trim());
+        formData.append('agent_id', 'kuhap-chat');
+        formData.append('stream', 'false');
+        formData.append('monitor', 'false');
+        formData.append('session_id', currentSessionId);
+        formData.append('user_id', currentUserId);
+
+        console.log('Sending request with FormData:', {
+          message: message.trim().substring(0, 50) + (message.length > 50 ? '...' : ''),
+          agent_id: 'kuhap-chat',
+          session_id: currentSessionId,
+          user_id: currentUserId,
+          is_authenticated: !currentUserId.startsWith('anon_')
+        });
+
+        const headers: HeadersInit = {
+          'Accept': 'application/json',
+          'X-User-ID': currentUserId,
+        };
+        
+        // Menambahkan token autentikasi jika user login
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`;
         }
         
-        if (response.status >= 500 && retries < MAX_RETRIES) {
+        if (API_KEY) {
+          headers['X-API-Key'] = API_KEY;
+        }
+
+        const requestOptions: RequestInit = {
+          method: 'POST',
+          headers,
+          body: formData
+        };
+
+        const url = `${API_BASE_URL}/v1/playground/agents/kuhap-chat/runs`;
+        console.log('Sending request to:', url);
+
+        const abortController = new AbortController();
+        const timeoutId = setTimeout(() => abortController.abort(), FETCH_TIMEOUT);
+        
+        requestOptions.signal = abortController.signal;
+        const response = await fetch(url, requestOptions);
+        
+        clearTimeout(timeoutId);
+
+        if (abortController.signal.aborted) {
+          throw new Error('Request timed out after 10 minutes');
+        }
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Error response:', errorText);
+          
+          if (response.status === 429) {
+            throw new Error('Terlalu banyak permintaan. Silakan tunggu beberapa saat sebelum mencoba lagi.');
+          }
+          
+          if (response.status >= 500 && retries < MAX_RETRIES) {
+            retries++;
+            await wait(RETRY_DELAY * retries);
+            continue;
+          }
+          
+          throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+        }
+
+        const data = await parseResponse(response);
+        console.log('Parsed response data:', data);
+
+        return {
+          text: data.content || data.message || 'No response received',
+          sourceDocuments: data.sourceDocuments
+        };
+
+      } catch (error) {
+        console.error('Error in sendChatMessage:', error);
+        
+        // Deteksi error jaringan yang lebih baik
+        const isNetworkError = 
+          error instanceof TypeError ||
+          (error as Error).message.includes('network') ||
+          (error as Error).message.includes('connection') ||
+          (error as Error).message.includes('abort') ||
+          (error as Error).message.includes('Failed to fetch') ||
+          (error as Error).message.includes('timeout') ||
+          (error as Error).message.includes('Network request failed') ||
+          !navigator.onLine;
+        
+        if (isNetworkError && retries < MAX_RETRIES) {
           retries++;
           await wait(RETRY_DELAY * retries);
           continue;
         }
         
-        throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+        throw error;
       }
-
-      const data = await parseResponse(response);
-      console.log('Parsed response data:', data);
-
-      return {
-        text: data.content || data.message || 'No response received',
-        sourceDocuments: data.sourceDocuments
-      };
-
-    } catch (error) {
-      console.error('Error in sendChatMessage:', error);
-      
-      if (error instanceof TypeError && retries < MAX_RETRIES) {
-        retries++;
-        await wait(RETRY_DELAY * retries);
-        continue;
-      }
-      
-      throw error;
     }
+    
+    throw new Error('Failed after maximum retries');
+  } catch (error) {
+    console.error('Error in sendChatMessage:', error);
+    throw error;
   }
-  
-  throw new Error('Failed after maximum retries');
 }; 

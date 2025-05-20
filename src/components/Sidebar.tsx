@@ -1,11 +1,50 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Users, FileText, PanelLeft, PanelRightClose, Search, MessageSquare, Home, Scale } from 'lucide-react';
+import { Users, FileText, PanelLeft, PanelRightClose, Search, MessageSquare, Home, Scale, ShieldAlert } from 'lucide-react';
 import logo from '../static/logo.svg';
 import ProfileMenu from './ProfileMenu';
+import { useAuth } from '../auth/AuthContext';
+import { supabase } from '../supabaseClient';
 
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const { currentUser } = useAuth();
+
+  // Periksa apakah pengguna adalah admin
+  useEffect(() => {
+    const checkIsAdmin = async () => {
+      if (!currentUser) return;
+      
+      try {
+        // Periksa dari user metadata
+        if (currentUser.user_metadata?.role === 'admin') {
+          setIsAdmin(true);
+          return;
+        }
+        
+        // Periksa dari tabel admins
+        const { data, error } = await supabase
+          .from('admins')
+          .select('user_id')
+          .eq('user_id', currentUser.id)
+          .single();
+          
+        if (error) {
+          console.error('Error checking admin status:', error);
+          setIsAdmin(false);
+          return;
+        }
+        
+        setIsAdmin(!!data);
+      } catch (err) {
+        console.error('Error checking admin status:', err);
+        setIsAdmin(false);
+      }
+    };
+    
+    checkIsAdmin();
+  }, [currentUser]);
 
   const toggleSidebar = () => {
     setIsOpen(!isOpen);
@@ -48,6 +87,15 @@ const Sidebar = () => {
         text: 'Pencarian Putusan'
       }
   ];
+
+  // Menu admin akan ditambahkan jika pengguna adalah admin
+  if (isAdmin) {
+    menuItems.push({
+      path: '/admin',
+      icon: <ShieldAlert className="w-5 h-5" />,
+      text: 'Admin Panel'
+    });
+  }
 
   return (
     <>

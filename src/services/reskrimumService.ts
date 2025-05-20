@@ -6,6 +6,7 @@
 
 import { env } from '@/config/env';
 import { v4 as uuidv4 } from 'uuid';
+import { supabase } from '../supabaseClient';
 
 const API_KEY = import.meta.env.VITE_API_KEY;
 const MAX_RETRIES = 3;
@@ -115,11 +116,19 @@ export interface ChatResponse {
  * Membuat session ID baru jika belum ada
  * Session ID digunakan oleh backend untuk mengelola konteks percakapan
  */
-export const initializeSession = () => {
-  // Generate user ID jika belum ada - ini akan tetap sama selama sesi browser
-  if (!currentUserId) {
-    currentUserId = `user_${uuidv4()}`;
-    console.log('RESKRIMUM: Created new user ID:', currentUserId);
+export const initializeSession = async () => {
+  // Cek apakah pengguna login dengan Supabase
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  // Jika pengguna login, gunakan Supabase user ID
+  if (session?.user?.id) {
+    currentUserId = session.user.id;
+    console.log('RESKRIMUM: Using authenticated user ID:', currentUserId);
+  } 
+  // Jika tidak ada session Supabase, gunakan UUID
+  else if (!currentUserId) {
+    currentUserId = `anon_${uuidv4()}`;
+    console.log('RESKRIMUM: Created new anonymous user ID:', currentUserId);
   }
   
   if (!currentSessionId) {
@@ -152,271 +161,301 @@ export const sendChatMessage = async (message: string, files?: File[]): Promise<
   let retryCount = 0;
   const hasLargeFiles = files && files.some(file => file.size > 5 * 1024 * 1024); // Files > 5MB
 
-  // Generate or retrieve session ID
-  if (!currentSessionId || !currentUserId) {
-    initializeSession();
-  }
-  
-  // Reset progress
-  emitProgress('preparing', 0);
-  
-  // Function to determine if we should retry based on the error
-  const shouldRetry = (error: any) => {
-    const errorMessage = error?.message || '';
-    
-    // Network errors and certain status codes should be retried
-    const isNetworkError = errorMessage.includes('NetworkError') || 
-                           errorMessage.includes('network') ||
-                           errorMessage.includes('Failed to fetch') || 
-                           !navigator.onLine;
-                           
-    const isServerError = error.status >= 500 && error.status < 600;
-    
-    // Don't retry client errors except for 429 (too many requests)
-    const isRateLimitError = error.status === 429;
-    
-    // Debug log
-    console.log(`RESKRIMUM: Should retry? Network error: ${isNetworkError}, Server error: ${isServerError}, Rate limit: ${isRateLimitError}`);
-    
-    return isNetworkError || isServerError || isRateLimitError;
-  };
-  
   try {
-    while (retryCount <= MAX_RETRIES) {
-      try {
-        console.log(`RESKRIMUM: Sending message (attempt ${retryCount + 1}/${MAX_RETRIES + 1}):`, { messageLength: message.length });
-        
-        const formData = new FormData();
-        
-        // Pastikan selalu ada pesan yang dikirim, bahkan jika pengguna hanya mengirim file
-        const messageToSend = message.trim() || 
-          (files && files.length > 0 ? "Tolong analisis file yang saya kirimkan." : "");
-        
-        formData.append('message', messageToSend);
-        formData.append('agent_id', 'dit-reskrimum-chat');
-        formData.append('stream', 'false');
-        formData.append('monitor', 'false');
-        formData.append('session_id', currentSessionId as string);
-        formData.append('user_id', currentUserId as string); // Gunakan user ID yang konsisten
-        
-        // Tambahkan file ke formData jika disediakan
-        if (files && files.length > 0) {
-          // Log info tentang file untuk debugging
-          let totalSize = 0;
-          files.forEach((file, index) => {
-            totalSize += file.size;
-            console.log(`File ${index + 1}: Name=${file.name}, Size=${(file.size / 1024 / 1024).toFixed(2)}MB, Type=${file.type}`);
-            formData.append('files', file);
-          });
-          console.log(`Adding ${files.length} files to the request. Total size: ${(totalSize / 1024 / 1024).toFixed(2)}MB`);
+    // Generate or retrieve session ID
+    if (!currentSessionId || !currentUserId) {
+      await initializeSession();
+    }
+    
+    // Double-check after initialization
+    if (!currentSessionId || !currentUserId) {
+      throw new Error('Tidak dapat menginisialisasi session atau user ID');
+    }
+    
+    // Reset progress
+    emitProgress('preparing', 0);
+    
+    // Function to determine if we should retry based on the error
+    const shouldRetry = (error: any) => {
+      const errorMessage = error?.message || '';
+      
+      // Network errors and certain status codes should be retried
+      const isNetworkError = errorMessage.includes('NetworkError') || 
+                             errorMessage.includes('network') ||
+                             errorMessage.includes('Failed to fetch') || 
+                             !navigator.onLine;
+                             
+      const isServerError = error.status >= 500 && error.status < 600;
+      
+      // Don't retry client errors except for 429 (too many requests)
+      const isRateLimitError = error.status === 429;
+      
+      // Debug log
+      console.log(`RESKRIMUM: Should retry? Network error: ${isNetworkError}, Server error: ${isServerError}, Rate limit: ${isRateLimitError}`);
+      
+      return isNetworkError || isServerError || isRateLimitError;
+    };
+    
+    try {
+      while (retryCount <= MAX_RETRIES) {
+        try {
+          console.log(`RESKRIMUM: Sending message (attempt ${retryCount + 1}/${MAX_RETRIES + 1}):`, { messageLength: message.length });
           
-          // Start progress simulation in the background for large files
-          if (totalSize > 1024 * 1024) { // > 1MB
-            simulateProgress(totalSize);
+          const formData = new FormData();
+          
+          // Pastikan selalu ada pesan yang dikirim, bahkan jika pengguna hanya mengirim file
+          const messageToSend = message.trim() || 
+            (files && files.length > 0 ? "Tolong analisis file yang saya kirimkan." : "");
+          
+          formData.append('message', messageToSend);
+          formData.append('agent_id', 'dit-reskrimum-chat');
+          formData.append('stream', 'false');
+          formData.append('monitor', 'false');
+          formData.append('session_id', currentSessionId as string);
+          formData.append('user_id', currentUserId as string); // Gunakan user ID yang konsisten
+          
+          // Tambahkan file ke formData jika disediakan
+          if (files && files.length > 0) {
+            // Log info tentang file untuk debugging
+            let totalSize = 0;
+            files.forEach((file, index) => {
+              totalSize += file.size;
+              console.log(`File ${index + 1}: Name=${file.name}, Size=${(file.size / 1024 / 1024).toFixed(2)}MB, Type=${file.type}`);
+              formData.append('files', file);
+            });
+            console.log(`Adding ${files.length} files to the request. Total size: ${(totalSize / 1024 / 1024).toFixed(2)}MB`);
+            
+            // Start progress simulation in the background for large files
+            if (totalSize > 1024 * 1024) { // > 1MB
+              simulateProgress(totalSize);
+            }
           }
-        }
 
-        console.log('Sending request with FormData:', {
-          message: messageToSend.substring(0, 50) + (messageToSend.length > 50 ? '...' : ''),
-          agent_id: 'dit-reskrimum-chat',
-          session_id: currentSessionId,
-          user_id: currentUserId,
-          hasFiles: files && files.length > 0,
-          hasLargeFiles
-        });
+          console.log('Sending request with FormData:', {
+            message: messageToSend.substring(0, 50) + (messageToSend.length > 50 ? '...' : ''),
+            agent_id: 'dit-reskrimum-chat',
+            session_id: currentSessionId,
+            user_id: currentUserId,
+            is_authenticated: currentUserId.startsWith('anon_') ? false : true,
+            hasFiles: files && files.length > 0,
+            hasLargeFiles
+          });
 
-        const headers: HeadersInit = {
-          'Accept': 'application/json',
-          'X-User-ID': currentUserId as string,
-        };
-        
-        if (API_KEY) {
-          headers['X-API-Key'] = API_KEY;
-          console.log('Using API key for authentication');
-        } else {
-          console.warn('No API key provided, request may fail');
-        }
+          const headers: HeadersInit = {
+            'Accept': 'application/json',
+            'X-User-ID': currentUserId,
+          };
+          
+          // Menambahkan informasi autentikasi
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.access_token) {
+            headers['Authorization'] = `Bearer ${session.access_token}`;
+          }
+          
+          if (API_KEY) {
+            headers['X-API-Key'] = API_KEY;
+            console.log('Using API key for authentication');
+          } else {
+            console.warn('No API key provided, request may fail');
+          }
+          
+          const requestOptions: RequestInit = {
+            method: 'POST',
+            headers,
+            body: formData
+          };
 
-        const requestOptions: RequestInit = {
-          method: 'POST',
-          headers,
-          body: formData
-        };
+          // Gunakan endpoint baru yang mendukung file
+          const endpoint = files && files.length > 0 
+            ? 'runs-with-files' 
+            : 'runs';
+          const url = `${API_BASE_URL}/v1/playground/agents/dit-reskrimum-chat/${endpoint}`;
+          console.log('Sending request to:', url);
 
-        // Gunakan endpoint baru yang mendukung file
-        const endpoint = files && files.length > 0 
-          ? 'runs-with-files' 
-          : 'runs';
-        const url = `${API_BASE_URL}/v1/playground/agents/dit-reskrimum-chat/${endpoint}`;
-        console.log('Sending request to:', url);
-
-        // Special handling for large files - simulasi progress berbasis waktu
-        if (hasLargeFiles) {
-          try {
-            // Inisialisasi progress simulasi
-            emitProgress('uploading', 20);
-            console.log('Large file detected, using progress simulation...');
-            
-            // Setup simulasi progress upload
-            const simulateUploadProgress = () => {
-              let currentProgress = 20;
-              const uploadInterval = setInterval(() => {
-                // Increment progress sampai 50%
-                currentProgress += 2;
-                if (currentProgress >= 50) {
-                  clearInterval(uploadInterval);
-                  // Beralih ke fase processing setelah upload selesai
-                  emitProgress('processing', 50);
-                  simulateProcessingProgress();
-                } else {
-                  emitProgress('uploading', currentProgress);
-                }
-              }, 500); // Update setiap 500ms
+          // Special handling for large files - simulasi progress berbasis waktu
+          if (hasLargeFiles) {
+            try {
+              // Inisialisasi progress simulasi
+              emitProgress('uploading', 20);
+              console.log('Large file detected, using progress simulation...');
               
-              return uploadInterval;
-            };
-            
-            // Simulasi progress processing
-            const simulateProcessingProgress = () => {
-              let currentProgress = 50;
-              const processInterval = setInterval(() => {
-                // Increment progress dengan lebih lambat selama fase processing
-                currentProgress += 1;
-                if (currentProgress >= 90) {
-                  clearInterval(processInterval);
-                  emitProgress('processing', 90);
-                } else {
-                  emitProgress('processing', currentProgress);
-                }
-              }, 1000); // Update setiap 1000ms
+              // Setup simulasi progress upload
+              const simulateUploadProgress = () => {
+                let currentProgress = 20;
+                const uploadInterval = setInterval(() => {
+                  // Increment progress sampai 50%
+                  currentProgress += 2;
+                  if (currentProgress >= 50) {
+                    clearInterval(uploadInterval);
+                    // Beralih ke fase processing setelah upload selesai
+                    emitProgress('processing', 50);
+                    simulateProcessingProgress();
+                  } else {
+                    emitProgress('uploading', currentProgress);
+                  }
+                }, 500); // Update setiap 500ms
+                
+                return uploadInterval;
+              };
               
-              return processInterval;
-            };
-            
-            // Mulai simulasi upload progress
-            const uploadInterval = simulateUploadProgress();
-            
-            // Kirim request sebenarnya
+              // Simulasi progress processing
+              const simulateProcessingProgress = () => {
+                let currentProgress = 50;
+                const processInterval = setInterval(() => {
+                  // Increment progress dengan lebih lambat selama fase processing
+                  currentProgress += 1;
+                  if (currentProgress >= 90) {
+                    clearInterval(processInterval);
+                    emitProgress('processing', 90);
+                  } else {
+                    emitProgress('processing', currentProgress);
+                  }
+                }, 1000); // Update setiap 1000ms
+                
+                return processInterval;
+              };
+              
+              // Mulai simulasi upload progress
+              const uploadInterval = simulateUploadProgress();
+              
+              // Kirim request sebenarnya
+              const abortController = new AbortController();
+              const timeoutId = setTimeout(() => abortController.abort(), FETCH_TIMEOUT);
+              
+              requestOptions.signal = abortController.signal;
+              console.log('Starting upload for large file...');
+              
+              try {
+                // Menunggu respons langsung dari API
+                const response = await fetch(url, requestOptions);
+                clearTimeout(timeoutId);
+                
+                // Hentikan simulasi progress ketika respons diterima
+                clearInterval(uploadInterval);
+                
+                if (!response.ok) {
+                  emitProgress('completed', 100); // Tandai selesai meski error
+                  const errorText = await response.text();
+                  throw new Error(`Upload failed with status ${response.status}: ${errorText}`);
+                }
+                
+                // Tandai sebagai selesai
+                emitProgress('completed', 100);
+                
+                // Parse dan return respons
+                const data = await parseResponse(response);
+                console.log('Received response for large file:', data);
+                
+                return {
+                  text: data.content || data.message || 'No response received',
+                  sourceDocuments: data.sourceDocuments
+                };
+              } catch (fetchError) {
+                // Hentikan simulasi progress jika terjadi error
+                clearInterval(uploadInterval);
+                throw fetchError;
+              }
+            } catch (error) {
+              console.error('Error with large file upload:', error);
+              throw error;
+            }
+          } else {
+            // Standard handling for normal requests
             const abortController = new AbortController();
             const timeoutId = setTimeout(() => abortController.abort(), FETCH_TIMEOUT);
             
-            requestOptions.signal = abortController.signal;
-            console.log('Starting upload for large file...');
-            
             try {
-              // Menunggu respons langsung dari API
+              // Bungkus fetch dalam blok try-catch terpisah untuk menangkap error jaringan
+              requestOptions.signal = abortController.signal;
+              console.log('Starting fetch request...');
               const response = await fetch(url, requestOptions);
+              console.log('Fetch request completed with status:', response.status);
+              
               clearTimeout(timeoutId);
-              
-              // Hentikan simulasi progress ketika respons diterima
-              clearInterval(uploadInterval);
-              
-              if (!response.ok) {
-                emitProgress('completed', 100); // Tandai selesai meski error
-                const errorText = await response.text();
-                throw new Error(`Upload failed with status ${response.status}: ${errorText}`);
+        
+              if (abortController.signal.aborted) {
+                console.error('Request timed out after', FETCH_TIMEOUT / 60000, 'minutes');
+                throw new Error('Request timed out. Ukuran file mungkin terlalu besar atau koneksi terlalu lambat.');
               }
-              
-              // Tandai sebagai selesai
-              emitProgress('completed', 100);
-              
-              // Parse dan return respons
+        
+              if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Error response:', response.status, errorText);
+                
+                if (response.status === 429) {
+                  throw new Error('Terlalu banyak permintaan. Silakan tunggu beberapa saat sebelum mencoba lagi.');
+                }
+                
+                if (response.status >= 500 && retryCount < MAX_RETRIES) {
+                  console.log('Server error, retrying...');
+                  retryCount++;
+                  await wait(RETRY_DELAY * retryCount);
+                  continue;
+                }
+                
+                if (response.status === 413) {
+                  throw new Error('File terlalu besar. Harap gunakan file dengan ukuran lebih kecil.');
+                }
+                
+                throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+              }
+        
               const data = await parseResponse(response);
-              console.log('Received response for large file:', data);
-              
+              console.log('Parsed response data:', data);
+        
               return {
                 text: data.content || data.message || 'No response received',
                 sourceDocuments: data.sourceDocuments
               };
             } catch (fetchError) {
-              // Hentikan simulasi progress jika terjadi error
-              clearInterval(uploadInterval);
-              throw fetchError;
+              clearTimeout(timeoutId);
+              console.error('Fetch error:', fetchError);
+              throw fetchError; // Re-throw untuk ditangani oleh catch di luar
             }
-          } catch (error) {
-            console.error('Error with large file upload:', error);
-            throw error;
           }
-        } else {
-          // Standard handling for normal requests
-          const abortController = new AbortController();
-          const timeoutId = setTimeout(() => abortController.abort(), FETCH_TIMEOUT);
+        } catch (error: any) {
+          console.error(`RESKRIMUM: Error on attempt ${retryCount + 1}/${MAX_RETRIES + 1}:`, error);
           
-          try {
-            // Bungkus fetch dalam blok try-catch terpisah untuk menangkap error jaringan
-            requestOptions.signal = abortController.signal;
-            console.log('Starting fetch request...');
-            const response = await fetch(url, requestOptions);
-            console.log('Fetch request completed with status:', response.status);
-            
-            clearTimeout(timeoutId);
-      
-            if (abortController.signal.aborted) {
-              console.error('Request timed out after', FETCH_TIMEOUT / 60000, 'minutes');
-              throw new Error('Request timed out. Ukuran file mungkin terlalu besar atau koneksi terlalu lambat.');
-            }
-      
-            if (!response.ok) {
-              const errorText = await response.text();
-              console.error('Error response:', response.status, errorText);
-              
-              if (response.status === 429) {
-                throw new Error('Terlalu banyak permintaan. Silakan tunggu beberapa saat sebelum mencoba lagi.');
-              }
-              
-              if (response.status >= 500 && retryCount < MAX_RETRIES) {
-                console.log('Server error, retrying...');
-                retryCount++;
-                await wait(RETRY_DELAY * retryCount);
-                continue;
-              }
-              
-              if (response.status === 413) {
-                throw new Error('File terlalu besar. Harap gunakan file dengan ukuran lebih kecil.');
-              }
-              
-              throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
-            }
-      
-            const data = await parseResponse(response);
-            console.log('Parsed response data:', data);
-      
-            return {
-              text: data.content || data.message || 'No response received',
-              sourceDocuments: data.sourceDocuments
-            };
-          } catch (fetchError) {
-            clearTimeout(timeoutId);
-            console.error('Fetch error:', fetchError);
-            throw fetchError; // Re-throw untuk ditangani oleh catch di luar
+          // If abort due to timeout
+          if (error.name === 'AbortError') {
+            console.error('RESKRIMUM: Request timed out after', FETCH_TIMEOUT / 1000, 'seconds');
+            throw new Error('Permintaan memakan waktu terlalu lama. Periksa koneksi Anda atau coba lagi nanti.');
           }
+          
+          // Check if we should retry
+          if (retryCount < MAX_RETRIES && shouldRetry(error)) {
+            retryCount++;
+            const delay = Math.min(1000 * Math.pow(2, retryCount - 1), 10000); // Exponential backoff, max 10 seconds
+            console.log(`RESKRIMUM: Retrying in ${delay}ms...`);
+            await wait(delay);
+            continue;
+          }
+          
+          // If we shouldn't retry or have exhausted retries, reset progress and throw
+          emitProgress('completed', 100);
+          throw error;
         }
-      } catch (error: any) {
-        console.error(`RESKRIMUM: Error on attempt ${retryCount + 1}/${MAX_RETRIES + 1}:`, error);
-        
-        // If abort due to timeout
-        if (error.name === 'AbortError') {
-          console.error('RESKRIMUM: Request timed out after', FETCH_TIMEOUT / 1000, 'seconds');
-          throw new Error('Permintaan memakan waktu terlalu lama. Periksa koneksi Anda atau coba lagi nanti.');
-        }
-        
-        // Check if we should retry
-        if (retryCount < MAX_RETRIES && shouldRetry(error)) {
-          retryCount++;
-          const delay = Math.min(1000 * Math.pow(2, retryCount - 1), 10000); // Exponential backoff, max 10 seconds
-          console.log(`RESKRIMUM: Retrying in ${delay}ms...`);
-          await wait(delay);
-          continue;
-        }
-        
-        // If we shouldn't retry or have exhausted retries, reset progress and throw
-        emitProgress('completed', 100);
-        throw error;
       }
+      
+      // This should never be reached due to the while loop conditions, but TypeScript wants a return
+      throw new Error('RESKRIMUM: Exceeded maximum retries');
+    } catch (error: any) {
+      console.error('RESKRIMUM: Final error:', error);
+      
+      // Final error handling with user-friendly messages
+      let errorMessage = 'Terjadi kesalahan saat menghubungi server.';
+      
+      if (!navigator.onLine) {
+        errorMessage = 'Anda sedang offline. Silakan periksa koneksi internet Anda.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      return {
+        text: errorMessage,
+        error: true
+      };
     }
-    
-    // This should never be reached due to the while loop conditions, but TypeScript wants a return
-    throw new Error('RESKRIMUM: Exceeded maximum retries');
   } catch (error: any) {
     console.error('RESKRIMUM: Final error:', error);
     

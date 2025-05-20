@@ -13,12 +13,15 @@ import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
+import PendingApproval from './pages/PendingApproval';
+import AdminPanel from './pages/AdminPanel';
+import AuthCallback from './pages/AuthCallback';
 import ProtectedRoute from './auth/ProtectedRoute';
 import { useAuth } from './auth/AuthContext';
 import { NotificationHandler } from './components/NotificationHandler';
 import { PWAInstallButton } from './components/PWAInstallButton';
 import { SplashScreen } from './components/SplashScreen';
-import { trackPageView } from './services/analytics';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Komponen untuk tracking route changes
 function RouteTracker() {
@@ -27,10 +30,7 @@ function RouteTracker() {
   useEffect(() => {
     // Track setiap kali path berubah
     const pageName = location.pathname === '/' ? 'home' : location.pathname.substring(1);
-    trackPageView(pageName, {
-      previous_page: sessionStorage.getItem('lastPage') || 'none',
-      search_params: location.search
-    });
+    console.log(`TIPIDTER NAVIGATION: Navigating to ${pageName}`);
     
     // Simpan halaman ini untuk digunakan di pageview berikutnya
     sessionStorage.setItem('lastPage', pageName);
@@ -41,9 +41,15 @@ function RouteTracker() {
 
 function App() {
   const { currentUser } = useAuth();
+  
+  console.log('TIPIDTER APP: Rendering App component', { 
+    isAuthenticated: !!currentUser,
+    userEmail: currentUser?.email,
+    userStatus: currentUser?.user_metadata?.registration_status 
+  });
 
   return (
-    <>
+    <ErrorBoundary>
       <SplashScreen />
       <NotificationHandler showNotification={true} />
       <PWAInstallButton />
@@ -59,6 +65,8 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/pending-approval" element={<PendingApproval />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
               
               {/* Protected Routes */}
               <Route path="/" element={
@@ -106,11 +114,17 @@ function App() {
                   <Settings />
                 </ProtectedRoute>
               } />
+              {/* Admin Route - akan diperiksa di dalam komponen AdminPanel */}
+              <Route path="/admin" element={
+                <ProtectedRoute>
+                  <AdminPanel />
+                </ProtectedRoute>
+              } />
             </Routes>
           </main>
         </div>
       </Router>
-    </>
+    </ErrorBoundary>
   );
 }
 
