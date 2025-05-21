@@ -194,11 +194,16 @@ const processInlineFormatting = (text: string): React.ReactNode[] => {
     return [<Text key="empty"></Text>];
   }
 
-    // Proses bold: **text**
+  // Pra-proses: Bersihkan format bold yang tidak standar
+  let processedText = text
+    // Perbaiki format * * * menjadi **
+    .replace(/\*\s*\*\s*\*\s*([^*]+)\s*\*\s*\*(\s*\*)?/g, '**$1**');
+    
+  // Proses bold: **text**
   
   // Cari semua bold text
   const segments: {text: string, isBold: boolean, isItalic: boolean}[] = [];
-  let remainingText = text;
+  let remainingText = processedText;
   
   // Proses bold (**text**)
   let boldMatches = [...remainingText.matchAll(/\*\*(.*?)\*\*/g)];
@@ -226,7 +231,7 @@ const processInlineFormatting = (text: string): React.ReactNode[] => {
   }
   
   // Proses italic (*text*)
-  remainingText = segments.length > 0 ? remainingText : text;
+  remainingText = segments.length > 0 ? remainingText : processedText;
   if (remainingText) {
     segments.push({
       text: remainingText,
@@ -529,6 +534,152 @@ const renderTokensToPdf = (tokens: marked.Token[]): React.ReactNode[] => {
 
 // Fungsi untuk memproses konten menjadi komponen React-PDF
 const processContent = (content: string): React.ReactNode[] => {
+  // Pra-pemrosesan konten - perbaikan untuk masalah PDF
+  // Potong konten yang terlalu panjang untuk mencegah kegagalan PDF
+  const MAX_CONTENT_LENGTH = 50000; // Pembatasan karakter
+  let safeContent = content;
+  
+  if (content.length > MAX_CONTENT_LENGTH) {
+    console.warn(`Konten terlalu panjang (${content.length} karakter). Memotong ke ${MAX_CONTENT_LENGTH} karakter.`);
+    safeContent = content.substring(0, MAX_CONTENT_LENGTH) + 
+      "\n\n... (Konten terlalu panjang. Beberapa bagian tidak ditampilkan.)";
+  }
+  
+  // Pembersihan konten untuk pastikan kompatibilitas dengan PDF
+  safeContent = safeContent
+    .replace(/\r\n/g, '\n')  // Normalize line endings
+    .replace(/\n{3,}/g, '\n\n')  // Normalize multiple line breaks
+    .replace(/[\uD800-\uDFFF]/g, '') // Remove surrogate pairs (emoji)
+    .replace(/[\u0000-\u001F]/g, '') // Remove control characters
+    .replace(/[\u2028\u2029]/g, '\n') // Replace line/paragraph separators
+    .replace(/\*\s*\*\s*\*\s*([^*]+)\s*\*\s*\*(\s*\*)?/g, '**$1**'); // Fix bold formatting
+
+  // Deteksi format output Gemini (dari agentSpkt.ts)
+  if (content.includes("Analisis Kronologi:") && (content.includes("Analisis Pihak yang Terlibat:") || content.includes("Identifikasi Barang Bukti dan Kerugian:"))) {
+    // Preprocessing untuk format bullet points berjenjang dari Gemini
+    console.log("Mendeteksi format output Gemini, melakukan preprocessing khusus");
+    
+    // Pre-process konten untuk menangani format bold yang tidak standar
+    const cleanedContent = content
+      // Menormalkan format bold * * * menjadi **
+      .replace(/\*\s*\*\s*\*\s*([^*]+)\s*\*\s*\*(\s*\*)?/g, '**$1**')
+      // Pastikan bold diikuti spasi setelah colon
+      .replace(/\*\*([^:*]+):\*\*(?!\s)/g, '**$1:** ')
+      // Perbaiki format list yang tidak konsisten
+      .replace(/^([•○◦◉◯])\s+/gm, '* ');
+    
+    // Parse format bullet points berjenjang (* - >)
+    const sections = cleanedContent.split(/\n(?=\d+\.\s+\*\*[^:]+:\*\*|\n(?=\*\s+))/g);
+    const result: React.ReactNode[] = [];
+    
+    // Tambahkan judul utama
+    result.push(<Text key="main-title" style={styles.title}>Hasil Analisis Kasus</Text>);
+    
+    sections.forEach((section, sectionIndex) => {
+      const lines = section.trim().split('\n');
+      let currentLine = 0;
+      
+      // Cek jika section dimulai dengan header (1. **Judul:**)
+      if (lines[0].match(/^\d+\.\s+\*\*([^:]+):\*\*/)) {
+        const headerMatch = lines[0].match(/^\d+\.\s+\*\*([^:]+):\*\*/);
+        if (headerMatch && headerMatch[1]) {
+          result.push(
+            <Text key={`section-header-${sectionIndex}`} style={styles.heading2}>
+              {headerMatch[1]}
+            </Text>
+          );
+          currentLine = 1; // Lanjutkan dari baris berikutnya
+        }
+      }
+      
+      // Proses baris-baris bullet points
+      while (currentLine < lines.length) {
+        const line = lines[currentLine].trim();
+        
+        // Level 1 bullet (* item)
+        if (line.startsWith('* ')) {
+          const level1Content = line.substring(2);
+          result.push(
+            <View key={`level1-${sectionIndex}-${currentLine}`} style={{ flexDirection: 'row', marginBottom: 3, marginLeft: 5 }}>
+              <Text style={{ width: 10 }}>•</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.listItem}>
+                  {processInlineFormatting(level1Content)}
+                </Text>
+              </View>
+            </View>
+          );
+          currentLine++;
+          
+          // Proses sub-bullet jika ada
+          let hasSubItems = false;
+          while (currentLine < lines.length && (lines[currentLine].trim().startsWith('- ') || lines[currentLine].trim().startsWith('> '))) {
+            hasSubItems = true;
+            const subLine = lines[currentLine].trim();
+            
+            // Level 2 bullet (- item)
+            if (subLine.startsWith('- ')) {
+              const level2Content = subLine.substring(2);
+              result.push(
+                <View key={`level2-${sectionIndex}-${currentLine}`} style={{ flexDirection: 'row', marginBottom: 3, marginLeft: 20 }}>
+                  <Text style={{ width: 10 }}>-</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.listItem}>
+                      {processInlineFormatting(level2Content)}
+                    </Text>
+                  </View>
+                </View>
+              );
+            } 
+            // Level 3 bullet (> item)
+            else if (subLine.startsWith('> ')) {
+              const level3Content = subLine.substring(2);
+              result.push(
+                <View key={`level3-${sectionIndex}-${currentLine}`} style={{ flexDirection: 'row', marginBottom: 3, marginLeft: 35 }}>
+                  <Text style={{ width: 10 }}>›</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.listItem}>
+                      {processInlineFormatting(level3Content)}
+                    </Text>
+                  </View>
+                </View>
+              );
+            }
+            
+            currentLine++;
+          }
+          
+          // Tambahkan sedikit space setelah grup bullet
+          if (hasSubItems) {
+            result.push(
+              <View key={`space-after-group-${sectionIndex}-${currentLine}`} style={{ marginBottom: 5 }} />
+            );
+          }
+        } 
+        // Paragraf biasa
+        else {
+          if (line && !line.startsWith('#')) {
+            result.push(
+              <Text key={`para-${sectionIndex}-${currentLine}`} style={styles.paragraph}>
+                {processInlineFormatting(line)}
+              </Text>
+            );
+          }
+          currentLine++;
+        }
+      }
+      
+      // Tambahkan divider antar section kecuali section terakhir
+      if (sectionIndex < sections.length - 1) {
+        result.push(
+          <View key={`divider-${sectionIndex}`} style={styles.sectionDivider} />
+        );
+      }
+    });
+    
+    return result;
+  }
+  
   // Pemrosesan khusus untuk struktur analisis perkara
   if (content.includes("Analisis Perkara:") || content.includes("Hasil Analisis Penelitian Kasus")) {
     // Biarkan pemrosesan khusus ini seperti sebelumnya
@@ -817,10 +968,16 @@ export const ResultPDFDownloadLink: React.FC<ResultPDFProps & {
 }) => {
   const safeFileName = fileName || 'hasil-analisis.pdf';
   const [error, setError] = React.useState<Error | null>(null);
+  const [isDownloading, setIsDownloading] = React.useState(false);
+  const [forceTxtDownload, setForceTxtDownload] = React.useState(false);
+  const [retryCount, setRetryCount] = React.useState(0);
+  const MAX_RETRIES = 2;
   
   // Reset error when props change
   React.useEffect(() => {
     setError(null);
+    setForceTxtDownload(false);
+    setRetryCount(0);
   }, [props.content]);
 
   // Notify parent when error occurs
@@ -830,91 +987,145 @@ export const ResultPDFDownloadLink: React.FC<ResultPDFProps & {
     }
   }, [error, onError]);
   
-  // Handle direct download if PDFDownloadLink fails
+  // Handle direct download
   const handleManualDownload = async () => {
     try {
-      console.log('Attempting manual PDF download...');
+      if (isDownloading) return;
+      setIsDownloading(true);
+      console.log('Attempting PDF download...');
       
-      // Import PDFRenderer dynamically to prevent render errors
-      const { pdf } = await import('@react-pdf/renderer');
+      // Jika mode txt dipaksa, langsung unduh sebagai txt
+      if (forceTxtDownload) {
+        downloadAsTxt();
+        return;
+      }
       
-      // Generate PDF blob
-      const blob = await pdf(<ResultPDFContent {...props} />).toBlob();
-      
-      // Create download link
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = safeFileName;
-      link.click();
-      
-      // Clean up
-      setTimeout(() => URL.revokeObjectURL(url), 100);
-      setError(null);
+      try {
+        // Import PDFRenderer dynamically to prevent render errors
+        const { pdf } = await import('@react-pdf/renderer');
+        
+        console.log(`PDF generation attempt ${retryCount + 1}/${MAX_RETRIES + 1}...`);
+        
+        // Tambahkan timeout untuk menghindari blocking UI
+        const pdfPromise = new Promise<Blob>((resolve, reject) => {
+          // Buat timeout untuk mencegah blocking terlalu lama
+          const timeout = setTimeout(() => {
+            reject(new Error('PDF generation timed out'));
+          }, 10000); // 10 detik timeout
+          
+          pdf(<ResultPDFContent {...props} />)
+            .toBlob()
+            .then(blob => {
+              clearTimeout(timeout);
+              resolve(blob);
+            })
+            .catch(error => {
+              clearTimeout(timeout);
+              reject(error);
+            });
+        });
+        
+        // Generate PDF blob
+        const blob = await pdfPromise;
+        
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = safeFileName;
+        link.click();
+        
+        // Clean up
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+        setError(null);
+      } catch (pdfErr) {
+        console.error('PDF generation failed:', pdfErr);
+        
+        // Coba retry jika belum mencapai batas
+        if (retryCount < MAX_RETRIES) {
+          console.log(`Retrying PDF generation (${retryCount + 1}/${MAX_RETRIES})...`);
+          setRetryCount(prevCount => prevCount + 1);
+          setIsDownloading(false);
+          // Tunggu 1 detik sebelum retry
+          setTimeout(() => handleManualDownload(), 1000);
+          return;
+        }
+        
+        // Fallback to text download jika sudah mencoba beberapa kali
+        console.warn('PDF generation failed after retries, falling back to text download');
+        downloadAsTxt();
+      }
     } catch (err) {
-      console.error('Error during manual PDF download:', err);
+      console.error('Error during download:', err);
       const newError = err instanceof Error ? err : new Error('Gagal membuat PDF');
       setError(newError);
-      
-      // Fallback to simple text download if PDF fails
-      try {
-        const textBlob = new Blob([props.content], { type: 'text/plain' });
-        const textUrl = URL.createObjectURL(textBlob);
-        const link = document.createElement('a');
-        link.href = textUrl;
-        link.download = safeFileName.replace('.pdf', '.txt');
-        link.click();
-        setTimeout(() => URL.revokeObjectURL(textUrl), 100);
-      } catch (textErr) {
-        console.error('Even text fallback failed:', textErr);
-      }
+    } finally {
+      setIsDownloading(false);
     }
   };
   
-  // If there was an error with PDFDownloadLink, show manual download button
+  // Fungsi untuk download sebagai txt
+  const downloadAsTxt = () => {
+    try {
+      // Pastikan konten diformat dengan baik untuk txt
+      const cleanContent = props.content
+        .replace(/\r\n/g, '\n')
+        .replace(/\u00A0/g, ' '); // Ganti non-breaking space dengan space biasa
+      
+      const textBlob = new Blob([cleanContent], { type: 'text/plain;charset=utf-8' });
+      const textUrl = URL.createObjectURL(textBlob);
+      const link = document.createElement('a');
+      link.href = textUrl;
+      link.download = safeFileName.replace('.pdf', '.txt');
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(textUrl), 100);
+      
+      // Tampilkan pesan informatif
+      const fallbackError = new Error(
+        `PDF tidak dapat dibuat setelah ${retryCount} kali percobaan. Dokumen telah diunduh dalam format teks (.txt).`
+      );
+      setError(fallbackError);
+      if (onError) onError(fallbackError);
+    } catch (textErr) {
+      console.error('Text download failed:', textErr);
+      setError(new Error('Gagal mengunduh dokumen dalam format apapun. Silakan coba lagi nanti.'));
+    }
+  };
+  
+  // Jika ada error, tampilkan opsi untuk download sebagai TXT
   if (error) {
     return (
       <button
-        onClick={handleManualDownload}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-sm 
+        onClick={() => {
+          setForceTxtDownload(true);
+          handleManualDownload();
+        }}
+        disabled={isDownloading}
+        className={`flex items-center gap-1.5 px-3 py-1.5 text-sm 
           rounded-lg transition-all duration-200
-          bg-blue-600 text-white
-          hover:bg-blue-700"
+          ${isDownloading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} 
+          text-white`}
       >
         <Download className="w-4 h-4" />
-        <span>Unduh PDF</span>
+        <span>{isDownloading ? 'Mengunduh...' : 'Unduh Sebagai Teks (.txt)'}</span>
       </button>
     );
   }
   
+  // Tombol unduh PDF normal
   return (
-    <PDFDownloadLink 
-      document={<ResultPDFContent {...props} />} 
-      fileName={safeFileName}
-      className="flex items-center gap-1.5 px-3 py-1.5 text-sm 
+    <button
+      onClick={handleManualDownload}
+      disabled={isDownloading}
+      className={`flex items-center gap-1.5 px-3 py-1.5 text-sm 
         rounded-lg transition-all duration-200
-        bg-blue-600 text-white
-        hover:bg-blue-700"
+        ${isDownloading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} 
+        text-white`}
+      title="Download hasil analisis sebagai PDF"
     >
-      {({ loading, error: linkError, blob, url }) => {
-        // Handle error in render function
-        if (linkError && !error) {
-          console.error('PDFDownloadLink render error:', linkError);
-          setTimeout(() => setError(linkError), 0);
-        }
-        
-        // Tambahkan logging untuk debug
-        if (blob) console.log('PDF blob available:', !!blob);
-        if (url) console.log('PDF URL available:', !!url);
-        
-        return (
-          <>
-            <Download className="w-4 h-4" />
-            <span>{loading ? 'Menyiapkan PDF...' : 'Unduh PDF'}</span>
-          </>
-        );
-      }}
-    </PDFDownloadLink>
+      <Download className="w-4 h-4" />
+      <span>{isDownloading ? `Mengunduh${'.'.repeat((retryCount % 3) + 1)}` : 'Unduh PDF'}</span>
+    </button>
   );
 };
 

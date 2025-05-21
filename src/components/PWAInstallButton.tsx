@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
-import { X, Download } from 'lucide-react';
+import { X, Download, Share2, PlusCircle } from 'lucide-react';
 
 export function PWAInstallButton() {
-  const { isInstallable, promptInstall, dismissInstallPrompt } = usePWAInstall();
+  const { isInstallable, promptInstall, dismissInstallPrompt, platform, showIOSGuide } = usePWAInstall();
   const [isMobile, setIsMobile] = useState(false);
 
   // Deteksi perangkat mobile
@@ -50,16 +50,47 @@ export function PWAInstallButton() {
               Pasang Aplikasi
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              Akses lebih cepat tanpa browser
+              {platform === 'iOS' 
+                ? "Untuk pengalaman lebih baik" 
+                : "Akses lebih cepat tanpa browser"}
             </p>
           </div>
           <button 
             onClick={promptInstall}
             className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1.5 rounded-lg shadow-sm transition-colors"
           >
-            Install
+            {platform === 'iOS' ? 'Cara Install' : 'Install'}
           </button>
         </div>
+
+        {/* Panduan khusus iOS */}
+        {platform === 'iOS' && showIOSGuide && (
+          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+            <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Ikuti langkah-langkah berikut untuk install:
+            </p>
+            <ol className="text-xs text-gray-600 dark:text-gray-400 space-y-2">
+              <li className="flex items-center gap-2">
+                <span className="bg-blue-100 dark:bg-blue-900 rounded-full p-1 flex-shrink-0">
+                  <Share2 className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                </span>
+                <span>Tap tombol <strong>Share</strong> di browser Safari</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="bg-blue-100 dark:bg-blue-900 rounded-full p-1 flex-shrink-0">
+                  <PlusCircle className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                </span>
+                <span>Pilih <strong>Add to Home Screen</strong></span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="bg-blue-100 dark:bg-blue-900 rounded-full p-1 flex-shrink-0">
+                  <Download className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                </span>
+                <span>Tap <strong>Add</strong> di pojok kanan atas</span>
+              </li>
+            </ol>
+          </div>
+        )}
       </div>
     </div>
   );

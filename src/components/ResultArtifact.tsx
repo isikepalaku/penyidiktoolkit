@@ -9,6 +9,8 @@ import { ResultPDFDownloadLink } from './ResultPDF';
 marked.setOptions({
   breaks: true,
   gfm: true,
+  headerIds: false, // Mencegah konflik ID pada header
+  mangle: false,
 });
 
 export interface Citation {
@@ -35,6 +37,7 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
   const [hoveredCitation, setHoveredCitation] = useState<number | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const [pdfErrorAttempts, setPdfErrorAttempts] = useState(0);
 
   const handleCopy = async () => {
     try {
@@ -140,6 +143,104 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
 
   const printRef = useCallback(() => contentRef.current, []);
 
+  // Custom renderer untuk konten markdown
+  const createCustomRenderer = () => {
+    const renderer = new marked.Renderer();
+    
+    // Override list rendering
+    renderer.list = (body, ordered, start) => {
+      const type = ordered ? 'ol' : 'ul';
+      const startAttr = (ordered && start) ? ` start="${start}"` : '';
+      const className = ordered 
+        ? 'list-decimal space-y-1.5 pl-6 my-3' 
+        : 'list-disc space-y-1.5 pl-5 my-2';
+      
+      return `<${type}${startAttr} class="${className}">${body}</${type}>`;
+    };
+    
+    // Override list item rendering untuk menangani nested list
+    renderer.listitem = (text) => {
+      // Cek apakah item mengandung list/anak
+      const hasNestedList = /<ul|<ol/.test(text);
+      
+      // Gunakan kelas yang berbeda untuk item dengan nested list
+      const className = hasNestedList 
+        ? 'pl-1 my-2'  // Lebih banyak margin jika ada nested list
+        : 'pl-1 my-1'; // Margin normal untuk item tanpa nested list
+      
+      return `<li class="${className}">${text}</li>`;
+    };
+    
+    // Override paragraph
+    renderer.paragraph = (text) => {
+      if (!text.trim()) return '';
+      
+      // Cek apakah ini adalah teks dengan format "field: value"
+      if (/^(.+?):\s+(.+)$/m.test(text)) {
+        return text
+          .split('\n')
+          .map(line => {
+            const match = line.match(/^(.+?):\s+(.+)$/);
+            if (match && match.length >= 3) {
+              return `<p class="text-gray-700 whitespace-pre-wrap break-words my-2"><span class="font-medium text-gray-800">${match[1]}:</span> ${match[2]}</p>`;
+            }
+            return `<p class="text-gray-700 whitespace-pre-wrap break-words my-2">${line}</p>`;
+          })
+          .join('');
+      }
+      
+      return `<p class="text-gray-700 whitespace-pre-wrap break-words my-2">${text}</p>`;
+    };
+    
+    // Override heading
+    renderer.heading = (text, level, raw, slugger) => {
+      const sizes = [
+        'text-2xl font-bold mb-4 mt-6', // h1
+        'text-xl font-bold mb-3 mt-5',  // h2
+        'text-lg font-semibold mb-2 mt-4', // h3
+        'text-base font-semibold mb-2 mt-3', // h4
+        'text-sm font-semibold mb-1 mt-3',  // h5
+        'text-sm font-medium mb-1 mt-2'    // h6
+      ];
+      
+      return `<h${level} class="${sizes[level-1] || sizes[0]}">${text}</h${level}>`;
+    };
+    
+    // Override link untuk memastikan URL panjang dapat wrap
+    renderer.link = (href, title, text) => {
+      const titleAttr = title ? ` title="${title}"` : '';
+      return `<a href="${href}"${titleAttr} class="text-blue-600 break-all hover:underline" target="_blank" rel="noopener noreferrer">${text}</a>`;
+    };
+    
+    // Override table
+    renderer.table = (header, body) => {
+      return `
+        <div class="overflow-x-auto w-full my-4">
+          <table class="min-w-full border-collapse border border-gray-200">
+            <thead class="bg-gray-50">${header}</thead>
+            <tbody>${body}</tbody>
+          </table>
+        </div>
+      `;
+    };
+    
+    renderer.tablecell = (content, flags) => {
+      const type = flags.header ? 'th' : 'td';
+      const align = flags.align ? ` text-${flags.align}` : '';
+      const classes = flags.header 
+        ? `px-4 py-2 font-medium text-sm text-gray-700 border border-gray-200${align}` 
+        : `px-4 py-2 text-sm text-gray-600 border border-gray-200${align}`;
+      
+      return `<${type} class="${classes}">${content}</${type}>`;
+    };
+    
+    renderer.tablerow = (content) => {
+      return `<tr class="hover:bg-gray-50">${content}</tr>`;
+    };
+    
+    return renderer;
+  };
+
   // Function to format the specific JSON structure into Markdown
   const formatJsonToMarkdown = (jsonData: any): string => {
     let markdown = '';
@@ -177,8 +278,39 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
     return markdown.trim();
   };
 
-
+  // Process content based on its type and structure
   const processContent = (rawContent: string): string => {
+    // 0. Deteksi output dari agentSpkt.ts (Gemini API) dengan cara mengecek pola tertentu
+    if (rawContent.includes("Analisis Kronologi:") && 
+        (rawContent.includes("Analisis Pihak yang Terlibat:") || 
+         rawContent.includes("Identifikasi Barang Bukti dan Kerugian:") ||
+         rawContent.includes("Analisis Aspek Hukum:"))) {
+      console.log("Mendeteksi hasil dari Gemini API (agentSpkt.ts), menerapkan pra-pemrosesan khusus");
+      
+      // Preprocessing khusus untuk output Gemini yang menggunakan format * * * text * * * sebagai bold
+      return rawContent
+        // Normalisasi format bold dengan * * * menjadi **
+        .replace(/\*\s*\*\s*\*\s*([^*]+)\s*\*\s*\*(\s*\*)?/g, '**$1**')
+        
+        // Format headers dengan nomor (1. **Judul:**)
+        .replace(/(\d+\.\s+)\*\*([^*:]+)\*\*/g, '$1**$2:**')
+        
+        // Pastikan ada spasi setelah titik dua
+        .replace(/\*\*([^:*]+):\*\*(?!\s)/g, '**$1:** ')
+        
+        // Perbaiki bullet points untuk indentasi level 1,2,3
+        .replace(/^(\s*)\*(?!\s)/gm, '$1* ')
+        .replace(/^(\s*)-(?!\s)/gm, '$1- ')
+        .replace(/^(\s*)>(?!\s)/gm, '$1> ')
+        
+        // Tambahkan spasi ekstra antara bagian-bagian berbeda
+        .replace(/(\d+\.\s+\*\*[^*]+\*\*:)/g, '\n$1')
+        
+        // Normalkan line breaks
+        .replace(/\r\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n');
+    }
+
     // 1. Attempt to parse as JSON and format if it matches the expected structure
     try {
       const parsedJson = JSON.parse(rawContent);
@@ -206,7 +338,7 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
         .trim();
     }
 
-    // Preserve original processing for other content types
+    // 3. Handle transcript content with [Pembicara] format
     if (rawContent.includes('[Pembicara')) {
       const [transcript, ...rest] = rawContent.split(/\n(?=Metadata)/);
       const formattedTranscript = transcript
@@ -231,15 +363,59 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
       return `# Hasil Transkripsi\n\n${formattedTranscript}${metadata}`;
     }
 
-    return rawContent
-      .replace(/\r\n/g, '\n')
-      .replace(/\n{3,}/g, '\n\n')
-      .replace(/^(\d+\.)\s*/gm, '$1 ')
-      .replace(/(\n\d+\.)(?!\n\d)/g, '\n\n$1')
-      .replace(/(\n\d+\.[^\n]+)(?!\n\d+\.)/g, '$1\n')
-      .replace(/^(\d+\.[^\n]+)\n([^\d\n][^\n]+)/gm, '$1\n\n$2')
-      .replace(/^([^\d\n][^\n]+)\n(\d+\.)/gm, '$1\n\n$2')
-      .trim();
+    // 4. Default formatting for other content
+    return rawContent;
+  };
+
+  const formatMarkdown = (content: string) => {
+    try {
+      // First process content based on its type
+      const processedContent = processContent(content);
+      
+      // Then apply Gemini-specific preprocessing
+      let processedText = processedContent
+        // 1. Pra-proses format bold dengan * * * menjadi **
+        .replace(/\*\s*\*\s*\*\s*([^*]+)\s*\*\s*\*(\s*\*)?/g, '**$1**')
+        
+        // 2. Standarisasi format bullet points
+        .replace(/^(\s*)([•○◦◉◯])\s+/gm, '$1* ')
+        
+        // 3. Pastikan ada spasi setelah bullet markers
+        .replace(/^(\s*\*(?!\s))/gm, '* ')
+        .replace(/^(\s*-(?!\s))/gm, '- ')
+        .replace(/^(\s*>(?!\s))/gm, '> ')
+        
+        // 4. Normalisasi indentasi untuk nested lists
+        .replace(/^(\s{2,})([*-])/gm, (match, indent, bullet) => {
+          // Konversi indentasi ke kelipatan 2 spasi
+          const spaces = '  '.repeat(Math.floor(indent.length / 2));
+          return `${spaces}${bullet}`;
+        })
+        
+        // 5. Format bold headers yang berakhiran titik dua
+        .replace(/\*\*([^:*]+):\*\*(?!\s)/g, '**$1:** ')
+        
+        // 6. Normalkan line breaks
+        .replace(/\r\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n');
+      
+      // Set custom renderer ke marked
+      const renderer = createCustomRenderer();
+      marked.use({ renderer });
+      
+      // Konversi markdown ke HTML
+      const html = marked(processedText);
+      
+      // Sanitize HTML untuk mencegah XSS
+      const sanitizedHtml = DOMPurify.sanitize(html, {
+        ADD_ATTR: ['target'],
+      });
+      
+      return sanitizedHtml;
+    } catch (error) {
+      console.error('Error formatting markdown:', error);
+      return `<pre class="text-red-600 p-4 border border-red-200 bg-red-50 rounded whitespace-pre-wrap">${content}</pre>`;
+    }
   };
 
   // Original formatTimestamp function (ensure it's correctly placed and not duplicated)
@@ -290,47 +466,10 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
     }
   };
 
-  const formatMarkdown = (content: string) => {
-    try {
-      // Pre-process teks untuk URL panjang
-      const processedText = content
-        // Deteksi URL panjang dalam markdown dan tambahkan soft hyphens untuk word breaking
-        .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]{50,})\)/g, (_, text, url) => {
-          // Wrap URL dengan kode khusus yang akan diproses oleh CSS
-          return `[${text}](${url.replace(/\//g, '\\/').replace(/\./g, '\\.')})`; 
-        })
-        // Deteksi URL langsung di teks (bukan dalam markdown link)
-        .replace(/(https?:\/\/[^\s]{50,})/g, (url) => {
-          // Buat URL dapat wrap
-          return url.replace(/\//g, '\\/').replace(/\./g, '\\.');
-        });
-
-      // Convert markdown to HTML
-      const html = marked(processedText);
-      
-      // Sanitize HTML to prevent XSS
-      const sanitizedHtml = DOMPurify.sanitize(html);
-      
-      // Tambahkan beberapa perbaikan untuk URL yang panjang
-      const enhancedHtml = sanitizedHtml
-        // Tambahkan class khusus untuk URL panjang
-        .replace(/<a\s+href="([^"]+)"/g, '<a href="$1" class="break-all overflow-wrap-anywhere"')
-        // Untuk pre dan code blocks, tambahkan class overflow-x-auto
-        .replace(/<pre>/g, '<pre class="overflow-x-auto whitespace-pre-wrap">')
-        // Untuk tabel, tambahkan container dengan overflow-x-auto
-        .replace(/<table>/g, '<div class="overflow-x-auto w-full"><table class="min-w-full">') 
-        .replace(/<\/table>/g, '</table></div>');
-      
-      return enhancedHtml;
-    } catch (error) {
-      console.error('Error formatting markdown:', error);
-      return content;
-    }
-  };
-
   // Handler untuk reset error status PDF
   const handleResetPdfError = () => {
     setPdfError(null);
+    setPdfErrorAttempts(0);
     console.log('PDF error status reset');
   };
   
@@ -338,6 +477,7 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
   const handlePdfError = (error: Error) => {
     console.error('PDF generation error:', error);
     setPdfError(error.message || 'Gagal membuat PDF. Silakan coba lagi.');
+    setPdfErrorAttempts(prev => prev + 1);
   };
 
   useEffect(() => {
@@ -416,11 +556,15 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
                   title="Gagal men-generate PDF, klik untuk mencoba lagi"
                 >
                   <AlertCircle className="w-4 h-4" />
-                  <span>Coba Lagi</span>
+                  <span>{pdfErrorAttempts > 1 ? "Gunakan Cetak" : "Coba Lagi"}</span>
                 </button>
-                <div className="absolute bottom-full mb-2 right-0 bg-white text-xs p-2 rounded shadow-lg border border-red-200 w-60">
+                <div className="absolute bottom-full mb-2 right-0 bg-white text-xs p-2 rounded shadow-lg border border-red-200 w-64">
                   <p className="text-red-600 font-medium">Error: {pdfError}</p>
-                  <p className="text-gray-600 mt-1">Silakan coba format lain seperti cetak atau salin teks.</p>
+                  <p className="text-gray-600 mt-1">
+                    {pdfErrorAttempts > 1 
+                      ? "PDF generation gagal berulang kali. Gunakan opsi Cetak untuk hasil yang lebih baik." 
+                      : "Silakan coba format lain seperti cetak atau salin teks."}
+                  </p>
                 </div>
               </div>
             ) : (
@@ -558,7 +702,7 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
               [&_a]:text-blue-600 [&_a]:no-underline hover:[&_a]:underline"
             >
               {/* processContent now returns ready-to-format Markdown */}
-              <div dangerouslySetInnerHTML={{ __html: formatMarkdown(processContent(content)) }} />
+              <div dangerouslySetInnerHTML={{ __html: formatMarkdown(content) }} />
             </div>
           
             {/* Citations section for printing only - hidden in UI but visible in print */}

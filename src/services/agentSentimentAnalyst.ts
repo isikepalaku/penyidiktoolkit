@@ -1,4 +1,6 @@
 import { env } from '@/config/env';
+import { supabase } from '@/supabaseClient';
+import { v4 as uuidv4 } from 'uuid';
 
 const API_KEY = import.meta.env.VITE_API_KEY;
 const MAX_RETRIES = 3;
@@ -7,10 +9,27 @@ const API_BASE_URL = env.apiUrl || 'http://localhost:8000';
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+// Fungsi untuk mendapatkan user ID yang saat ini login
+const getCurrentUserId = async (): Promise<string> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  return user?.id || uuidv4(); // Jika user tidak ada, gunakan UUID sebagai fallback
+};
+
+// Fungsi untuk mendapatkan session ID
+const getSessionId = async (): Promise<string> => {
+  const { data: { session } } = await supabase.auth.getSession();
+  // Gunakan UUID unik untuk session ID karena Supabase Session tidak memiliki id property
+  return session ? uuidv4() : uuidv4(); // Selalu gunakan UUID untuk session_id
+};
+
 export const submitAgentAnalysis = async (
   topic: string
 ): Promise<string> => {
   let retries = 0;
+  
+  // Dapatkan user_id dan session_id dari Supabase
+  const user_id = await getCurrentUserId();
+  const session_id = await getSessionId();
   
   while (retries <= MAX_RETRIES) {
     try {
@@ -20,8 +39,8 @@ export const submitAgentAnalysis = async (
         input: {
           topic: topic.trim()
         },
-        user_id: "string",
-        session_id: "string"
+        user_id,
+        session_id
       };
 
       console.group('Request Details');

@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import type { FormData, FormDataValue } from '../types';
 import { submitImageAnalysis } from '../services/imageService';
 import { submitAgentAnalysis as submitSpktAnalysis } from '../services/agentSpkt';
-import { submitAgentAnalysis as submitCaseAnalysis } from '../services/agentCaseResearch';
+import { submitAgentAnalysis as submitCaseAnalysis } from '../services/agentCaseResearch.ts';
 import { submitAgentAnalysis as submitHoaxAnalysis } from '../services/agentHoaxChecker';
 import { submitImageProcessorAnalysis } from '../services/imageProcessorService';
 import { submitDokpolAnalysis } from '../services/dokpolService';
