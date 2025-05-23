@@ -317,6 +317,12 @@ export const ImageAgentForm: React.FC<ImageAgentFormProps> = ({
                     </Square>
                     <span className="truncate">Analisis Forensik</span>
                   </SelectItem>
+                  <SelectItem value="text_extraction">
+                    <Square className="bg-green-400/20 text-green-500">
+                      <FileImage className="h-3 w-3" />
+                    </Square>
+                    <span className="truncate">Ekstraksi Teks</span>
+                  </SelectItem>
                 </SelectGroup>
               </SelectContent>
             </Select>

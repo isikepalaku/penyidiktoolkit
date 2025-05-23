@@ -690,6 +690,8 @@ const API_KEY = 'AIzaSyBf4_0ll5H7OMs7yAtgXO1LWVAWhOcbJmo'; // NEVER DO THIS!
 [X] Task: Implementasi Modular Analysis Canvas untuk Crime Trend Analysis - COMPLETED ✅
 [X] Task: Enhancement Temporal Analysis untuk Crime Trend Analyst - COMPLETED ✅
 [X] Task: Enhancement Temporal Analysis untuk Sentiment Analyst - COMPLETED ✅
+[X] Task: Migrasi agentSpkt.ts ke Gemini Gen AI API - COMPLETED ✅
+[X] Task: Migrasi imageService.ts ke Gemini Gen AI API - COMPLETED ✅
 
 ## Migrasi agentSentimentAnalyst.ts ke Gemini Gen AI API - Completed ✅
 
@@ -923,228 +925,178 @@ const API_KEY = 'AIzaSyBf4_0ll5H7OMs7yAtgXO1LWVAWhOcbJmo'; // NEVER DO THIS!
 - **Professional Output**: Template-based formatting sesuai spesifikasi user
 - **Real-time Research**: Live web search integration dengan authoritative sources
 
-## Migrasi agentModusKejahatan.ts ke Gemini Gen AI API - Completed ✅
+## Migrasi agentSpkt.ts ke Gemini Gen AI API - Completed ✅
 
-## Implementasi Modular Analysis Canvas untuk Crime Trend Analysis - Completed ✅
+### Hasil Migrasi:
+1. **API Migration**: Berhasil migrasi dari backend custom package `@google/generative-ai` ke package baru `@google/genai`
+2. **Error Fix**: Menyelesaikan error "Failed to parse stream" yang disebabkan oleh incompatibility antara old dan new API
+3. **Package Integration**: 
+   - Menggunakan `@google/genai` package yang sudah ter-install
+   - Import GoogleGenAI, GenerateContentResponse, Part, GroundingChunk types
+   - Menggunakan Supabase untuk user management
+   - Import uuid untuk session management
+4. **API Syntax Migration**: 
+   - **Old API**: `new GoogleGenerativeAI(env.geminiApiKey)` → **New API**: `new GoogleGenAI({ apiKey: API_KEY })`
+   - **Old API**: `model.generateContentStream()` → **New API**: `ai.models.generateContent()`
+   - **Old API**: HarmCategory/HarmBlockThreshold enums → **New API**: Simplified string-based config
+   - **Old API**: Complex safety settings → **New API**: Basic config tanpa safety settings
+   - **Old API**: Stream processing → **New API**: Direct response.text access
+5. **Configuration Updates**:
+   - **Environment Variable**: Menggunakan `import.meta.env.VITE_GEMINI_API_KEY` sesuai pattern agent lain
+   - **Error Handling**: Enhanced error handling dengan API key validation
+   - **Logging**: Improved logging dengan user_id dan session_id tracking
+   - **Response Format**: Direct text response tanpa streaming complexity
+6. **Enhanced Error Handling**:
+   - **API Key Issues**: Specific error messages untuk API_KEY_INVALID
+   - **Rate Limiting**: Enhanced rate limit dan quota exceeded handling
+   - **Forbidden Access**: Clearer error messages untuk access issues
+   - **Generic Errors**: Better error propagation dengan original message context
+7. **Functionality Preservation**:
+   - **System Prompt**: Mempertahankan sistem prompt yang sudah ada untuk Reserse AI
+   - **Analysis Structure**: Tetap menggunakan format analisis kronologi yang sama
+   - **Output Format**: Konsisten dengan format laporan yang sudah established
+   - **Temperature & TopP**: Mempertahankan parameter generasi yang sama (1.0 dan 0.95)
+8. **User Session Management**:
+   - **getCurrentUserId()**: Function untuk mendapatkan user ID dari Supabase auth
+   - **getSessionId()**: Function untuk mendapatkan session ID untuk tracking
+   - **Logging Enhancement**: User dan session tracking untuk debugging
+9. **Code Cleanup**:
+   - **Removed Old Imports**: Menghapus import dari `@google/generative-ai` dan `env`
+   - **Simplified Configuration**: Tidak ada safety settings yang complex
+   - **TypeScript Fixes**: Fixed type errors dengan string-based configuration
+   - **Stream Removal**: Menghapus streaming logic yang menyebabkan parsing error
 
-### Hasil Implementasi:
-1. **Modular Canvas Architecture**: Berhasil membuat sistem canvas yang modular dan reusable
-2. **Component Structure**: 
-   - **src/types/analysis.ts**: Shared types untuk analysis components
-   - **src/components/analysis/**: Direktori untuk modular analysis components
-   - **CrimeTrendChart.tsx**: Multi-chart component (bar, pie, line, area)
-   - **AnalysisDisplay.tsx**: Tabbed content display dengan metrics, sources, queries
-   - **CrimeTrendAnalysisCanvas.tsx**: Main canvas component untuk crime trend analysis
-   - **index.ts**: Export barrel untuk modular imports
+### Technical Achievements:
+- **API Compatibility**: Successful migration to modern @google/genai API
+- **Error Resolution**: Fixed "Failed to parse stream" error completely
+- **Consistency**: Aligned dengan pattern migrasi yang sudah berhasil di agent lain
+- **Enhanced Reliability**: Improved error handling dan user session tracking
+- **Professional Output**: Maintained quality dan format output yang professional
+- **Future-Proof**: Using latest API specification sesuai dokumentasi resmi
 
-3. **Shared Type System**:
-   - **AnalysisCanvasProps**: Generic props untuk semua canvas
-   - **ChartConfig**: Configuration untuk berbagai jenis chart
-   - **AnalysisDisplayTab**: Tab system untuk content organization
-   - **ParsedCrimeTrendData**: Structured data untuk crime trend analysis
-   - **AnalysisMetric**: Metrics display dengan label, value, description
-   - **WebSource**: Consistent source handling across agents
+### Implementation Benefits:
+- **Stability**: No more stream parsing errors yang mengganggu user experience
+- **Consistency**: Same API pattern dengan all other agents untuk maintenance
+- **Enhanced Debugging**: Better logging dan error reporting untuk development
+- **Professional Integration**: Seamless integration dengan Supabase auth system
+- **Error Transparency**: Clear error messages untuk different failure scenarios
+- **Scalability**: Ready untuk additional features dengan modern API foundation
 
-4. **Chart Capabilities**:
-   - **Multi-Type Charts**: Bar, Pie, Line, Area charts dengan recharts
-   - **Responsive Design**: Adaptive sizing untuk mobile, tablet, desktop
-   - **Custom Tooltips**: Enhanced tooltips dengan consistent formatting
-   - **Color Themes**: Configurable color schemes per agent type
-   - **Interactive Elements**: Chart type toggle, hover effects, legends
+### Migration Pattern for Future Agents:
+```typescript
+// 1. Import pattern baru
+import { GoogleGenAI, GenerateContentResponse, Part, GroundingChunk } from "@google/genai";
+import { supabase } from '@/supabaseClient';
+import { v4 as uuidv4 } from 'uuid';
 
-5. **Content Parsing & Display**:
-   - **Advanced Regex Parsing**: Multi-section content extraction
-   - **Structured Tabs**: Dynamic tab creation berdasarkan content availability
-   - **Metrics Cards**: Visual metrics display dengan icons dan descriptions
-   - **Source Management**: Interactive source links dengan copy functionality
-   - **Search Query Display**: Transparent query tracking dengan copy feature
-   - **Fallback Handling**: Graceful degradation untuk parsing failures
+// 2. API key configuration
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const ai = new GoogleGenAI({ apiKey: API_KEY! });
 
-6. **Integration Pattern**:
-   - **Agents.tsx Update**: Added crime_trend_analyst ke conditional canvas rendering
-   - **Layout Synchronization**: Canvas margin adjustment untuk sidebar compatibility
-   - **Service Integration**: getStructuredCrimeTrendAnalysis untuk structured data
-   - **Type Safety**: Complete TypeScript coverage untuk all components
-   - **Reusability**: Components designed untuk digunakan agen lain
-
-7. **UI/UX Features**:
-   - **Full-Screen Modal**: Canvas dengan backdrop blur dan responsive sizing
-   - **Mobile Optimization**: Touch-friendly controls dan responsive layouts
-   - **Visual Consistency**: Matching design language dengan sentiment analysis
-   - **Chart Type Toggle**: Real-time chart switching dengan smooth transitions
-   - **Trend Status Display**: Dynamic status berdasarkan growth metrics
-   - **Professional Styling**: Red theme untuk crime analysis vs blue untuk sentiment
-
-8. **Benefits untuk Future Agents**:
-   - **Drop-in Components**: CrimeTrendChart dan AnalysisDisplay bisa digunakan agent lain
-   - **Consistent Interface**: Standardized AnalysisCanvasProps untuk all agents
-   - **Flexible Parsing**: Adaptable content parsing untuk different analysis types
-   - **Scalable Architecture**: Easy to extend dengan new chart types dan display modes
-   - **Type-Safe Development**: Shared types memastikan consistency across agents
-
-9. **Implementation Best Practices**:
-   - **Component Modularity**: Each component has single responsibility
-   - **Type Reusability**: Shared types reduce duplication dan improve maintenance
-   - **Responsive First**: Mobile-first design dengan progressive enhancement
-   - **Performance Optimization**: Efficient parsing dan rendering dengan proper memoization
-   - **Error Handling**: Graceful fallbacks untuk missing atau invalid data
-   - **Documentation**: Clear interfaces dan export patterns untuk easy adoption
-
-### Usage Pattern untuk Future Agents:
-  ```typescript
-// 1. Create structured service export
-export const getStructuredXAnalysis = async (topic: string) => {
-  const rawResult = await submitXAnalysis(topic);
-  // Parse and return structured data
-  return { rawContent, analysis, sources, searchQueries };
+// 3. User session functions
+const getCurrentUserId = async (): Promise<string> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  return user?.id || uuidv4();
 };
 
-// 2. Create canvas component
-import { AnalysisCanvasProps } from '../../types/analysis';
-import CrimeTrendChart from './CrimeTrendChart';
-import AnalysisDisplay from './AnalysisDisplay';
+// 4. API call pattern
+const response = await ai.models.generateContent({
+  model: "gemini-2.0-flash",
+  contents: prompt,
+  config: {
+    maxOutputTokens: 8192,
+    temperature: 1.0,
+    topP: 0.95,
+  },
+});
 
-const XAnalysisCanvas: React.FC<AnalysisCanvasProps> = ({ content, onClose, title }) => {
-  // Parse content, create tabs, configure charts
-  return (<canvas with chart and display components>);
-};
-
-// 3. Update Agents.tsx
-{selectedAgentData.type === 'x_agent' ? (
-  <XAnalysisCanvas content={result} onClose={...} />
-) : (other conditions)}
+// 5. Enhanced error handling dengan specific cases
+if (error.message.includes('API_KEY_INVALID')) {
+  throw new Error('API key Gemini tidak valid...');
+}
 ```
 
-### Technical Achievements:
-- **Modular Design**: Reusable components untuk multiple agents
-- **Type Safety**: Complete TypeScript coverage dengan shared interfaces  
-- **Performance**: Efficient parsing dan responsive rendering
-- **Extensibility**: Easy to add new chart types dan display modes
-- **Consistency**: Unified design language across analysis types
-- **User Experience**: Professional, interactive visualization interface
+### Environment Requirements:
+- **VITE_GEMINI_API_KEY**: Required di .env file untuk Gemini API access
+- **Supabase Configuration**: Must be properly configured untuk user session management
+- **Package Dependencies**: @google/genai package harus ter-install di package.json
 
-## Analysis components TypeScript cleanup
+## Migrasi imageService.ts ke Gemini Gen AI API - Completed ✅
 
-### Hasil Implementasi:
-1. **TypeScript fix patterns**
-   - UI/UX lessons for chat components
-   - Mobile and desktop optimization patterns
-   - Crime analysis migration documentation
-   - **Analysis components TypeScript cleanup**: Fixed unused imports in CrimeTrendChart.tsx (ChartDataPoint), AnalysisDisplay.tsx (AlertTriangle, Shield, Target), dan agentCrimeTrendAnalyst.ts (keyFindingsMatch, predictionsMatch)
-   - **Temporal Analysis TypeScript fixes**: Fixed unused variables in agentSentimentAnalyst.ts (currentDate) dan agentCrimeTrendAnalyst.ts (index parameter in forEach)
-   - **ResultArtifact TypeScript cleanup**: Fixed unused parameters in ResultArtifact.tsx:
-     * renderer.heading function: `raw` dan `slugger` parameters changed to `_raw` dan `_slugger` (line 196)
-     * replace function callback: `match` parameter changed to `_match` (line 389)
-     * Pattern: Use underscore prefix for unused parameters to avoid TypeScript warnings
-
-## Enhancement Temporal Analysis untuk Crime Trend Analyst - Completed ✅
-
-### Hasil Implementasi:
-1. **Temporal Functions**: Berhasil menambahkan fungsi waktu getCurrentTimeInfo() dan createTemporalPrompt()
-2. **Time-Aware Prompt Enhancement**: 
-   - Menambahkan konteks waktu saat ini dalam prompt
-   - Target analisis 5 tahun terakhir (e.g., 2020-2024)
-   - Fokus pada data kuantitas kejadian per periode waktu
-   - Instruksi spesifik untuk mencari data time-series dan year-over-year comparison
-3. **Enhanced Data Parsing**: 
-   - Menambahkan parseTemporalData() untuk ekstraksi data temporal dari response Gemini
-   - Parsing format TEMPORAL_DATA dengan PERIOD, CASES, DESCRIPTION
-   - Fallback mechanism dengan data demo menggunakan tahun real
-   - Improved getStructuredCrimeTrendAnalysis() dengan temporal data extraction
-4. **Chart Data Integration**:
-   - **Real Data from Gemini**: Chart sekarang menggunakan data temporal yang diekstrak dari response AI
-   - **Timeline Labels**: Mengganti Q1/Q2 dummy data dengan tahun real (e.g., 2020, 2021, 2022, 2023, 2024)
-   - **Default Line Chart**: Mengubah default chart type dari bar ke line untuk timeline trend visualization
-   - **Enhanced Chart Titles**: Timeline Tren Kejahatan dengan range periode yang dinamis
-5. **UI/UX Temporal Enhancements**:
-   - **Header Info**: Menambahkan "Timeline Trend • X periode data" di header
-   - **Chart Section**: Enhanced title dengan periode range (e.g., "2020 - 2024")
-   - **Chart Type Order**: Line chart sebagai pilihan pertama (timeline focus)
-   - **Loading Message**: "Menganalisis tren temporal kejahatan..."
-   - **Data Period Display**: Menampilkan jumlah periode data yang tersedia
-6. **Data Structure Updates**:
-   - **Enhanced Interface**: Menambahkan temporalData ke CrimeTrendAnalysisResult dan ParsedCrimeTrendData
-   - **Type Safety**: Proper TypeScript typing untuk temporal data structure
-   - **Service Integration**: getStructuredCrimeTrendAnalysis() return temporal data untuk canvas
-7. **Advanced Prompt Engineering**:
-   - **Temporal Context**: Explicit date dan time range dalam prompt
-   - **Quantitative Focus**: Emphasis pada data kuantitas kejadian per periode
-   - **Time-Series Instructions**: Specific guidelines untuk mencari data temporal
-   - **Statistical Priority**: Prioritas pada data statistik resmi dengan timestamp
-   - **Prediction Enhancement**: Temporal-based prediction dengan range tahun masa depan
+### Hasil Migrasi:
+1. **API Migration**: Berhasil migrasi dari package lama `@google/generative-ai` ke package baru `@google/genai`
+2. **Image Analysis Focus**: Khusus untuk analisis gambar dengan multimodal capabilities
+3. **Package Integration**: 
+   - Menggunakan `@google/genai` package yang sudah ter-install
+   - Import GoogleGenAI, GenerateContentResponse, Part, GroundingChunk types
+   - Menggunakan Supabase untuk user management
+   - Import uuid untuk session management
+4. **API Syntax Migration**: 
+   - **Old API**: `new GoogleGenerativeAI(GEMINI_API_KEY)` → **New API**: `new GoogleGenAI({ apiKey: API_KEY })`
+   - **Old API**: `models.primary.generateContent(parts)` → **New API**: `ai.models.generateContent({ model, contents, config })`
+   - **Old API**: `result.response.text()` → **New API**: `response.text` direct access
+   - **Old API**: Model instances → **New API**: Model names as strings
+5. **Enhanced Image Processing**:
+   - **File Metadata Logging**: Log ukuran file dalam MB untuk debugging
+   - **Base64 Processing**: Maintain existing base64 conversion dengan improved error handling
+   - **Multimodal Content**: Proper Part[] typing untuk text dan image content
+   - **MIME Type Handling**: Consistent MIME type processing dari file.type
+6. **Improved Error Handling**:
+   - **API Key Issues**: Specific error messages untuk API_KEY_INVALID (401 errors)
+   - **Quota Management**: Enhanced quota exceeded dan rate limit handling
+   - **Model Fallback**: Improved fallback logic dengan logging untuk transparency
+   - **File Processing Errors**: Better handling untuk image conversion failures
+   - **Network Issues**: Enhanced network error detection dan messaging
+7. **User Session Management**:
+   - **getCurrentUserId()**: Function untuk mendapatkan user ID dari Supabase auth
+   - **getSessionId()**: Function untuk mendapatkan session ID untuk tracking
+   - **Enhanced Logging**: User, session, dan file metadata tracking untuk debugging
+   - **File Tracking**: Log nama file dan ukuran untuk better monitoring
+8. **Configuration Improvements**:
+   - **Model Selection**: Dynamic model switching antara gemini-2.0-flash dan gemini-2.0-flash-exp
+   - **Content Structure**: Proper contents array dengan role specification
+   - **Generation Config**: Maintain existing temperature (1.0) dan topP (0.95) settings
+   - **Token Limits**: Set maxOutputTokens to 8192 untuk image analysis results
+9. **Retry Logic Enhancement**:
+   - **Fallback Model**: Automatic switch ke model exp saat primary model overloaded
+   - **Progressive Delays**: Maintained existing progressive retry delays
+   - **Status Logging**: Clear logging untuk retry attempts dan model switching
+   - **Error Classification**: Better error classification untuk appropriate handling
 
 ### Technical Achievements:
-- **Real-Time Data**: Chart menggunakan data temporal real dari Gemini search results
-- **Timeline Visualization**: Optimized untuk menampilkan tren waktu dengan line chart default
-- **Flexible Parsing**: Robust parsing yang dapat handle berbagai format temporal data dari web
-- **Year-Aware Analysis**: Context-aware analysis berdasarkan tahun dan periode saat ini
-- **Enhanced Accuracy**: Improved temporal accuracy dengan explicit time context
-- **Professional Timeline**: Business-ready timeline analysis dengan periode range yang jelas
+- **Multimodal Compatibility**: Successful migration untuk image analysis dengan new API
+- **File Processing Stability**: Maintained existing base64 conversion dan file handling
+- **Error Resilience**: Enhanced error handling untuk various failure scenarios
+- **Performance Monitoring**: Improved logging untuk performance tracking dan debugging
+- **Model Reliability**: Robust fallback system untuk high availability
+- **API Consistency**: Aligned dengan pattern yang sudah berhasil di text-based agents
 
-### Benefits:
-- **Accurate Timeline**: Data chart yang mencerminkan periode waktu yang sebenarnya
-- **Better Insights**: Timeline trend memberikan insight yang lebih baik untuk prediksi
-- **Real Data Integration**: Seamless integration antara Gemini search results dengan chart visualization
-- **User Experience**: Clearer information tentang periode analisis dan data availability
-- **Future-Proof**: Temporal functions yang dapat adapt dengan perubahan waktu otomatis
+### Implementation Benefits:
+- **Modern API**: Using latest @google/genai API specification untuk future compatibility
+- **Enhanced Debugging**: Comprehensive logging untuk development dan production monitoring
+- **Improved Reliability**: Better error handling dan recovery mechanisms
+- **Session Tracking**: Professional integration dengan Supabase auth system
+- **File Monitoring**: Better visibility into file processing untuk optimization
+- **Consistent Pattern**: Same migration pattern dengan all other services
 
-## Enhancement Temporal Analysis untuk Sentiment Analyst - Completed ✅
+### Image-Specific Features Preserved:
+- **Multi-File Support**: Maintained ability untuk process multiple images dalam single call
+- **Prompt Customization**: Preserved imagePrompts integration dengan flexible prompt types
+- **Format Validation**: Continued validation untuk supported image formats
+- **Context Enhancement**: Maintained description parameter untuk additional context
+- **Result Formatting**: Preserved multi-file result concatenation dengan clear separators
 
-### Hasil Implementasi:
-1. **Temporal Functions**: Berhasil menambahkan fungsi waktu getCurrentTimeInfo() dan createTemporalSentimentPrompt()
-2. **Time-Aware Prompt Enhancement**: 
-   - Menambahkan konteks waktu saat ini dalam prompt
-   - Target analisis 3 bulan terakhir untuk sentiment analysis
-   - Fokus pada sentimen publik terkini dan perkembangan opini
-   - Instruksi spesifik untuk mencari konten dengan timestamp/tanggal publikasi yang jelas
-3. **Enhanced Data Parsing**: 
-   - Updated parseSentimentTextResponse() dengan fokus pada konten temporal
-   - Enhanced getStructuredSentimentAnalysis() dengan timeContext dan periodAnalysis
-   - Improved interface SentimentAnalysisResult dengan temporal fields
-   - Better extraction untuk timeline context dan periode analisis
-4. **Prompt Engineering Enhancement**:
-   - **Temporal Context**: Explicit date dan periode fokus 3 bulan terakhir
-   - **Recent Content Priority**: Prioritas pada konten dari periode recent hingga saat ini
-   - **Event-Based Analysis**: Identifikasi faktor temporal yang mempengaruhi sentimen
-   - **Time-Stamped Sources**: Emphasis pada sumber dengan timestamp publikasi jelas
-   - **Contextual Instructions**: Guidelines untuk hindari sumber outdated
-5. **Output Format Improvements**:
-   - **Temporal Header**: "Laporan Analisis Sentimen Temporal" dengan timestamp
-   - **Period Context**: Display periode analisis dengan format "bulan → bulan → bulan"
-   - **Timeline Integration**: Konteks waktu saat ini dalam setiap bagian analisis
-   - **Event Correlation**: Analisis faktor temporal yang mempengaruhi sentimen
-   - **Recent Focus**: Semua analisis difokuskan pada periode 3 bulan terakhir
-6. **Enhanced User Experience**:
-   - **Time Context Display**: User dapat melihat kapan analisis dilakukan dan periode yang dicakup
-   - **Recent Period Focus**: 3 bulan terakhir untuk sentiment yang lebih relevan vs 5 tahun untuk crime trend
-   - **Event-Based Insights**: Identifikasi events/berita yang mempengaruhi sentimen
-   - **Temporal Recommendations**: Rekomendasi strategis berdasarkan kondisi terkini
-   - **Future-Aware**: Prediksi jangka pendek berdasarkan tren sentimen recent
-7. **Technical Improvements**:
-   - **Month Names Array**: Array bulan dalam bahasa Indonesia untuk display yang proper
-   - **Recent Months Calculation**: Logic untuk menghitung 3 bulan terakhir dengan benar
-   - **Cross-Year Handling**: Proper handling periode yang melintasi tahun (e.g., Nov 2024 → Jan 2025)
-   - **Indonesian Localization**: Full localization dengan format tanggal Indonesia
-   - **Enhanced Logging**: Temporal context dalam console.log untuk debugging
+### Enhanced Web Search Integration:
+- **Google Search Tools**: Menambahkan `tools: [{ googleSearch: {} }]` untuk konteks web yang lebih kaya
+- **Enhanced Prompt Engineering**: createEnhancedImagePrompt() function untuk prompt yang memanfaatkan web search
+- **Clean Output Processing**: Automatic removal dari URLs dan referensi web untuk clean user experience
+- **Grounding Metadata Handling**: Process grounding metadata tanpa expose ke user
+- **Search Query Logging**: Log web search queries untuk debugging tanpa tampil di output
+- **Context-Rich Analysis**: Kombinasi visual analysis dengan real-time web knowledge
+- **Professional Output**: Clean, professional response tanpa referensi link eksplisit
 
-### Technical Achievements:
-- **Recent Content Focus**: Analysis menggunakan konten 3 bulan terakhir yang lebih relevan untuk sentiment
-- **Time-Aware Search**: Google Search dengan prioritas pada konten recent dan timestamped
-- **Temporal Context**: Complete timeline context dalam setiap aspek analisis
-- **Event Correlation**: Kemampuan mengidentifikasi events yang mempengaruhi sentimen
-- **Enhanced Accuracy**: Improved sentiment accuracy dengan fokus pada periode yang relevan
-- **Professional Temporal Output**: Business-ready sentiment analysis dengan context temporal yang jelas
-
-### Benefits:
-- **More Relevant Sentiment**: Fokus 3 bulan terakhir memberikan sentiment yang lebih current dan actionable
-- **Better Context**: User mendapat informasi lengkap tentang timeline dan periode analisis
-- **Event-Based Insights**: Sentiment analysis yang dapat dikaitkan dengan events/berita specific
-- **Time-Sensitive Recommendations**: Rekomendasi yang relevan dengan kondisi terkini
-- **Enhanced Professional Output**: Format laporan yang lebih professional dengan context temporal
-- **Future-Proof**: Temporal functions yang otomatis update sesuai waktu saat ini
-
-### Implementation Pattern:
-- **Parallel Enhancement**: Implementasi pattern yang sama dengan crime trend analyst namun disesuaikan untuk sentiment analysis
-- **Differentiated Focus**: 3 bulan untuk sentiment vs 5 tahun untuk crime trend sesuai karakteristik masing-masing
-- **Consistent Interface**: Maintain compatibility dengan existing sentiment analysis canvas
-- **Enhanced Structured Data**: timeContext dan periodAnalysis untuk better integration dengan UI components
+### Web Search Error Handling:
+- **Search Service Fallback**: Graceful degradation saat web search tidak tersedia
+- **Enhanced Error Messages**: Specific error handling untuk grounding dan search issues
+- **Reference Cleanup**: Automatic cleanup untuk URLs, markdown links, dan source references
+- **Consistent Experience**: Maintain user experience consistency tanpa expose technical details
