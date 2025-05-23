@@ -228,7 +228,7 @@ const SentimentAnalysisCanvas: React.FC<SentimentAnalysisCanvasProps> = ({
         {/* Footer - Lebih besar untuk desktop */}
         <div className="bg-gray-50 border-t border-gray-200 p-2 sm:p-3 lg:p-4 flex-shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs lg:text-sm text-gray-500 gap-1 sm:gap-0">
-            <span className="text-center sm:text-left">Powered by Google Gemini AI & Google Search</span>
+            <span className="text-center sm:text-left">Powered by Reserse Ai & Google Search</span>
             <span className="text-center sm:text-right">Data web terkini • Analisis real-time</span>
           </div>
         </div>

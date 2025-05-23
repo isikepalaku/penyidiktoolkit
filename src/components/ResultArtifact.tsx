@@ -193,7 +193,7 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
     };
     
     // Override heading
-    renderer.heading = (text, level, raw, slugger) => {
+    renderer.heading = (text, level, _raw, _slugger) => {
       const sizes = [
         'text-2xl font-bold mb-4 mt-6', // h1
         'text-xl font-bold mb-3 mt-5',  // h2
@@ -386,7 +386,7 @@ const ResultArtifact: React.FC<ResultArtifactProps> = ({ content, onClose, citat
         .replace(/^(\s*>(?!\s))/gm, '> ')
         
         // 4. Normalisasi indentasi untuk nested lists
-        .replace(/^(\s{2,})([*-])/gm, (match, indent, bullet) => {
+        .replace(/^(\s{2,})([*-])/gm, (_match, indent, bullet) => {
           // Konversi indentasi ke kelipatan 2 spasi
           const spaces = '  '.repeat(Math.floor(indent.length / 2));
           return `${spaces}${bullet}`;

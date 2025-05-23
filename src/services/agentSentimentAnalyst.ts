@@ -277,7 +277,7 @@ export const submitAgentAnalysis = async (
 
     // Tambahkan catatan tentang grounding temporal
     if (sources.length > 0) {
-      finalResult += `\n*Analisis sentimen temporal ini berdasarkan data web periode ${timeInfo.recentMonths.join(' hingga ')} yang diperoleh melalui Google Search pada ${timeInfo.currentDate}.*`;
+      finalResult += `\n*Analisis sentimen temporal ini berdasarkan data web periode ${timeInfo.recentMonths.join(' hingga ')} yang diperoleh melalui Pencarian Web pada ${timeInfo.currentDate}.*`;
     }
 
     console.log('Temporal sentiment analysis completed successfully');
@@ -297,7 +297,7 @@ export const submitAgentAnalysis = async (
         throw new Error("Batas penggunaan API tercapai. Silakan coba lagi nanti. (1,500 grounding queries gratis per hari)");
       }
       if (error.message.includes('grounding') || error.message.includes('search')) {
-        throw new Error("Layanan Google Search grounding sedang tidak tersedia. Silakan coba lagi nanti.");
+        throw new Error("Layanan Pencarian Web sedang tidak tersedia. Silakan coba lagi nanti.");
       }
       throw new Error(`Gemini API Error: ${error.message}`);
     }
