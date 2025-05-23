@@ -21,15 +21,18 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Ambil API key dari environment variable
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
+
+if (!API_KEY) {
+  console.error('VITE_GEMINI_API_KEY tidak ditemukan. Silakan set environment variable VITE_GEMINI_API_KEY.');
+}
+
+// Log hanya status ketersediaan API key (tidak expose nilai)
+console.log('Gemini API Key status:', API_KEY ? 'Available' : 'Missing');
+
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB (Gemini limit)
 const MAX_TOTAL_SIZE = 100 * 1024 * 1024; // 100MB
 const MAX_DOCUMENTS = 10; // Maksimal 10 dokumen
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 menit dalam milidetik
-
-// Log API key (hanya untuk debugging, hapus di production)
-console.log('Gemini API Key tersedia:', !!API_KEY);
-console.log('Gemini API Key length:', API_KEY.length);
-console.log('Gemini API Key prefix:', API_KEY.substring(0, 5) + '...');
 
 // Inisialisasi Gemini API client
 const genAI = new GoogleGenerativeAI(API_KEY);

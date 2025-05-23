@@ -293,6 +293,43 @@ Professional Color Scheme Examples:
   - VITE_SUPABASE_ANON_KEY for Supabase Anon Key
   - etc.
 
+## API Key Security Lessons
+
+⚠️ **CRITICAL SECURITY PRACTICES:**
+- **NEVER hardcode API keys in source code files**
+- **NEVER commit .env files to version control**
+- **NEVER log actual API key values, even partially**
+- **ALWAYS use environment variables for sensitive credentials**
+
+### Security Patterns:
+```typescript
+// ✅ CORRECT - Use environment variables
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+
+// ✅ CORRECT - Safe logging
+console.log('API Key status:', API_KEY ? 'Available' : 'Missing');
+
+// ❌ WRONG - Never expose actual key values
+console.log('API Key:', API_KEY); // DANGEROUS!
+console.log('API Key prefix:', API_KEY.substring(0, 5)); // STILL DANGEROUS!
+
+// ❌ WRONG - Never hardcode keys
+const API_KEY = 'AIzaSyBf4_0ll5H7OMs7yAtgXO1LWVAWhOcbJmo'; // NEVER DO THIS!
+```
+
+### .gitignore Requirements:
+- Ensure `.env` files are in .gitignore
+- Ensure `.env.local`, `.env.production.local` etc. are ignored
+- Provide `.env.example` with placeholder values for new developers
+
+### Emergency Response for Exposed Keys:
+1. **Immediately revoke/regenerate** the exposed API key
+2. **Remove key from all files** including documentation and comments
+3. **Search entire codebase** for any hardcoded key references
+4. **Check git history** and remove exposed keys from commits
+5. **Update .env.example** with proper placeholder values
+6. **Audit all logging statements** to ensure no key exposure
+
 ## Performance Optimization Lessons
 
 - Use code splitting with manual chunks for vendor, UI, and feature code
@@ -711,7 +748,7 @@ Professional Color Scheme Examples:
 7. **Environment Variables**: 
    - Menambahkan requirement untuk `VITE_GEMINI_API_KEY`
    - Improved error handling untuk API key validation
-   - User already has API key configured: `VITE_GEMINI_API_KEY=AIzaSyBf4_0ll5H7OMs7yAtgXO1LWVAWhOcbJmo`
+   - User should configure API key in .env file
 
 8. **Enhanced Error Handling**:
    - Specific error messages untuk API key, quota, dan rate limit issues
