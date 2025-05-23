@@ -10,6 +10,8 @@ import { ImageAgentForm } from '../components/agent-forms/ImageAgentForm';
 import { ImageProcessorForm, ImageProcessorFormProps } from '../components/agent-forms/ImageProcessorForm';
 import { useAgentForm } from '../hooks/useAgentForm';
 import { DotBackground } from '../components/ui/DotBackground';
+import { SentimentAnalysisCanvas } from '@/components/sentiment';
+import { CrimeTrendAnalysisCanvas } from '@/components/analysis';
 
 // Convert ExtendedAgent to Agent type by omitting extended properties
 const toAgent = (extendedAgent: ExtendedAgent): Agent => {
@@ -166,7 +168,7 @@ export default function Agents() {
   if (selectedAgent && selectedAgentData) {
     return (
       <DotBackground className="min-h-screen">
-        <div className={`p-6 lg:p-8 transition-all duration-300 ${showArtifact ? 'lg:mr-[50%]' : ''}`}>
+        <div className={`p-6 lg:p-8 transition-all duration-300 ${showArtifact && selectedAgentData?.type !== 'sentiment_analyst' && selectedAgentData?.type !== 'crime_trend_analyst' ? 'lg:mr-[50%]' : ''}`}>
           <header>
             <div className="max-w-5xl mx-auto px-6 py-8">
               <button 
@@ -213,14 +215,36 @@ export default function Agents() {
         </div>
 
         {showArtifact && result && selectedAgentData && (
-          <ResultArtifact 
-            content={result}
-            title={`Hasil Analisis ${selectedAgentData.name}`}
-            onClose={() => {
-              setShowArtifact(false);
-              setResult(null);
-            }}
-          />
+          <>
+            {selectedAgentData.type === 'sentiment_analyst' ? (
+              <SentimentAnalysisCanvas
+                content={result}
+                title={`Hasil Analisis ${selectedAgentData.name}`}
+                onClose={() => {
+                  setShowArtifact(false);
+                  setResult(null);
+                }}
+              />
+            ) : selectedAgentData.type === 'crime_trend_analyst' ? (
+              <CrimeTrendAnalysisCanvas
+                content={result}
+                title={`Hasil Analisis ${selectedAgentData.name}`}
+                onClose={() => {
+                  setShowArtifact(false);
+                  setResult(null);
+                }}
+              />
+            ) : (
+              <ResultArtifact 
+                content={result}
+                title={`Hasil Analisis ${selectedAgentData.name}`}
+                onClose={() => {
+                  setShowArtifact(false);
+                  setResult(null);
+                }}
+              />
+            )}
+          </>
         )}
       </DotBackground>
     );

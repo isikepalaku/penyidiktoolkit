@@ -101,6 +101,7 @@ If needed, you can further use the `web_scraper.py` file to scrape the web page 
 - Add debug information to stderr while keeping the main output clean in stdout for better pipeline integration
 - When using seaborn styles in matplotlib, use 'seaborn-v0_8' instead of 'seaborn' as the style name due to recent seaborn version changes
 - Use 'gpt-4o' as the model name for OpenAI's GPT-4 with vision capabilities
+- When using external packages like `@google/genai`, always import and use their existing type definitions instead of creating custom interfaces that may conflict. For example, use `import { GroundingChunk } from "@google/genai"` instead of defining a custom GroundingChunk interface.
 
 ## API Integration Lessons
 
@@ -287,6 +288,7 @@ Professional Color Scheme Examples:
   - VITE_API_KEY for api.reserse.id
   - VITE_PERKABA_API_KEY for flow.reserse.id
   - VITE_OPENAI_API_KEY for OpenAI
+  - VITE_GEMINI_API_KEY for Google Gemini API (sentiment analysis)
   - VITE_SUPABASE_URL for Supabase URL
   - VITE_SUPABASE_ANON_KEY for Supabase Anon Key
   - etc.
@@ -637,413 +639,471 @@ Professional Color Scheme Examples:
 
 # Scratchpad
 
-Current Task: Menerapkan Welcome Message Baru di Multiple Chat Pages
-
-[X] Mengubah Welcome Message dan Logo di SiberChatPage.tsx
-[X] Menerapkan teknik yang sama di TipidkorChatPage.tsx
-[X] Menerapkan teknik yang sama di IndagsiChatPage.tsx
-[X] Menerapkan teknik yang sama di FismondevChatPage.tsx
-[X] Mendokumentasikan perubahan di .cursorrules
-
-## Langkah-langkah Menerapkan Welcome Message Baru di Multiple Chat Pages
-
-1. Mengubah Welcome Message di Setiap File:
-   [X] Mengganti pesan selamat datang dengan string kosong untuk memicu tampilan welcome UI baru
-   ```typescript
-   // Set empty welcome message to trigger welcome UI
-   setMessages([
-     {
-       content: '',
-       type: 'bot',
-       timestamp: new Date(),
-     },
-   ]);
-   ```
-
-2. Membuat Komponen Welcome Message Baru di Setiap File:
-   [X] Menambahkan komponen welcome message dengan tulisan nama AI di tengah
-   [X] Menyesuaikan warna dengan tema masing-masing AI:
-      - SIBER AI: Biru (blue-600)
-      - TIPIDKOR AI: Merah (red-600)
-      - INDAGSI AI: Ungu (purple-600)
-      - FISMONDEV AI: Hijau (green-600)
-   ```jsx
-   {/* Welcome Message - Bold AI NAME in center */}
-   {messages.length <= 1 && (
-     <div className="flex flex-col items-center justify-center h-[50vh] text-center">
-       <div className="w-20 h-20 bg-[color]-100 rounded-full flex items-center justify-center mb-4">
-         <img 
-           src="/img/krimsus.png"
-           alt="Krimsus"
-           className="w-16 h-16 object-contain"
-         />
-       </div>
-       <h1 className="text-4xl font-bold text-[color]-600 mb-4">[AI NAME]</h1>
-       <p className="text-gray-600 max-w-md">
-         Asisten untuk membantu Anda dengan pertanyaan seputar [domain].
-       </p>
-     </div>
-   )}
-   ```
-
-3. Menambahkan Kondisi untuk Menampilkan Pesan di Setiap File:
-   [X] Menambahkan kondisi untuk hanya menampilkan pesan yang memiliki konten
-   ```jsx
-   {messages.map((message, index) => (
-     message.content && (
-       <div>
-         {/* Message content */}
-       </div>
-     )
-   ))}
-   ```
-
-## Hasil Perubahan
-
-1. Tampilan Welcome Message yang Konsisten:
-   - Semua chat page sekarang memiliki tampilan welcome message yang konsisten
-   - Setiap AI memiliki warna tema yang sesuai dengan domainnya
-   - Tampilan welcome message otomatis menghilang saat chat dimulai
-
-2. Peningkatan UX:
-   - Pesan kosong tidak ditampilkan di chat
-   - Tampilan lebih profesional dan modern
-   - Fokus pada nama AI yang ditampilkan secara menonjol
-
-3. Konsistensi Visual:
-   - SIBER AI: Tema biru untuk kejahatan siber
-   - TIPIDKOR AI: Tema merah untuk tindak pidana korupsi
-   - INDAGSI AI: Tema ungu untuk industri dan perdagangan
-   - FISMONDEV AI: Tema hijau untuk fiskal, moneter, dan devisa
-
-## Pembelajaran
-
-1. Penggunaan Conditional Rendering yang Konsisten:
-   - Gunakan `messages.length <= 1` untuk menampilkan welcome message hanya di awal
-   - Gunakan `message.content &&` untuk memfilter pesan kosong
-
-2. Penerapan Tema Warna yang Sesuai:
-   - Sesuaikan warna dengan domain masing-masing AI
-   - Gunakan kombinasi warna yang kontras untuk meningkatkan keterbacaan
-
-3. Reusable Pattern:
-   - Pola yang sama dapat diterapkan ke berbagai chat interface
-   - Hanya perlu menyesuaikan warna, logo, dan teks deskripsi
-
-4. Optimasi Performa:
-   - Gunakan string kosong untuk pesan awal daripada menghapus pesan sepenuhnya
-   - Pertahankan struktur data yang konsisten untuk mencegah re-render yang tidak perlu
-
-Refleksi:
-- Perubahan welcome message memberikan identitas visual yang lebih kuat untuk setiap AI
-- Penggunaan logo yang konsisten menciptakan konsistensi visual dengan identitas institusi
-- Tampilan welcome message yang menonjol memberikan kesan profesional dan modern
-- Pendekatan ini berhasil diterapkan ke berbagai chat interface dengan penyesuaian minimal
-
-## PenyidikAi Agent Implementation Pattern (Narkotika AI)
-
-Menambahkan agen chat baru ke Penyidik AI mengikuti pola yang sama dengan agen sebelumnya (Fismondev, Siber, dll). Langkah-langkah spesifik untuk Narkotika AI:
-
-1.  **Service File (`src/services/narkotikaService.ts`)**: Duplikasi dari service yang ada (`siberService.ts`), ubah endpoint API ke `narkotika-chat`, dan sesuaikan log identifier (e.g., `NARKOTIKA: ...`).
-2.  **Agent Configuration (`src/data/agents/narkotikaAgent.ts`)**: Buat file baru, gunakan interface `ExtendedAgent`, definisikan ID unik (`narkotika_001`), nama ("Narkotika AI"), tipe (`narkotika_chat`), deskripsi yang relevan, dan ikon (misalnya `Pill` dari Lucide) dengan kelas warna yang sesuai (`text-amber-600`).
-3.  **Types (`src/types/index.ts`)**: Tambahkan `'narkotika_chat'` ke union type `AgentType`.
-4.  **Utils (`src/utils/utils.ts`)**: Tambahkan konstanta ID (`NARKOTIKA_CHAT: 'narkotika_001'`) ke `AGENT_IDS` dan tambahkan `case AGENT_IDS.NARKOTIKA_CHAT: return 'narkotika_chat';` ke fungsi `getAgentTypeFromId`.
-5.  **Agent Card (`src/components/AgentCard.tsx`)**: Tambahkan `case 'narkotika_chat':` ke fungsi `getAgentIcon` untuk menampilkan ikon yang sesuai (misalnya `<img src="/img/krimsus.png" alt="Narkotika AI" ... />`).
-6.  **Chat Page Component (`src/components/ui/NarkotikaChatPage.tsx`)**: Duplikasi dari komponen chat page yang ada (misalnya `PerkabaChatPage.tsx`), impor service dan hooks yang benar (`narkotikaService`), sesuaikan nama komponen, props, judul header, teks info panel, warna tema (amber), contoh pertanyaan, dan teks disclaimer agar sesuai dengan domain narkotika.
-7.  **Main Page (`src/pages/PenyidikAi.tsx`)**: Impor konfigurasi agen (`narkotikaAgent`) dan komponen chat page (`NarkotikaChatPage`), tambahkan data agen ke array `agents` dengan warna yang sesuai ('amber'), dan tambahkan `case 'narkotika_chat':` ke fungsi `renderContent` untuk merender komponen `NarkotikaChatPage`.
-
-## UI/UX Lessons (PenyidikAi)
-
-### Chat Interface Textarea UX Improvement (Mobile)
-
-Untuk meningkatkan pengalaman pengguna textarea input pada perangkat mobile di halaman chat:
-
-1.  **Nonaktifkan Submit on Enter (Mobile)**: Hapus atau komentari logika dalam `handleKeyDown` yang memicu `handleSubmit` saat tombol Enter (tanpa Shift) ditekan. Ini memastikan Enter di keyboard mobile berfungsi sebagai pembuat baris baru.
-    ```typescript
-    const handleKeyDown = (_e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      // Remove Enter key submission for mobile compatibility
-      // Submission is handled by the Send button
-      // if (_e.key === 'Enter' && !_e.shiftKey) {
-      //   _e.preventDefault();
-      //   handleSubmit();
-      // }
-    };
-    ```
-2.  **Implementasi Tinggi Textarea Dinamis**: Modifikasi `handleInputChange` untuk secara otomatis menyesuaikan tinggi textarea berdasarkan konten. Gunakan `rows={1}` pada komponen `Textarea` dan hapus `min-h-*` agar dimulai dari tinggi minimal. Tambahkan `overflow-y-auto`.
-    ```typescript
-    const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      setInputMessage(e.target.value);
-      // Adjust height dynamically
-      const textarea = e.target;
-      textarea.style.height = 'auto'; // Reset height
-      textarea.style.height = `${textarea.scrollHeight}px`; // Set to scroll height
-    };
-    ```
-    ```jsx
-    <Textarea
-      ref={textareaRef}
-      rows={1} // Start with one row
-      value={inputMessage}
-      onChange={handleInputChange}
-      onKeyDown={handleKeyDown}
-      placeholder="Ketik pesan Anda..."
-      className="resize-none pr-12 py-3 max-h-[200px] rounded-xl ... overflow-y-auto"
-      disabled={isProcessing}
-    />
-    ```
-3.  **Reset Tinggi Textarea Setelah Submit**: Tambahkan logika di `handleSubmit` untuk mereset tinggi textarea ke 'auto' setelah input dikosongkan (`setInputMessage('')`). Ini memastikan textarea kembali ke ukuran awal setelah pesan dikirim.
-    ```typescript
-    const handleSubmit = async () => {
-      // ... (kode lainnya)
-
-      setMessages((prev) => [...prev, userMessage]);
-      setInputMessage('');
-      // Reset textarea height after clearing input
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
-      }
-      setIsProcessing(true);
-      // ... (rest of the function)
-    };
-    ```
-4.  **Konsistensi**: Terapkan perubahan ini secara konsisten di semua komponen Chat Page (misalnya `IndagsiChatPage.tsx`, `NarkotikaChatPage.tsx`, dll.).
-
-# Scratchpad
-
 [X] Task: Menerapkan Welcome Message Baru di Multiple Chat Pages
 [X] Task: Membuat Agen Narkotika AI baru
 [X] Task: Meningkatkan UX Textarea Input Mobile
 [X] Task: Mendokumentasikan perubahan di .cursorrules
 [X] Task: Perbaikan textarea input pada mobile devices di SiberChatPage.tsx
+[X] Task: Memisahkan konfigurasi markdown formatter dari SiberChatPage.tsx
+[X] Task: Refactoring SiberChatPage.tsx dengan modular components
+[X] Task: Implementasi File Attachments Visualization di SiberChatPage.tsx
+[X] Task: Migrasi agentSentimentAnalyst.ts ke Gemini Gen AI API - COMPLETED ✅
+[X] Task: Migrasi agentModusKejahatan.ts ke Gemini Gen AI API - COMPLETED ✅
+[X] Task: Migrasi agentCrimeTrendAnalyst.ts ke Gemini Gen AI API - COMPLETED ✅
+[X] Task: Implementasi Modular Analysis Canvas untuk Crime Trend Analysis - COMPLETED ✅
+[X] Task: Enhancement Temporal Analysis untuk Crime Trend Analyst - COMPLETED ✅
+[X] Task: Enhancement Temporal Analysis untuk Sentiment Analyst - COMPLETED ✅
 
-## Progress dan Milestone Textarea Mobile UI
+## Migrasi agentSentimentAnalyst.ts ke Gemini Gen AI API - Completed ✅
 
-Perbaikan yang telah dilakukan:
-1. Menambahkan atribut readOnly={false} secara eksplisit
-2. Menambahkan autoComplete="off" untuk mencegah masalah autofill
-3. Menambahkan focus pada komponen mount dengan setTimeout (500ms)
-4. Memperbaiki z-index untuk textarea (z-10) dan tombol (z-20)
-5. Mengubah posisi tombol dari bottom-2 menjadi bottom-3
-6. Menonaktifkan submit on Enter untuk kompatibilitas mobile
-7. Menambahkan type="button" pada tombol untuk mencegah form submission
-8. Implementasi penyesuaian tinggi textarea secara dinamis
+### Hasil Migrasi:
+1. **API Migration**: Berhasil migrasi dari backend custom ke Gemini Gen AI API
+2. **Package Installation**: 
+   - Installed `@google/genai` package
+   - Installed `recharts` package untuk visualisasi data
+   - Updated import statements to use GoogleGenAI, GenerateContentResponse, Part, GroundingChunk types
+3. **TypeScript Fixes**:
+   - Fixed type conflicts by using official GroundingChunk type from @google/genai package
+   - Removed custom interface definitions that conflicted with package types
+   - Proper type checking for undefined values in grounding metadata
+   - **Fixed unused variable warnings**: Replaced `(entry, index)` dengan `(_, index)` di SentimentChart.tsx untuk menghilangkan TypeScript warning tentang unused variables
+   - **Fixed chart tooltip undefined issue**: Improved CustomTooltip untuk menangani PieChart dan BarChart payload formats dengan benar, mencegah tampilan "undefined" saat hover
+4. **New Features Implemented**:
+   - **Google Search Integration**: Menggunakan `tools: [{ googleSearch: {} }]` untuk riset web otomatis
+   - **Structured Response Parsing**: Implementasi parsing dengan format [ANALYSIS_START]...[ANALYSIS_END]
+   - **Web Sources Extraction**: Mengambil sumber referensi dari grounding metadata
+   - **Bilingual Support**: Prompt dan respons dalam bahasa Indonesia
+   - **Percentage-based Results**: Format hasil dengan distribusi sentimen persentase
 
-Hasil:
-- Keyboard virtual sekarang muncul dengan baik di perangkat mobile
-- Tombol dapat diklik tanpa masalah
-- Tidak ada overlap antara elemen UI
-- Tinggi textarea menyesuaikan dengan konten secara otomatis
-- UX yang lebih baik untuk pengguna mobile
+5. **Custom UI Canvas Implementation**:
+   - **SentimentAnalysisCanvas**: Full-screen modal canvas untuk visualisasi hasil
+   - **SentimentChart**: Bar chart dan pie chart dengan recharts untuk distribusi sentimen
+   - **SentimentDisplay**: Tabbed interface untuk menampilkan analisis, sumber, dan query pencarian
+   - **Light Theme UI**: Mengubah dari dark theme (slate) ke light theme (white/gray) untuk konsistensi dengan aplikasi
+   - **Interactive Elements**: Toggle chart type, copy functionality, dan tabbed navigation
+   - **Responsive Design**: Layout yang responsif untuk desktop dan mobile
+   - **Real-time Parsing**: Automatic parsing dari format output Gemini ke struktur data terorganisir
+   - **Sidebar Integration**: Canvas margin adjustment untuk sinkronisasi dengan sidebar (lg:left-72)
+   - **Flexible Canvas Size**: Menggunakan calc(100vh - 8rem) untuk tinggi konten yang fleksibel dan scrollable
+   - **Responsive Layout**: Menggunakan flex-col lg:flex-row untuk layout mobile-first yang adaptif
 
-## Progress Implementasi File Upload
+6. **UI/UX Improvements**:
+   - **Color Scheme**: Mengubah dari slate-800/slate-700 ke white/gray-50 untuk background
+   - **Text Colors**: Mengubah dari slate-200/slate-300 ke gray-800/gray-700 untuk readability
+   - **Button Styling**: Menggunakan gray-200 background dengan hover states yang sesuai
+   - **Chart Colors**: Mempertahankan warna chart yang vibrant (emerald, red, amber) untuk kontras yang baik
+   - **Border Colors**: Menggunakan gray-200/gray-300 untuk borders yang subtle
+   - **Canvas Positioning**: Fixed positioning dengan margin untuk sidebar (lg:left-72) agar tidak bertabrakan dengan navigasi
+   - **Desktop & Mobile Optimization**: 
+     * **Mobile**: Margin yang lebih kecil (inset-2), touch-friendly buttons, compact layout, reduced padding
+     * **Desktop**: Margin yang lebih besar (lg:p-8), larger icons (lg:w-6 lg:h-6), bigger text (lg:text-2xl)
+     * **Responsive Text**: text-sm sm:text-base lg:text-lg untuk berbagai screen sizes
+     * **Responsive Icons**: w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 untuk scaling yang baik
+     * **Responsive Padding**: p-3 sm:p-4 lg:p-8 untuk space yang sesuai per device
+     * **Chart Sizing**: Height responsive (h-64 sm:h-80 lg:h-96) dan bar size yang adaptive
+     * **Button Sizing**: Touch-safe mobile (min-w-[40px]) dan desktop-friendly (lg:min-w-[52px])
+     * **Gap Spacing**: gap-2 sm:gap-3 lg:gap-4 untuk spacing yang konsisten di semua device
+     * **Responsive Charts**: OuterRadius dan barSize yang menyesuaikan dengan screen width
+     * **Typography Scaling**: Font sizes yang sesuai dari mobile ke desktop (12px → 14px → 16px)
+     * **Layout Flexibility**: flex-col di mobile, lg:flex-row di desktop untuk optimal space usage
+     * **Component Heights**: min-h yang progresif (250px → 300px → 400px) untuk better content fitting
 
-Fitur yang telah diimplementasikan:
-1. Upload dan preview beragam jenis file (.pdf, .doc, .docx, .txt, .csv, .xls, .xlsx, .jpg, .jpeg, .png)
-2. Tampilan progress bar dengan status yang berbeda (preparing, uploading, processing, completed)
-3. Kemampuan untuk menghapus file sebelum dikirim
-4. Deteksi file besar (>5MB) untuk menampilkan progress bar secara otomatis
-5. Pesan informatif sesuai dengan tahap upload (uploading, processing)
-6. Error handling spesifik untuk masalah umum dalam file upload
-7. Multiple file upload support
-8. Integrasi dengan form message (bisa kirim pesan dengan atau tanpa file)
+7. **Environment Variables**: 
+   - Menambahkan requirement untuk `VITE_GEMINI_API_KEY`
+   - Improved error handling untuk API key validation
+   - User already has API key configured: `VITE_GEMINI_API_KEY=AIzaSyBf4_0ll5H7OMs7yAtgXO1LWVAWhOcbJmo`
 
-Hasil:
-- Interface yang user-friendly untuk upload file
-- Feedback visual yang jelas selama proses upload
-- Error messages yang lebih informatif
-- Integrasi mulus dengan chat interface
-- Support untuk berbagai jenis file yang relevan
+8. **Enhanced Error Handling**:
+   - Specific error messages untuk API key, quota, dan rate limit issues
+   - Comprehensive logging untuk debugging
+   - Graceful fallback untuk parsing errors
 
-## Firebase Implementation Lessons
+9. **Response Format Improvements**:
+   - Structured output dengan summary, persentase sentimen, dan sumber referensi
+   - Markdown formatting untuk better readability
+   - Professional Indonesian language output
 
-### Authentication Best Practices
+10. **Integration dengan Agents.tsx**:
+    - Conditional rendering antara `SentimentAnalysisCanvas` untuk sentiment_analyst dan `ResultArtifact` untuk agent lain
+    - Layout adjustment yang tidak mengubah margin untuk sentiment analyst (full screen modal)
+    - Seamless integration dengan existing agent workflow
 
-- Gunakan `AuthContext` sebagai single source of truth untuk state autentikasi
-- Implementasikan loading state selama proses auth initialization untuk mencegah flash content
-- Implementasikan ProtectedRoute untuk mencegah akses ke halaman tertentu tanpa login
-- Gunakan atribut `referrerPolicy="no-referrer"` pada tag img saat menampilkan photoURL dari Google untuk menghindari masalah CORS
-- Implementasikan error handling untuk avatar yang gagal dimuat dengan fallback ke inisial
-- Gunakan `onAuthStateChanged` sebagai source of truth dibanding menyimpan state user secara manual
+## Migrasi agentModusKejahatan.ts ke Gemini Gen AI API - Completed ✅
 
-### User Management
+### Hasil Migrasi:
+1. **API Migration**: Berhasil migrasi dari backend custom ke Gemini Gen AI API
+2. **Crime Pattern Analysis**: Fokus pada analisis modus kejahatan dari unik hingga sering terjadi
+3. **Package Integration**: 
+   - Menggunakan `@google/genai` package yang sudah ter-install
+   - Import GoogleGenAI, GenerateContentResponse, Part, GroundingChunk types
+   - Menggunakan Supabase untuk user management
+4. **Structured Response Parsing**: 
+   - Implementasi parsing dengan format [ANALYSIS_START]...[ANALYSIS_END]
+   - Kategorisasi kejahatan: UNIQUE_CRIMES, MODERATE_CRIMES, COMMON_CRIMES
+   - Parsing list dengan bullet points untuk setiap kategori
+5. **New Features Implemented**:
+   - **Google Search Integration**: Menggunakan `tools: [{ googleSearch: {} }]` untuk riset data kriminalitas
+   - **Crime Categorization**: Otomatis kategorisasi berdasarkan frekuensi kejadian
+   - **Web Sources Extraction**: Mengambil sumber referensi dari laporan kepolisian dan institusi resmi
+   - **Professional Analysis**: Prompt yang komprehensif dengan 6 bagian analisis
+   - **Legal Context**: Terminologi hukum dan kriminologi yang akurat
 
-- Saat mengubah email, selalu lakukan re-otentikasi terlebih dahulu:
+6. **Prompt Structure**:
+   - **Ringkasan Eksekutif**: Gambaran umum kategori kejahatan
+   - **Analisis Pola dan Tren**: Metode, modus operandi, target, lokasi, waktu
+   - **Profil Pelaku dan Korban**: Demografis, motivasi, karakteristik
+   - **Dampak dan Konsekuensi**: Kerugian ekonomi, sosial, psikologis
+   - **Upaya Pencegahan**: Strategi pencegahan, deteksi dini, penanganan
+   - **Metodologi**: Sumber data dan metode analisis
+
+7. **Enhanced Research Guidelines**:
+   - Prioritas pada sumber resmi (Polri, BPS, KemenKumHAM)
+   - Fokus pada data kriminalitas terkini dan studi kriminologi
+   - Evaluasi pola, tren, dan karakteristik spesifik
+   - Akurasi terminologi hukum dan objektifitas
+
+8. **Environment Variables**: 
+   - Menggunakan `VITE_GEMINI_API_KEY` yang sudah dikonfigurasi
+   - Enhanced error handling untuk API key, quota, dan rate limit issues
+
+9. **Output Format**:
+   - Analisis komprehensif dengan struktur profesional
+   - Kategorisasi kejahatan berdasarkan frekuensi (unik, sedang, sering)
+   - Sumber referensi dengan links yang dapat diakses
+   - Query pencarian yang digunakan untuk transparansi
+
+10. **Integration Pattern**:
+    - Mengikuti pattern yang sama dengan agentSentimentAnalyst.ts
+    - Consistent error handling dan logging
+    - User session management dengan Supabase
+    - Response parsing yang robust dengan fallback
+
+### Implementation Benefits:
+- **Real-time Data**: Akses data kriminalitas terkini dari web
+- **Authoritative Sources**: Prioritas pada sumber resmi dan institusi
+- **Structured Analysis**: Output yang terorganisir dan profesional
+- **Categorization**: Otomatis klasifikasi berdasarkan frekuensi kejadian
+- **Transparency**: Sumber dan metode pencarian yang jelas
+- **Legal Accuracy**: Terminologi hukum yang tepat dan objektif
+
+## Migrasi agentCrimeTrendAnalyst.ts ke Gemini Gen AI API - Completed ✅
+
+### Hasil Migrasi:
+1. **API Migration**: Berhasil migrasi dari backend custom ke Gemini Gen AI API
+2. **Crime Trend Analysis Focus**: Fokus pada analisis tren kejahatan Indonesia dan prediksi masa depan
+3. **Package Integration**: 
+   - Menggunakan `@google/genai` package yang sudah ter-install
+   - Import GoogleGenAI, GenerateContentResponse, Part, GroundingChunk types
+   - Menggunakan Supabase untuk user management
+4. **Custom Output Format Implementation**: 
+   - Implementasi parsing dengan format [ANALYSIS_START]...[ANALYSIS_END]
+   - Output structure yang sangat spesifik sesuai permintaan user:
+     * Ringkasan Eksekutif
+     * Analisis Tren (Metrik Volume dengan periode puncak, tingkat pertumbuhan, sebaran wilayah)
+     * Analisis Sumber (Sumber Utama dengan detail kejadian dan informasi tambahan)
+     * Temuan Kunci (dengan Modus Operandi, Karakteristik, Rekomendasi)
+     * Prediksi dan Pencegahan (prediksi tren, dasar analisis, langkah antisipasi)
+     * Referensi lengkap dengan tautan
+5. **Advanced Structured Parsing**:
+   - **Complex Regex Patterns**: Parsing multi-level struktur data dengan named groups
+   - **Type Safety**: Proper TypeScript typing dengan interface CrimeTrendResult
+   - **Fallback Handling**: Default values untuk data yang tidak tersedia
+   - **Error Handling**: Robust parsing dengan graceful degradation
+
+6. **New Features Implemented**:
+   - **Google Search Integration**: Menggunakan `tools: [{ googleSearch: {} }]` untuk riset trend data
+   - **Trend Analysis**: Fokus pada analisis temporal, geografis, dan demografis
+   - **Prediction Engine**: Prediksi masa depan berdasarkan data historis dan pattern analysis
+   - **Statistical Focus**: Prioritas pada data kuantitatif dan metrik terukur
+   - **Authoritative Sources**: Fokus pada Polri, BPS, KemenKumHAM, Kejaksaan
+
+7. **Enhanced Research Guidelines**:
+   - Prioritas pada data statistik kejahatan terkini dan laporan tahunan kepolisian
+   - Fokus pada pola temporal, geografis, dan demografis kejahatan
+   - Cari data komparatif periode sebelumnya untuk analisis trend
+   - Evaluasi tren naik/turun, cyclical patterns, dan faktor penyebab
+   - Prediksi berdasarkan data historis dan pattern recognition
+
+8. **Structured Output Template**:
+   ```markdown
+   # Laporan Analisis Tren Kejahatan
+   
+   ## Ringkasan Eksekutif
+   {Gambaran umum temuan dan metrik utama}
+   
+   ## Analisis Tren
+   ### Metrik Volume
+   - Periode puncak kejadian: {data}
+   - Tingkat pertumbuhan: {persentase/trend}
+   - Sebaran wilayah: {daerah hukum}
+   
+   ## Analisis Sumber
+   ### Sumber Utama
+   1. {Sumber 1}
+      - Detail kejadian: {ekstraksi}
+      - Informasi tambahan: {analisis}
+   
+   ## Temuan Kunci
+   1. {Temuan 1}
+      - Modus Operandi: {pola}
+      - Karakteristik: {ciri khas}
+      - Rekomendasi: {tindakan}
+   
+   ## Prediksi dan Pencegahan
+   1. {Prediksi tren}
+      - Dasar analisis: {bukti dan data}
+      - Langkah antisipasi: {strategi}
+   
+   ## Referensi
+   {Daftar sumber dengan tautan}
+   ```
+
+9. **TypeScript Implementation Details**:
+   - **Complex Interface Design**: Multi-level nested interfaces untuk structured data
+   - **Regex with Named Groups**: Advanced parsing dengan capture groups
+   - **Type Casting**: Safe type conversion dengan fallback values
+   - **Error Boundary**: Comprehensive error handling untuk parsing failures
+
+10. **Integration Pattern**:
+    - Mengikuti pattern yang sama dengan agents lain untuk consistency
+    - Enhanced error handling untuk API key, quota, dan rate limit issues
+    - User session management dengan Supabase
+    - Response parsing yang robust dengan extensive fallback logic
+
+### Implementation Benefits:
+- **Real-time Trend Data**: Akses data tren kejahatan terkini dari web Indonesia
+- **Predictive Analysis**: Kemampuan prediksi masa depan berdasarkan historical patterns
+- **Statistical Accuracy**: Prioritas pada data kuantitatif dan metrik terukur
+- **Structured Output**: Format laporan yang sangat terorganisir dan profesional
+- **Authority Focus**: Sumber resmi dan institusi terpercaya
+- **Comprehensive Analysis**: 6 section analysis dengan detail mendalam
+- **Transparency**: Query pencarian dan sumber yang jelas untuk verifikasi
+
+### Technical Achievements:
+- **Advanced Parsing**: Complex multi-pattern regex parsing dengan named groups
+- **Type Safety**: Complete TypeScript coverage dengan proper interfaces
+- **Error Resilience**: Robust fallback mechanisms untuk missing data
+- **Professional Output**: Template-based formatting sesuai spesifikasi user
+- **Real-time Research**: Live web search integration dengan authoritative sources
+
+## Migrasi agentModusKejahatan.ts ke Gemini Gen AI API - Completed ✅
+
+## Implementasi Modular Analysis Canvas untuk Crime Trend Analysis - Completed ✅
+
+### Hasil Implementasi:
+1. **Modular Canvas Architecture**: Berhasil membuat sistem canvas yang modular dan reusable
+2. **Component Structure**: 
+   - **src/types/analysis.ts**: Shared types untuk analysis components
+   - **src/components/analysis/**: Direktori untuk modular analysis components
+   - **CrimeTrendChart.tsx**: Multi-chart component (bar, pie, line, area)
+   - **AnalysisDisplay.tsx**: Tabbed content display dengan metrics, sources, queries
+   - **CrimeTrendAnalysisCanvas.tsx**: Main canvas component untuk crime trend analysis
+   - **index.ts**: Export barrel untuk modular imports
+
+3. **Shared Type System**:
+   - **AnalysisCanvasProps**: Generic props untuk semua canvas
+   - **ChartConfig**: Configuration untuk berbagai jenis chart
+   - **AnalysisDisplayTab**: Tab system untuk content organization
+   - **ParsedCrimeTrendData**: Structured data untuk crime trend analysis
+   - **AnalysisMetric**: Metrics display dengan label, value, description
+   - **WebSource**: Consistent source handling across agents
+
+4. **Chart Capabilities**:
+   - **Multi-Type Charts**: Bar, Pie, Line, Area charts dengan recharts
+   - **Responsive Design**: Adaptive sizing untuk mobile, tablet, desktop
+   - **Custom Tooltips**: Enhanced tooltips dengan consistent formatting
+   - **Color Themes**: Configurable color schemes per agent type
+   - **Interactive Elements**: Chart type toggle, hover effects, legends
+
+5. **Content Parsing & Display**:
+   - **Advanced Regex Parsing**: Multi-section content extraction
+   - **Structured Tabs**: Dynamic tab creation berdasarkan content availability
+   - **Metrics Cards**: Visual metrics display dengan icons dan descriptions
+   - **Source Management**: Interactive source links dengan copy functionality
+   - **Search Query Display**: Transparent query tracking dengan copy feature
+   - **Fallback Handling**: Graceful degradation untuk parsing failures
+
+6. **Integration Pattern**:
+   - **Agents.tsx Update**: Added crime_trend_analyst ke conditional canvas rendering
+   - **Layout Synchronization**: Canvas margin adjustment untuk sidebar compatibility
+   - **Service Integration**: getStructuredCrimeTrendAnalysis untuk structured data
+   - **Type Safety**: Complete TypeScript coverage untuk all components
+   - **Reusability**: Components designed untuk digunakan agen lain
+
+7. **UI/UX Features**:
+   - **Full-Screen Modal**: Canvas dengan backdrop blur dan responsive sizing
+   - **Mobile Optimization**: Touch-friendly controls dan responsive layouts
+   - **Visual Consistency**: Matching design language dengan sentiment analysis
+   - **Chart Type Toggle**: Real-time chart switching dengan smooth transitions
+   - **Trend Status Display**: Dynamic status berdasarkan growth metrics
+   - **Professional Styling**: Red theme untuk crime analysis vs blue untuk sentiment
+
+8. **Benefits untuk Future Agents**:
+   - **Drop-in Components**: CrimeTrendChart dan AnalysisDisplay bisa digunakan agent lain
+   - **Consistent Interface**: Standardized AnalysisCanvasProps untuk all agents
+   - **Flexible Parsing**: Adaptable content parsing untuk different analysis types
+   - **Scalable Architecture**: Easy to extend dengan new chart types dan display modes
+   - **Type-Safe Development**: Shared types memastikan consistency across agents
+
+9. **Implementation Best Practices**:
+   - **Component Modularity**: Each component has single responsibility
+   - **Type Reusability**: Shared types reduce duplication dan improve maintenance
+   - **Responsive First**: Mobile-first design dengan progressive enhancement
+   - **Performance Optimization**: Efficient parsing dan rendering dengan proper memoization
+   - **Error Handling**: Graceful fallbacks untuk missing atau invalid data
+   - **Documentation**: Clear interfaces dan export patterns untuk easy adoption
+
+### Usage Pattern untuk Future Agents:
   ```typescript
-  const credential = EmailAuthProvider.credential(currentUser.email!, currentPassword);
-  await reauthenticateWithCredential(currentUser, credential);
-  await updateEmail(currentUser, email);
-  ```
-- Saat mengubah password, selalu validasi:
-  1. Password baru dan konfirmasi cocok
-  2. Password memenuhi kriteria keamanan (min 6 karakter)
-  3. User telah melakukan re-otentikasi
+// 1. Create structured service export
+export const getStructuredXAnalysis = async (topic: string) => {
+  const rawResult = await submitXAnalysis(topic);
+  // Parse and return structured data
+  return { rawContent, analysis, sources, searchQueries };
+};
 
-- Gunakan state untuk menampilkan pesan error/success yang spesifik
-  ```typescript
-  setMessage({ 
-    type: 'error', 
-    text: error.code === 'auth/wrong-password'
-      ? 'Password saat ini salah'
-      : error.code === 'auth/requires-recent-login'
-      ? 'Silakan login ulang untuk melakukan perubahan ini'
-      : 'Gagal mengubah password'
-  });
-  ```
+// 2. Create canvas component
+import { AnalysisCanvasProps } from '../../types/analysis';
+import CrimeTrendChart from './CrimeTrendChart';
+import AnalysisDisplay from './AnalysisDisplay';
 
-### Profile Display
+const XAnalysisCanvas: React.FC<AnalysisCanvasProps> = ({ content, onClose, title }) => {
+  // Parse content, create tabs, configure charts
+  return (<canvas with chart and display components>);
+};
 
-- Untuk menampilkan foto profil dari Google:
-  - Selalu gunakan handler error untuk fallback ke tampilan alternatif
-  - Tambahkan atribut `referrerPolicy="no-referrer"` untuk mencegah masalah CORS
-  - Tambahkan class `object-cover` untuk memastikan gambar pas dengan container
-  - Reset error state saat user berubah
+// 3. Update Agents.tsx
+{selectedAgentData.type === 'x_agent' ? (
+  <XAnalysisCanvas content={result} onClose={...} />
+) : (other conditions)}
+```
 
-- Jika tidak ada foto profil, generate inisial dari nama:
-  ```typescript
-  const getInitials = () => {
-    if (!currentUser?.displayName) return 'U';
-    return currentUser.displayName
-      .split(' ')
-      .map(name => name[0])
-      .join('')
-      .toUpperCase()
-      .substring(0, 2);
-  };
-  ```
+### Technical Achievements:
+- **Modular Design**: Reusable components untuk multiple agents
+- **Type Safety**: Complete TypeScript coverage dengan shared interfaces  
+- **Performance**: Efficient parsing dan responsive rendering
+- **Extensibility**: Easy to add new chart types dan display modes
+- **Consistency**: Unified design language across analysis types
+- **User Experience**: Professional, interactive visualization interface
 
-### Form Validation
+## Analysis components TypeScript cleanup
 
-- Validasi form di client side sebelum mengirim ke Firebase
-- Tampilkan pesan error yang spesifik berdasarkan Firebase error code
-- Nonaktifkan tombol submit selama proses loading
-- Reset form setelah submit berhasil
+### Hasil Implementasi:
+1. **TypeScript fix patterns**
+   - UI/UX lessons for chat components
+   - Mobile and desktop optimization patterns
+   - Crime analysis migration documentation
+   - **Analysis components TypeScript cleanup**: Fixed unused imports in CrimeTrendChart.tsx (ChartDataPoint), AnalysisDisplay.tsx (AlertTriangle, Shield, Target), dan agentCrimeTrendAnalyst.ts (keyFindingsMatch, predictionsMatch)
+   - **Temporal Analysis TypeScript fixes**: Fixed unused variables in agentSentimentAnalyst.ts (currentDate) dan agentCrimeTrendAnalyst.ts (index parameter in forEach)
 
-### Security
+## Enhancement Temporal Analysis untuk Crime Trend Analyst - Completed ✅
 
-- Jangan simpan token Firebase di localStorage, gunakan mekanisme cookie yang secure
-- Gunakan environment variables untuk menyimpan Firebase config
-- Implementasikan validasi di sisi server melalui Firebase Rules
-- Jangan menggunakan `console.log` untuk informasi sensitif seperti error authentication yang lengkap
-- Gunakan timeout yang sesuai untuk operasi Firebase
+### Hasil Implementasi:
+1. **Temporal Functions**: Berhasil menambahkan fungsi waktu getCurrentTimeInfo() dan createTemporalPrompt()
+2. **Time-Aware Prompt Enhancement**: 
+   - Menambahkan konteks waktu saat ini dalam prompt
+   - Target analisis 5 tahun terakhir (e.g., 2020-2024)
+   - Fokus pada data kuantitas kejadian per periode waktu
+   - Instruksi spesifik untuk mencari data time-series dan year-over-year comparison
+3. **Enhanced Data Parsing**: 
+   - Menambahkan parseTemporalData() untuk ekstraksi data temporal dari response Gemini
+   - Parsing format TEMPORAL_DATA dengan PERIOD, CASES, DESCRIPTION
+   - Fallback mechanism dengan data demo menggunakan tahun real
+   - Improved getStructuredCrimeTrendAnalysis() dengan temporal data extraction
+4. **Chart Data Integration**:
+   - **Real Data from Gemini**: Chart sekarang menggunakan data temporal yang diekstrak dari response AI
+   - **Timeline Labels**: Mengganti Q1/Q2 dummy data dengan tahun real (e.g., 2020, 2021, 2022, 2023, 2024)
+   - **Default Line Chart**: Mengubah default chart type dari bar ke line untuk timeline trend visualization
+   - **Enhanced Chart Titles**: Timeline Tren Kejahatan dengan range periode yang dinamis
+5. **UI/UX Temporal Enhancements**:
+   - **Header Info**: Menambahkan "Timeline Trend • X periode data" di header
+   - **Chart Section**: Enhanced title dengan periode range (e.g., "2020 - 2024")
+   - **Chart Type Order**: Line chart sebagai pilihan pertama (timeline focus)
+   - **Loading Message**: "Menganalisis tren temporal kejahatan..."
+   - **Data Period Display**: Menampilkan jumlah periode data yang tersedia
+6. **Data Structure Updates**:
+   - **Enhanced Interface**: Menambahkan temporalData ke CrimeTrendAnalysisResult dan ParsedCrimeTrendData
+   - **Type Safety**: Proper TypeScript typing untuk temporal data structure
+   - **Service Integration**: getStructuredCrimeTrendAnalysis() return temporal data untuk canvas
+7. **Advanced Prompt Engineering**:
+   - **Temporal Context**: Explicit date dan time range dalam prompt
+   - **Quantitative Focus**: Emphasis pada data kuantitas kejadian per periode
+   - **Time-Series Instructions**: Specific guidelines untuk mencari data temporal
+   - **Statistical Priority**: Prioritas pada data statistik resmi dengan timestamp
+   - **Prediction Enhancement**: Temporal-based prediction dengan range tahun masa depan
 
-### Firestore Session Management
+### Technical Achievements:
+- **Real-Time Data**: Chart menggunakan data temporal real dari Gemini search results
+- **Timeline Visualization**: Optimized untuk menampilkan tren waktu dengan line chart default
+- **Flexible Parsing**: Robust parsing yang dapat handle berbagai format temporal data dari web
+- **Year-Aware Analysis**: Context-aware analysis berdasarkan tahun dan periode saat ini
+- **Enhanced Accuracy**: Improved temporal accuracy dengan explicit time context
+- **Professional Timeline**: Business-ready timeline analysis dengan periode range yang jelas
 
-- Hindari menyimpan nilai `undefined` ke dokumen Firestore:
-  ```typescript
-  // SALAH
-  await setDoc(docRef, {
-    field: data.value || undefined // Error: Unsupported field value: undefined
-  });
-  
-  // BENAR - Pendekatan 1: Gunakan objek update
-  const updateData = { timestamp: Timestamp.now() };
-  if (data.value) updateData.field = data.value;
-  await setDoc(docRef, updateData);
-  
-  // BENAR - Pendekatan 2: Gunakan conditional object spread
-  await setDoc(docRef, {
-    timestamp: Timestamp.now(),
-    ...(data.value ? { field: data.value } : {})
-  });
-  ```
+### Benefits:
+- **Accurate Timeline**: Data chart yang mencerminkan periode waktu yang sebenarnya
+- **Better Insights**: Timeline trend memberikan insight yang lebih baik untuk prediksi
+- **Real Data Integration**: Seamless integration antara Gemini search results dengan chart visualization
+- **User Experience**: Clearer information tentang periode analisis dan data availability
+- **Future-Proof**: Temporal functions yang dapat adapt dengan perubahan waktu otomatis
 
-- Implementasikan mekanisme fallback untuk offline mode:
-  ```typescript
-  // Cek ketersediaan Firestore dan gunakan fallback ID jika tidak tersedia
-  const firestoreAvailable = await checkFirestoreConnection().catch(() => false);
-  if (!firestoreAvailable) {
-    console.warn('Firestore not available, using local session mode');
-    return `offline_${uuidv4()}`;
-  }
-  ```
+## Enhancement Temporal Analysis untuk Sentiment Analyst - Completed ✅
 
-- Gunakan soft delete untuk menghapus sesi alih-alih hard delete:
-  ```typescript
-  // Tandai sesi sebagai dihapus (soft delete)
-  await setDoc(sessionRef, { 
-    deleted: true,
-    deletedAt: Timestamp.now()
-  }, { merge: true });
-  ```
+### Hasil Implementasi:
+1. **Temporal Functions**: Berhasil menambahkan fungsi waktu getCurrentTimeInfo() dan createTemporalSentimentPrompt()
+2. **Time-Aware Prompt Enhancement**: 
+   - Menambahkan konteks waktu saat ini dalam prompt
+   - Target analisis 3 bulan terakhir untuk sentiment analysis
+   - Fokus pada sentimen publik terkini dan perkembangan opini
+   - Instruksi spesifik untuk mencari konten dengan timestamp/tanggal publikasi yang jelas
+3. **Enhanced Data Parsing**: 
+   - Updated parseSentimentTextResponse() dengan fokus pada konten temporal
+   - Enhanced getStructuredSentimentAnalysis() dengan timeContext dan periodAnalysis
+   - Improved interface SentimentAnalysisResult dengan temporal fields
+   - Better extraction untuk timeline context dan periode analisis
+4. **Prompt Engineering Enhancement**:
+   - **Temporal Context**: Explicit date dan periode fokus 3 bulan terakhir
+   - **Recent Content Priority**: Prioritas pada konten dari periode recent hingga saat ini
+   - **Event-Based Analysis**: Identifikasi faktor temporal yang mempengaruhi sentimen
+   - **Time-Stamped Sources**: Emphasis pada sumber dengan timestamp publikasi jelas
+   - **Contextual Instructions**: Guidelines untuk hindari sumber outdated
+5. **Output Format Improvements**:
+   - **Temporal Header**: "Laporan Analisis Sentimen Temporal" dengan timestamp
+   - **Period Context**: Display periode analisis dengan format "bulan → bulan → bulan"
+   - **Timeline Integration**: Konteks waktu saat ini dalam setiap bagian analisis
+   - **Event Correlation**: Analisis faktor temporal yang mempengaruhi sentimen
+   - **Recent Focus**: Semua analisis difokuskan pada periode 3 bulan terakhir
+6. **Enhanced User Experience**:
+   - **Time Context Display**: User dapat melihat kapan analisis dilakukan dan periode yang dicakup
+   - **Recent Period Focus**: 3 bulan terakhir untuk sentiment yang lebih relevan vs 5 tahun untuk crime trend
+   - **Event-Based Insights**: Identifikasi events/berita yang mempengaruhi sentimen
+   - **Temporal Recommendations**: Rekomendasi strategis berdasarkan kondisi terkini
+   - **Future-Aware**: Prediksi jangka pendek berdasarkan tren sentimen recent
+7. **Technical Improvements**:
+   - **Month Names Array**: Array bulan dalam bahasa Indonesia untuk display yang proper
+   - **Recent Months Calculation**: Logic untuk menghitung 3 bulan terakhir dengan benar
+   - **Cross-Year Handling**: Proper handling periode yang melintasi tahun (e.g., Nov 2024 → Jan 2025)
+   - **Indonesian Localization**: Full localization dengan format tanggal Indonesia
+   - **Enhanced Logging**: Temporal context dalam console.log untuk debugging
 
-- Validasi kepemilikan dokumen sebelum operasi:
-  ```typescript
-  // Validasi bahwa sesi ini milik user
-  const sessionDoc = await getDoc(sessionRef);
-  if (!sessionDoc.exists() || sessionDoc.data().userId !== auth.currentUser.uid) {
-    throw new Error('Sesi tidak valid');
-  }
-  ```
+### Technical Achievements:
+- **Recent Content Focus**: Analysis menggunakan konten 3 bulan terakhir yang lebih relevan untuk sentiment
+- **Time-Aware Search**: Google Search dengan prioritas pada konten recent dan timestamped
+- **Temporal Context**: Complete timeline context dalam setiap aspek analisis
+- **Event Correlation**: Kemampuan mengidentifikasi events yang mempengaruhi sentimen
+- **Enhanced Accuracy**: Improved sentiment accuracy dengan fokus pada periode yang relevan
+- **Professional Temporal Output**: Business-ready sentiment analysis dengan context temporal yang jelas
 
-- Gunakan `onSnapshot` untuk sinkronisasi realtime sesi di beberapa perangkat
+### Benefits:
+- **More Relevant Sentiment**: Fokus 3 bulan terakhir memberikan sentiment yang lebih current dan actionable
+- **Better Context**: User mendapat informasi lengkap tentang timeline dan periode analisis
+- **Event-Based Insights**: Sentiment analysis yang dapat dikaitkan dengan events/berita specific
+- **Time-Sensitive Recommendations**: Rekomendasi yang relevan dengan kondisi terkini
+- **Enhanced Professional Output**: Format laporan yang lebih professional dengan context temporal
+- **Future-Proof**: Temporal functions yang otomatis update sesuai waktu saat ini
 
-- Implementasikan `checkFirestoreConnection` untuk verifikasi koneksi sebelum operasi database:
-  ```typescript
-  export const checkFirestoreConnection = async (): Promise<boolean> => {
-    try {
-      const testRef = doc(db, '_connection_test', 'test');
-      await setDoc(testRef, { timestamp: serverTimestamp() }, { merge: true });
-      return true;
-    } catch (error) {
-      console.error('Firestore connection error:', error);
-      return false;
-    }
-  };
-  ```
-
-- Gunakan firestore path yang konsisten untuk struktur data:
-  - `/users/{userId}` untuk data dan preferensi pengguna
-  - `/sessions/{sessionId}` untuk menyimpan metadata sesi
-  - `/sessions/{sessionId}/messages/{messageId}` untuk pesan dalam sesi
-
-- Gunakan kueri compound untuk pengambilan sesi:
-  ```typescript
-  const q = query(
-    sessionsRef, 
-    where('userId', '==', userId),
-    where('agentType', '==', 'agent-type'),
-    orderBy('updatedAt', 'desc')
-  );
-  ```
-
-### Supabase Implementation Lessons (Migrating from Firebase)
-
-- **Environment Variables**: Pastikan `VITE_SUPABASE_URL` dan `VITE_SUPABASE_ANON_KEY` terdefinisi di `.env`.
-- **Client Initialization**: Inisialisasi Supabase client di `src/supabaseClient.ts`.
-  ```typescript
-  // src/supabaseClient.ts
-  import { createClient } from '@supabase/supabase-js';
-
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error("Supabase URL and Anon Key must be defined in environment variables");
-  }
-
-  export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-  ```
-- **AuthContext Refactor**:
-    - Ganti impor Firebase dengan Supabase.
-    - Gunakan `supabase.auth.onAuthStateChange` untuk memantau status autentikasi.
-    - Implementasikan fungsi `signUp`, `logIn`, `logOut`, `signInWithOAuth` (misalnya untuk Google), dan `sendPasswordResetEmail` menggunakan Supabase Auth API.
-    - `currentUser` akan berupa `User | null` dari `@supabase/supabase-js`.
-- **User Object**: Objek user dari Supabase (`User`) memiliki struktur yang berbeda dengan Firebase. Perlu penyesuaian pada bagian kode yang mengakses properti user (misalnya `user.email`, `user.id`, `user.user_metadata.full_name` atau `user.user_metadata.name` untuk nama tampilan).
-- **Sign-in with Google (OAuth)**:
-  ```typescript
-  async function signInWithGoogle() {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin, // Atau URL callback spesifik
-      },
-    });
-    if (error) throw error;
-    return data; // data bisa berisi URL atau null jika redirect
-  }
-  ```
-  Tangani callback redirect di `useEffect` `AuthContext` atau halaman callback khusus.
-- **Session Management**: Supabase menangani sesi secara otomatis. `localStorage` digunakan secara default. `session.ts` yang berbasis cookie mungkin tidak lagi diperlukan atau perlu diadaptasi jika ada kebutuhan spesifik.
-- **Error Handling**: Sesuaikan dengan objek error dari Supabase.
-
-### User Management (Firebase)
+### Implementation Pattern:
+- **Parallel Enhancement**: Implementasi pattern yang sama dengan crime trend analyst namun disesuaikan untuk sentiment analysis
+- **Differentiated Focus**: 3 bulan untuk sentiment vs 5 tahun untuk crime trend sesuai karakteristik masing-masing
+- **Consistent Interface**: Maintain compatibility dengan existing sentiment analysis canvas
+- **Enhanced Structured Data**: timeContext dan periodAnalysis untuk better integration dengan UI components
