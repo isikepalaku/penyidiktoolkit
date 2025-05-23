@@ -1,4 +1,4 @@
-import { GoogleGenAI, GenerateContentResponse, Part, GroundingChunk } from "@google/genai";
+import { GoogleGenAI, GenerateContentResponse, Part } from "@google/genai";
 import { supabase } from '@/supabaseClient';
 import { v4 as uuidv4 } from 'uuid';
 import { imagePrompts } from "../data/agents/imageAgent";
@@ -94,11 +94,6 @@ export const submitImageAnalysis = async (
 
         // Get selected prompt and enhance with web search capabilities
         const selectedPrompt = imagePrompts[promptType] || imagePrompts.default;
-        
-        console.log(`Selected prompt type: ${promptType}`);
-        console.log(`Selected prompt preview: ${selectedPrompt.substring(0, 100)}...`);
-        console.log(`Available prompt types: ${Object.keys(imagePrompts).join(', ')}`);
-        
         const enhancedPrompt = createEnhancedImagePrompt(selectedPrompt, description);
 
         // Convert base64 to data for Gemini

@@ -140,14 +140,6 @@ export const useAgentForm = (): UseAgentFormResult => {
           
           const promptType = (formData.prompt_type as keyof typeof imagePrompts) || 'default';
           
-          console.log('Image analysis parameters:');
-          console.log('- Files count:', imageFiles.length);
-          console.log('- Files:', imageFiles.map(f => f.name));
-          console.log('- Description:', formData.image_description);
-          console.log('- Prompt type from form:', formData.prompt_type);
-          console.log('- Prompt type casted:', promptType);
-          console.log('- Available prompts:', Object.keys(imagePrompts));
-          
           response = await submitImageAnalysis(
             imageFiles,
             typeof formData.image_description === 'string' ? formData.image_description : undefined,
