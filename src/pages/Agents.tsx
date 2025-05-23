@@ -159,6 +159,7 @@ export default function Agents() {
       case 'modus_kejahatan':
       case 'sentiment_analyst':
       case 'tipikor_analyst':
+      case 'encyclopedia_police':
         return <BaseAgentForm {...commonProps} />;
       default:
         return null;

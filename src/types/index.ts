@@ -70,7 +70,8 @@ export type AgentType =
   | 'narkotika_chat'
   | 'pdf_image_analyzer'
   | 'ppa_ppo_chat'
-  | 'reskrimum_chat';
+  | 'reskrimum_chat'
+  | 'encyclopedia_police';
 
 export interface ExtendedAgent {
   id: string;
@@ -99,6 +100,7 @@ export interface AgentField {
   options?: SelectOption[];
   required?: boolean;
   multiple?: boolean;
+  rows?: number;
 }
 
 export type FormDataValue = string | File | File[] | null;

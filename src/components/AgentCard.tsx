@@ -71,6 +71,8 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
         return <img src="/img/krimum.svg" alt="PPA PPO AI" className="h-10 w-10" />;
       case 'reskrimum_chat':
         return <img src="/img/krimum.svg" alt="Reskrimum AI" className="h-10 w-10" />;
+      case 'encyclopedia_police':
+        return <img src="/img/Wikipedia.svg" alt="Encyclopedia" className="h-10 w-10" />;
       default:
         return <PieChart className="text-gray-500" size={24} />;
     }

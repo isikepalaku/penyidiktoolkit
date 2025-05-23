@@ -693,6 +693,7 @@ const API_KEY = 'AIzaSyBf4_0ll5H7OMs7yAtgXO1LWVAWhOcbJmo'; // NEVER DO THIS!
 [X] Task: Migrasi agentSpkt.ts ke Gemini Gen AI API - COMPLETED ✅
 [X] Task: Migrasi imageService.ts ke Gemini Gen AI API - COMPLETED ✅
 [X] Task: Cleanup TypeScript warnings untuk unused imports - COMPLETED ✅
+[X] Task: Membuat Agen Ensiklopedia Kepolisian Baru di Agents.tsx
 
 ## Migrasi agentSentimentAnalyst.ts ke Gemini Gen AI API - Completed ✅
 
@@ -1101,3 +1102,46 @@ if (error.message.includes('API_KEY_INVALID')) {
 - **Enhanced Error Messages**: Specific error handling untuk grounding dan search issues
 - **Reference Cleanup**: Automatic cleanup untuk URLs, markdown links, dan source references
 - **Consistent Experience**: Maintain user experience consistency tanpa expose technical details
+
+## Task: Membuat Agen Ensiklopedia Kepolisian Baru
+
+### Deskripsi:
+Membuat agen AI "Ensiklopedia Kepolisian" yang menyediakan informasi komprehensif tentang terminologi, prosedur, dan pengetahuan kepolisian Indonesia.
+
+### Langkah-langkah:
+[X] 1. Buat konfigurasi agen di src/data/agents/encyclopediaPoliceAgent.ts
+[X] 2. Update types di src/types/index.ts (menambahkan 'encyclopedia_police')
+[X] 3. Update utils di src/utils/utils.ts
+[X] 4. Update AgentCard di src/components/AgentCard.tsx (menambahkan icon BookOpen)
+[X] 5. Update Agents.tsx untuk menambahkan agen baru
+[X] 6. Buat placeholder service file di src/services/agentEncyclopediaPolice.ts
+[X] 7. Update useAgentForm hook untuk integrasi service
+[X] 8. Implementasi service dengan Gemini API + Wikipedia Indonesia API
+[ ] 9. Testing dan verifikasi
+
+### Spesifikasi Agen:
+- **Nama**: "Ensiklopedia Kepolisian"
+- **Type**: "encyclopedia_police"
+- **ID**: "encyclopedia_police_001"
+- **Icon**: BookOpen (ensiklopedia/buku)
+- **Deskripsi**: "Asisten AI yang menyediakan informasi komprehensif tentang terminologi, prosedur, dan pengetahuan kepolisian Indonesia"
+- **Form Type**: BaseAgentForm (textarea standar)
+
+### Implementasi Service - COMPLETED ✅:
+- **Gemini API Integration**: Menggunakan gemini-2.0-flash dengan web search tools
+- **Wikipedia Indonesia API**: Fetch data ensiklopedia dari id.wikipedia.org
+- **Enhanced Wikipedia Search**: Fallback search dengan alternatif kata kunci untuk singkatan kepolisian
+- **Dual Source Analysis**: Menggabungkan informasi dari web search dan Wikipedia
+- **Structured Output**: Format markdown dengan heading dan sumber referensi
+- **Error Handling**: Comprehensive error handling dengan retry logic
+- **Session Management**: User tracking dengan Supabase integration
+- **Professional Context**: Fokus pada konteks kepolisian Indonesia
+- **User Feedback Applied**: 
+  * Informasi ensiklopedia yang komprehensif dan lengkap (tidak diminimalkan)
+  * Prompt difokuskan sebagai ensiklopedia yang memberikan informasi mendalam
+  * Tambahan berita terbaru dengan grounding web terkait kata kunci
+  * Temperature tinggi (0.7) untuk respon ensiklopedia yang komprehensif
+  * Wikipedia data + Informasi ensiklopedia lengkap + Berita terbaru dari web search
+  * Format: Data Wikipedia → Informasi Ensiklopedia Lengkap → Sumber Referensi & Berita Terbaru
+  * **BAHASA INDONESIA ONLY**: Prompt secara eksplisit menekankan penggunaan bahasa Indonesia saja
+  * **Wikipedia Fallback Search**: Automatic alternative search untuk singkatan kepolisian (polda→Kepolisian Daerah, dll)

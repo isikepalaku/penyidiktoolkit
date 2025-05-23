@@ -43,6 +43,7 @@ export const AGENT_IDS = {
   MODUS_KEJAHATAN: 'modus_001',
   SENTIMENT_ANALYST: 'polri-sentiment-analyst',
   TIPIKOR_ANALYST: 'polri-tipikor-analyst',
+  ENCYCLOPEDIA_POLICE: 'encyclopedia_police_001',
   // Chat agents
   P2SK_CHAT: 'p2sk-chat',
   KUHP_CHAT: 'kuhp-chat',
@@ -85,6 +86,8 @@ export const getAgentTypeFromId = (id: string): AgentType | null => {
       return 'sentiment_analyst';
     case AGENT_IDS.TIPIKOR_ANALYST:
       return 'tipikor_analyst';
+    case AGENT_IDS.ENCYCLOPEDIA_POLICE:
+      return 'encyclopedia_police';
     // Chat agents
     case AGENT_IDS.P2SK_CHAT:
       return 'undang_chat';
