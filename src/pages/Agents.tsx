@@ -12,6 +12,8 @@ import { useAgentForm } from '../hooks/useAgentForm';
 import { DotBackground } from '../components/ui/DotBackground';
 import { SentimentAnalysisCanvas } from '@/components/sentiment';
 import { CrimeTrendAnalysisCanvas } from '@/components/analysis';
+import { IntelligenceAgentForm } from '../components/agent-forms/IntelligenceAgentForm';
+import IntelligenceResultDisplay from '../components/agent-forms/IntelligenceResultDisplay';
 
 // Convert ExtendedAgent to Agent type by omitting extended properties
 const toAgent = (extendedAgent: ExtendedAgent): Agent => {
@@ -30,6 +32,7 @@ export default function Agents() {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [showArtifact, setShowArtifact] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [intelligenceError, setIntelligenceError] = useState<string | null>(null);
   const {
     formData,
     error,
@@ -83,6 +86,7 @@ export default function Agents() {
     setSelectedAgent(null);
     reset();
     setShowArtifact(false);
+    setIntelligenceError(null);
   };
 
   // Enhanced navigation protection for both desktop and mobile
@@ -153,6 +157,16 @@ export default function Agents() {
         return <ImageAgentForm {...commonProps} />;
       case 'crime_trend_analyst':
         return <BaseAgentForm {...commonProps} textareaHeight="h-32" />;
+      case 'laporan_intelejen':
+        return <IntelligenceAgentForm 
+          agent={selectedAgentData}
+          onResult={(result) => {
+            setResult(result);
+          }}
+          onError={(error) => {
+            console.error('Intelligence form error:', error);
+          }}
+        />;
       case 'hoax_checker':
       case 'case_research':
       case 'spkt':
@@ -169,7 +183,7 @@ export default function Agents() {
   if (selectedAgent && selectedAgentData) {
     return (
       <DotBackground className="min-h-screen">
-        <div className={`p-6 lg:p-8 transition-all duration-300 ${showArtifact && selectedAgentData?.type !== 'sentiment_analyst' && selectedAgentData?.type !== 'crime_trend_analyst' ? 'lg:mr-[50%]' : ''}`}>
+        <div className={`p-6 lg:p-8 transition-all duration-300 ${showArtifact && selectedAgentData?.type !== 'sentiment_analyst' && selectedAgentData?.type !== 'crime_trend_analyst' && selectedAgentData?.type !== 'laporan_intelejen' ? 'lg:mr-[50%]' : ''}`}>
           <header>
             <div className="max-w-5xl mx-auto px-6 py-8">
               <button 
@@ -192,9 +206,13 @@ export default function Agents() {
           </header>
 
           <div className="max-w-3xl mx-auto">
-            <form onSubmit={handleFormSubmit} className="space-y-6">
-              {renderAgentForm()}
-            </form>
+            {selectedAgentData.type === 'laporan_intelejen' ? (
+              renderAgentForm()
+            ) : (
+              <form onSubmit={handleFormSubmit} className="space-y-6">
+                {renderAgentForm()}
+              </form>
+            )}
 
             {isProcessing && (
               <div className="fixed inset-0 bg-white/50 dark:bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
@@ -230,6 +248,14 @@ export default function Agents() {
               <CrimeTrendAnalysisCanvas
                 content={result}
                 title={`Hasil Analisis ${selectedAgentData.name}`}
+                onClose={() => {
+                  setShowArtifact(false);
+                  setResult(null);
+                }}
+              />
+            ) : selectedAgentData.type === 'laporan_intelejen' ? (
+              <IntelligenceResultDisplay 
+                result={result}
                 onClose={() => {
                   setShowArtifact(false);
                   setResult(null);

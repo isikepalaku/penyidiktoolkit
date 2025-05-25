@@ -71,7 +71,8 @@ export type AgentType =
   | 'pdf_image_analyzer'
   | 'ppa_ppo_chat'
   | 'reskrimum_chat'
-  | 'encyclopedia_police';
+  | 'encyclopedia_police'
+  | 'laporan_intelejen';
 
 export interface ExtendedAgent {
   id: string;

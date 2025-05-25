@@ -13,6 +13,7 @@ import { geminiImageAgent } from './geminiImageAgent';
 import { tipidterAiAgent } from './tipidterAiAgent';
 import { kuhapAgent } from './kuhapAgent';
 import { encyclopediaPoliceAgent } from './encyclopediaPoliceAgent';
+import { laporanInteljenAgent } from './laporanInteljenAgent';
 import type { ExtendedAgent } from '../../types';
 
 export const agents: ExtendedAgent[] = [
@@ -25,7 +26,8 @@ export const agents: ExtendedAgent[] = [
   sentimentAnalystAgent,
   tipikorAnalystAgent,
   dokpolAgent,
-  encyclopediaPoliceAgent
+  encyclopediaPoliceAgent,
+  laporanInteljenAgent
 ];
 
 export {
@@ -43,5 +45,6 @@ export {
   geminiImageAgent,
   tipidterAiAgent,
   kuhapAgent,
-  encyclopediaPoliceAgent
+  encyclopediaPoliceAgent,
+  laporanInteljenAgent
 };

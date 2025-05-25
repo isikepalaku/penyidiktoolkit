@@ -73,7 +73,9 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
         return <img src="/img/krimum.svg" alt="Reskrimum AI" className="h-10 w-10" />;
       case 'encyclopedia_police':
         return <img src="/img/Wikipedia.svg" alt="Encyclopedia" className="h-10 w-10" />;
-      default:
+      case 'laporan_intelejen':
+        return <img src="/img/LOGO_INTELKAM_POLRI.svg" alt="Intelkam Polri" className="h-10 w-10" />;
+      case 'ppa_ppo_chat':
         return <PieChart className="text-gray-500" size={24} />;
     }
   };

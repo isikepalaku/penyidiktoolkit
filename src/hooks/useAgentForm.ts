@@ -14,6 +14,7 @@ import { submitAgentAnalysis as submitSentimentAnalysis } from '@/services/agent
 import { submitAgentAnalysis as submitTipikorAnalysis } from '@/services/agentTipikorAnalyst';
 import { submitAgentAnalysis as submitEncyclopediaPoliceAnalysis } from '@/services/agentEncyclopediaPolice';
 
+
 interface UseAgentFormResult {
   formData: FormData;
   imagePreview: string | null;
@@ -188,6 +189,7 @@ export const useAgentForm = (): UseAgentFormResult => {
           case 'encyclopedia_police':
             response = await submitEncyclopediaPoliceAnalysis(message.trim());
             break;
+
           default:
             throw new Error('Tipe agen tidak dikenali');
         }

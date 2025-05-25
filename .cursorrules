@@ -102,6 +102,10 @@ If needed, you can further use the `web_scraper.py` file to scrape the web page 
 - When using seaborn styles in matplotlib, use 'seaborn-v0_8' instead of 'seaborn' as the style name due to recent seaborn version changes
 - Use 'gpt-4o' as the model name for OpenAI's GPT-4 with vision capabilities
 - When using external packages like `@google/genai`, always import and use their existing type definitions instead of creating custom interfaces that may conflict. For example, use `import { GroundingChunk } from "@google/genai"` instead of defining a custom GroundingChunk interface.
+- Remove unused variables and parameters to prevent TypeScript warnings:
+  * Remove unused regex patterns that are declared but never used
+  * Use underscore (_) for unused parameters in forEach loops instead of named parameters
+  * Clean up unused imports to prevent TypeScript errors
 
 ## API Integration Lessons
 
@@ -694,6 +698,154 @@ const API_KEY = 'AIzaSyBf4_0ll5H7OMs7yAtgXO1LWVAWhOcbJmo'; // NEVER DO THIS!
 [X] Task: Migrasi imageService.ts ke Gemini Gen AI API - COMPLETED ✅
 [X] Task: Cleanup TypeScript warnings untuk unused imports - COMPLETED ✅
 [X] Task: Membuat Agen Ensiklopedia Kepolisian Baru di Agents.tsx
+[X] Task: Membuat Agen Laporan Intelejen Baru di Agents.tsx
+[X] Task: Implementasi Service Laporan Intelejen dengan Gemini API - COMPLETED ✅
+[X] Task: Membuat Custom Form dan Result Display untuk Laporan Intelejen - COMPLETED ✅
+[X] Task: Fix Form Submission dan Clean TypeScript Warnings - COMPLETED ✅
+[X] Task: Enhancement Structured Parsing untuk Intelligence Analysis - COMPLETED ✅
+[X] Task: Perbaikan Structured Parsing Function untuk Format Output Actual - COMPLETED ✅
+[X] Task: Perbaikan Responsivitas Mobile dan Struktur Angka Romawi di IntelligenceResultDisplay - COMPLETED ✅
+[X] Task: Cleanup TypeScript Warnings di agentLaporanIntelejen.ts - COMPLETED ✅
+[X] Task: Perbaikan Nama dan Deskripsi Agent Intelkam AI - COMPLETED ✅
+[X] Task: Implementasi Fungsi Waktu Terkini untuk Pencarian Spesifik - COMPLETED ✅
+[X] Task: Konfigurasi Link Referensi untuk Dibuka di Tab Baru - COMPLETED ✅
+[X] Task: Menghilangkan Duplikasi Header Form Intelkam AI - COMPLETED ✅
+[X] Task: Cleanup TypeScript Warnings di IntelligenceAgentForm.tsx - COMPLETED ✅
+
+## Task: Membuat Agen Laporan Intelejen Baru
+
+### Deskripsi:
+Membuat agen AI "Laporan Intelejen" yang membantu menganalisis dan menyusun laporan intelijen kepolisian untuk mendukung operasi keamanan.
+
+### Langkah-langkah yang Diselesaikan:
+[X] 1. Buat konfigurasi agen di src/data/agents/laporanInteljenAgent.ts
+[X] 2. Update types di src/types/index.ts (menambahkan 'laporan_intelejen')
+[X] 3. Update utils di src/utils/utils.ts (AGENT_IDS dan getAgentTypeFromId)
+[X] 4. Update AgentCard di src/components/AgentCard.tsx (menambahkan icon Eye)
+[X] 5. Update Agents.tsx untuk menambahkan agen baru
+[X] 6. Buat placeholder service file di src/services/agentLaporanIntelejen.ts
+[X] 7. Update useAgentForm hook untuk integrasi service
+[X] 8. Implementasi service dengan Gemini API - COMPLETED ✅
+[X] 9. Membuat Custom Form dan Result Display untuk Laporan Intelejen - COMPLETED ✅
+[X] 10. Fix Form Submission Issue - Form tidak lagi reload dan berjalan dengan benar
+
+### Spesifikasi Agen:
+- **Nama**: "Laporan Intelejen"
+- **Type**: "laporan_intelejen"
+- **ID**: "laporan_intelejen_001"
+- **Icon**: Eye (surveillance/intelligence)
+- **Color**: indigo-600 (professional intelligence theme)
+- **Deskripsi**: "Asisten AI yang membantu menganalisis dan menyusun laporan intelijen kepolisian untuk mendukung operasi keamanan"
+- **Form Type**: Custom IntelligenceAgentForm dengan multiple fields dan conditional logic
+
+### Technical Implementation:
+- **Agent Configuration**: Menggunakan ExtendedAgent interface dengan icon Eye dari lucide-react
+- **Custom Form Integration**: IntelligenceAgentForm dengan state internal dan submit handler sendiri
+- **Service Pattern**: Direct service integration tanpa melalui useAgentForm untuk menghindari konflik
+- **Type Safety**: Semua TypeScript types sudah ditambahkan dan terintegrasi
+- **UI Integration**: Icon dan styling konsisten dengan tema intelligence/surveillance
+
+### Status:
+✅ **IMPLEMENTASI LENGKAP** - Semua aspek sudah selesai dan berfungsi dengan baik.
+
+### Implementasi Service - COMPLETED ✅:
+- **Gemini API Integration**: Menggunakan gemini-2.0-flash dengan web search tools
+- **Dual Function Service**: 
+  * `generateIntelligenceReport()` - Membuat laporan intelijen lengkap 
+  * `searchIntelligenceProductsByArea()` - Mencari produk intelijen di wilayah hukum
+- **Complex Form Support**: Update agent configuration untuk mendukung 9 fields termasuk dropdown mode
+- **Advanced Form Handling**: Custom form dengan state internal, tidak menggunakan useAgentForm
+- **Professional Report Format**: Format laporan sesuai standar intelijen kepolisian Indonesia
+- **Web Search Integration**: Real-time web search untuk informasi terkini
+- **Error Handling**: Comprehensive error handling dengan specific messages
+- **Session Management**: User tracking dengan Supabase integration
+- **Data Validation**: Conditional validation berdasarkan mode (REPORT vs SEARCH)
+- **Intelligence Terminology**: Menggunakan terminologi intelijen kepolisian yang tepat (Pulbaket, Pamtup, dll)
+
+### Custom Form Architecture - COMPLETED ✅:
+- **IntelligenceAgentForm**: Self-contained form dengan state dan submit handler internal
+- **IntelligenceResultDisplay**: Professional display component untuk hasil dengan metadata
+- **Removed from useAgentForm**: Logika laporan intelejen dihapus dari useAgentForm untuk menghindari konflik
+- **Direct Service Integration**: Form langsung memanggil submitLaporanInteljenAnalysis service
+- **Form Layout**: Conditional layout di Agents.tsx untuk laporan intelejen tanpa wrapper form
+- **Error Handling**: Internal error state dan callback ke parent component
+- **Validation**: Real-time validation dengan visual feedback untuk user
+
+### Form Submission Fix - COMPLETED ✅:
+- **Fixed Form Reload Issue**: Form kini berfungsi tanpa reload halaman
+- **Clean TypeScript Warnings**: Menghapus imports yang tidak digunakan (CheckCircle, FormDataValue, MapPin)
+- **Removed Unused State**: Menghapus localError state yang tidak digunakan untuk rendering
+- **Error Handling Optimization**: Langsung menggunakan onError callback tanpa internal state
+- **Direct Service Call**: Form langsung memanggil submitLaporanInteljenAnalysis tanpa melalui useAgentForm
+- **Conditional Layout**: Layout yang berbeda untuk laporan intelejen (tanpa wrapper form) vs agen lain
+- **Professional Result Display**: Full-screen modal untuk hasil dengan metadata, copy, print, download functionality
+- **Code Formatting**: Memperbaiki struktur dan formatting kode untuk readability
+- **JSX Structure Fix**: Memperbaiki missing closing tags dan struktur JSX yang tidak lengkap
+
+## Complex Agent Implementation Pattern
+
+Untuk agen dengan multiple fields dan conditional logic seperti Laporan Intelejen:
+
+1. **Agent Configuration**:
+   - Gunakan multiple fields dengan different types (select, text, textarea)
+   - Implementasikan conditional fields berdasarkan mode
+   - Tambahkan dropdown options dengan descriptive labels
+   - Set required/optional fields sesuai business logic
+
+2. **Service Implementation Pattern**:
+   ```typescript
+   // Dual function pattern dengan mode detection
+   export const submitAgentAnalysis = async (message: string): Promise<string> => {
+     // Parse MODE:type\nDATA:{json} format
+     let mode = 'DEFAULT';
+     let data: any = {};
+     
+     if (message.includes('MODE:')) {
+       // Extract mode and data from structured message
+     }
+     
+     if (mode === 'SPECIAL_MODE') {
+       return await specialFunction(data);
+     } else {
+       return await defaultFunction(data);
+     }
+   };
+   ```
+
+3. **Form Handler Pattern**:
+   ```typescript
+   case 'complex_agent':
+     // Extract all form fields
+     const field1 = formData.field1 as string || '';
+     const field2 = formData.field2 as string || '';
+     
+     // Conditional validation based on mode
+     if (mode === 'MODE_A') {
+       if (!field1.trim()) throw new Error('Field1 required for Mode A');
+     }
+     
+     // Structure data for service
+     const agentData = { mode, field1, field2, ... };
+     const structuredMessage = `MODE:${mode}\nDATA:${JSON.stringify(agentData)}`;
+     response = await submitAgentAnalysis(structuredMessage);
+   ```
+
+4. **Professional Intelligence Report Structure**:
+   ```
+   I. PENDAHULUAN
+   II. FAKTA-FAKTA  
+   III. PENDAPAT PELAPOR
+      I. ANALISA
+      II. PREDIKSI
+      III. LANGKAH-LANGKAH INTELIJEN
+      IV. REKOMENDASI
+   ```
+
+5. **Intelligence Data Classification**:
+   - A1-A3: Sumber dapat dipercaya
+   - B1-B3: Sumber agak dapat dipercaya  
+   - C1-C3: Sumber tidak dapat dipercaya
+   - D, E, F: Special classifications
 
 ## Migrasi agentSentimentAnalyst.ts ke Gemini Gen AI API - Completed ✅
 
@@ -768,6 +920,12 @@ const API_KEY = 'AIzaSyBf4_0ll5H7OMs7yAtgXO1LWVAWhOcbJmo'; // NEVER DO THIS!
     - Conditional rendering antara `SentimentAnalysisCanvas` untuk sentiment_analyst dan `ResultArtifact` untuk agent lain
     - Layout adjustment yang tidak mengubah margin untuk sentiment analyst (full screen modal)
     - Seamless integration dengan existing agent workflow
+
+Professional Color Scheme Examples:
+- Financial Services (P2SK): blue-indigo gradient (from-blue-50 to-indigo-50)
+- Criminal Law (KUHP): rose-orange gradient (from-rose-50 to-orange-50)
+- Technology Law (ITE): cyan-sky gradient (from-cyan-50 to-sky-50)
+- Labor Law (Cipta Kerja): slate-gray gradient (from-slate-50 to-gray-50)
 
 ## Migrasi agentModusKejahatan.ts ke Gemini Gen AI API - Completed ✅
 
@@ -1145,3 +1303,389 @@ Membuat agen AI "Ensiklopedia Kepolisian" yang menyediakan informasi komprehensi
   * Format: Data Wikipedia → Informasi Ensiklopedia Lengkap → Sumber Referensi & Berita Terbaru
   * **BAHASA INDONESIA ONLY**: Prompt secara eksplisit menekankan penggunaan bahasa Indonesia saja
   * **Wikipedia Fallback Search**: Automatic alternative search untuk singkatan kepolisian (polda→Kepolisian Daerah, dll)
+
+### Enhancement Structured Parsing untuk Intelligence Analysis - COMPLETED ✅:
+- **Structured Response Parsing**: Implementasi parseIntelligenceResponse() function untuk parsing output Gemini yang lebih terstruktur
+- **IntelligenceAnalysisResult Interface**: Interface lengkap untuk hasil analisis dengan metadata, intelligence issues, dan web sources
+- **Enhanced Metadata Extraction**: 
+  * Extract wilayah hukum, kategori, tanggal pencarian dari header
+  * Parse intelligence issues dengan title, summary, potential investigation, dan sources
+  * Extract executive summary berdasarkan mode (REPORT vs SEARCH)
+- **Intelligence Issues Parsing**: 
+  * Pattern matching untuk numbered issues (### 1., ### 2., etc)
+  * Extract JUDUL ISU, RINGKASAN ISU, POTENSI AWAL PENYELIDIKAN, SUMBER
+  * Parse bullet points untuk potential investigation
+  * Extract URLs dari sumber informasi
+- **Enhanced Logging**: 
+  * Raw Gemini response logging untuk debugging
+  * Structured logging dengan issuesFound, sourcesFound, queriesUsed counts
+  * Performance monitoring untuk parsing success
+- **Improved Output Formatting**:
+  * Enhanced header dengan kategori dan pokok permasalahan
+  * Better source formatting dengan domain extraction
+  * Metadata-rich footer dengan detailed statistics
+  * Query pencarian tracking dan display
+- **getStructuredIntelligenceAnalysis Function**: 
+  * Export function untuk structured analysis results
+  * Support untuk both REPORT dan SEARCH modes
+  * Consistent dengan pattern di agentCrimeTrendAnalyst.ts
+  * Return structured data untuk potential canvas component integration
+- **Error Handling Enhancement**:
+  * Graceful fallback untuk parsing failures
+  * Comprehensive error logging untuk debugging
+  * Maintain functionality dengan atau tanpa structured parsing
+- **Type Safety Improvements**:
+  * Complete TypeScript coverage dengan IntelligenceAnalysisResult interface
+  * Proper typing untuk web sources dan search queries arrays
+  * Export semua types untuk reusability
+
+### Structured Parsing Pattern untuk Intelligence Agents:
+```typescript
+// 1. Define structured result interface
+interface IntelligenceAnalysisResult {
+  analysis: string;
+  executiveSummary: string;
+  reportMetadata: {
+    wilayahHukum: string;
+    kategori: string;
+    tanggalPencarian: string;
+    mode: 'REPORT' | 'SEARCH';
+  };
+  intelligenceIssues: Array<{
+    title: string;
+    summary: string;
+    potentialInvestigation: string[];
+    sources: string[];
+  }>;
+  searchQueries: string[];
+  webSources: WebSource[];
+}
+
+// 2. Implement parsing function
+function parseIntelligenceResponse(responseText: string, mode: 'REPORT' | 'SEARCH'): IntelligenceAnalysisResult | null {
+  // Extract metadata, issues, executive summary
+  // Return structured object atau null jika parsing gagal
+}
+
+// 3. Enhance main service functions
+const parsedAnalysis = parseIntelligenceResponse(reportText, mode);
+if (parsedAnalysis) {
+  parsedAnalysis.searchQueries = webSearchQueries;
+  parsedAnalysis.webSources = sources;
+  console.log('Parsed successfully:', { issuesFound: parsedAnalysis.intelligenceIssues.length });
+}
+
+// 4. Export structured analysis function
+export const getStructuredIntelligenceAnalysis = async (mode, data) => {
+  // Return structured data untuk canvas components atau advanced analysis
+};
+```
+
+### Perbaikan Responsivitas Mobile dan Struktur Angka Romawi di IntelligenceResultDisplay - COMPLETED ✅:
+- **Mobile-First Responsive Design**: 
+  * Header yang adaptif dengan truncate title dan conditional subtitle
+  * Padding yang responsif (p-2 sm:p-4 untuk container, p-4 sm:p-6 untuk content)
+  * Height adjustment untuk mobile (h-[95vh] sm:h-[90vh])
+  * Icon sizing yang responsif (w-6 h-6 sm:w-8 sm:h-8)
+- **Mobile Action Menu Implementation**:
+  * Desktop: Horizontal button layout dengan text labels
+  * Mobile: Dropdown menu dengan MoreVertical icon trigger
+  * Touch-friendly button sizing dan spacing
+  * Backdrop click untuk menutup mobile menu
+  * Auto-close menu setelah action (copy, print, download)
+- **Enhanced Typography Responsiveness**:
+  * Base text sizing: text-sm sm:text-base
+  * Responsive headings: prose-h1:text-xl sm:prose-h1:text-2xl
+  * Responsive spacing: prose-h1:mb-3 sm:prose-h1:mb-4
+  * Table text sizing: prose-table:text-sm, prose-th:text-xs sm:prose-th:text-sm
+- **Structured Roman Numeral Support**:
+  * CSS styling untuk upper-roman dan lower-roman lists
+  * Tailwind classes untuk nested ordered lists dengan proper indentation
+  * [&_ol[style*='upper-roman']]:list-[upper-roman] untuk level I, II, III
+  * [&_ol[style*='lower-roman']]:list-[lower-roman] untuk level i, ii, iii
+  * Progressive margin-left untuk nested lists (ml-6 → ml-8 → ml-10 → ml-12)
+- **Print Styling Enhancement**:
+  * CSS untuk print window dengan proper roman numeral support
+  * Margin dan padding yang sesuai untuk printed documents
+  * List-style-type preservation untuk print output
+- **Footer Responsiveness**:
+  * Flex-col pada mobile, flex-row pada desktop
+  * Responsive gap dan text sizing
+  * Proper alignment untuk different screen sizes
+- **Toast Notification Improvements**:
+  * Responsive padding (px-3 sm:px-4)
+  * Consistent text sizing (text-sm)
+  * Z-index management untuk mobile menu compatibility
+
+### Mobile UI/UX Best Practices untuk Intelligence Display:
+- **Touch-Friendly Interface**: Minimum 44px touch targets untuk mobile buttons
+- **Progressive Disclosure**: Hide secondary information pada mobile (subtitle, detailed labels)
+- **Contextual Menus**: Dropdown pattern untuk space-constrained mobile screens
+- **Responsive Typography**: Fluid text sizing dengan sm: breakpoints
+- **Content Optimization**: Smaller padding dan margins untuk mobile content consumption
+- **Accessibility**: Proper aria-labels dan keyboard navigation support
+- **Performance**: Efficient re-renders dengan proper state management untuk mobile menu
+
+## Task: Menambahkan Icon Intelkam untuk Agent Card Intelkam AI - COMPLETED ✅
+
+### Deskripsi:
+Menambahkan icon khusus untuk agent "Intelkam AI" menggunakan logo Intelkam Polri yang sudah tersedia di `public/img/LOGO_INTELKAM_POLRI.svg`.
+
+### Implementasi:
+- **File Modified**: `src/components/AgentCard.tsx`
+- **Agent Type**: `laporan_intelejen`
+- **Icon Path**: `/img/LOGO_INTELKAM_POLRI.svg`
+- **Icon Size**: `h-10 w-10` (konsisten dengan icon lain)
+- **Alt Text**: "Intelkam Polri"
+
+### Code Changes:
+```typescript
+case 'laporan_intelejen':
+  return <img src="/img/LOGO_INTELKAM_POLRI.svg" alt="Intelkam Polri" className="h-10 w-10" />;
+```
+
+### Technical Details:
+- **SVG File**: Logo Intelkam Polri sudah tersedia di public directory
+- **Consistent Styling**: Menggunakan ukuran yang sama dengan icon agent lain
+- **Professional Appearance**: Logo resmi Intelkam untuk representasi yang tepat
+- **Integration**: Terintegrasi dengan getAgentIcon function di AgentCard.tsx
+
+### Status:
+✅ **COMPLETED** - Icon Intelkam berhasil ditambahkan untuk agent Intelkam AI
+
+## Task: Perbaikan Nama dan Deskripsi Agent Intelkam AI - COMPLETED ✅
+
+### Deskripsi:
+Memperbaiki duplikasi teks dan inkonsistensi nama agent dari "Laporan Intelejen" menjadi "Intelkam AI" untuk menghindari redundansi dan memberikan identitas yang lebih jelas.
+
+### Perubahan yang Dilakukan:
+- **Nama Agent**: "Laporan Intelejen" → "Intelkam AI"
+- **Deskripsi**: Diperbaiki dari duplikasi menjadi "Asisten AI khusus untuk analisis intelijen dan penyusunan produk intelkam yang mendukung operasi keamanan kepolisian"
+- **Mode Options**: "Laporan Intelijen" → "Analisis Mendalam" untuk menghindari duplikasi
+- **Placeholder Text**: Diperbaiki untuk menghindari pengulangan kata "laporan intelijen"
+- **Service Comments**: Updated untuk mencerminkan nama baru dan fungsi yang lebih jelas
+
+### Technical Details:
+- **File Modified**: `src/data/agents/laporanInteljenAgent.ts`
+- **Service File**: `src/services/agentLaporanIntelejen.ts` (komentar diperbaiki)
+- **Documentation**: `.cursorrules` updated untuk konsistensi
+- **Professional Naming**: Menggunakan "Intelkam AI" yang lebih spesifik dan profesional
+- **Clear Differentiation**: Membedakan antara mode "Analisis Mendalam" dan "Pencarian Produk Intelijen"
+
+### Benefits:
+- **Reduced Redundancy**: Menghilangkan duplikasi teks yang membingungkan
+- **Professional Identity**: Nama yang lebih spesifik dan mudah diingat
+- **Clear Functionality**: Deskripsi yang lebih jelas tentang fungsi agent
+- **Consistent Branding**: Menggunakan terminologi Intelkam yang sesuai dengan logo
+
+### Status:
+✅ **COMPLETED** - Nama dan deskripsi agent berhasil diperbaiki untuk menghindari duplikasi
+
+## Task: Implementasi Fungsi Waktu Terkini untuk Pencarian Spesifik - COMPLETED ✅
+
+### Deskripsi:
+Menambahkan fungsi waktu terkini pada agentLaporanIntelejen.ts dan mengintegrasikannya ke dalam prompt untuk pencarian yang lebih spesifik dan terkini.
+
+### Implementasi yang Dilakukan:
+
+#### 1. Fungsi Waktu Terkini:
+- **getCurrentDateTime()**: Mendapatkan waktu terkini dalam format Indonesia dengan timezone Asia/Jakarta
+- **getSearchTimeRange()**: Mendapatkan rentang waktu pencarian yang relevan (1 bulan, 3 bulan, 6 bulan, 1 tahun yang lalu)
+
+#### 2. Enhanced Prompt Engineering:
+- **Konteks Waktu Terkini**: Menambahkan informasi tanggal dan waktu saat ini dalam prompt
+- **Rentang Pencarian Prioritas**: Spesifikasi rentang waktu pencarian yang jelas
+- **Instruksi Pencarian Spesifik**: Prioritas pada data 3 bulan terakhir untuk laporan, 1 bulan terakhir untuk pencarian produk
+
+#### 3. Prompt Structure Enhancement:
+```typescript
+**KONTEKS WAKTU TERKINI:**
+- Tanggal dan waktu saat ini: ${currentDateTime}
+- Rentang pencarian prioritas: ${timeRange.threeMonthsAgo} hingga ${timeRange.currentDate}
+- Untuk konteks historis: maksimal hingga ${timeRange.oneYearAgo}
+
+**INSTRUKSI PENCARIAN SPESIFIK:**
+Gunakan kemampuan pencarian web Anda untuk mengumpulkan informasi yang SANGAT TERKINI dan relevan. Prioritaskan:
+1. Berita dan laporan dari 3 bulan terakhir
+2. Data statistik terbaru dari institusi resmi
+3. Perkembangan tren dan pola kejadian terkini
+4. Informasi real-time yang dapat mempengaruhi analisis
+```
+
+#### 4. Metadata Enhancement:
+- **Timestamp Konsisten**: Menggunakan getCurrentDateTime() untuk semua timestamp
+- **Rentang Waktu dalam Output**: Menampilkan rentang waktu pencarian dalam hasil akhir
+- **Catatan Metadata**: Informasi waktu pencarian dan prioritas dalam footer laporan
+
+#### 5. Search Priority Structure:
+- **Laporan Intelijen**: Prioritas 3 bulan terakhir, maksimal 1 tahun
+- **Pencarian Produk**: Prioritas 1 bulan terakhir, maksimal 6 bulan
+- **Real-time Context**: Timestamp yang akurat untuk setiap pencarian
+
+### Technical Benefits:
+- **Akurasi Temporal**: Pencarian yang lebih fokus pada data terkini
+- **Konsistensi Waktu**: Format waktu Indonesia yang konsisten di seluruh aplikasi
+- **Prioritas Pencarian**: Struktur prioritas yang jelas untuk hasil yang lebih relevan
+- **Metadata Tracking**: Tracking waktu pencarian untuk audit dan verifikasi
+- **Enhanced Relevance**: Hasil pencarian yang lebih relevan dengan konteks waktu terkini
+
+### Files Modified:
+- **src/services/agentLaporanIntelejen.ts**: Implementasi fungsi waktu dan enhanced prompts
+- **.cursorrules**: Dokumentasi perubahan dan pattern
+
+### Status:
+✅ **COMPLETED** - Fungsi waktu terkini berhasil diimplementasikan dengan pencarian yang lebih spesifik dan terkini
+
+## Task: Konfigurasi Link Referensi untuk Dibuka di Tab Baru - COMPLETED ✅
+
+### Deskripsi:
+Mengkonfigurasi semua link referensi dalam hasil Intelkam AI agar selalu dibuka di tab baru untuk meningkatkan user experience dan mencegah kehilangan konteks laporan.
+
+### Implementasi yang Dilakukan:
+
+#### 1. Custom Renderer untuk Marked.js:
+- **Link Renderer**: Membuat custom renderer untuk marked.js yang otomatis menambahkan `target="_blank"` dan `rel="noopener noreferrer"` pada semua link
+- **Security Enhancement**: Menambahkan `rel="noopener noreferrer"` untuk keamanan tambahan saat membuka link eksternal
+- **Title Preservation**: Mempertahankan atribut title jika ada pada link
+
+#### 2. DOMPurify Configuration Update:
+- **Allowed Attributes**: Menambahkan `href` dan `title` ke daftar atribut yang diizinkan
+- **Security Maintained**: Tetap mempertahankan konfigurasi keamanan yang ketat untuk mencegah XSS
+- **Link Attributes**: Memastikan `target` dan `rel` attributes diizinkan untuk link
+
+#### 3. Post-Processing Function:
+- **processLinksForNewTab()**: Fungsi tambahan untuk memproses HTML yang sudah ada
+- **Regex Pattern**: Pattern matching untuk menangkap semua tag `<a>` yang belum memiliki `target="_blank"`
+- **Conditional Processing**: Hanya menambahkan atribut jika belum ada untuk menghindari duplikasi
+- **Comprehensive Coverage**: Memastikan semua link, baik dari markdown maupun HTML langsung, diproses
+
+#### 4. Enhanced formatMessage Function:
+- **Dual Processing**: Kombinasi custom renderer dan post-processing untuk coverage maksimal
+- **Error Handling**: Maintained existing error handling untuk stability
+- **Performance**: Efficient regex processing tanpa mengganggu performance
+
+### Technical Implementation:
+```typescript
+// Custom renderer untuk marked.js
+const renderer = new marked.Renderer();
+renderer.link = function(href, title, text) {
+  const titleAttr = title ? ` title="${title}"` : '';
+  return `<a href="${href}"${titleAttr} target="_blank" rel="noopener noreferrer">${text}</a>`;
+};
+
+// Post-processing function
+const processLinksForNewTab = (html: string): string => {
+  return html.replace(/<a\s+([^>]*?)href\s*=\s*["']([^"']+)["']([^>]*?)>/gi, (match, beforeHref, href, afterHref) => {
+    if (match.includes('target=')) return match;
+    return `<a ${beforeHref}href="${href}"${afterHref} target="_blank" rel="noopener noreferrer">`;
+  });
+};
+```
+
+### Benefits:
+- **Improved UX**: User tidak kehilangan konteks laporan saat mengklik link referensi
+- **Security**: Link eksternal dibuka dengan `rel="noopener noreferrer"` untuk keamanan
+- **Consistency**: Semua link dalam aplikasi memiliki behavior yang konsisten
+- **Accessibility**: Tetap mempertahankan title attributes untuk screen readers
+- **Performance**: Processing yang efficient tanpa impact signifikan pada performance
+
+### Files Modified:
+- **src/utils/markdownFormatter.ts**: Enhanced dengan custom renderer dan post-processing
+- **.cursorrules**: Dokumentasi perubahan dan pattern
+
+### Status:
+✅ **COMPLETED** - Semua link referensi kini dibuka di tab baru secara otomatis
+
+## Task: Menghilangkan Duplikasi Header Form Intelkam AI - COMPLETED ✅
+
+### Deskripsi:
+Menghilangkan duplikasi header antara halaman Agents.tsx dan IntelligenceAgentForm.tsx untuk memberikan tampilan yang lebih profesional dan menghindari redundansi informasi.
+
+### Masalah yang Ditemukan:
+- **Duplikasi Header**: Nama dan deskripsi "Intelkam AI" muncul dua kali:
+  1. Di header halaman Agents.tsx (bagian atas halaman)
+  2. Di dalam form IntelligenceAgentForm.tsx (header form)
+- **Redundansi Visual**: Informasi yang sama ditampilkan berulang dalam jarak yang dekat
+
+### Solusi yang Diimplementasikan:
+
+#### 1. Penghapusan Header Form:
+- **Removed Duplicate Header**: Menghapus header section di IntelligenceAgentForm.tsx yang berisi nama dan deskripsi agent
+- **Clean Structure**: Form kini langsung dimulai tanpa header duplikasi
+- **Maintained Context**: Informasi agent tetap tersedia di header halaman utama
+
+#### 2. Professional Visual Enhancement:
+- **Gradient Indicator Bar**: Menambahkan thin gradient bar di bagian atas form untuk visual appeal
+- **Enhanced Spacing**: Menambahkan padding top (pt-8) untuk memberikan ruang yang lebih baik
+- **Professional Appearance**: Form terlihat lebih clean dan profesional
+
+#### 3. Improved User Experience:
+- **Reduced Clutter**: Menghilangkan informasi redundan yang dapat membingungkan user
+- **Better Focus**: User dapat langsung fokus pada form tanpa distraksi header duplikasi
+- **Consistent Layout**: Layout yang lebih konsisten dengan form lainnya
+
+### Technical Implementation:
+```typescript
+// Before: Form dengan header duplikasi
+<div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+  <div className="bg-gradient-to-r from-indigo-50 to-blue-50 px-6 py-4 border-b border-gray-200">
+    <div className="flex items-center gap-3">
+      <div className="p-2 bg-indigo-100 rounded-lg">
+        <Eye className="w-6 h-6 text-indigo-600" />
+      </div>
+      <div>
+        <h2 className="text-xl font-semibold text-gray-900">{agent.name}</h2>
+        <p className="text-sm text-gray-600">{agent.description}</p>
+      </div>
+    </div>
+  </div>
+  <form onSubmit={handleSubmit} className="p-6">
+
+// After: Form clean tanpa duplikasi dengan professional indicator
+<div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+  <div className="h-1 bg-gradient-to-r from-indigo-500 via-blue-500 to-indigo-600"></div>
+  <form onSubmit={handleSubmit} className="p-6 pt-8">
+```
+
+### Benefits:
+- **Cleaner Interface**: Interface yang lebih bersih tanpa duplikasi informasi
+- **Professional Appearance**: Tampilan yang lebih profesional dengan gradient indicator
+- **Better UX**: User experience yang lebih baik dengan fokus pada functionality
+- **Consistent Design**: Design yang konsisten dengan prinsip minimalism
+- **Reduced Cognitive Load**: Mengurangi beban kognitif user dengan menghilangkan redundansi
+
+### Files Modified:
+- **src/components/agent-forms/IntelligenceAgentForm.tsx**: Removed duplicate header, added professional indicator
+- **.cursorrules**: Dokumentasi perubahan dan pattern
+
+### Status:
+✅ **COMPLETED** - Form Intelkam AI kini tampil lebih profesional tanpa duplikasi header
+
+## Task: Cleanup TypeScript Warnings di IntelligenceAgentForm.tsx - COMPLETED ✅
+
+### Deskripsi:
+Menghapus unused imports dan parameters yang muncul setelah penghapusan header duplikasi di IntelligenceAgentForm.tsx untuk menjaga kode tetap bersih dan bebas warning.
+
+### Warning yang Diperbaiki:
+1. **Unused Import 'Eye'**: Icon Eye tidak lagi digunakan setelah penghapusan header form
+2. **Unused Parameter 'agent'**: Parameter agent tidak lagi digunakan karena informasi agent sudah ditampilkan di header halaman
+
+### Perubahan yang Dilakukan:
+- **Removed Eye Import**: Menghapus import `Eye` dari lucide-react yang tidak lagi digunakan
+- **Removed agent Parameter**: Menghapus parameter `agent` dari props IntelligenceAgentForm
+- **Clean Code**: Memastikan tidak ada unused variables atau imports
+
+### Technical Details:
+- **File Modified**: `src/components/agent-forms/IntelligenceAgentForm.tsx`
+- **Import Cleanup**: Menghapus `Eye` dari import lucide-react
+- **Props Cleanup**: Menghapus `agent` parameter dari function signature
+- **TypeScript Compliance**: Memastikan kode bebas dari TypeScript warnings
+
+### Benefits:
+- **Clean Code**: Kode yang lebih bersih tanpa unused imports dan variables
+- **TypeScript Compliance**: Tidak ada warning TypeScript yang mengganggu development
+- **Better Maintainability**: Kode yang lebih mudah dipelihara dan dipahami
+- **Performance**: Sedikit peningkatan performa dengan menghapus unused imports
+
+### Status:
+✅ **COMPLETED** - TypeScript warnings berhasil dibersihkan dari IntelligenceAgentForm.tsx
