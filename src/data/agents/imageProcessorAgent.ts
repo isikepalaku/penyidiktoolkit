@@ -5,7 +5,7 @@ export const imageProcessorAgent: ExtendedAgent = {
   name: 'Geo Lokasi Gambar',
   type: 'image_processor',
   status: 'on',
-  description: 'Menganalisis foto dan menentukan lokasi berdasarkan ciri-ciri visual yang terlihat dalam gambar.',
+  description: 'Menganalisis foto dan lokasi (Tahap pencarian fungsi api serta logika, masih dalam perkembangan dan belum memberikan hasil yang baik) .',
   fields: [
     {
       id: 'image',

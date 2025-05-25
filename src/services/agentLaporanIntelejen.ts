@@ -49,7 +49,7 @@ interface IntelligenceAnalysisResult {
 }
 
 // Constants
-const GEMINI_MODEL_NAME = 'gemini-2.0-flash';
+const GEMINI_MODEL_NAME = 'gemini-2.5-flash-preview-05-20';
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 if (!API_KEY) {

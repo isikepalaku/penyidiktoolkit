@@ -201,7 +201,7 @@ export const submitAgentAnalysis = async (
     console.log('Session ID:', session_id);
 
     // Menggunakan Gemini 2.0 Flash sesuai dokumentasi resmi untuk grounding
-    const model = "gemini-2.0-flash";
+    const model = "gemini-2.5-flash-preview-05-20";
     
     // Gunakan prompt temporal baru
     const prompt = createTemporalSentimentPrompt(topic);
