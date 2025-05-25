@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FileText, Search, AlertCircle, Clock } from 'lucide-react';
 import type { ExtendedAgent, FormData } from '../../types';
-import { submitLaporanInteljenAnalysis } from '../../services/agentLaporanIntelejen';
+import { submitLaporanInteljenAnalysis, INITIAL_REPORT_DATA, getCurrentDateTime } from '../../services/agentLaporanIntelejen';
 
 interface IntelligenceAgentFormProps {
   agent: ExtendedAgent;
@@ -20,12 +20,20 @@ export const IntelligenceAgentForm: React.FC<IntelligenceAgentFormProps> = ({
     issue: '',
     category: '',
     wilayahHukum: '',
-    sumber: '',
-    caraMendapatkanBaket: '',
-    hubunganDenganSasaran: '',
-    waktuMendapatkanInformasi: '',
-    nilaiInformasi: ''
+    sumber: INITIAL_REPORT_DATA.sumber,
+    caraMendapatkanBaket: INITIAL_REPORT_DATA.caraMendapatkanBaket,
+    hubunganDenganSasaran: INITIAL_REPORT_DATA.hubunganDenganSasaran,
+    waktuMendapatkanInformasi: INITIAL_REPORT_DATA.waktuMendapatkanInformasi,
+    nilaiInformasi: INITIAL_REPORT_DATA.nilaiInformasi
   });
+
+  // Update waktu saat ini ketika komponen dimount
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      waktuMendapatkanInformasi: getCurrentDateTime()
+    }));
+  }, []);
 
   const handleModeChange = (mode: string) => {
     setSelectedMode(mode);
@@ -262,13 +270,23 @@ export const IntelligenceAgentForm: React.FC<IntelligenceAgentFormProps> = ({
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Waktu Mendapatkan Informasi
                   </label>
-                  <input
-                    type="text"
-                    value={formData.waktuMendapatkanInformasi as string || ''}
-                    onChange={(e) => handleInputChange('waktuMendapatkanInformasi', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    placeholder="Senin, 15 Januari 2024, 14:30 WIB"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={formData.waktuMendapatkanInformasi as string || ''}
+                      onChange={(e) => handleInputChange('waktuMendapatkanInformasi', e.target.value)}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      placeholder="Senin, 15 Januari 2024, 14:30 WIB"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleInputChange('waktuMendapatkanInformasi', getCurrentDateTime())}
+                      className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors flex items-center gap-1"
+                      title="Perbarui ke waktu saat ini"
+                    >
+                      <Clock className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
 

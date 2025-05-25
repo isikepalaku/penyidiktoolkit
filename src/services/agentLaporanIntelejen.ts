@@ -71,7 +71,7 @@ const getSessionId = async (): Promise<string> => {
 };
 
 // Fungsi untuk mendapatkan waktu terkini dalam format Indonesia
-const getCurrentDateTime = (): string => {
+export const getCurrentDateTime = (): string => {
   const now = new Date();
   return now.toLocaleDateString('id-ID', { 
     weekday: 'long', 
@@ -141,24 +141,21 @@ const buildIntelligenceReportPrompt = (inputs: ReportInputData): string => {
   const currentDateTime = getCurrentDateTime();
   
   return `
-Anda adalah seorang analis intelijen kepolisian yang sangat kompeten dan bertugas menyusun laporan intelijen komprehensif dalam Bahasa Indonesia.
+Anda adalah analis intelijen kepolisian yang bertugas menyusun laporan intelijen komprehensif dalam Bahasa Indonesia berdasarkan isu utama: "${inputs.issue}" dalam kategori: "${inputs.category}".
 
 **KONTEKS WAKTU TERKINI:**
 - Tanggal dan waktu saat ini: ${currentDateTime}
 - Rentang pencarian prioritas: ${timeRange.threeMonthsAgo} hingga ${timeRange.currentDate}
 - Untuk konteks historis: maksimal hingga ${timeRange.oneYearAgo}
 
-Berdasarkan isu utama: "${inputs.issue}" dalam kategori: "${inputs.category}".
-
-**INSTRUKSI PENCARIAN SPESIFIK:**
-Gunakan kemampuan pencarian web Anda untuk mengumpulkan informasi yang SANGAT TERKINI dan relevan. Prioritaskan:
+**PRIORITAS PENCARIAN:**
+Prioritaskan informasi dari:
 1. Berita dan laporan dari 3 bulan terakhir (${timeRange.threeMonthsAgo} - ${timeRange.currentDate})
 2. Data statistik terbaru dari institusi resmi (Polri, BPS, Kemenkumham)
 3. Perkembangan tren dan pola kejadian terkini
 4. Informasi real-time yang dapat mempengaruhi analisis
 
-Pastikan semua informasi yang digunakan memiliki timestamp yang jelas dan merupakan data terkini.
-Setelah itu, buatlah laporan intelijen lengkap dengan format dan detail sebagai berikut:
+Susun laporan intelijen lengkap dengan format berikut:
 
 I. PENDAHULUAN
 Sumber : ${inputs.sumber}
@@ -168,23 +165,22 @@ Waktu mendapatkan informasi : ${inputs.waktuMendapatkanInformasi}
 Nilai Informasi : ${inputs.nilaiInformasi}
 
 II. FAKTA-FAKTA
-[Pada bagian ini, Anda HARUS menghasilkan narasi kejadian atau serangkaian fakta yang konkret dan spesifik berdasarkan informasi yang Anda temukan terkait isu "${inputs.issue}" dan kategori "${inputs.category}". Rincian ini harus terdengar seperti laporan kejadian nyata.
-Sertakan elemen-elemen berikut jika relevan dan dapat Anda simpulkan atau hasilkan secara logis dari pencarian Anda:
-- Perkiraan tanggal dan waktu kejadian (jika spesifik).
-- Lokasi kejadian (buatlah nama lokasi yang masuk akal jika tidak ditemukan secara spesifik, namun sesuai dengan konteks isu dan kategori).
-- Jumlah orang yang terlibat atau terdampak.
-- Deskripsi singkat namun jelas mengenai aktivitas utama, peristiwa, atau temuan.
-- Aktor-aktor kunci yang terlibat (jika ada).
-Fakta-fakta ini harus menjadi dasar yang kuat untuk analisa dan prediksi di bagian selanjutnya. Pastikan fakta yang disajikan relevan dengan isu dan kategori yang diberikan.]
+[Hasilkan narasi kejadian atau serangkaian fakta yang konkret dan spesifik berdasarkan informasi terkait isu "${inputs.issue}" dan kategori "${inputs.category}". Sertakan:
+- Perkiraan tanggal dan waktu kejadian (jika spesifik)
+- Lokasi kejadian yang masuk akal sesuai konteks
+- Jumlah orang yang terlibat atau terdampak
+- Deskripsi singkat namun jelas mengenai aktivitas utama, peristiwa, atau temuan
+- Aktor-aktor kunci yang terlibat (jika ada)
+Fakta-fakta ini harus menjadi dasar yang kuat untuk analisa dan prediksi di bagian selanjutnya.]
 
 III. PENDAPAT PELAPOR
-Berdasarkan FAKTA-FAKTA yang telah Anda kumpulkan dan rumuskan pada Bagian II, berikan pendapat pelapor yang mendalam dan terstruktur, mencakup sub-bagian berikut:
+Berdasarkan FAKTA-FAKTA yang telah dikumpulkan pada Bagian II, berikan pendapat pelapor yang mendalam dan terstruktur:
 
 I. ANALISA :
 [Berikan analisa mendalam mengenai Fakta-Fakta yang telah disajikan. Hubungkan fakta-fakta tersebut dengan isu utama "${inputs.issue}". Jelaskan potensi implikasi, modus operandi (jika ada), dan faktor-faktor penyebab atau pendukung dari situasi yang dilaporkan.]
 
 II. PREDIKSI :
-[Berdasarkan analisa Anda, buat prediksi mengenai kemungkinan perkembangan situasi di masa mendatang. Apa saja skenario yang mungkin terjadi? Apa potensi eskalasi atau dampak lebih lanjut jika tidak ada intervensi?]
+[Berdasarkan analisa, buat prediksi mengenai kemungkinan perkembangan situasi di masa mendatang. Apa saja skenario yang mungkin terjadi? Apa potensi eskalasi atau dampak lebih lanjut jika tidak ada intervensi?]
 
 III. LANGKAH – LANGKAH INTELIJEN :
 [Rekomendasikan langkah-langkah intelijen spesifik yang perlu segera diambil untuk merespons situasi. Contoh: "Melakukan koordinasi dengan unit XYZ.", "Melakukan pendalaman dan pengumpulan bukti tambahan (Pulbaket) terhadap subjek A.", "Melakukan pemantauan tertutup (Pamtup) di lokasi B."]
@@ -192,8 +188,7 @@ III. LANGKAH – LANGKAH INTELIJEN :
 IV. REKOMENDASI :
 [Berikan rekomendasi tindakan konkret atau kebijakan strategis yang disarankan kepada pimpinan atau unit terkait untuk mengatasi isu atau situasi berdasarkan keseluruhan analisa dan prediksi. Rekomendasi harus jelas, dapat ditindaklanjuti, dan bertujuan untuk mitigasi risiko atau penyelesaian masalah.]
 
-Pastikan seluruh laporan ditulis dalam Bahasa Indonesia formal yang baik dan benar, dengan struktur yang rapi dan jelas sesuai format yang diminta.
-Fokus pada kualitas, akurasi (berdasarkan pencarian), dan relevansi informasi.
+Tulis seluruh laporan dalam Bahasa Indonesia formal yang baik dan benar, dengan struktur yang rapi dan jelas sesuai format yang diminta. Fokus pada kualitas, akurasi, dan relevansi informasi.
 `;
 };
 
@@ -203,48 +198,41 @@ const buildIntelligenceProductSearchPrompt = (wilayahHukum: string, category?: s
   const currentDateTime = getCurrentDateTime();
   
   let prompt = `
-Anda adalah seorang analis intelijen AI yang bertugas membantu mengidentifikasi isu-isu terkini dan relevan di wilayah hukum tertentu yang berpotensi menjadi objek penyelidikan intelijen.
+Anda adalah analis intelijen AI yang bertugas mengidentifikasi isu-isu terkini dan relevan di wilayah hukum "${wilayahHukum}" yang berpotensi menjadi objek penyelidikan intelijen.
 
 **KONTEKS WAKTU TERKINI:**
 - Tanggal dan waktu saat ini: ${currentDateTime}
 - Fokus pencarian: ${timeRange.oneMonthAgo} hingga ${timeRange.currentDate} (prioritas utama)
 - Rentang maksimal: ${timeRange.sixMonthsAgo} hingga ${timeRange.currentDate}
-
-Wilayah hukum yang menjadi fokus: "${wilayahHukum}".
 `;
 
   if (category && category.trim() !== "") {
-    prompt += `Prioritaskan isu-isu dalam kategori: "${category}".\n`;
+    prompt += `\n**KATEGORI FOKUS:** ${category}\n`;
   } else {
-    prompt += `Pertimbangkan berbagai kategori isu intelijen seperti ancaman keamanan nasional, kejahatan terorganisir, terorisme, spionase, kejahatan siber tingkat lanjut, potensi konflik sosial signifikan, atau aktivitas lain yang mengganggu stabilitas dan ketertiban umum.\n`;
+    prompt += `\n**KATEGORI YANG DIPERTIMBANGKAN:** Ancaman keamanan nasional, kejahatan terorganisir, terorisme, spionase, kejahatan siber tingkat lanjut, potensi konflik sosial signifikan, atau aktivitas lain yang mengganggu stabilitas dan ketertiban umum.\n`;
   }
 
   prompt += `
-**INSTRUKSI PENCARIAN WAKTU SPESIFIK:**
-Gunakan kemampuan pencarian web Anda untuk menemukan informasi publik, artikel berita, atau laporan yang SANGAT TERKINI. Prioritaskan:
-
+**PRIORITAS PENCARIAN:**
 1. **PRIORITAS TINGGI** - Kejadian dari 1 bulan terakhir (${timeRange.oneMonthAgo} - ${timeRange.currentDate})
 2. **PRIORITAS SEDANG** - Tren dari 3 bulan terakhir (${timeRange.threeMonthsAgo} - ${timeRange.currentDate})
 3. **KONTEKS TAMBAHAN** - Pola dari 6 bulan terakhir (${timeRange.sixMonthsAgo} - ${timeRange.currentDate})
 
-Fokus pada kejadian atau tren yang mengindikasikan adanya potensi isu untuk diselidiki lebih lanjut oleh unit intelijen. Pastikan setiap informasi memiliki tanggal yang jelas dan merupakan data terkini.
-
-Untuk setiap potensi isu yang Anda identifikasi, sajikan informasi dalam format berikut:
+Identifikasi dan sajikan setiap potensi isu dalam format berikut:
 
 ---
-JUDUL ISU/POTENSI PENYELIDIKAN: [Berikan judul singkat yang menggambarkan isu, contoh: "Peningkatan Aktivitas Penipuan Online dengan Modus Baru di ${wilayahHukum}"]
+**JUDUL ISU/POTENSI PENYELIDIKAN:** [Berikan judul singkat yang menggambarkan isu, contoh: "Peningkatan Aktivitas Penipuan Online dengan Modus Baru di ${wilayahHukum}"]
 
-RINGKASAN ISU: [Jelaskan secara singkat isu tersebut, mengapa ini relevan untuk intelijen, apa indikasinya, dan perkiraan waktu kejadian atau periode trennya. Sebutkan jika ada pola atau aktor yang mencurigakan.]
+**RINGKASAN ISU:** [Jelaskan secara singkat isu tersebut, mengapa ini relevan untuk intelijen, apa indikasinya, dan perkiraan waktu kejadian atau periode trennya. Sebutkan jika ada pola atau aktor yang mencurigakan.]
 
-POTENSI AWAL PENYELIDIKAN: [Sebutkan beberapa pertanyaan awal atau arah penyelidikan yang bisa dilakukan. Contoh: "Siapa aktor utama di balik modus ini?", "Bagaimana jaringan mereka beroperasi?", "Apa dampak kerugian yang ditimbulkan?"]
+**POTENSI AWAL PENYELIDIKAN:** [Sebutkan beberapa pertanyaan awal atau arah penyelidikan yang bisa dilakukan. Contoh: "Siapa aktor utama di balik modus ini?", "Bagaimana jaringan mereka beroperasi?", "Apa dampak kerugian yang ditimbulkan?"]
 
-SUMBER INFORMASI AWAL: [Jika ada, sebutkan sumber URL yang relevan dan dapat diakses publik yang Anda gunakan untuk informasi ini. Format sebagai daftar jika lebih dari satu.]
+**SUMBER INFORMASI AWAL:** [Jika ada, sebutkan sumber URL yang relevan dan dapat diakses publik yang Anda gunakan untuk informasi ini. Format sebagai daftar jika lebih dari satu.]
 ---
 
-Jika Anda menemukan beberapa potensi isu, daftarkan semuanya.
-Jika pencarian Anda tidak menemukan isu spesifik yang sangat menonjol untuk penyelidikan baru, Anda dapat memberikan ringkasan tren keamanan umum yang paling relevan dan terkini di wilayah tersebut, beserta sumbernya.
+Jika menemukan beberapa potensi isu, daftarkan semuanya. Jika tidak menemukan isu spesifik yang sangat menonjol untuk penyelidikan baru, berikan ringkasan tren keamanan umum yang paling relevan dan terkini di wilayah tersebut, beserta sumbernya.
 
-Pastikan semua informasi yang disajikan berdasarkan hasil pencarian yang faktual dan relevan. Sertakan daftar URL sumber yang Anda gunakan di bagian akhir setiap temuan atau secara keseluruhan jika lebih praktis.
+Pastikan semua informasi berdasarkan hasil pencarian yang faktual dan relevan dengan timestamp yang jelas.
 `;
   return prompt;
 };
