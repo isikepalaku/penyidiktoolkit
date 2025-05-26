@@ -366,6 +366,50 @@ const { data } = await supabase.from('table_name').insert({ content: 'data' });
 - `empty result set` → Verify user_id filter dalam query
 - `exposed auth.users` → Remove atau secure views yang mengakses auth schema
 
+## Table Rendering Lessons
+
+### Responsive Table Implementation in Chat Components
+
+Untuk menangani tabel yang kompleks dari backend AI dalam komponen chat, gunakan pattern berikut:
+
+1. **Tailwind Arbitrary Values untuk Table Styling**:
+   ```typescript
+   className="prose prose-sm max-w-none
+             [&_table]:border-collapse [&_table]:my-4 [&_table]:w-full [&_table]:min-w-[600px] [&_table]:text-sm [&_table]:bg-white [&_table]:rounded-lg [&_table]:overflow-hidden [&_table]:shadow-sm
+             [&_th]:bg-red-50 [&_th]:p-3 [&_th]:border [&_th]:border-gray-300 [&_th]:font-semibold [&_th]:text-left [&_th]:text-red-800 [&_th]:whitespace-nowrap [&_th]:max-w-[200px]
+             [&_td]:p-3 [&_td]:border [&_td]:border-gray-300 [&_td]:align-top [&_td]:leading-relaxed [&_td]:break-words [&_td]:hyphens-auto
+             [&_td:first-child]:font-semibold [&_td:first-child]:bg-gray-50 [&_td:first-child]:whitespace-nowrap [&_td:first-child]:min-w-[150px] [&_td:first-child]:max-w-[200px]
+             [&_td:last-child]:w-auto [&_td:last-child]:max-w-[400px]
+             [&_tr:nth-child(even)]:bg-gray-50/50
+             [&_tr:hover]:bg-gray-100/50"
+   ```
+
+2. **Responsive Wrapper Pattern**:
+   ```typescript
+   <div className="overflow-x-auto -mx-2 sm:-mx-4">
+     <div className="prose..." dangerouslySetInnerHTML={{ __html: formatMessage(content) }} />
+   </div>
+   ```
+
+3. **Key Styling Principles**:
+   - **Minimum Width**: Set `min-w-[600px]` untuk tabel agar tetap readable
+   - **Column Control**: Batasi lebar kolom pertama dan terakhir dengan `max-w-[200px]` dan `max-w-[400px]`
+   - **Text Wrapping**: Gunakan `break-words` dan `hyphens-auto` untuk text yang panjang
+   - **Visual Enhancement**: Tambahkan hover effects, alternating colors, dan shadow
+   - **Responsive Scroll**: Gunakan `overflow-x-auto` untuk scroll horizontal pada layar kecil
+
+4. **Benefits**:
+   - Tabel tetap readable pada semua ukuran layar
+   - Scroll horizontal otomatis pada mobile
+   - Professional appearance dengan visual enhancements
+   - Consistent dengan design system aplikasi
+
+5. **Common Issues**:
+   - **Kolom terlalu lebar**: Gunakan `max-width` constraints
+   - **Text overflow**: Implementasikan `break-words` dan `hyphens-auto`
+   - **Mobile responsiveness**: Selalu wrap dengan `overflow-x-auto`
+   - **CSS conflicts**: Gunakan arbitrary values untuk specificity yang tinggi
+
 ## API Key Security Lessons
 
 ⚠️ **CRITICAL SECURITY PRACTICES:**
@@ -783,6 +827,11 @@ const API_KEY = 'AIzaSyBf4_0ll5H7OMs7yAtgXO1LWVAWhOcbJmo'; // NEVER DO THIS!
 [X] Task: Perbaikan Keamanan Supabase Database - COMPLETED ✅
 [X] Task: Perbaikan Prompt Gemini untuk Menghilangkan Frasa Berulang - COMPLETED ✅
 [X] Task: Perbaikan Sinkronisasi Form Laporan Intelijen - COMPLETED ✅
+[X] Task: Perbaikan Rendering Tabel di TipidkorChatPage.tsx - COMPLETED ✅
+[X] Task: Fix Duplicate Case Clause Warning di AgentCard.tsx - COMPLETED ✅
+[X] Task: Refactoring NarkotikaChatPage.tsx dengan Modular Markdown Formatter - COMPLETED ✅
+[X] Task: Memperlebar Area Chat Output di NarkotikaChatPage.tsx - COMPLETED ✅
+[X] Task: Fix TypeScript Warning di markdownFormatter.ts - COMPLETED ✅
 
 ## Task: Perbaikan Sinkronisasi Form Laporan Intelijen - COMPLETED ✅
 
@@ -826,6 +875,219 @@ Memperbaiki sinkronisasi field "Waktu Mendapatkan Informasi" di IntelligenceAgen
 
 ### Status:
 ✅ **COMPLETED** - Form berhasil disinkronisasi dengan service dan waktu selalu terkini
+
+## Task: Perbaikan Rendering Tabel di TipidkorChatPage.tsx - COMPLETED ✅
+
+### Deskripsi:
+Memperbaiki rendering tabel di TipidkorChatPage.tsx yang menampilkan kolom kedua dengan lebar berlebihan dan tidak terbaca, menyebabkan tabel tidak responsif dan sulit dibaca.
+
+### Masalah yang Ditemukan:
+- **Kolom Terlalu Lebar**: Kolom kedua tabel memiliki lebar berlebihan yang menyebabkan teks tidak terbaca
+- **Tidak Responsif**: Tabel tidak dapat di-scroll horizontal dengan baik pada layar kecil
+- **CSS Prose Terbatas**: CSS prose default tidak cukup untuk menangani tabel kompleks dari backend
+- **Format Backend**: Output backend menghasilkan tabel dengan format yang tidak standar
+
+### Solusi yang Diimplementasikan:
+- **Tailwind CSS Arbitrary Values**: Menggunakan `[&_table]`, `[&_th]`, `[&_td]` untuk styling tabel yang lebih spesifik
+- **Responsive Wrapper**: Menambahkan `overflow-x-auto` wrapper untuk scroll horizontal
+- **Column Width Control**: Mengatur `max-width` untuk kolom pertama dan terakhir
+- **Better Typography**: Menggunakan `break-words`, `hyphens-auto` untuk text wrapping yang lebih baik
+- **Visual Enhancement**: Menambahkan hover effects, alternating row colors, dan shadow
+
+### Technical Changes:
+- **TipidkorChatPage.tsx**:
+  * Menambahkan wrapper `overflow-x-auto` untuk scroll horizontal
+  * Menggunakan Tailwind arbitrary values untuk styling tabel yang detail
+  * Mengatur `min-width: 600px` untuk tabel agar tetap readable
+  * Membatasi lebar kolom pertama (`max-w-[200px]`) dan terakhir (`max-w-[400px]`)
+  * Menambahkan `break-words` dan `hyphens-auto` untuk text wrapping
+  * Styling visual dengan background colors, borders, dan hover effects
+
+### Benefits:
+- **Readable Tables**: Tabel sekarang dapat dibaca dengan baik pada semua ukuran layar
+- **Responsive Design**: Scroll horizontal otomatis pada layar kecil
+- **Better UX**: Visual enhancement dengan hover effects dan alternating colors
+- **Consistent Styling**: Styling tabel yang konsisten dengan tema aplikasi
+- **Professional Appearance**: Tabel terlihat lebih profesional dengan shadow dan rounded corners
+
+### Files Modified:
+- **src/components/ui/TipidkorChatPage.tsx**: Enhanced table styling dengan Tailwind arbitrary values
+- **.cursorrules**: Dokumentasi perbaikan dan lessons learned
+
+### Status:
+✅ **COMPLETED** - Tabel berhasil diperbaiki dan responsif pada semua ukuran layar
+
+### Update: Clean ChatGPT-style Interface - COMPLETED ✅
+
+#### Masalah Tambahan:
+- **Border Mengganggu**: Styling tabel sebelumnya menambahkan border yang mengganggu tampilan chat
+- **Chat Area Terpersempit**: Wrapper overflow-x-auto mempersempit area chat
+- **Tidak Clean**: Tampilan tidak sebersih ChatGPT dengan banyak visual noise
+
+#### Solusi Clean Interface:
+- **Removed Message Borders**: Menghilangkan border dan shadow dari message bubbles
+- **Simplified Table Styling**: Menggunakan border minimal hanya pada table elements
+- **Clean Typography**: Menggunakan warna yang lebih subtle dan spacing yang lebih natural
+- **ChatGPT-style Layout**: Message tanpa background untuk bot, rounded untuk user
+- **Minimal Copy Button**: Copy button dengan styling yang lebih subtle dan posisi kiri
+
+#### Technical Improvements:
+- **Message Styling**: Bot messages tanpa background, user messages dengan bg-gray-100
+- **Table Borders**: Hanya border-b pada th dan td, tanpa border samping
+- **Color Scheme**: Gray-based colors untuk tampilan yang lebih clean
+- **Button Position**: Copy button di kiri bawah seperti ChatGPT
+- **Responsive**: Tetap responsive tanpa wrapper yang mengganggu
+
+## Task: Fix Duplicate Case Clause Warning di AgentCard.tsx - COMPLETED ✅
+
+### Deskripsi:
+Memperbaiki warning Vite tentang duplicate case clause di AgentCard.tsx yang menyebabkan case 'ppa_ppo_chat' didefinisikan dua kali dalam switch statement.
+
+### Masalah yang Ditemukan:
+- **Duplicate Case**: Case 'ppa_ppo_chat' didefinisikan di baris 76 dan 78
+- **Unreachable Code**: Case kedua tidak akan pernah dieksekusi karena case pertama sudah menangani kondisi yang sama
+- **Vite Warning**: Warning yang mengganggu proses development
+
+### Solusi yang Diimplementasikan:
+- **Removed Duplicate**: Menghapus case 'ppa_ppo_chat' yang duplikat (yang menggunakan PieChart icon)
+- **Keep Original**: Mempertahankan case pertama yang menggunakan img src="/img/krimum.svg"
+- **Clean Code**: Membersihkan kode dari redundancy
+
+### Technical Changes:
+- **AgentCard.tsx**: Menghapus duplicate case clause untuk 'ppa_ppo_chat'
+
+### Benefits:
+- **No More Warnings**: Menghilangkan warning Vite yang mengganggu
+- **Clean Code**: Kode yang lebih bersih tanpa redundancy
+- **Consistent Icon**: PPA PPO agent menggunakan ikon yang konsisten (krimum.svg)
+
+### Files Modified:
+- **src/components/AgentCard.tsx**: Removed duplicate case clause
+- **.cursorrules**: Dokumentasi perbaikan
+
+### Status:
+✅ **COMPLETED** - Warning duplicate case clause berhasil diperbaiki
+
+## Task: Refactoring NarkotikaChatPage.tsx dengan Modular Markdown Formatter - COMPLETED ✅
+
+### Deskripsi:
+Memisahkan bagian yang memproses struktur markdown dari NarkotikaChatPage.tsx ke utility file terpisah dan memperbaiki tampilan dengan gaya yang lebih bersih seperti ChatGPT.
+
+### Masalah yang Ditemukan:
+- **Kode Tidak Modular**: Fungsi formatMessage terduplikasi di berbagai chat components
+- **Styling Tabel Tidak Konsisten**: Setiap component memiliki styling tabel yang berbeda
+- **Tampilan Tidak Clean**: Message bubbles dengan border dan shadow yang mengganggu
+- **Copy Button Tidak Optimal**: Posisi dan styling copy button tidak seperti ChatGPT
+
+### Solusi yang Diimplementasikan:
+- **Modular Markdown Formatter**: Membuat `src/utils/markdownFormatter.ts` dengan fungsi reusable
+- **Theme-based Prose Classes**: Fungsi `getProseClasses()` dengan support untuk berbagai tema
+- **Table Wrapper Utility**: Fungsi `createTableWrapper()` untuk responsive table handling
+- **Clean ChatGPT-style Interface**: Menghilangkan border dan shadow yang tidak perlu
+- **Improved Copy Button**: Styling yang lebih minimal dan posisi yang lebih baik
+
+### Technical Changes:
+- **src/utils/markdownFormatter.ts**: 
+  * Fungsi `formatMessage()` untuk convert markdown ke HTML
+  * Fungsi `getProseClasses()` dengan theme support (default, amber, red, blue)
+  * Fungsi `createTableWrapper()` untuk responsive table handling
+  * Optimized table styling dengan Tailwind arbitrary values
+- **src/components/ui/NarkotikaChatPage.tsx**:
+  * Import utility functions dari markdownFormatter
+  * Menghapus duplicate formatMessage function
+  * Clean message styling tanpa border dan shadow untuk bot messages
+  * Improved copy button dengan hover effects dan positioning
+  * Menggunakan theme 'amber' untuk konsistensi dengan branding Narkotika AI
+
+### Benefits:
+- **Code Reusability**: Markdown formatter dapat digunakan di semua chat components
+- **Consistent Styling**: Semua tabel menggunakan styling yang sama
+- **Better Maintainability**: Perubahan styling cukup dilakukan di satu tempat
+- **Clean Interface**: Tampilan yang lebih bersih seperti ChatGPT
+- **Theme Support**: Mudah mengubah tema untuk berbagai jenis agent
+- **Responsive Tables**: Tabel otomatis responsive dengan scroll horizontal
+
+### Files Modified:
+- **src/utils/markdownFormatter.ts**: New utility file untuk markdown processing
+- **src/components/ui/NarkotikaChatPage.tsx**: Refactored untuk menggunakan utility
+- **.cursorrules**: Dokumentasi perbaikan
+
+### Status:
+✅ **COMPLETED** - NarkotikaChatPage berhasil direfactor dengan markdown formatter modular
+
+## Task: Memperlebar Area Chat Output di NarkotikaChatPage.tsx - COMPLETED ✅
+
+### Deskripsi:
+Memperlebar area chat output di NarkotikaChatPage.tsx untuk memberikan lebih banyak ruang bagi konten chat dan meningkatkan pengalaman membaca, terutama untuk tabel dan konten yang lebar.
+
+### Masalah yang Ditemukan:
+- **Area Chat Terbatas**: Container chat menggunakan `max-w-3xl` yang membatasi lebar konten
+- **Message Bubbles Sempit**: Message bubbles dibatasi hingga 75% dari container
+- **Tabel Terpotong**: Tabel lebar tidak dapat ditampilkan dengan optimal
+- **Ruang Tidak Optimal**: Layar lebar tidak dimanfaatkan secara maksimal
+
+### Solusi yang Diimplementasikan:
+- **Expanded Container Width**: Mengubah `max-w-3xl` menjadi `max-w-5xl` untuk semua container
+- **Wider Message Bubbles**: Meningkatkan max-width message dari 75% menjadi 85% pada desktop
+- **Consistent Spacing**: Mempertahankan spacing dan responsivitas yang baik
+- **Better Content Display**: Memberikan lebih banyak ruang untuk tabel dan konten kompleks
+
+### Technical Changes:
+- **Chat Container**: `max-w-3xl` → `max-w-5xl` untuk area chat utama
+- **Info Panel**: `max-w-3xl` → `max-w-5xl` untuk panel informasi
+- **Input Area**: `max-w-3xl` → `max-w-5xl` untuk area input
+- **Message Bubbles**: `max-w-[75%]` → `max-w-[85%]` untuk message bubbles pada desktop
+- **Mobile Optimization**: `max-w-[85%]` → `max-w-[90%]` untuk mobile devices
+
+### Benefits:
+- **Better Content Visibility**: Tabel dan konten lebar dapat ditampilkan dengan lebih baik
+- **Improved Reading Experience**: Lebih banyak ruang untuk membaca konten panjang
+- **Optimal Screen Usage**: Memanfaatkan layar lebar secara maksimal
+- **Consistent Layout**: Layout tetap responsif dan konsisten di semua ukuran layar
+- **Professional Appearance**: Tampilan yang lebih profesional dengan ruang yang cukup
+
+### Files Modified:
+- **src/components/ui/NarkotikaChatPage.tsx**: Enhanced container widths dan message bubble sizes
+- **.cursorrules**: Dokumentasi perbaikan
+
+### Status:
+✅ **COMPLETED** - Area chat berhasil diperlebar untuk pengalaman yang lebih baik
+
+## Task: Fix TypeScript Warning di markdownFormatter.ts - COMPLETED ✅
+
+### Deskripsi:
+Memperbaiki TypeScript warning tentang parameter `theme` yang tidak digunakan dalam fungsi `createTableWrapper` di markdownFormatter.ts.
+
+### Masalah yang Ditemukan:
+- **Unused Parameter**: Parameter `theme` di fungsi `createTableWrapper` dideklarasikan tapi tidak digunakan
+- **TypeScript Warning**: Warning TS6133 yang mengganggu development experience
+- **Code Cleanliness**: Parameter yang tidak digunakan membuat kode tidak bersih
+
+### Solusi yang Diimplementasikan:
+- **Removed Unused Parameter**: Menghapus parameter `theme` dari fungsi `createTableWrapper`
+- **Updated Function Calls**: Memperbarui pemanggilan fungsi di NarkotikaChatPage.tsx untuk tidak mengirim parameter theme
+- **Clean Function Signature**: Fungsi sekarang hanya menerima parameter yang benar-benar digunakan
+
+### Technical Changes:
+- **src/utils/markdownFormatter.ts**: 
+  * Menghapus parameter `theme` dari fungsi `createTableWrapper`
+  * Menyederhanakan function signature
+- **src/components/ui/NarkotikaChatPage.tsx**:
+  * Memperbarui pemanggilan `createTableWrapper` tanpa parameter theme
+
+### Benefits:
+- **No More Warnings**: Menghilangkan TypeScript warning yang mengganggu
+- **Cleaner Code**: Kode yang lebih bersih tanpa parameter yang tidak digunakan
+- **Better Maintainability**: Function signature yang lebih sederhana dan jelas
+- **Consistent Pattern**: Mengikuti best practice untuk tidak memiliki unused parameters
+
+### Files Modified:
+- **src/utils/markdownFormatter.ts**: Removed unused theme parameter
+- **src/components/ui/NarkotikaChatPage.tsx**: Updated function call
+- **.cursorrules**: Dokumentasi perbaikan
+
+### Status:
+✅ **COMPLETED** - TypeScript warning berhasil diperbaiki
 
 ## Task: Perbaikan Prompt Gemini untuk Menghilangkan Frasa Berulang - COMPLETED ✅
 

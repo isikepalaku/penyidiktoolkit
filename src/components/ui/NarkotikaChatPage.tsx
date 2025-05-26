@@ -6,14 +6,7 @@ import { Textarea } from './textarea';
 import { AnimatedBotIcon } from './animated-bot-icon';
 import { DotBackground } from './DotBackground';
 import { sendChatMessage, clearChatHistory, initializeSession } from '@/services/narkotikaService';
-import { marked } from 'marked';
-import DOMPurify from 'dompurify';
-
-// Konfigurasi marked
-marked.setOptions({
-  breaks: true,
-  gfm: true,
-});
+import { formatMessage, getProseClasses, createTableWrapper } from '@/utils/markdownFormatter';
 
 interface Message {
   content: string;
@@ -302,21 +295,6 @@ const NarkotikaChatPage: React.FC<NarkotikaChatPageProps> = ({ onBack }) => {
     );
   };
 
-  const formatMessage = (content: string) => {
-    try {
-      // Convert markdown to HTML
-      const html = marked(content);
-      
-      // Sanitize HTML to prevent XSS
-      const sanitizedHtml = DOMPurify.sanitize(html);
-      
-      return sanitizedHtml;
-    } catch (error) {
-      console.error('Error formatting message:', error);
-      return content;
-    }
-  };
-
   const handleBack = () => {
     // Bersihkan riwayat chat sebelum kembali
     clearChatHistory();
@@ -387,7 +365,7 @@ const NarkotikaChatPage: React.FC<NarkotikaChatPageProps> = ({ onBack }) => {
         {/* Info Panel */}
         {showInfo && (
           <div className="bg-amber-50 border-b border-amber-200 p-3 text-sm text-amber-800">
-            <div className="max-w-3xl mx-auto">
+            <div className="max-w-5xl mx-auto">
               <p className="mb-2"><strong>Tentang Narkotika AI:</strong></p>
               <p>Narkotika AI adalah asisten yang memberikan informasi tentang tindak pidana narkotika, psikotropika, dan zat adiktif lainnya berdasarkan undang-undang yang berlaku.</p>
               <p className="mt-2 text-xs text-amber-600">Catatan: Narkotika AI dapat memberikan informasi yang tidak akurat. Verifikasi fakta penting dengan dokumen resmi.</p>
@@ -403,7 +381,7 @@ const NarkotikaChatPage: React.FC<NarkotikaChatPageProps> = ({ onBack }) => {
           <div className="absolute inset-0">
             <DotBackground />
           </div>
-          <div className="max-w-3xl mx-auto relative z-10 space-y-6">
+          <div className="max-w-5xl mx-auto relative z-10 space-y-6">
             {/* Welcome Message - Bold NARKOTIKA AI in center */}
             {messages.length <= 1 && (
               <div className="flex flex-col items-center justify-center h-[50vh] text-center">
@@ -450,7 +428,7 @@ const NarkotikaChatPage: React.FC<NarkotikaChatPageProps> = ({ onBack }) => {
                     }`}
                   >
                     <div
-                      className={`flex items-end ${message.isAnimating ? 'w-full' : 'max-w-[85%] sm:max-w-[75%]'} ${
+                      className={`flex items-end ${message.isAnimating ? 'w-full' : 'max-w-[90%] sm:max-w-[85%]'} ${
                         message.type === 'user' ? 'flex-row-reverse' : 'flex-row'
                       }`}
                     >
@@ -469,14 +447,14 @@ const NarkotikaChatPage: React.FC<NarkotikaChatPageProps> = ({ onBack }) => {
                       )}
 
                       <div
-                        className={`rounded-2xl px-4 py-3 ${
+                        className={`${
                           message.type === 'user'
-                            ? 'bg-gray-100 text-gray-900 rounded-tr-none shadow-sm'
+                            ? 'bg-gray-100 text-gray-900 rounded-2xl rounded-tr-none px-4 py-3'
                             : message.error
-                            ? 'bg-red-50 text-red-800 rounded-tl-none border border-red-200'
-                            : message.isAnimating // Style khusus untuk skeleton
-                            ? 'bg-white text-gray-800 rounded-tl-none border border-gray-200 w-full' 
-                            : 'bg-white text-gray-800 rounded-tl-none border border-gray-200 shadow-sm'
+                            ? 'bg-red-50 text-red-800 px-4 py-3'
+                            : message.isAnimating
+                            ? 'w-full' 
+                            : 'text-gray-800 py-2'
                         }`}
                       >
                         {/* Tampilkan SkeletonMessage jika sedang animasi */}
@@ -504,32 +482,36 @@ const NarkotikaChatPage: React.FC<NarkotikaChatPageProps> = ({ onBack }) => {
                             </p>
                             
                             {message.type === 'bot' && !message.isAnimating && (
-                              <button
-                                onClick={() => copyToClipboard(
-                                  "Batas permintaan tercapai. Silakan coba lagi dalam 2 menit."
-                                )}
-                                className="mt-1 text-xs text-gray-500 hover:text-gray-700 flex items-center"
-                                aria-label="Salin pesan"
-                              >
-                                {copied === message.content ? (
-                                  <>
-                                    <Check className="w-3 h-3 mr-1" />
-                                    Disalin
-                                  </>
-                                ) : (
-                                  <>
-                                    <Copy className="w-3 h-3 mr-1" />
-                                    Salin
-                                  </>
-                                )}
-                              </button>
+                              <div className="flex justify-start mt-2">
+                                <button
+                                  onClick={() => copyToClipboard(
+                                    "Batas permintaan tercapai. Silakan coba lagi dalam 2 menit."
+                                  )}
+                                  className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 transition-colors"
+                                  aria-label="Salin pesan"
+                                >
+                                  {copied === message.content ? (
+                                    <>
+                                      <Check className="w-3 h-3" />
+                                      Disalin
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy className="w-3 h-3" />
+                                      Salin
+                                    </>
+                                  )}
+                                </button>
+                              </div>
                             )}
                           </div>
                         ) : (
                           <div>
                             <div
-                              className="prose prose-sm max-w-none break-words prose-headings:font-semibold prose-headings:text-gray-900 prose-p:text-gray-700 prose-pre:bg-gray-100 prose-pre:text-gray-800 prose-code:text-gray-800 prose-code:bg-gray-100 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-sm prose-code:font-mono prose-a:text-amber-600 prose-a:no-underline hover:prose-a:underline prose-li:text-gray-700 prose-li:marker:text-gray-500 prose-strong:text-gray-900 prose-em:text-gray-700 prose-p:my-0.5 prose-headings:my-0.5 prose-headings:mb-0 prose-ul:my-0.5 prose-ol:my-0.5 prose-li:my-0.5 prose-pre:my-1 leading-tight [&_p]:!my-0.5 [&_br]:leading-none [&_h1+p]:!mt-0.5 [&_h2+p]:!mt-0.5 [&_h3+p]:!mt-0.5"
-                              dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
+                              className={getProseClasses('amber')}
+                              dangerouslySetInnerHTML={{ 
+                                __html: createTableWrapper(formatMessage(message.content))
+                              }}
                             />
 
                             {message.sourceDocuments && message.sourceDocuments.length > 0 && (
@@ -549,23 +531,25 @@ const NarkotikaChatPage: React.FC<NarkotikaChatPageProps> = ({ onBack }) => {
                             )}
 
                             {message.type === 'bot' && !message.isAnimating && (
-                              <button
-                                onClick={() => copyToClipboard(message.content)}
-                                className="mt-1 text-xs text-gray-500 hover:text-gray-700 flex items-center"
-                                aria-label="Salin pesan"
-                              >
-                                {copied === message.content ? (
-                                  <>
-                                    <Check className="w-3 h-3 mr-1" />
-                                    Disalin
-                                  </>
-                                ) : (
-                                  <>
-                                    <Copy className="w-3 h-3 mr-1" />
-                                    Salin
-                                  </>
-                                )}
-                              </button>
+                              <div className="flex justify-start mt-2">
+                                <button
+                                  onClick={() => copyToClipboard(message.content)}
+                                  className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 transition-colors"
+                                  aria-label="Salin pesan"
+                                >
+                                  {copied === message.content ? (
+                                    <>
+                                      <Check className="w-3 h-3" />
+                                      Disalin
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy className="w-3 h-3" />
+                                      Salin
+                                    </>
+                                  )}
+                                </button>
+                              </div>
                             )}
                           </div>
                         )}
@@ -592,7 +576,7 @@ const NarkotikaChatPage: React.FC<NarkotikaChatPageProps> = ({ onBack }) => {
 
         {/* Input Area */}
         <div className="border-t border-gray-200 bg-white p-4 md:px-8 pb-6 md:pb-4">
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-5xl mx-auto">
             <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="relative">
               <Textarea
                 ref={textareaRef}

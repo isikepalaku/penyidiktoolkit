@@ -602,14 +602,14 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
                 >
                   <div
                     className={cn(
-                      "flex flex-col max-w-[90%] sm:max-w-[85%] md:max-w-[80%] lg:max-w-[75%] rounded-xl p-4 shadow-sm",
+                      "flex flex-col max-w-[90%] sm:max-w-[85%] md:max-w-[80%] lg:max-w-[75%]",
                       message.type === "user"
-                        ? "bg-gray-100 text-gray-900 rounded-tr-none"
+                        ? "bg-gray-100 text-gray-900 rounded-2xl px-4 py-3"
                         : message.error
-                        ? "bg-red-50 text-gray-800 rounded-tl-none border border-red-200"
+                        ? "bg-red-50 text-gray-800 rounded-2xl px-4 py-3 border border-red-200"
                         : message.isAnimating
-                        ? "bg-white text-gray-800 rounded-tl-none border border-gray-200 w-full"
-                        : "bg-white text-gray-800 rounded-tl-none border border-gray-200"
+                        ? "text-gray-800 w-full"
+                        : "text-gray-800"
                     )}
                   >
                     {message.type === "bot" && !message.isAnimating ? (
@@ -638,33 +638,35 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
                           </div>
                         ) : (
                           <div 
-                            className="prose prose-sm max-w-none md:prose-base lg:prose-lg overflow-x-auto
-                                      prose-headings:font-bold prose-headings:text-red-800 prose-headings:my-4
-                                      prose-h1:text-xl prose-h2:text-lg prose-h3:text-base
-                                      prose-p:my-2 prose-p:text-gray-700
-                                      prose-ul:pl-6 prose-ul:my-2 prose-ol:pl-6 prose-ol:my-2
-                                      prose-li:my-1
-                                      prose-table:border-collapse prose-table:my-4
-                                      prose-th:bg-red-50 prose-th:p-2 prose-th:border prose-th:border-gray-300
-                                      prose-td:p-2 prose-td:border prose-td:border-gray-300
-                                      prose-strong:font-bold prose-strong:text-gray-800
-                                      prose-a:text-red-600 prose-a:underline hover:prose-a:text-red-800"
+                            className="prose prose-sm max-w-none
+                                      prose-headings:font-semibold prose-headings:text-gray-900 prose-headings:my-3
+                                      prose-h1:text-lg prose-h2:text-base prose-h3:text-sm
+                                      prose-p:my-2 prose-p:text-gray-800 prose-p:leading-relaxed
+                                      prose-ul:my-2 prose-ol:my-2 prose-li:my-1
+                                      prose-strong:font-semibold prose-strong:text-gray-900
+                                      prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline
+                                      prose-code:bg-gray-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm
+                                      [&_table]:w-full [&_table]:my-4 [&_table]:border-collapse
+                                      [&_th]:border-b [&_th]:border-gray-200 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-semibold [&_th]:text-gray-900 [&_th]:bg-gray-50
+                                      [&_td]:border-b [&_td]:border-gray-100 [&_td]:px-3 [&_td]:py-2 [&_td]:text-gray-800 [&_td]:align-top
+                                      [&_td]:break-words [&_td]:max-w-[300px]
+                                      [&_tr:last-child_td]:border-b-0"
                             dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
                           />
                         )}
-                        <div className="flex justify-end mt-2">
+                        <div className="flex justify-start mt-3 pt-2">
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-7 px-3"
+                            className="h-8 px-3 text-gray-500 hover:text-gray-700 hover:bg-gray-100"
                             onClick={() => handleCopy(message.content === 'rate_limit_error' ? 
                               "Batas permintaan tercapai. Silakan coba lagi dalam 2 menit." : 
                               message.content)}
                           >
                             {copied === message.content ? (
-                              <Check className="h-3.5 w-3.5 text-green-500" />
+                              <Check className="h-4 w-4 text-green-500" />
                             ) : (
-                              <Copy className="h-3.5 w-3.5" />
+                              <Copy className="h-4 w-4" />
                             )}
                             <span className="ml-2 text-xs">{copied === message.content ? "Disalin" : "Salin"}</span>
                           </Button>
