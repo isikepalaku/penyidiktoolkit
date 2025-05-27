@@ -16,6 +16,7 @@ import Settings from './pages/Settings';
 import PendingApproval from './pages/PendingApproval';
 import AdminPanel from './pages/AdminPanel';
 import AuthCallback from './pages/AuthCallback';
+import PiketSpkt from './pages/PiketSpkt';
 import ProtectedRoute from './auth/ProtectedRoute';
 import { useAuth } from './auth/AuthContext';
 import { NotificationHandler } from './components/NotificationHandler';
@@ -120,6 +121,11 @@ function AppContent() {
               <Route path="/pencarian-putusan" element={
                 <ProtectedRoute>
                   <PencarianPutusan />
+                </ProtectedRoute>
+              } />
+              <Route path="/piket-spkt" element={
+                <ProtectedRoute>
+                  <PiketSpkt />
                 </ProtectedRoute>
               } />
               <Route path="/profile" element={

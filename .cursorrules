@@ -130,6 +130,23 @@ If needed, you can further use the `web_scraper.py` file to scrape the web page 
 - Use wildcard subdomain (.reserse.id) for broader access
 - Set proper hostname in docker and nginx configs
 
+### Service Implementation Best Practices
+
+- **NEVER hardcode API endpoints**: Always use `env.apiUrl` atau `API_BASE_URL` dari config
+- **Follow existing patterns**: Gunakan pola yang sama dengan service yang sudah ada (seperti tipidkorService.ts)
+- **Import env config**: Selalu import `{ env } from '@/config/env'` untuk akses ke environment variables
+- **Use consistent structure**: 
+  ```typescript
+  const API_BASE_URL = env.apiUrl || 'https://api.reserse.id';
+  const url = `${API_BASE_URL}/v1/playground/teams/[team-name]/runs`;
+  ```
+- **Session management**: Implementasi session dan user ID management yang konsisten dengan Supabase auth
+- **Error handling**: Gunakan retry logic dan network error detection yang sama
+- **Response parsing**: Implementasi parseResponse function untuk handle berbagai format response
+- **Timeout handling**: Gunakan FETCH_TIMEOUT yang konsisten (600000ms = 10 menit)
+- **Headers consistency**: Gunakan pattern header yang sama (Accept, X-API-Key, X-User-ID, Authorization)
+- **API Key Security**: Selalu gunakan `import.meta.env.VITE_API_KEY` dari environment variables, NEVER hardcode API keys
+
 ## PenyidikAi Agent Implementation Pattern
 
 Untuk menambahkan agen baru di PenyidikAi.tsx, ikuti langkah-langkah berikut:
@@ -793,6 +810,391 @@ const API_KEY = 'AIzaSyBf4_0ll5H7OMs7yAtgXO1LWVAWhOcbJmo'; // NEVER DO THIS!
 
 # Scratchpad
 
+## Task: Migrasi piketSpktAnalysisService.ts ke Gemini API - COMPLETED ✅
+
+### Deskripsi:
+Mengganti endpoint di piketSpktAnalysisService.ts dari API backend custom ke Gemini API untuk analisis kasus SPKT dengan dukungan upload file dan pencarian web.
+
+### Perubahan yang Diimplementasikan:
+- **API Migration**: Mengganti dari custom backend API ke Google Gemini API
+- **File Upload Support**: Implementasi dukungan upload file dengan base64 encoding
+- **Web Search Integration**: Menggunakan Google Search tools untuk pencarian informasi terkini
+- **Structured Output**: Parsing output terstruktur dengan 5 bagian analisis
+- **Markdown Formatting**: Format output sebagai Markdown untuk ditampilkan di area dokumen
+- **React Markdown Integration**: Menggunakan React Markdown untuk proper rendering
+- **Enhanced Error Handling**: Error handling yang lebih spesifik untuk Gemini API
+
+### Technical Implementation:
+
+1. **Import Changes**:
+   ```typescript
+   import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
+   import ReactMarkdown from 'react-markdown';
+   import remarkGfm from 'remark-gfm';
+   ```
+
+2. **API Configuration**:
+   ```typescript
+   const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+   const ai = new GoogleGenAI({ apiKey: API_KEY || "MISSING_API_KEY" });
+   const model = 'gemini-2.5-flash-preview-04-17';
+   ```
+
+3. **Types Definition**:
+   ```typescript
+   export interface CaseAnalysis {
+     chronology: string;
+     relevantArticles: string;
+     deepLegalAnalysis: string;
+     recommendedUnit: string;
+     requiredEvidence: string;
+   }
+   
+   export interface GroundingSource {
+     uri: string;
+     title: string;
+     sourceId?: string;
+   }
+   
+   export interface AnalysisResult {
+     analysis: CaseAnalysis;
+     sources: GroundingSource[];
+   }
+   ```
+
+4. **File Processing**:
+   ```typescript
+   const fileToGenerativePart = async (file: File) => {
+     // Convert file to base64 for Gemini API
+     const base64EncodedString = await new Promise<string>((resolve, reject) => {
+       const reader = new FileReader();
+       reader.onloadend = () => {
+         if (reader.result) {
+           resolve((reader.result as string).split(',')[1]);
+         } else {
+           reject(new Error("Failed to read file content."));
+         }
+       };
+       reader.onerror = (error) => reject(error);
+       reader.readAsDataURL(file);
+     });
+     return {
+       inlineData: {
+         mimeType: file.type,
+         data: base64EncodedString,
+       },
+     };
+   };
+   ```
+
+5. **Comprehensive Prompt Template**:
+   - Analisis kronologi perkara
+   - Identifikasi pasal-pasal relevan dengan pencarian web
+   - Analisis hukum mendalam dengan asas lex specialis
+   - Rekomendasi unit penyidik (Ditreskrimum, Ditreskrimsus, Ditresnarkoba, dll)
+   - Daftar bukti-bukti yang diperlukan
+
+6. **Structured Text Parsing**:
+   ```typescript
+   function parseAnalysisText(text: string): CaseAnalysis {
+     // Parse 5 sections dari output Gemini
+     const sections = [
+       { key: 'chronology', heading: 'KRONOLOGI PERKARA:' },
+       { key: 'relevantArticles', heading: 'PASAL-PASAL YANG RELEVAN:' },
+       { key: 'deepLegalAnalysis', heading: 'ANALISIS HUKUM MENDALAM:' },
+       { key: 'recommendedUnit', heading: 'UNIT PENYIDIK YANG DIREKOMENDASIKAN:' },
+       { key: 'requiredEvidence', heading: 'BUKTI-BUKTI YANG DIPERLUKAN:' },
+     ];
+     // ... parsing logic
+   }
+   ```
+
+7. **Markdown Output Formatting**:
+   ```typescript
+   const formatAnalysisAsMarkdown = (analysisResult: AnalysisResult): string => {
+     // Clean markdown formatting dengan proper headers
+     // Professional structure dengan emoji headers
+     // Sources sebagai markdown links dengan domain info
+     // Proper paragraph breaks dan formatting
+   }
+   ```
+
+8. **React Markdown Component**:
+   ```typescript
+   const AnalysisMarkdown: React.FC<{ content: string }> = ({ content }) => (
+     <ReactMarkdown
+       remarkPlugins={[remarkGfm]}
+       className="prose prose-lg max-w-none..."
+       components={{
+         h1: ({ children }) => (...),
+         a: ({ href, children }) => (...),
+         p: ({ children }) => (...),
+         // Custom components untuk styling
+       }}
+     >
+       {content}
+     </ReactMarkdown>
+   );
+   ```
+
+9. **Enhanced Main Function**:
+   ```typescript
+   export const sendAnalysisChatMessage = async (
+     message: string,
+     files?: File[]
+   ): Promise<string> => {
+     // Session management tetap dipertahankan
+     // Hanya ambil file pertama jika multiple files
+     // Call Gemini API dengan tools Google Search
+     // Return formatted Markdown
+   }
+   ```
+
+### Key Features:
+- **Google Search Integration**: Menggunakan tools Google Search untuk informasi terkini
+- **File Upload Support**: Mendukung upload dokumen (PDF, Word, gambar, dll)
+- **Structured Legal Analysis**: Output terstruktur sesuai kebutuhan SPKT
+- **Web Sources**: Menampilkan sumber-sumber internet yang digunakan
+- **Professional Formatting**: Output Markdown yang di-render dengan React Markdown
+- **Proper Typography**: Custom components untuk styling yang konsisten
+- **Error Handling**: Handling khusus untuk API key, quota, file size, dll
+
+### Environment Variables Required:
+- **VITE_GEMINI_API_KEY**: API key untuk Google Gemini API
+
+### Dependencies Added:
+- **react-markdown**: Untuk rendering markdown content
+- **remark-gfm**: GitHub Flavored Markdown support
+- **rehype-raw**: HTML support dalam markdown
+
+### Benefits:
+- **No Backend Dependency**: Tidak bergantung pada backend custom
+- **Real-time Web Search**: Informasi hukum terkini dari pencarian web
+- **File Analysis**: Dapat menganalisis dokumen yang diupload
+- **Cost Effective**: Menggunakan Gemini API yang lebih cost-effective
+- **Reliable**: Menggunakan Google infrastructure yang stabil
+- **Proper Rendering**: Markdown di-render dengan benar sebagai HTML
+- **Professional Appearance**: Typography dan styling yang konsisten
+
+### Update: React Markdown Integration - COMPLETED ✅
+
+#### Masalah yang Diperbaiki:
+- **Raw HTML Display**: Output HTML ditampilkan sebagai text, bukan di-render
+- **Formatting Issues**: Styling tidak diterapkan dengan benar
+- **Link Handling**: Link tidak dapat diklik dan tidak membuka di tab baru
+- **Typography Problems**: Inconsistent spacing dan formatting
+
+#### Solusi yang Diimplementasikan:
+- **React Markdown**: Menggunakan react-markdown untuk proper rendering
+- **Custom Components**: Custom components untuk h1, a, p, strong, em, hr
+- **Professional Styling**: Consistent typography dengan Tailwind CSS
+- **External Links**: Links membuka di tab baru dengan proper security
+- **Reusable Component**: AnalysisMarkdown component untuk menghindari duplikasi
+
+#### Technical Improvements:
+- **Markdown Format**: Output sebagai clean markdown instead of HTML
+- **GFM Support**: GitHub Flavored Markdown untuk tables dan features
+- **Custom Styling**: Prose classes dengan custom component overrides
+- **Link Security**: target="_blank" dan rel="noopener noreferrer"
+- **Responsive Design**: Proper spacing dan typography untuk semua ukuran layar
+
+### Files Modified:
+- **src/services/piketSpktAnalysisService.ts**: Complete migration to Gemini API dengan Markdown output
+- **src/components/ui/PiketSpktChatPage.tsx**: React Markdown integration
+- **package.json**: Added react-markdown, remark-gfm, rehype-raw dependencies
+- **.cursorrules**: Dokumentasi migrasi
+
+### Status:
+✅ **COMPLETED** - Service berhasil dimigrasi ke Gemini API dengan React Markdown rendering yang proper
+
+---
+
+## Task: Perbaikan Error hasValidInput di PiketSpktChatPage.tsx - COMPLETED ✅
+
+### Deskripsi:
+Memperbaiki error fatal "ReferenceError: hasValidInput is not defined" yang menyebabkan aplikasi tidak dapat dimuat saat mengakses halaman Piket SPKT.
+
+### Masalah yang Ditemukan:
+- **ReferenceError**: `hasValidInput is not defined` di baris 1170 PiketSpktChatPage.tsx
+- **DOM Error**: "Failed to execute 'removeChild' on 'Node'" yang terkait dengan React re-rendering
+- **Scope Issue**: Variabel `hasValidInput` didefinisikan sebagai variabel biasa yang mungkin tidak tersedia saat komponen di-render ulang
+
+### Solusi yang Diimplementasikan:
+- **Added useMemo Import**: Menambahkan `useMemo` ke React imports
+- **Refactored hasValidInput**: Mengubah dari variabel biasa menjadi `useMemo` dengan proper dependencies
+- **Dependency Tracking**: Menggunakan `[activeTab, inputMessage, selectedFiles]` sebagai dependencies
+- **Stable Reference**: Memberikan referensi yang stabil untuk nilai yang dihitung
+
+### Technical Changes:
+- **Import Statement**: `import React, { useState, useRef, useEffect, useMemo } from 'react';`
+- **hasValidInput Definition**: 
+  ```typescript
+  const hasValidInput = useMemo(() => {
+    return activeTab === 'analysis' 
+      ? inputMessage.trim()
+      : (selectedFiles.length > 0 || inputMessage.trim());
+  }, [activeTab, inputMessage, selectedFiles]);
+  ```
+
+### Benefits:
+- **No More Fatal Errors**: Aplikasi dapat dimuat tanpa ReferenceError
+- **Stable Performance**: useMemo mencegah re-calculation yang tidak perlu
+- **Better React Patterns**: Menggunakan React hooks yang tepat untuk computed values
+- **Dependency Management**: React dapat melacak perubahan dependencies dengan benar
+
+### Files Modified:
+- **src/components/ui/PiketSpktChatPage.tsx**: Fixed hasValidInput definition dengan useMemo
+- **.cursorrules**: Dokumentasi perbaikan
+
+### Status:
+✅ **COMPLETED** - Error hasValidInput berhasil diperbaiki, aplikasi dapat dimuat normal
+
+---
+
+## Task: Implementasi Tab System untuk Piket SPKT dengan Endpoint Berbeda - COMPLETED ✅
+
+### Deskripsi:
+Menambahkan sistem tab di halaman Piket SPKT untuk memisahkan fungsi analisis dan chat umum dengan endpoint API yang berbeda. Tab "Analisis SPKT" menggunakan endpoint khusus untuk analisis data, sedangkan tab "Chat Umum" menggunakan endpoint Gemini yang sudah ada.
+
+### Komponen yang Telah Dibuat:
+[X] Service untuk Analysis (src/services/piketSpktAnalysisService.ts)
+[X] Update PiketSpktChatPage.tsx dengan tab functionality
+[X] Implementasi conditional service calls berdasarkan tab aktif
+[X] Update welcome messages dan example questions per tab
+[X] Session management terpisah untuk setiap tab
+[X] Clean TypeScript implementation tanpa warnings
+
+### Technical Implementation:
+1. **Analysis Service**: 
+   - Menggunakan endpoint `${API_BASE_URL}/v1/playground/teams/spkt-analysis-team/runs`
+   - API Key: `import.meta.env.VITE_API_KEY` (dari environment variables)
+   - Mengikuti pola yang sama dengan tipidkorService.ts (tidak hardcode URL atau API key)
+   - Implementasi retry logic dan error handling yang robust
+
+2. **Tab Interface**:
+   - Tab "📊 Analisis SPKT" untuk analisis data dan evaluasi kinerja
+   - Tab "💬 Chat Umum" untuk chat administrasi umum
+   - Visual indicator dengan border dan background color untuk tab aktif
+   - Smooth transition dan responsive design
+
+3. **Conditional Logic**:
+   - `handleSubmit()` menggunakan service yang sesuai berdasarkan `activeTab`
+   - Session management terpisah dengan `initializeAnalysisSession()` dan `initializeSession()`
+   - Welcome message dan example questions yang berbeda per tab
+   - Reset messages dan document content saat switch tab
+
+4. **User Experience**:
+   - Tab Analysis: Fokus pada analisis tren, evaluasi kinerja, dan rekomendasi
+   - Tab General: Fokus pada administrasi, SOP, dan template dokumen
+   - Seamless switching tanpa kehilangan context
+   - Document area tetap berfungsi untuk kedua tab
+
+### Status:
+✅ **COMPLETED** - Tab system berhasil diimplementasikan dengan endpoint berbeda
+
+### Update: Customization untuk Analisis Kasus - COMPLETED ✅
+
+#### Perubahan yang Diimplementasikan:
+- **Welcome Message**: Mengubah dari "Analisis SPKT AI" menjadi "Analisis Kasus SPKT"
+- **Panduan Singkat**: "Silahkan masukkan kronologis singkat kejadian, untuk dilakukan analisis awal"
+- **Example Questions**: Menggunakan contoh kronologis kejadian nyata (kecelakaan, pencurian, perkelahian, penipuan, dll)
+- **No File Upload**: Menghilangkan fitur upload file untuk tab analisis karena endpoint tidak kompatibel
+- **Placeholder Text**: Mengubah placeholder menjadi "Masukkan kronologis singkat kejadian untuk analisis awal..."
+- **Input Validation**: Tab analisis hanya menerima text input, tab general tetap support file upload
+
+### Update: Perbaikan Loop Request - COMPLETED ✅
+
+#### Masalah yang Ditemukan:
+- **Loop Request**: Service mengirim request berulang kali karena retry logic yang berlebihan
+- **Backend Overload**: FastAPI backend menerima multiple request untuk prompt yang sama
+- **Inefficient**: Retry logic tidak diperlukan untuk analysis endpoint yang membutuhkan waktu lama
+
+#### Solusi yang Diimplementasikan:
+- **Single Request**: Menghapus retry logic, hanya mengirim 1 kali request
+- **Extended Timeout**: Meningkatkan timeout dari 10 menit menjadi 15 menit untuk analysis
+- **Better Error Handling**: Error handling yang lebih spesifik tanpa retry
+- **Clean Logging**: Logging yang lebih jelas untuk debugging
+
+#### Technical Changes:
+- **Removed Retry Logic**: Menghapus while loop dan retry mechanism
+- **Simplified Function**: Fungsi menjadi lebih sederhana dan predictable
+- **Extended Timeout**: 900000ms (15 menit) untuk analysis requests
+- **Enhanced Error Messages**: Pesan error yang lebih informatif dan spesifik
+- **Fixed CORS Issue**: Menggunakan relative URL di development untuk melewati proxy Vite
+- **Enhanced 504 Handling**: Pesan error yang lebih informatif untuk Gateway Timeout
+- **Request Duration Logging**: Menambahkan logging durasi request untuk debugging
+
+#### Server Configuration - COMPLETED ✅:
+- **Nginx Timeout Configuration**: 
+  * proxy_read_timeout 900s (15 menit) - ✅ Aktif
+  * proxy_connect_timeout 60s - ✅ Aktif  
+  * proxy_send_timeout 60s - ✅ Aktif
+- **Production Ready**: Sistem dapat menangani request analisis hingga 15 menit
+- **Stable Connection**: Koneksi ke backend lebih stabil dengan timeout yang optimal
+
+---
+
+## Previous Task: Membuat Halaman Piket SPKT dengan Tampilan Microsoft Word + Chat - COMPLETED ✅
+
+### Deskripsi:
+Membuat halaman baru "Piket SPKT" dengan tampilan seperti Microsoft Word yang memiliki chat input di samping. Halaman ini akan memiliki layout split dengan area dokumen di kiri dan chat interface di kanan. Hasil chat ditampilkan di area dokumen untuk kemudahan membaca dan mencetak.
+
+### Komponen yang Perlu Dibuat:
+[X] Service untuk Piket SPKT (src/services/piketSpktService.ts)
+[ ] Agent configuration (src/data/agents/piketSpktAgent.ts)
+[X] Chat page component (src/components/ui/PiketSpktChatPage.tsx)
+[X] Main page component (src/pages/PiketSpkt.tsx)
+[X] Update types dan utils
+[X] Update routing dan navigation
+
+### Rencana Implementasi:
+1. **Analisis Struktur Existing**: Mempelajari pola chat page yang sudah ada
+2. **Buat Service**: Implementasi service dengan endpoint yang akan diberikan user
+3. **Buat Agent Config**: Konfigurasi agent dengan icon dan metadata
+4. **Buat Chat Page**: Component dengan layout split Microsoft Word + Chat
+5. **Buat Main Page**: Halaman utama yang menggunakan chat page
+6. **Update Navigation**: Tambahkan ke routing dan sidebar
+7. **Testing**: Verifikasi tampilan dan fungsionalitas
+
+### Layout Design:
+- **Left Panel (60-70%)**: Area dokumen dengan tampilan seperti Microsoft Word
+- **Right Panel (30-40%)**: Chat interface dengan input dan history
+- **Responsive**: Adaptif untuk mobile dengan collapsible panels
+- **Clean UI**: Menggunakan design system yang konsisten
+
+### Status:
+✅ **COMPLETED** - Halaman Piket SPKT berhasil dibuat dengan layout Microsoft Word + Chat
+
+### Komponen yang Telah Dibuat:
+1. **Service (piketSpktService.ts)**: ✅ Implementasi lengkap dengan Gemini API
+2. **Chat Page (PiketSpktChatPage.tsx)**: ✅ Layout split dengan area dokumen + chat
+3. **Main Page (PiketSpkt.tsx)**: ✅ Wrapper component untuk routing
+4. **Types Update**: ✅ Menambahkan 'piket_spkt_chat' ke AgentType
+5. **Routing**: ✅ Route '/piket-spkt' ditambahkan ke App.tsx
+6. **Navigation**: ✅ Menu 'Piket SPKT' ditambahkan ke Sidebar
+7. **TypeScript Cleanup**: ✅ Menghapus unused imports dan variables
+
+### Fitur Utama:
+- **Split Layout**: Area dokumen (60-70%) + Chat (30-40%) di desktop
+- **Document Display**: Hasil chat ditampilkan di area dokumen seperti Microsoft Word
+- **Responsive Design**: 
+  * Desktop: Split layout dengan dokumen di kiri, chat di kanan
+  * Mobile: Full screen chat dengan modal dokumen
+- **Document Actions**: Copy dan print dokumen
+- **File Upload**: Support upload dokumen dengan progress bar
+- **Chat Interface**: Clean interface dengan example questions
+- **Professional Styling**: Konsisten dengan design system aplikasi
+- **Clean Code**: Tidak ada TypeScript warnings
+- **No Overlap**: Desktop dan mobile tidak tumpang tindih
+
+### Siap untuk Testing:
+Halaman dapat diakses melalui menu "Piket SPKT" di sidebar atau URL '/piket-spkt'
+
+---
+
+## Previous Completed Tasks:
+[X] Task: Fix TypeScript Warnings di PiketSpktChatPage.tsx (Round 2) - COMPLETED ✅
+[X] Task: Fix TypeScript Warnings di PiketSpktChatPage.tsx - COMPLETED ✅
 [X] Task: Menerapkan Welcome Message Baru di Multiple Chat Pages
 [X] Task: Membuat Agen Narkotika AI baru
 [X] Task: Meningkatkan UX Textarea Input Mobile
@@ -1089,6 +1491,71 @@ Memperbaiki TypeScript warning tentang parameter `theme` yang tidak digunakan da
 ### Status:
 ✅ **COMPLETED** - TypeScript warning berhasil diperbaiki
 
+## Task: Fix TypeScript Warnings di PiketSpktChatPage.tsx - COMPLETED ✅
+
+### Deskripsi:
+Memperbaiki TypeScript warnings yang muncul di PiketSpktChatPage.tsx karena adanya import dan variabel yang dideklarasikan tapi tidak digunakan.
+
+### Masalah yang Ditemukan:
+- **Unused Imports**: Import `AlertCircle` dan `Clock` dari lucide-react tidak digunakan
+- **Unused Import**: Import `DotBackground` tidak digunakan dalam component
+- **Unused Variable**: Variable `setProgress` dideklarasikan tapi tidak pernah digunakan
+- **TypeScript Warnings**: 4 warning TS6133 yang mengganggu development experience
+
+### Solusi yang Diimplementasikan:
+- **Removed Unused Imports**: Menghapus `AlertCircle` dan `Clock` dari import lucide-react
+- **Removed DotBackground Import**: Menghapus import yang tidak digunakan
+- **Fixed setProgress**: Mengubah `setProgress` menjadi hanya `progress` karena tidak ada setter yang digunakan
+- **Clean Code**: Membersihkan semua unused declarations
+
+### Technical Changes:
+- **Import Statement**: Menghapus `AlertCircle`, `Clock` dari lucide-react imports
+- **DotBackground**: Menghapus import line yang tidak digunakan
+- **Progress State**: Mengubah `const [progress, setProgress]` menjadi `const [progress]`
+
+### Benefits:
+- **No More Warnings**: Menghilangkan semua TypeScript warnings yang mengganggu
+- **Cleaner Code**: Kode yang lebih bersih tanpa unused imports dan variables
+- **Better Maintainability**: Kode yang lebih mudah dipelihara dan dibaca
+- **Consistent Pattern**: Mengikuti best practice untuk tidak memiliki unused declarations
+
+### Files Modified:
+- **src/components/ui/PiketSpktChatPage.tsx**: Cleaned up unused imports dan variables
+- **.cursorrules**: Dokumentasi perbaikan
+
+### Status:
+✅ **COMPLETED** - Semua TypeScript warnings berhasil diperbaiki
+
+## Task: Fix TypeScript Warnings di PiketSpktChatPage.tsx (Round 2) - COMPLETED ✅
+
+### Deskripsi:
+Memperbaiki TypeScript warnings tambahan yang muncul setelah perubahan layout, yaitu import yang tidak digunakan lagi setelah menghilangkan toggle functionality untuk mobile.
+
+### Masalah yang Ditemukan:
+- **Unused Import**: `Maximize2` tidak digunakan lagi setelah menghilangkan toggle button
+- **Unused Import**: `Minimize2` tidak digunakan lagi setelah menghilangkan toggle button  
+- **Unused Import**: `Download` diimport tapi tidak digunakan dalam implementasi
+
+### Solusi yang Diimplementasikan:
+- **Removed Unused Imports**: Menghapus `Maximize2`, `Minimize2`, dan `Download` dari import lucide-react
+- **Clean Import Statement**: Menyederhanakan import statement untuk hanya include yang digunakan
+
+### Technical Changes:
+- **Import Statement**: Menghapus `Maximize2`, `Minimize2`, `Download` dari lucide-react imports
+
+### Benefits:
+- **No More Warnings**: Menghilangkan 3 TypeScript warnings (TS6133) yang tersisa
+- **Cleaner Code**: Import statement yang lebih bersih dan focused
+- **Better Maintainability**: Tidak ada unused dependencies
+- **Consistent Pattern**: Mengikuti best practice untuk clean imports
+
+### Files Modified:
+- **src/components/ui/PiketSpktChatPage.tsx**: Cleaned up unused imports
+- **.cursorrules**: Dokumentasi perbaikan
+
+### Status:
+✅ **COMPLETED** - Semua TypeScript warnings berhasil diperbaiki
+
 ## Task: Perbaikan Prompt Gemini untuk Menghilangkan Frasa Berulang - COMPLETED ✅
 
 ### Deskripsi:
@@ -1126,3 +1593,77 @@ Memperbaiki prompt di agentLaporanIntelejen.ts untuk menghilangkan frasa berulan
 
 ### Status:
 ✅ **COMPLETED** - Prompt berhasil diperbaiki untuk menghilangkan frasa berulang
+
+## Task: Perbaikan Output Duplikat di Chat dan Dokumen - COMPLETED ✅
+
+### Deskripsi:
+Memperbaiki masalah output yang muncul duplikat di chat page dan area dokumen. Sekarang output AI hanya ditampilkan di area dokumen, sedangkan chat page menampilkan konfirmasi dan riwayat percakapan.
+
+### Masalah yang Ditemukan:
+- **Output Duplikat**: Respons AI muncul di chat page dan area dokumen
+- **Redundant Information**: User melihat informasi yang sama di dua tempat
+- **Poor UX**: Membingungkan dan tidak efisien
+- **Scroll Issues**: Chat area menjadi terlalu panjang dengan konten duplikat
+
+### Solusi yang Diimplementasikan:
+- **Single Source Display**: Output AI hanya ditampilkan di area dokumen
+- **Chat Confirmation**: Chat menampilkan pesan konfirmasi singkat
+- **Visual Indicators**: Indikator untuk menunjukkan lokasi dokumen
+- **Mobile Notification**: Animasi dan badge pada tombol dokumen mobile
+- **Clean Chat History**: Chat fokus pada percakapan, bukan output lengkap
+
+### Technical Changes:
+- **Document Content State**: `setDocumentContent(response)` dipindah ke atas
+- **Chat Message**: Diganti dengan konfirmasi singkat dan petunjuk lokasi
+- **Mobile Indicator**: `hasNewDocument` state untuk notifikasi visual
+- **Button Animation**: Pulse animation dan badge untuk dokumen baru
+- **Simplified Chat Display**: Bot messages menggunakan simple styling
+
+### Benefits:
+- **No Duplication**: Output hanya muncul di satu tempat
+- **Clear Separation**: Chat untuk interaksi, dokumen untuk hasil
+- **Better Mobile UX**: Visual indicator untuk dokumen baru
+- **Cleaner Interface**: Chat area tidak overloaded dengan konten
+- **Focused Experience**: User tahu persis di mana mencari hasil
+
+### Files Modified:
+- **src/components/ui/PiketSpktChatPage.tsx**: Implemented single source display
+- **.cursorrules**: Dokumentasi perbaikan
+
+### Status:
+✅ **COMPLETED** - Output tidak lagi duplikat, UX lebih clean dan focused
+
+### Update: Perbaikan Markdown Formatting - COMPLETED ✅
+
+#### Masalah yang Ditemukan:
+- **Unwanted Markdown**: Output Gemini API menambahkan `**` di awal dan akhir setiap section
+- **Poor Formatting**: Tampilan menjadi tidak rapi dengan markdown formatting yang tidak diinginkan
+- **Inconsistent Display**: Section content dimulai dan diakhiri dengan `**` yang mengganggu
+
+#### Solusi yang Diimplementasikan:
+- **Enhanced formatContent Function**: Menambahkan regex untuk menghapus `**` di awal dan akhir content
+- **Parsing Cleanup**: Membersihkan markdown formatting saat parsing setiap section
+- **Multiple Pattern Removal**: Menangani berbagai pola `**` (awal line, akhir line, standalone)
+- **Consistent Output**: Memastikan output yang bersih tanpa formatting yang tidak diinginkan
+
+#### Technical Changes:
+- **formatContent()**: Added regex patterns untuk remove unwanted `**`
+- **parseAnalysisText()**: Enhanced section parsing dengan cleanup formatting
+- **Pattern Matching**: 
+  * `^\*\*\s*` - Remove opening ** with optional whitespace
+  * `\s*\*\*$` - Remove closing ** with optional whitespace  
+  * `^\*\*\n` - Remove ** at start of new line
+  * `\n\*\*$` - Remove ** at end of line
+
+#### Benefits:
+- **Clean Output**: Section content tampil bersih tanpa markdown artifacts
+- **Professional Appearance**: Formatting yang konsisten dan rapi
+- **Better Readability**: Content lebih mudah dibaca tanpa distraksi formatting
+- **Consistent Parsing**: Semua section di-parse dengan standar yang sama
+
+### Files Modified:
+- **src/services/piketSpktAnalysisService.ts**: Enhanced content formatting dan parsing
+- **.cursorrules**: Dokumentasi perbaikan
+
+### Status:
+✅ **COMPLETED** - Markdown formatting berhasil dibersihkan dari output

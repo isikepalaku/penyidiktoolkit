@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Users, FileText, PanelLeft, PanelRightClose, Search, MessageSquare, Home, Scale, ShieldAlert } from 'lucide-react';
+import { Users, FileText, PanelLeft, PanelRightClose, Search, MessageSquare, Home, Scale, ShieldAlert, ClipboardList } from 'lucide-react';
 import logo from '../static/logoreserse.png';
 import ProfileMenu from './ProfileMenu';
 import { useAuth } from '../auth/AuthContext';
@@ -85,6 +85,11 @@ const Sidebar = () => {
         path: '/pencarian-putusan',
         icon: <Search className="w-5 h-5" />,
         text: 'Pencarian Putusan'
+      },
+      {
+        path: '/piket-spkt',
+        icon: <ClipboardList className="w-5 h-5" />,
+        text: 'Piket SPKT'
       }
   ];
 

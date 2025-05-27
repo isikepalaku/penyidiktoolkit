@@ -65,7 +65,7 @@ export default defineConfig(({ mode }) => {
             '**/*.{js,css,html}', 
             '**/assets/*.{png,svg,jpg,jpeg,webp}'
           ],
-          maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
           runtimeCaching: [
             {
               urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/i,
@@ -102,7 +102,7 @@ export default defineConfig(({ mode }) => {
             },
             {
               urlPattern: /^https:\/\/api\.reserse\.id\/.*/i,
-              handler: 'NetworkOnly',
+              handler: 'NetworkFirst',
               options: {
                 cacheName: 'api-cache',
                 expiration: {
@@ -114,7 +114,7 @@ export default defineConfig(({ mode }) => {
             },
             {
               urlPattern: /^https:\/\/flow\.reserse\.id\/.*/i,
-              handler: 'NetworkOnly',
+              handler: 'NetworkFirst',
               options: {
                 cacheName: 'flow-cache',
                 expiration: {
@@ -258,12 +258,6 @@ export default defineConfig(({ mode }) => {
               'lucide-react',
               '@radix-ui/react-slot',
               'class-variance-authority'
-            ],
-            'ui': [
-              '@/components/ui',
-            ],
-            'agents': [
-              '@/data/agents'
             ]
           },
           chunkFileNames: 'assets/js/[name]-[hash].js',
