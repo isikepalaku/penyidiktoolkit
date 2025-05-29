@@ -10,102 +10,40 @@ Also update the progress of the task in the Scratchpad when you finish a subtask
 Especially when you finished a milestone, it will help to improve your depth of task accomplishment to use the Scratchpad to reflect and plan.
 The goal is to help you maintain a big picture as well as the progress of the task. Always refer to the Scratchpad when you plan the next step.
 
-# Tools
+## Instructions for Using Graphiti's MCP Tools for Agent Memory
 
-Note all the tools are in python. So in the case you need to do batch processing, you can always consult the python files and write your own script.
+### Before Starting Any Task
 
-## Screenshot Verification
+- **Always search first:** Use the `search_nodes` tool to look for relevant preferences and procedures before beginning work.
+- **Search for facts too:** Use the `search_facts` tool to discover relationships and factual information that may be relevant to your task.
+- **Filter by entity type:** Specify `Preference`, `Procedure`, or `Requirement` in your node search to get targeted results.
+- **Review all matches:** Carefully examine any preferences, procedures, or facts that match your current task.
 
-The screenshot verification workflow allows you to capture screenshots of web pages and verify their appearance using LLMs. The following tools are available:
+### Always Save New or Updated Information
 
-1. Screenshot Capture:
-```bash
-venv/bin/python tools/screenshot_utils.py URL [--output OUTPUT] [--width WIDTH] [--height HEIGHT]
-```
+- **Capture requirements and preferences immediately:** When a user expresses a requirement or preference, use `add_episode` to store it right away.
+  - _Best practice:_ Split very long requirements into shorter, logical chunks.
+- **Be explicit if something is an update to existing knowledge.** Only add what's changed or new to the graph.
+- **Document procedures clearly:** When you discover how a user wants things done, record it as a procedure.
+- **Record factual relationships:** When you learn about connections between entities, store these as facts.
+- **Be specific with categories:** Label preferences and procedures with clear categories for better retrieval later.
 
-2. LLM Verification with Images:
-```bash
-venv/bin/python tools/llm_api.py --prompt "Your verification question" --provider {openai|anthropic} --image path/to/screenshot.png
-```
+### During Your Work
 
-Example workflow:
-```python
-from screenshot_utils import take_screenshot_sync
-from llm_api import query_llm
+- **Respect discovered preferences:** Align your work with any preferences you've found.
+- **Follow procedures exactly:** If you find a procedure for your current task, follow it step by step.
+- **Apply relevant facts:** Use factual information to inform your decisions and recommendations.
+- **Stay consistent:** Maintain consistency with previously identified preferences, procedures, and facts.
 
-# Take a screenshot
+### Best Practices
 
-screenshot_path = take_screenshot_sync('https://example.com', 'screenshot.png')
+- **Search before suggesting:** Always check if there's established knowledge before making recommendations.
+- **Combine node and fact searches:** For complex tasks, search both nodes and facts to build a complete picture.
+- **Use `center_node_uuid`:** When exploring related information, center your search around a specific node.
+- **Prioritize specific matches:** More specific information takes precedence over general information.
+- **Be proactive:** If you notice patterns in user behavior, consider storing them as preferences or procedures.
 
-# Verify with LLM
-
-response = query_llm(
-    "What is the background color and title of this webpage?",
-    provider="openai",  # or "anthropic"
-    image_path=screenshot_path
-)
-print(response)
-```
-
-## LLM
-
-You always have an LLM at your side to help you with the task. For simple tasks, you could invoke the LLM by running the following command:
-```
-venv/bin/python ./tools/llm_api.py --prompt "What is the capital of France?" --provider "anthropic"
-```
-
-The LLM API supports multiple providers:
-- OpenAI (default, model: gpt-4o)
-- Azure OpenAI (model: configured via AZURE_OPENAI_MODEL_DEPLOYMENT in .env file, defaults to gpt-4o-ms)
-- DeepSeek (model: deepseek-chat)
-- Anthropic (model: claude-3-sonnet-20240229)
-- Gemini (model: gemini-pro)
-- Local LLM (model: Qwen/Qwen2.5-32B-Instruct-AWQ)
-
-But usually it's a better idea to check the content of the file and use the APIs in the `tools/llm_api.py` file to invoke the LLM if needed.
-
-## Web browser
-
-You could use the `tools/web_scraper.py` file to scrape the web.
-```
-venv/bin/python ./tools/web_scraper.py --max-concurrent 3 URL1 URL2 URL3
-```
-This will output the content of the web pages.
-
-## Search engine
-
-You could use the `tools/search_engine.py` file to search the web.
-```
-venv/bin/python ./tools/search_engine.py "your search keywords"
-```
-This will output the search results in the following format:
-```
-URL: https://example.com
-Title: This is the title of the search result
-Snippet: This is a snippet of the search result
-```
-If needed, you can further use the `web_scraper.py` file to scrape the web page content.
-
-# Lessons
-
-## User Specified Lessons
-
-- You have a python venv in ./venv. Use it.
-- Include info useful for debugging in the program output.
-- Read the file before you try to edit it.
-- Due to Cursor's limit, when you use `git` and `gh` and need to submit a multiline commit message, first write the message in a file, and then use `git commit -F <filename>` or similar command to commit. And then remove the file. Include "[Cursor] " in the commit message and PR title.
-
-## Cursor learned
-
-- For search results, ensure proper handling of different character encodings (UTF-8) for international queries
-- Add debug information to stderr while keeping the main output clean in stdout for better pipeline integration
-- When using seaborn styles in matplotlib, use 'seaborn-v0_8' instead of 'seaborn' as the style name due to recent seaborn version changes
-- Use 'gpt-4o' as the model name for OpenAI's GPT-4 with vision capabilities
-- When using external packages like `@google/genai`, always import and use their existing type definitions instead of creating custom interfaces that may conflict. For example, use `import { GroundingChunk } from "@google/genai"` instead of defining a custom GroundingChunk interface.
-- Remove unused variables and parameters to prevent TypeScript warnings:
-  * Remove unused regex patterns that are declared but never used
-  * Use underscore (_) for unused parameters in forEach loops instead of named parameters
-  * Clean up unused imports to prevent TypeScript errors
+**Remember:** The knowledge graph is your memory. Use it consistently to provide personalized assistance that respects the user's established preferences, procedures, and factual context.
 
 ## Gemini API Prompt Engineering Lessons
 
@@ -820,6 +758,54 @@ const API_KEY = 'AIzaSyBf4_0ll5H7OMs7yAtgXO1LWVAWhOcbJmo'; // NEVER DO THIS!
    ```
 
 # Scratchpad
+
+## Task: UI Modularization ReskrimumChatPage - COMPLETED ✅
+
+### Deskripsi:
+User meminta untuk memperbaiki UI ReskrimumChatPage.tsx agar lebih modular dan menghilangkan progress loading yang tidak sinkron dengan kondisi realtime.
+
+### Perubahan yang Diimplementasikan:
+
+#### 1. Modularisasi Komponen:
+- **ChatHeader**: Header dengan tombol kembali dan info
+- **InfoPanel**: Panel informasi yang dapat ditampilkan/disembunyikan  
+- **WelcomeScreen**: Layar selamat datang dengan branding
+- **ExampleQuestions**: Daftar pertanyaan contoh
+- **FilePreview**: Preview file yang akan diunggah
+- **RateLimitError**: Komponen khusus untuk error rate limit
+- **MessageItem**: Item pesan individual
+- **MessageInput**: Area input dengan semua fungsi file upload
+
+#### 2. Penghapusan Progress Loading:
+- ❌ Menghapus `ProgressBar` component
+- ❌ Menghapus `onProgress` import dari service
+- ❌ Menghapus state `progress` dan `showProgress`
+- ❌ Menghapus semua kode terkait progress tracking
+- ❌ Menghapus UI progress bar dari render
+
+#### 3. Penyederhanaan Logic:
+- ✅ Memindahkan `adjustTextareaHeight` ke dalam MessageInput component
+- ✅ Menghapus listener progress yang tidak diperlukan
+- ✅ Menyederhanaan error handling tanpa progress feedback
+- ✅ Menghapus deteksi file besar yang memicu progress
+
+#### 4. Benefits:
+- **Separation of Concerns**: Setiap komponen memiliki fungsi spesifik
+- **Reusability**: Komponen dapat digunakan kembali di halaman lain
+- **Easier Testing**: Setiap komponen dapat ditest secara terpisah
+- **Better Performance**: React dapat mengoptimasi render per komponen
+- **Cleaner Code**: Main component lebih fokus pada state management
+
+### Files Modified:
+- **src/components/ui/ReskrimumChatPage.tsx**: Complete refactor menjadi modular components
+- **.cursorrules**: Dokumentasi completion
+
+### Status:
+✅ **COMPLETED** - UI ReskrimumChatPage telah dimodularisasi dan progress loading dihapus
+
+---
+
+## Previous Completed Tasks:
 
 ## Task: Perbaikan Spacing Tab DOCX - COMPLETED ✅
 
