@@ -1,14 +1,18 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { ArrowLeft, Send, Copy, Check, Loader2, Info, X, ChevronDown, FileText, MessageSquare, Paperclip, File, XIcon, Printer } from 'lucide-react';
+import { ArrowLeft, Send, Copy, Check, Loader2, Info, X, ChevronDown, FileText, MessageSquare, Paperclip, File, XIcon, Printer, Download } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { Button } from './button';
 import { Textarea } from './textarea';
 import { AnimatedBotIcon } from './animated-bot-icon';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { printDocument, downloadDocument } from '@/utils/documentExport';
 
 import { sendChatMessage, clearChatHistory, initializeSession } from '@/services/piketSpktService';
 import { sendAnalysisChatMessage, clearAnalysisChatHistory, initializeAnalysisSession } from '@/services/piketSpktAnalysisService';
+import { generateReportFromChronology } from '@/services/spkt/laporanInformasiService';
+import type { LaporanInformasiData } from '@/types/spktTypes';
+import LaporanInformasiDisplay from '@/components/spkt/LaporanInformasiDisplay';
 
 interface Message {
   content: string;
@@ -98,8 +102,10 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [isDocumentExpanded, setIsDocumentExpanded] = useState(false);
   const [documentContent, setDocumentContent] = useState('');
+  const [laporanInformasiData, setLaporanInformasiData] = useState<LaporanInformasiData | null>(null);
   const [hasNewDocument, setHasNewDocument] = useState(false);
   const [activeTab, setActiveTab] = useState<'analysis' | 'general'>('analysis');
+  const [activeGeneralTool, setActiveGeneralTool] = useState<string | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [progress] = useState<{status: string, percent: number}>({
     status: 'preparing',
@@ -199,8 +205,10 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
       },
     ]);
     
-    // Clear document content when switching tabs
+    // Clear document content and laporan informasi when switching tabs
     setDocumentContent('');
+    setLaporanInformasiData(null);
+    setActiveGeneralTool(null);
     setHasNewDocument(false);
   }, [activeTab]);
 
@@ -267,9 +275,17 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
 
   // Check if input is valid based on active tab
   const hasValidInput = useMemo(() => {
-    // Both tabs now support file upload with Gemini API
-    return selectedFiles.length > 0 || inputMessage.trim();
-  }, [inputMessage, selectedFiles]);
+    if (activeTab === 'analysis') {
+      return selectedFiles.length > 0 || inputMessage.trim();
+    } else {
+      // General tab
+      if (activeGeneralTool === 'laporanInformasi') {
+        return inputMessage.trim(); // Only text input for laporan informasi
+      } else {
+        return selectedFiles.length > 0 || inputMessage.trim(); // File upload and text for chat
+      }
+    }
+  }, [activeTab, activeGeneralTool, inputMessage, selectedFiles]);
 
   const handleSubmit = async () => {
     if (!hasValidInput || isProcessing) return;
@@ -310,29 +326,65 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
       if (activeTab === 'analysis') {
         // Analysis tab: no file upload, only text
         response = await sendAnalysisChatMessage(userMessage.content);
+        
+        // Update document content with the latest response
+        setDocumentContent(response);
+        setHasNewDocument(true);
+        
+        // Add a simple confirmation message to chat instead of full response
+        const botMessage: Message = {
+          content: `✅ Respons telah ditampilkan di area dokumen ${isDesktopRef.current ? '(panel kiri)' : '(tekan tombol dokumen)'}`,
+          type: 'bot',
+          timestamp: new Date(),
+          isAnimating: true
+        };
+
+        setMessages(prev => [...prev, botMessage]);
+        
+      } else if (activeGeneralTool === 'laporanInformasi') {
+        // Generate laporan informasi
+        const laporanData = await generateReportFromChronology(userMessage.content);
+        
+        // Update laporan informasi data
+        setLaporanInformasiData(laporanData);
+        setHasNewDocument(true);
+        
+        // Add confirmation message to chat
+        const botMessage: Message = {
+          content: `✅ Laporan Informasi telah dibuat dan ditampilkan di area dokumen ${isDesktopRef.current ? '(panel kiri)' : '(tekan tombol dokumen)'}`,
+          type: 'bot',
+          timestamp: new Date(),
+          isAnimating: true
+        };
+
+        setMessages(prev => [...prev, botMessage]);
+        
+        // Reset tool selection after successful generation
+        setActiveGeneralTool(null);
+        
       } else {
-        // General tab: support file upload
+        // General chat: support file upload
         response = await sendChatMessage(
           userMessage.content, 
           selectedFiles.length > 0 ? selectedFiles : undefined
         );
-      }
 
-      // Update document content with the latest response
-      setDocumentContent(response);
-      setHasNewDocument(true);
-      
-            // Add a simple confirmation message to chat instead of full response
-      const botMessage: Message = {
-        content: `✅ Respons telah ditampilkan di area dokumen ${isDesktopRef.current ? '(panel kiri)' : '(tekan tombol dokumen)'}`,
-        type: 'bot',
-        timestamp: new Date(),
-        isAnimating: true
-      };
+        // Update document content with the latest response
+        setDocumentContent(response);
+        setHasNewDocument(true);
+        
+        // Add a simple confirmation message to chat instead of full response
+        const botMessage: Message = {
+          content: `✅ Respons telah ditampilkan di area dokumen ${isDesktopRef.current ? '(panel kiri)' : '(tekan tombol dokumen)'}`,
+          type: 'bot',
+          timestamp: new Date(),
+          isAnimating: true
+        };
 
         setMessages(prev => [...prev, botMessage]);
+      }
         
-        // Reset selected files for both tabs
+      // Reset selected files for both tabs
       setSelectedFiles([]);
       setShowProgress(false);
 
@@ -490,7 +542,7 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
             <FileText className="w-5 h-5 text-blue-600" />
             <h2 className="text-lg font-semibold text-gray-900">Area Dokumen</h2>
           </div>
-          {documentContent && (
+          {(documentContent || laporanInformasiData) && (
             <div className="flex items-center space-x-2">
               <Button
                 variant="ghost"
@@ -503,10 +555,18 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => window.print()}
+                onClick={() => printDocument(documentContent, laporanInformasiData)}
                 className="text-gray-600 hover:text-blue-600"
               >
                 <Printer className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => downloadDocument(documentContent, laporanInformasiData)}
+                className="text-gray-600 hover:text-blue-600"
+              >
+                <Download className="w-4 h-4" />
               </Button>
             </div>
           )}
@@ -517,7 +577,9 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
           <div className="max-w-4xl mx-auto">
             {/* Document Display */}
             <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-8 min-h-[600px]">
-              {documentContent ? (
+              {laporanInformasiData ? (
+                <LaporanInformasiDisplay data={laporanInformasiData} />
+              ) : documentContent ? (
                 <AnalysisMarkdown content={documentContent} />
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
@@ -558,7 +620,7 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
             </div>
             <div className="flex items-center space-x-2">
             {/* Mobile Document View Button */}
-            {documentContent && (
+            {(documentContent || laporanInformasiData) && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -661,27 +723,77 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
                     : 'Selamat datang di Piket SPKT AI'
                   }
                 </h3>
-                                    <p className="text-gray-600 mb-6 max-w-md">
-                      {activeTab === 'analysis'
-                        ? 'Silahkan masukkan kronologis singkat kejadian atau upload dokumen untuk dilakukan analisis awal'
-                        : 'Asisten digital untuk membantu tugas administrasi dan pelayanan SPKT Anda'
-                      }
-                    </p>
+                <p className="text-gray-600 mb-6 max-w-md">
+                  {activeTab === 'analysis'
+                    ? 'Silahkan masukkan kronologis singkat kejadian atau upload dokumen untuk dilakukan analisis awal'
+                    : 'Asisten digital untuk membantu tugas administrasi dan pelayanan SPKT Anda'
+                  }
+                </p>
               </div>
               
-              {/* Example Questions */}
-              <div className="w-full max-w-md space-y-2">
-                <p className="text-sm font-medium text-gray-700 mb-3">Contoh pertanyaan:</p>
-                {exampleQuestions.map((question, index) => (
+              {/* Tool Selection for General Tab */}
+              {activeTab === 'general' && !activeGeneralTool && (
+                <div className="w-full max-w-md space-y-2">
+                  <p className="text-sm font-medium text-gray-700 mb-3">Pilih jenis bantuan:</p>
                   <button
-                    key={index}
-                    onClick={() => handleExampleClick(question)}
-                    className="w-full text-left p-3 text-sm bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
+                    onClick={() => setActiveGeneralTool('laporanInformasi')}
+                    className="w-full text-left p-4 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors"
                   >
-                    {question}
+                    <div className="font-medium text-blue-900">📄 Laporan Informasi</div>
+                    <div className="text-sm text-blue-700 mt-1">Generate laporan informasi dari kronologi kejadian</div>
                   </button>
-                ))}
-              </div>
+                  <button
+                    onClick={() => setActiveGeneralTool('chat')}
+                    className="w-full text-left p-4 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
+                  >
+                    <div className="font-medium text-gray-900">💬 Chat Umum</div>
+                    <div className="text-sm text-gray-700 mt-1">Tanyakan tentang SOP, administrasi, dan bantuan umum</div>
+                  </button>
+                </div>
+              )}
+
+              {/* Example Questions for Analysis Tab or Chat Tool */}
+              {(activeTab === 'analysis' || (activeTab === 'general' && activeGeneralTool === 'chat')) && (
+                <div className="w-full max-w-md space-y-2">
+                  {/* Back button for chat tool */}
+                  {activeTab === 'general' && activeGeneralTool === 'chat' && (
+                    <button
+                      onClick={() => setActiveGeneralTool(null)}
+                      className="text-sm text-blue-600 hover:text-blue-800 mb-4 flex items-center"
+                    >
+                      ← Kembali ke menu utama
+                    </button>
+                  )}
+                  <p className="text-sm font-medium text-gray-700 mb-3">Contoh pertanyaan:</p>
+                  {exampleQuestions.map((question, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleExampleClick(question)}
+                      className="w-full text-left p-3 text-sm bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
+                    >
+                      {question}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Laporan Informasi Input */}
+              {activeTab === 'general' && activeGeneralTool === 'laporanInformasi' && (
+                <div className="w-full max-w-md space-y-4">
+                  <div className="text-left">
+                    <button
+                      onClick={() => setActiveGeneralTool(null)}
+                      className="text-sm text-blue-600 hover:text-blue-800 mb-4 flex items-center"
+                    >
+                      ← Kembali ke menu utama
+                    </button>
+                    <h4 className="font-medium text-gray-900 mb-2">Laporan Informasi</h4>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Masukkan kronologi kejadian untuk dibuat menjadi laporan informasi resmi.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             // Chat messages
@@ -793,22 +905,31 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
               onKeyDown={handleKeyDown}
               placeholder={activeTab === 'analysis' 
                 ? "Masukkan kronologis singkat kejadian untuk analisis awal (dapat disertai file dokumen)..."
+                : activeGeneralTool === 'laporanInformasi'
+                ? "Masukkan kronologi kejadian untuk dibuat laporan informasi..."
                 : "Tanyakan tentang administrasi SPKT, SOP, atau minta bantuan dokumentasi..."
               }
-              className="py-3 min-h-[50px] max-h-[200px] resize-none pr-20 pl-12"
+              className={cn(
+                "py-3 min-h-[50px] max-h-[200px] resize-none pr-20",
+                activeTab === 'general' && activeGeneralTool === 'laporanInformasi' 
+                  ? "pl-4" // No file upload button
+                  : "pl-12" // With file upload button
+              )}
               disabled={isProcessing}
             />
             
-            {/* File Upload Button - Available for Both Tabs */}
-            <button
-              type="button"
-              onClick={handleOpenFileDialog}
-              disabled={isProcessing}
-              className="absolute left-2 bottom-3 p-2 rounded-lg text-gray-500 hover:text-blue-500 hover:bg-blue-50 transition-colors z-20"
-              aria-label="Upload file"
-            >
-              <Paperclip className="w-5 h-5" />
-            </button>
+            {/* File Upload Button - Hidden for Laporan Informasi */}
+            {!(activeTab === 'general' && activeGeneralTool === 'laporanInformasi') && (
+              <button
+                type="button"
+                onClick={handleOpenFileDialog}
+                disabled={isProcessing}
+                className="absolute left-2 bottom-3 p-2 rounded-lg text-gray-500 hover:text-blue-500 hover:bg-blue-50 transition-colors z-20"
+                aria-label="Upload file"
+              >
+                <Paperclip className="w-5 h-5" />
+              </button>
+            )}
 
             {/* Hidden file input */}
             <input 
@@ -863,7 +984,7 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => window.print()}
+                      onClick={() => printDocument(documentContent, laporanInformasiData)}
                       className="text-gray-600 hover:text-blue-600"
                     >
                       <Printer className="w-4 h-4" />
@@ -882,7 +1003,9 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
             
             {/* Modal Content */}
             <div className="flex-1 p-6 overflow-y-auto">
-              {documentContent ? (
+              {laporanInformasiData ? (
+                <LaporanInformasiDisplay data={laporanInformasiData} />
+              ) : documentContent ? (
                 <AnalysisMarkdown content={documentContent} />
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
