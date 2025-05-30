@@ -4,8 +4,9 @@ import { cn } from '@/utils/utils';
 import { Button } from './button';
 import { Textarea } from './textarea';
 import { AnimatedBotIcon } from './animated-bot-icon';
+import { SkeletonMessage } from '@/components/chat/SkeletonMessage';
 import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { analysisMarkdownConfig, createComponentProps } from '@/utils/markdownFormatter';
 import { printDocument, downloadDocument } from '@/utils/documentExport';
 
 import { sendChatMessage, clearChatHistory, initializeSession } from '@/services/piketSpktService';
@@ -64,30 +65,6 @@ const ProgressBar = ({ percent = 0, status = 'uploading' }) => {
   );
 };
 
-// Skeleton component for loading state
-const SkeletonMessage = () => (
-  <div className="flex items-start space-x-3">
-    <AnimatedBotIcon className="w-5 h-5 flex-shrink-0 mt-1" />
-    <div className="flex-1 space-y-3 py-1">
-      <p className="text-xs text-gray-500 italic mb-1">Sedang menyusun respons...</p>
-      <div className="space-y-3 animate-pulse">
-        <div className="h-4 bg-gray-300 rounded w-full"></div>
-        <div className="h-4 bg-gray-300 rounded w-5/6"></div>
-        <div className="h-4 bg-gray-300 rounded w-11/12"></div>
-        <div className="h-4 bg-gray-300 rounded w-3/4"></div>
-        <div className="h-2"></div>
-        <div className="pl-3 space-y-2">
-          <div className="h-3 bg-gray-300 rounded w-11/12"></div>
-          <div className="h-3 bg-gray-300 rounded w-4/5"></div>
-        </div>
-        <div className="h-2"></div>
-        <div className="h-4 bg-gray-300 rounded w-full"></div>
-        <div className="h-4 bg-gray-300 rounded w-2/3"></div>
-      </div>
-    </div>
-  </div>
-);
-
 interface PiketSpktChatPageProps {
   onBack?: () => void;
 }
@@ -112,6 +89,7 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
     percent: 0
   });
   const [showProgress, setShowProgress] = useState(false);
+  const [isTaskCompleted, setIsTaskCompleted] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -192,7 +170,7 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
         chatContainer.removeEventListener('scroll', handleScroll);
       }
     };
-  }, [activeTab]);
+  }, [activeTab, messages.length]);
 
   // Handle tab change - reset messages and initialize appropriate session
   useEffect(() => {
@@ -217,7 +195,7 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
     if (!userScrolled || messages.length <= 2) {
       scrollToBottom();
     }
-  }, [messages, userScrolled]);
+  }, [messages, userScrolled, messages.length]);
 
   const scrollToBottom = () => {
     requestAnimationFrame(() => {
@@ -359,8 +337,8 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
 
         setMessages(prev => [...prev, botMessage]);
         
-        // Reset tool selection after successful generation
-        setActiveGeneralTool(null);
+        // Mark task as completed but keep the tool for task context
+        setIsTaskCompleted(true);
         
       } else {
         // General chat: support file upload
@@ -391,25 +369,30 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
     } catch (error) {
       console.error('Error sending message:', error);
       
-      const getErrorMessage = (error: any): string => {
+      const getErrorMessage = (error: Error | { message?: string } | unknown): string => {
         if (!navigator.onLine) {
           return 'Perangkat Anda sedang offline. Silakan periksa koneksi internet dan coba lagi.';
         }
         
-        if (error.message) {
-          if (error.message.includes('File terlalu besar')) {
+        // Check if error is an object with a message property
+        const errorWithMessage = error as { message?: string };
+        
+        if (errorWithMessage && typeof errorWithMessage.message === 'string') {
+          const errorMsg = errorWithMessage.message;
+          
+          if (errorMsg.includes('File terlalu besar')) {
             return 'File terlalu besar. Harap gunakan file dengan ukuran lebih kecil (maksimal 50MB).';
           }
           
-          if (error.message.includes('timeout') || error.message.includes('timed out')) {
+          if (errorMsg.includes('timeout') || errorMsg.includes('timed out')) {
             return 'Permintaan timeout. File mungkin terlalu besar atau koneksi terlalu lambat.';
           }
           
-          if (error.message.includes('Terlalu banyak permintaan')) {
+          if (errorMsg.includes('Terlalu banyak permintaan')) {
             return 'Terlalu banyak permintaan dalam waktu singkat. Silakan tunggu beberapa saat dan coba lagi.';
           }
           
-          return error.message;
+          return errorMsg;
         }
         
         return 'Permintaan Terlalu banyak, coba lagi dalam 2 menit. (dengan bertumbuhnya pengguna, saat ini kami membatasi permintaan untuk menjaga kualitas layanan)';
@@ -460,55 +443,13 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
     "Tolong analisis foto TKP dan kronologi kejadian yang saya lampirkan"
   ];
 
-  // Komponen reusable untuk rendering markdown analisis
+  // Komponen reusable untuk rendering markdown analisis menggunakan konfigurasi dari markdownFormatter.ts
   const AnalysisMarkdown: React.FC<{ content: string }> = ({ content }) => (
-    <div className="max-w-none break-words text-gray-800 leading-relaxed">
+    <div className={analysisMarkdownConfig.containerClassName}>
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        className="prose prose-lg max-w-none
-          prose-headings:text-blue-800 prose-headings:font-bold prose-headings:border-b-2 prose-headings:border-blue-200 prose-headings:pb-2
-          prose-p:text-gray-700 prose-p:leading-relaxed prose-p:mb-4
-          prose-strong:text-gray-900 prose-strong:font-semibold
-          prose-em:text-gray-600 prose-em:italic
-          prose-a:text-blue-600 prose-a:hover:text-blue-800 prose-a:underline
-          prose-ul:text-gray-700 prose-ol:text-gray-700
-          prose-li:mb-2 prose-li:leading-relaxed
-          prose-hr:border-blue-200 prose-hr:my-8"
-        components={{
-          h1: ({ children }) => (
-            <h1 className="text-2xl font-bold text-blue-800 mb-4 flex items-center gap-2 border-b-2 border-blue-200 pb-2 mt-8 first:mt-0">
-              {children}
-            </h1>
-          ),
-          a: ({ href, children }) => (
-            <a 
-              href={href} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800 underline font-medium"
-            >
-              {children}
-            </a>
-          ),
-          p: ({ children }) => (
-            <p className="text-gray-700 leading-relaxed mb-4">
-              {children}
-            </p>
-          ),
-          strong: ({ children }) => (
-            <strong className="text-gray-900 font-semibold">
-              {children}
-            </strong>
-          ),
-          em: ({ children }) => (
-            <em className="text-gray-600 italic">
-              {children}
-            </em>
-          ),
-          hr: () => (
-            <hr className="border-blue-200 my-8" />
-          )
-        }}
+        remarkPlugins={analysisMarkdownConfig.remarkPlugins}
+        className={analysisMarkdownConfig.className}
+        components={createComponentProps(analysisMarkdownConfig.components)}
       >
         {content}
       </ReactMarkdown>
@@ -696,7 +637,8 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
           ref={chatContainerRef}
           className="flex-1 overflow-y-auto p-4 space-y-4"
         >
-          {messages.length === 1 && messages[0].content === '' ? (
+          {/* Show welcome screen only when no task completed and first message is empty */}
+          {messages.length === 1 && messages[0].content === '' && !isTaskCompleted ? (
             // Welcome screen
             <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
@@ -765,6 +707,38 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
                 </div>
               )}
             </div>
+          ) : isTaskCompleted && activeTab === 'general' ? (
+            // Task Completion UI
+            <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                <Check className="w-8 h-8 text-green-600" />
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  Tugas Selesai
+                </h3>
+                <p className="text-gray-600 mb-6 max-w-md">
+                  Laporan Informasi telah berhasil dibuat dan tersedia di panel dokumen.
+                </p>
+                <Button
+                  onClick={() => {
+                    setActiveGeneralTool(null);
+                    setIsTaskCompleted(false);
+                    // Reset messages to just the welcome message
+                    setMessages([
+                      {
+                        content: '',
+                        type: 'bot',
+                        timestamp: new Date(),
+                      },
+                    ]);
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-md"
+                >
+                  Kembali ke Daftar Tugas
+                </Button>
+              </div>
+            </div>
           ) : (
             // Chat messages
             messages.slice(1).map((message, index) => (
@@ -780,7 +754,7 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
                     <AnimatedBotIcon className="w-5 h-5 flex-shrink-0 mt-1" />
                     <div className="flex-1 min-w-0">
                       {isProcessing && index === messages.slice(1).length - 1 ? (
-                        <SkeletonMessage />
+                        <SkeletonMessage fullWidth={true} />
                       ) : (
                         <div className="space-y-2">
                           <div className="bg-gray-50 rounded-lg px-4 py-2 text-sm text-gray-700">
@@ -802,8 +776,8 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
           
           {/* Processing indicator */}
           {isProcessing && (
-            <div className="flex items-start space-x-3">
-              <SkeletonMessage />
+            <div className="flex items-start space-x-3 w-full">
+              <SkeletonMessage fullWidth={true} className="w-full" />
             </div>
           )}
           

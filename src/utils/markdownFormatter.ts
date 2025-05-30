@@ -1,5 +1,6 @@
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import remarkGfm from 'remark-gfm';
 
 // Konfigurasi marked dengan opsi yang lebih baik
 marked.setOptions({
@@ -47,7 +48,7 @@ const preprocessMarkdown = (content: string): string => {
   // Hanya bersihkan untuk baris yang bukan list, heading, atau code
   processed = processed.split('\n').map(line => {
     // Jika baris adalah list item, heading, atau code block, biarkan
-    if (line.match(/^\s*[\*\-]/) || line.match(/^\s*#/) || line.match(/^\s{4,}/)) {
+    if (line.match(/^\s*[*-]/) || line.match(/^\s*#/) || line.match(/^\s{4,}/)) {
       return line;
     }
     // Untuk baris biasa, bersihkan leading whitespace yang berlebihan
@@ -202,4 +203,77 @@ export const createTableWrapper = (content: string) => {
   }
   
   return content;
-}; 
+};
+
+/**
+ * TypeScript interface for markdown component configuration
+ */
+export interface MarkdownConfig {
+  /** Class name for the container div */
+  containerClassName: string;
+  /** Class name for the ReactMarkdown component */
+  className: string;
+  /** Component configuration for ReactMarkdown */
+  components: Record<string, { className: string } & Record<string, string>>;
+  /** Remark plugins to use with ReactMarkdown */
+  remarkPlugins: Array<typeof remarkGfm>; // More specific type for remark plugins
+}
+
+/**
+ * Configuration for Analysis Markdown rendering styling
+ * Contains styling and component props for consistent markdown rendering
+ */
+export const analysisMarkdownConfig: MarkdownConfig = {
+  // Container class names
+  containerClassName: "max-w-none break-words text-gray-800 leading-relaxed",
+  
+  // ReactMarkdown class names
+  className: "prose prose-lg max-w-none prose-headings:text-blue-800 prose-headings:font-bold prose-headings:border-b-2 prose-headings:border-blue-200 prose-headings:pb-2 prose-p:text-gray-700 prose-p:leading-relaxed prose-p:mb-4 prose-strong:text-gray-900 prose-strong:font-semibold prose-em:text-gray-600 prose-em:italic prose-a:text-blue-600 prose-a:hover:text-blue-800 prose-a:underline prose-ul:text-gray-700 prose-ol:text-gray-700 prose-li:mb-2 prose-li:leading-relaxed prose-hr:border-blue-200 prose-hr:my-8",
+  
+  // React-markdown component configurations (to be used in a TSX file)
+  components: {
+    h1: {
+      className: "text-2xl font-bold text-blue-800 mb-4 flex items-center gap-2 border-b-2 border-blue-200 pb-2 mt-8 first:mt-0"
+    },
+    a: {
+      className: "text-blue-600 hover:text-blue-800 underline font-medium",
+      target: "_blank",
+      rel: "noopener noreferrer"
+    },
+    p: {
+      className: "text-gray-700 leading-relaxed mb-4"
+    },
+    strong: {
+      className: "text-gray-900 font-semibold"
+    },
+    em: {
+      className: "text-gray-600 italic"
+    },
+    hr: {
+      className: "border-blue-200 my-8"
+    }
+  },
+  
+  // Plugins to use
+  remarkPlugins: [remarkGfm]
+};
+
+/**
+ * TypeScript type for ReactMarkdown component props
+ */
+export type MarkdownComponentProps = Record<string, Record<string, string | React.CSSProperties>>;
+
+/**
+ * Helper function to create component mappings with class names
+ * This is a pure TypeScript function that transforms our component configuration
+ * into the format required by ReactMarkdown's components prop
+ * 
+ * @param components - Record of component configurations with className and other attributes
+ * @returns An object that can be passed to ReactMarkdown's components prop
+ */
+export const createComponentProps = (components: Record<string, { className: string } & Record<string, string>>): MarkdownComponentProps => {
+  return Object.entries(components).reduce((acc, [key, props]) => {
+    acc[key] = props;
+    return acc;
+  }, {} as MarkdownComponentProps);
+};
