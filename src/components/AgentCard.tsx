@@ -59,6 +59,8 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '' 
         return <img src="/img/krimsus.png" alt="Tipidkor ai" className="h-10 w-10" />;
       case 'siber_chat':
         return <img src="/img/siber.svg" alt="Siber AI" className="h-10 w-10" />;
+      case 'wassidik_penyidik_chat':
+        return <img src="/img/wassidik.svg" alt="Wassidik AI" className="h-10 w-10" />;
       case 'fismondev_chat':
         return <img src="/img/krimsus.png" alt="Fismondev AI" className="h-10 w-10" />;
       case 'tipidter_chat':

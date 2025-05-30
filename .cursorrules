@@ -759,49 +759,139 @@ const API_KEY = 'AIzaSyBf4_0ll5H7OMs7yAtgXO1LWVAWhOcbJmo'; // NEVER DO THIS!
 
 # Scratchpad
 
-## Task: UI Modularization ReskrimumChatPage - COMPLETED ✅
+## Task: Pembuatan Agen Wassidik Penyidik untuk PenyidikAi.tsx - COMPLETED ✅
 
 ### Deskripsi:
-User meminta untuk memperbaiki UI ReskrimumChatPage.tsx agar lebih modular dan menghilangkan progress loading yang tidak sinkron dengan kondisi realtime.
+User meminta pembuatan agen baru Wassidik untuk PenyidikAi.tsx dengan:
+- Service sama seperti siberService.ts tapi endpoint "wassidik-chat" 
+- Agen: Asisten Wassidik (Pengawasan Penyidikan) Polri untuk koordinasi dan pengawasan penyelidikan dan penyidikan
+- File baru: service, agent config, chat page
+- Tidak menggunakan agen wassidik yang ada di PerkabaChat.tsx
+- Gunakan modularisasi import untuk chat page
+
+### Files yang Dibuat:
+
+#### 1. Service Layer:
+- **src/services/wassidikPenyidikService.ts**: Service baru dengan endpoint "wassidik-chat"
+  * Copy dari siberService.ts dengan modifikasi endpoint
+  * Session management dan progress tracking
+  * File upload support dengan progress simulation
+  * Error handling dan retry logic
+
+#### 2. Agent Configuration:
+- **src/data/agents/wassidikPenyidikAgent.ts**: Konfigurasi agen baru
+  * ID: 'wassidik_penyidik_001'
+  * Type: 'wassidik_penyidik_chat'
+  * Icon: Eye (Lucide icon)
+  * Color: purple theme
+
+#### 3. Chat Page Component:
+- **src/components/ui/WassidikPenyidikChatPage.tsx**: Component chat page lengkap
+  * Modular import dari utils/markdownFormatter
+  * Purple theme untuk konsistensi visual
+  * File upload functionality dengan progress bar
+  * Example questions untuk wassidik domain
+  * Copy-to-clipboard functionality
+
+#### 4. Types & Utils Updates:
+- **src/types/index.ts**: Tambah 'wassidik_penyidik_chat' ke AgentType union
+- **src/utils/utils.ts**: Tambah WASSIDIK_PENYIDIK_CHAT ke AGENT_IDS dan mapping
+
+#### 5. UI Components Updates:
+- **src/components/AgentCard.tsx**: Tambah case untuk wassidik_penyidik_chat icon
+- **src/pages/PenyidikAi.tsx**: 
+  * Import WassidikPenyidikChatPage dan wassidikPenyidikAgent
+  * Tambah agen ke agents array dengan color 'teal'
+  * Tambah case di renderContent untuk route ke WassidikPenyidikChatPage
+
+#### 6. Assets:
+- **public/img/wassidik.svg**: Icon SVG custom dengan purple theme
+  * Design mata dengan lingkaran konsentris untuk represent pengawasan
+  * Purple color scheme (#8b5cf6, #7c3aed) sesuai theme UI
+
+### Implementation Highlights:
+
+#### 1. Service Architecture:
+- Mengikuti pattern siberService.ts dengan endpoint customization
+- Progress tracking untuk file upload besar
+- Supabase integration untuk user management
+- Comprehensive error handling dengan specific messages
+
+#### 2. UI/UX Consistency:
+- Purple theme untuk visual consistency
+- Professional styling sesuai police application
+- Responsive design dan accessibility features
+- Table rendering dengan proper styling
+
+#### 3. Modular Import Strategy:
+- Import formatMessage dari @/utils/markdownFormatter (bukan inline function)
+- Organized imports di PenyidikAi.tsx
+- Clean separation of concerns
+
+#### 4. Domain-Specific Features:
+- Example questions fokus pada pengawasan penyidikan
+- Welcome message yang spesifik untuk domain Wassidik
+- Error messages yang informatif untuk user
+
+### Benefits:
+- **Scalable Architecture**: Pattern yang konsisten untuk agen baru
+- **Professional UI**: Design yang sesuai untuk aplikasi kepolisian
+- **Comprehensive Features**: File upload, progress tracking, error handling
+- **Code Reusability**: Service pattern dapat digunakan untuk agen lain
+- **Maintainable**: Modular structure dan clear separation
+
+### Status:
+✅ **COMPLETED** - Agen Wassidik Penyidik berhasil dibuat dengan semua fitur lengkap dan terintegrasi ke PenyidikAi.tsx
+
+---
+
+## Previous Completed Tasks:
+
+## Task: Menghilangkan Input Chat Umum PiketSpktChatPage - COMPLETED ✅
+
+### Deskripsi:
+User meminta untuk menghilangkan input dan service pada bagian chat umum di PiketSpktChatPage.tsx, sehingga input hanya muncul ketika pengguna memilih tugas yang tersedia.
 
 ### Perubahan yang Diimplementasikan:
 
-#### 1. Modularisasi Komponen:
-- **ChatHeader**: Header dengan tombol kembali dan info
-- **InfoPanel**: Panel informasi yang dapat ditampilkan/disembunyikan  
-- **WelcomeScreen**: Layar selamat datang dengan branding
-- **ExampleQuestions**: Daftar pertanyaan contoh
-- **FilePreview**: Preview file yang akan diunggah
-- **RateLimitError**: Komponen khusus untuk error rate limit
-- **MessageItem**: Item pesan individual
-- **MessageInput**: Area input dengan semua fungsi file upload
+#### 1. Modifikasi Tool Selection di General Tab:
+- ❌ Menghapus option 'chat' dari tool selection
+- ✅ Hanya tersisa option 'laporanInformasi' sebagai tugas yang tersedia
+- ✅ Input area disembunyikan sampai user memilih Laporan Informasi
 
-#### 2. Penghapusan Progress Loading:
-- ❌ Menghapus `ProgressBar` component
-- ❌ Menghapus `onProgress` import dari service
-- ❌ Menghapus state `progress` dan `showProgress`
-- ❌ Menghapus semua kode terkait progress tracking
-- ❌ Menghapus UI progress bar dari render
+#### 2. Kondisi Input Validation:
+- **Analysis Tab**: Input tetap bisa menerima text dan file upload
+- **General Tab**: Input hanya muncul jika `activeGeneralTool === 'laporanInformasi'`
+- **No Tool Selected**: Input area tidak ditampilkan sama sekali
 
 #### 3. Penyederhanaan Logic:
-- ✅ Memindahkan `adjustTextareaHeight` ke dalam MessageInput component
-- ✅ Menghapus listener progress yang tidak diperlukan
-- ✅ Menyederhanaan error handling tanpa progress feedback
-- ✅ Menghapus deteksi file besar yang memicu progress
+- ❌ Menghapus fungsi `getExampleQuestions()` 
+- ✅ Mengganti dengan array `exampleQuestions` langsung untuk analysis tab
+- ❌ Menghapus example questions untuk chat umum
+- ✅ File upload button hanya muncul di analysis tab
 
-#### 4. Benefits:
-- **Separation of Concerns**: Setiap komponen memiliki fungsi spesifik
-- **Reusability**: Komponen dapat digunakan kembali di halaman lain
-- **Easier Testing**: Setiap komponen dapat ditest secara terpisah
-- **Better Performance**: React dapat mengoptimasi render per komponen
-- **Cleaner Code**: Main component lebih fokus pada state management
+#### 4. UI Flow Improvement:
+- **Welcome Screen**: Menampilkan pilihan tool untuk general tab
+- **Tool Selection**: User harus memilih Laporan Informasi untuk input
+- **Input Appearance**: Input hanya muncul setelah tool dipilih
+- **Back Navigation**: User bisa kembali ke menu utama dari tool yang dipilih
+
+#### 5. Benefits:
+- **Cleaner UX**: User tidak bingung dengan terlalu banyak option
+- **Focused Purpose**: Setiap tab memiliki tujuan yang lebih jelas
+- **Guided Workflow**: User dipandu untuk memilih tugas spesifik
+- **Reduced Complexity**: Kode lebih sederhana dan maintainable
 
 ### Files Modified:
-- **src/components/ui/ReskrimumChatPage.tsx**: Complete refactor menjadi modular components
+- **src/components/ui/PiketSpktChatPage.tsx**: 
+  * Removed chat option from general tab
+  * Modified input visibility logic
+  * Simplified example questions handling
+  * Updated file upload button visibility
 - **.cursorrules**: Dokumentasi completion
 
 ### Status:
-✅ **COMPLETED** - UI ReskrimumChatPage telah dimodularisasi dan progress loading dihapus
+✅ **COMPLETED** - Input dan service chat umum berhasil dihilangkan, input hanya muncul saat user memilih tugas Laporan Informasi
 
 ---
 

@@ -56,6 +56,7 @@ export const AGENT_IDS = {
   PENYIDIK_CHAT: 'penyidik-chat',
   FISMONDEV_CHAT: 'fismondev_001',
   SIBER_CHAT: 'siber_001',
+  WASSIDIK_PENYIDIK_CHAT: 'wassidik_penyidik_001',
   EMP_CHAT: 'emp-agent',
   BANTEK_CHAT: 'bantek_001',
   NARKOTIKA_CHAT: 'narkotika_001',
@@ -112,6 +113,8 @@ export const getAgentTypeFromId = (id: string): AgentType | null => {
       return 'fismondev_chat';
     case AGENT_IDS.SIBER_CHAT:
       return 'siber_chat';
+    case AGENT_IDS.WASSIDIK_PENYIDIK_CHAT:
+      return 'wassidik_penyidik_chat';
     case AGENT_IDS.EMP_CHAT:
       return 'emp_chat';
     case AGENT_IDS.BANTEK_CHAT:

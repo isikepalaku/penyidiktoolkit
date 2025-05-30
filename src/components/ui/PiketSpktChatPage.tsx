@@ -278,11 +278,11 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
     if (activeTab === 'analysis') {
       return selectedFiles.length > 0 || inputMessage.trim();
     } else {
-      // General tab
+      // General tab - only show input if laporan informasi is selected
       if (activeGeneralTool === 'laporanInformasi') {
         return inputMessage.trim(); // Only text input for laporan informasi
       } else {
-        return selectedFiles.length > 0 || inputMessage.trim(); // File upload and text for chat
+        return false; // No input allowed until tool is selected
       }
     }
   }, [activeTab, activeGeneralTool, inputMessage, selectedFiles]);
@@ -452,27 +452,13 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
     }
   };
 
-  const getExampleQuestions = () => {
-    if (activeTab === 'analysis') {
-      return [
-        "Kemarin pukul 14.00 terjadi kecelakaan lalu lintas di Jl. Sudirman antara motor dan mobil, korban mengalami luka ringan",
-        "Pagi ini ada laporan pencurian HP di warnet, pelaku remaja berusia sekitar 17 tahun kabur setelah mengambil HP korban",
-        "Malam ini terjadi perkelahian antar warga di RT 05, dipicu masalah batas tanah, ada 3 orang terluka",
-        "Analisis dokumen laporan polisi yang saya upload",
-        "Tolong analisis foto TKP dan kronologi kejadian yang saya lampirkan"
-      ];
-    } else {
-      return [
-        "Bagaimana cara membuat laporan polisi yang benar?",
-        "Apa saja dokumen yang diperlukan untuk pelayanan SIM?",
-        "Bagaimana prosedur penanganan pengaduan masyarakat?",
-        "Template surat keterangan kehilangan",
-        "SOP pelayanan SPKT untuk kasus kecelakaan lalu lintas"
-      ];
-    }
-  };
-
-  const exampleQuestions = getExampleQuestions();
+  const exampleQuestions = [
+    "Kemarin pukul 14.00 terjadi kecelakaan lalu lintas di Jl. Sudirman antara motor dan mobil, korban mengalami luka ringan",
+    "Pagi ini ada laporan pencurian HP di warnet, pelaku remaja berusia sekitar 17 tahun kabur setelah mengambil HP korban",
+    "Malam ini terjadi perkelahian antar warga di RT 05, dipicu masalah batas tanah, ada 3 orang terluka",
+    "Analisis dokumen laporan polisi yang saya upload",
+    "Tolong analisis foto TKP dan kronologi kejadian yang saya lampirkan"
+  ];
 
   // Komponen reusable untuk rendering markdown analisis
   const AnalysisMarkdown: React.FC<{ content: string }> = ({ content }) => (
@@ -591,7 +577,7 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
                       Area Dokumen
                     </h3>
                     <p className="text-gray-600 max-w-md">
-                      Hasil respons dari Piket SPKT AI akan ditampilkan di sini dalam format dokumen yang mudah dibaca dan dapat dicetak.
+                      Agen SPKT tidak dibekali dengan Knowledge Base, Hanya untuk analisis dasar dan sebagai referensi penerimaan awal laporan.
                     </p>
                   </div>
                 </div>
@@ -660,7 +646,7 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
                   : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
               )}
             >
-              📊 Analisis SPKT
+              📊 Analisis Kronologi
             </button>
             <button
               onClick={() => setActiveTab('general')}
@@ -671,7 +657,7 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
                   : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
               )}
             >
-              💬 Chat Umum
+              💬 Otomatisasi
             </button>
           </div>
         </div>
@@ -720,13 +706,13 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
                   {activeTab === 'analysis' 
                     ? 'Analisis Kasus SPKT' 
-                    : 'Selamat datang di Piket SPKT AI'
+                    : 'Otomatisasi Tugas'
                   }
                 </h3>
                 <p className="text-gray-600 mb-6 max-w-md">
                   {activeTab === 'analysis'
                     ? 'Silahkan masukkan kronologis singkat kejadian atau upload dokumen untuk dilakukan analisis awal'
-                    : 'Asisten digital untuk membantu tugas administrasi dan pelayanan SPKT Anda'
+                    : 'Penggunaan Ai untuk membantu tugas administrasi dan pelayanan SPKT Anda'
                   }
                 </p>
               </div>
@@ -742,28 +728,12 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
                     <div className="font-medium text-blue-900">📄 Laporan Informasi</div>
                     <div className="text-sm text-blue-700 mt-1">Generate laporan informasi dari kronologi kejadian</div>
                   </button>
-                  <button
-                    onClick={() => setActiveGeneralTool('chat')}
-                    className="w-full text-left p-4 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
-                  >
-                    <div className="font-medium text-gray-900">💬 Chat Umum</div>
-                    <div className="text-sm text-gray-700 mt-1">Tanyakan tentang SOP, administrasi, dan bantuan umum</div>
-                  </button>
                 </div>
               )}
 
-              {/* Example Questions for Analysis Tab or Chat Tool */}
-              {(activeTab === 'analysis' || (activeTab === 'general' && activeGeneralTool === 'chat')) && (
+              {/* Example Questions for Analysis Tab */}
+              {activeTab === 'analysis' && (
                 <div className="w-full max-w-md space-y-2">
-                  {/* Back button for chat tool */}
-                  {activeTab === 'general' && activeGeneralTool === 'chat' && (
-                    <button
-                      onClick={() => setActiveGeneralTool(null)}
-                      className="text-sm text-blue-600 hover:text-blue-800 mb-4 flex items-center"
-                    >
-                      ← Kembali ke menu utama
-                    </button>
-                  )}
                   <p className="text-sm font-medium text-gray-700 mb-3">Contoh pertanyaan:</p>
                   {exampleQuestions.map((question, index) => (
                     <button
@@ -873,91 +843,91 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
           </div>
         )}
 
-        {/* Input Area */}
-        <div className="border-t border-gray-200 p-4 bg-white">
-          {/* File Preview Area */}
-          {selectedFiles.length > 0 && (
-            <div className="mb-3 flex flex-wrap gap-2">
-              {selectedFiles.map((file, index) => (
-                <div 
-                  key={index}
-                  className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-1 flex items-center gap-2 text-sm text-blue-700"
-                >
-                  <File className="w-4 h-4" />
-                  <span className="truncate max-w-[150px]">{file.name}</span>
-                  <button 
-                    onClick={() => handleRemoveFile(index)}
-                    className="text-blue-500 hover:text-blue-700"
-                    aria-label="Hapus file"
+        {/* Input Area - Only show for Analysis tab or when Laporan Informasi is selected in General tab */}
+        {(activeTab === 'analysis' || (activeTab === 'general' && activeGeneralTool === 'laporanInformasi')) && (
+          <div className="border-t border-gray-200 p-4 bg-white">
+            {/* File Preview Area */}
+            {selectedFiles.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {selectedFiles.map((file, index) => (
+                  <div 
+                    key={index}
+                    className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-1 flex items-center gap-2 text-sm text-blue-700"
                   >
-                    <XIcon className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="relative">
-            <Textarea
-              ref={textareaRef}
-              value={inputMessage}
-              onChange={handleInputChange}
-              onKeyDown={handleKeyDown}
-              placeholder={activeTab === 'analysis' 
-                ? "Masukkan kronologis singkat kejadian untuk analisis awal (dapat disertai file dokumen)..."
-                : activeGeneralTool === 'laporanInformasi'
-                ? "Masukkan kronologi kejadian untuk dibuat laporan informasi..."
-                : "Tanyakan tentang administrasi SPKT, SOP, atau minta bantuan dokumentasi..."
-              }
-              className={cn(
-                "py-3 min-h-[50px] max-h-[200px] resize-none pr-20",
-                activeTab === 'general' && activeGeneralTool === 'laporanInformasi' 
-                  ? "pl-4" // No file upload button
-                  : "pl-12" // With file upload button
-              )}
-              disabled={isProcessing}
-            />
-            
-            {/* File Upload Button - Hidden for Laporan Informasi */}
-            {!(activeTab === 'general' && activeGeneralTool === 'laporanInformasi') && (
-              <button
-                type="button"
-                onClick={handleOpenFileDialog}
-                disabled={isProcessing}
-                className="absolute left-2 bottom-3 p-2 rounded-lg text-gray-500 hover:text-blue-500 hover:bg-blue-50 transition-colors z-20"
-                aria-label="Upload file"
-              >
-                <Paperclip className="w-5 h-5" />
-              </button>
+                    <File className="w-4 h-4" />
+                    <span className="truncate max-w-[150px]">{file.name}</span>
+                    <button 
+                      onClick={() => handleRemoveFile(index)}
+                      className="text-blue-500 hover:text-blue-700"
+                      aria-label="Hapus file"
+                    >
+                      <XIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
             )}
 
-            {/* Hidden file input */}
-            <input 
-              type="file" 
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              className="hidden"
-              multiple
-              accept=".pdf,.doc,.docx,.txt,.csv,.xls,.xlsx,.jpg,.jpeg,.png"
-            />
-            
-            <Button
-              onClick={handleSubmit}
-              disabled={isProcessing || !hasValidInput}
-              className="absolute right-2 bottom-2 p-2 h-8 w-8"
-            >
-              {isProcessing ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4" />
+            <div className="relative">
+              <Textarea
+                ref={textareaRef}
+                value={inputMessage}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                placeholder={activeTab === 'analysis' 
+                  ? "Masukkan kronologis singkat kejadian untuk analisis awal (dapat disertai file dokumen)..."
+                  : "Masukkan kronologi kejadian untuk dibuat laporan informasi..."
+                }
+                className={cn(
+                  "py-3 min-h-[50px] max-h-[200px] resize-none pr-20",
+                  activeTab === 'general' && activeGeneralTool === 'laporanInformasi' 
+                    ? "pl-4" // No file upload button for laporan informasi
+                    : "pl-12" // With file upload button for analysis
+                )}
+                disabled={isProcessing}
+              />
+              
+              {/* File Upload Button - Only for Analysis tab */}
+              {activeTab === 'analysis' && (
+                <button
+                  type="button"
+                  onClick={handleOpenFileDialog}
+                  disabled={isProcessing}
+                  className="absolute left-2 bottom-3 p-2 rounded-lg text-gray-500 hover:text-blue-500 hover:bg-blue-50 transition-colors z-20"
+                  aria-label="Upload file"
+                >
+                  <Paperclip className="w-5 h-5" />
+                </button>
               )}
-            </Button>
+
+              {/* Hidden file input */}
+              <input 
+                type="file" 
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
+                multiple
+                accept=".pdf,.doc,.docx,.txt,.csv,.xls,.xlsx,.jpg,.jpeg,.png"
+              />
+              
+              <Button
+                onClick={handleSubmit}
+                disabled={isProcessing || !hasValidInput}
+                className="absolute right-2 bottom-2 p-2 h-8 w-8"
+              >
+                {isProcessing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
+            
+            <p className="text-xs text-gray-500 mt-2 text-center">
+              {isDesktopRef.current ? 'Tekan Enter untuk kirim, Shift+Enter untuk baris baru' : 'Ketuk tombol kirim untuk mengirim pesan'}
+            </p>
           </div>
-          
-          <p className="text-xs text-gray-500 mt-2 text-center">
-            {isDesktopRef.current ? 'Tekan Enter untuk kirim, Shift+Enter untuk baris baru' : 'Ketuk tombol kirim untuk mengirim pesan'}
-          </p>
-        </div>
+        )}
       </div>
 
       {/* Mobile Document Modal */}

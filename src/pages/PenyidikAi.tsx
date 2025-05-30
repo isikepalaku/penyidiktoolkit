@@ -19,6 +19,8 @@ import TipidterChatPage from '@/components/ui/TipidterChatPage';
 import NarkotikaChatPage from '@/components/ui/NarkotikaChatPage';
 import PpaPpoChatPage from '@/components/ui/PpaPpoChatPage';
 import ReskrimumChatPage from '@/components/ui/ReskrimumChatPage';
+import WassidikPenyidikChatPage from '@/components/ui/WassidikPenyidikChatPage';
+import { wassidikPenyidikAgent } from '@/data/agents/wassidikPenyidikAgent';
 
 // Key untuk menyimpan data di localStorage
 const SELECTED_AGENT_KEY = 'penyidikai-selected-agent';
@@ -193,6 +195,15 @@ export default function PenyidikAi() {
       status: reskrimumAgent.status,
       color: 'indigo',
       icon: 'file-text'
+    },
+    {
+      id: wassidikPenyidikAgent.id,
+      name: wassidikPenyidikAgent.name,
+      description: wassidikPenyidikAgent.description,
+      type: wassidikPenyidikAgent.type,
+      status: wassidikPenyidikAgent.status,
+      color: 'teal',
+      icon: 'user'
     }
   ];
 
@@ -290,6 +301,12 @@ export default function PenyidikAi() {
           return (
             <div className="fixed inset-0 z-20">
               <ReskrimumChatPage onBack={handleBack} />
+            </div>
+          );
+        case 'wassidik_penyidik_chat':
+          return (
+            <div className="fixed inset-0 z-20">
+              <WassidikPenyidikChatPage onBack={handleBack} />
             </div>
           );
         default:

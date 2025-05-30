@@ -50,6 +50,7 @@ export type AgentType =
   | 'perkaba_search'
   | 'bantek_chat'
   | 'wassidik_chat'
+  | 'wassidik_penyidik_chat'
   | 'undang_chat'
   | 'kuhp_chat'
   | 'kuhap_chat'
