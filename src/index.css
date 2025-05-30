@@ -104,6 +104,30 @@
     @apply bg-background text-foreground;
     letter-spacing: -0.011em; /* Mirip dengan ChatGPT */
     line-height: 1.5;
+    /* Fix number rendering - ensure numbers display as regular numbers, not oldstyle */
+    font-variant-numeric: normal;
+    font-feature-settings: "lnum" 1, "tnum" 0;
+  }
+  
+  /* Ensure all text elements use normal number styling */
+  *, 
+  *::before, 
+  *::after {
+    font-variant-numeric: normal;
+    font-feature-settings: "lnum" 1, "tnum" 0;
+  }
+  
+  /* Specific fixes for prose content */
+  .prose,
+  .prose * {
+    font-variant-numeric: normal !important;
+    font-feature-settings: "lnum" 1, "tnum" 0 !important;
+  }
+  
+  /* Ensure lists and ordered lists have proper numbers */
+  ol, ul, li {
+    font-variant-numeric: normal !important;
+    font-feature-settings: "lnum" 1, "tnum" 0 !important;
   }
 }
 

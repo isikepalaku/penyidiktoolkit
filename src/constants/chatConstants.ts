@@ -38,7 +38,7 @@ export const NARKOTIKA_EXAMPLE_QUESTIONS = [
 ];
 
 // File upload settings
-export const ACCEPTED_FILE_TYPES = ".pdf,.doc,.docx,.txt,.csv,.xls,.xlsx,.jpg,.jpeg,.png";
+export const ACCEPTED_FILE_TYPES = ".pdf,.jpg,.jpeg,.png";
 export const MAX_FILE_SIZE_MB = 50;
 export const LARGE_FILE_THRESHOLD_MB = 5;
 

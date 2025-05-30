@@ -416,7 +416,7 @@ const MessageInput = ({
             onChange={onFileChange}
             className="hidden"
             multiple
-            accept=".pdf,.doc,.docx,.txt,.csv,.xls,.xlsx,.jpg,.jpeg,.png"
+            accept=".pdf,.jpg,.jpeg,.png"
           />
           
           <Button

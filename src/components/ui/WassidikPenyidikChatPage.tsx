@@ -516,7 +516,7 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
               onChange={handleFileChange}
               className="hidden"
               multiple
-              accept=".pdf,.doc,.docx,.txt,.csv,.xls,.xlsx,.jpg,.jpeg,.png"
+              accept=".pdf,.jpg,.jpeg,.png"
             />
             
             <Button
