@@ -153,25 +153,26 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
     } catch (error) {
       console.error('Error sending message:', error);
       
-      const getErrorMessage = (error: any): string => {
+      const getErrorMessage = (error: unknown): string => {
+        const errorWithMessage = error as { message?: string };
         if (!navigator.onLine) {
           return 'Perangkat Anda sedang offline. Silakan periksa koneksi internet dan coba lagi.';
         }
         
-        if (error.message) {
-          if (error.message.includes('File terlalu besar')) {
+        if (errorWithMessage.message) {
+          if (errorWithMessage.message.includes('File terlalu besar')) {
             return 'File terlalu besar. Harap gunakan file dengan ukuran lebih kecil (maksimal 50MB).';
           }
           
-          if (error.message.includes('timeout') || error.message.includes('timed out')) {
+          if (errorWithMessage.message.includes('timeout') || errorWithMessage.message.includes('timed out')) {
             return 'Permintaan timeout. File mungkin terlalu besar atau koneksi terlalu lambat.';
           }
           
-          if (error.message.includes('Terlalu banyak permintaan')) {
+          if (errorWithMessage.message.includes('Terlalu banyak permintaan')) {
             return 'Terlalu banyak permintaan dalam waktu singkat. Silakan tunggu beberapa saat dan coba lagi.';
           }
-          
-          return error.message;
+
+          return `Error: ${errorWithMessage.message}`;
         }
         
         return 'Dengan bertumbuhnya pengguna, saat ini kami membatasi permintaan (1 permintaan dalam 2 menit) untuk menjaga kualitas layanan';
@@ -450,7 +451,7 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
                         <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
                         <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
                       </div>
-                      <span className="text-sm text-gray-500">Wassidik AI sedang mengetik...</span>
+                      <span className="text-sm text-gray-500">Mencari Informasi dan merangkum jawaban...</span>
                     </div>
                   </div>
                 </div>

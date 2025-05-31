@@ -24,22 +24,36 @@ const TimelineDemo = lazy(() => {
 // Memoize the static content
 const AboutSection = memo(() => (
   <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg flex-1">
-    <h2 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
-      Tentang Reserse AI
-    </h2>
-    <p className="text-gray-600 dark:text-gray-300 mb-4">
-      Reserse AI adalah alat bantu analisis hukum dan penyelidikan yang menggunakan Agent AI dengan data Corpus hukum yang relevan. 
-      Sistem ini dirancang untuk membantu penyidik dalam menganalisis kasus dengan lebih efisien dan akurat.
-    </p>
-    <div className="space-y-2 text-gray-600 dark:text-gray-300">
-      <p>
-        Tujuan utama dari aplikasi ini adalah membangun sistem otomatisasi AI yang memiliki konteks dalam bekerja, 
-        sehingga dapat meminimalisir halusinasi dan memberikan analisis yang lebih akurat berdasarkan data hukum yang valid.
+    <div className="mb-4">
+      <span className="inline-block bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs font-medium px-2.5 py-1 rounded-full mb-2" style={{ fontFamily: '"Poppins", sans-serif', fontWeight: 500, letterSpacing: '0.5px' }}>
+        Tools terus dikembangkan
+      </span>
+    </div>
+    
+    <div className="border-l-4 border-blue-500 pl-4 my-4" style={{ fontFamily: '"Playfair Display", serif' }}>
+      <h3 className="text-xl mb-2 text-gray-800 dark:text-gray-100" style={{ letterSpacing: '-0.5px', fontWeight: 600 }}>Reserse AI</h3>
+      <p style={{ fontFamily: '"Poppins", sans-serif', fontWeight: 300, lineHeight: 1.6 }}>
+        Alat bantu analisis hukum dan penyelidikan yang menggunakan <span style={{ fontWeight: 500 }}>Agent AI</span> dengan data Corpus hukum yang relevan.
+        <br />
+        Sistem ini dirancang untuk membantu penyidik dalam menganalisis kasus dengan lebih efisien dan akurat.
       </p>
-      <p className="font-medium text-gray-700 dark:text-gray-200 mt-4">
-        Penting untuk diingat: AI tidak pernah menggantikan peran manusia dalam proses penyidikan. 
-        AI ditujukan sebagai alat bantu yang memudahkan pekerjaan.
-      </p>
+    </div>
+    <div className="space-y-6 text-gray-600 dark:text-gray-300">
+      <div className="border-l-4 border-green-500 pl-4 my-4" style={{ fontFamily: '"Playfair Display", serif' }}>
+        <h3 className="text-xl mb-2 text-gray-800 dark:text-gray-100" style={{ letterSpacing: '-0.5px', fontWeight: 600 }}>Tujuan</h3>
+        <p style={{ fontFamily: '"Poppins", sans-serif', fontWeight: 300, lineHeight: 1.6 }}>
+          Membangun sistem otomatisasi AI yang memiliki konteks dalam bekerja, 
+          sehingga dapat meminimalisir halusinasi dan memberikan analisis yang lebih akurat berdasarkan data hukum yang valid.
+        </p>
+      </div>
+      
+      <div className="border-l-4 border-amber-500 pl-4 my-4" style={{ fontFamily: '"Playfair Display", serif' }}>
+        <h3 className="text-xl mb-2 text-gray-800 dark:text-gray-100" style={{ letterSpacing: '-0.5px', fontWeight: 600 }}>Catatan Penting</h3>
+        <p style={{ fontFamily: '"Poppins", sans-serif', fontWeight: 400, lineHeight: 1.6 }}>
+          AI tidak pernah menggantikan peran manusia dalam proses penyidikan. 
+          AI ditujukan sebagai alat bantu yang memudahkan pekerjaan.
+        </p>
+      </div>
     </div>
   </div>
 ));
