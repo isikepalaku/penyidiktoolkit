@@ -453,6 +453,17 @@ const API_KEY = 'AIzaSyBf4_0ll5H7OMs7yAtgXO1LWVAWhOcbJmo'; // NEVER DO THIS!
   - Keep tables and code blocks within container width
   - Use space-y utilities for consistent message spacing
   - Ensure enough bottom padding to prevent content from being hidden under input area
+
+- Responsive Loading Animation Best Practices:
+  - **Mobile-first skeleton design**: Gunakan `flex gap-4 w-full max-w-[80%]` untuk container yang responsif
+  - **Full-width skeleton bars**: Gunakan variasi width (`w-full`, `w-11/12`, `w-full`) untuk natural skeleton appearance
+  - **Flexible layout structure**: Gunakan `flex-1 space-y-2 py-1 w-full` untuk content area yang expandable
+  - **Theme consistency in skeletons**: Gunakan warna yang sesuai dengan theme (e.g. `bg-purple-200` untuk purple theme)
+  - **Smooth animations**: Selalu gunakan `animate-pulse` untuk skeleton loading effects
+  - **Descriptive loading text**: Berikan text yang jelas seperti "Mencari informasi dan merangkum jawaban..."
+  - **Icon consistency**: Pertahankan icon/avatar yang sesuai dengan agent theme saat loading
+  - **Avoid fixed containers**: Jangan gunakan fixed width containers untuk loading states pada mobile
+  - **Pattern consistency**: Ikuti established skeleton patterns dari components yang sudah ada
 - Consider different AI response formats:
   - Code blocks
   - Tables
@@ -759,89 +770,47 @@ const API_KEY = 'AIzaSyBf4_0ll5H7OMs7yAtgXO1LWVAWhOcbJmo'; // NEVER DO THIS!
 
 # Scratchpad
 
-## Task: Pembuatan Agen Wassidik Penyidik untuk PenyidikAi.tsx - COMPLETED ✅
+## Task: Perbaikan Loading Animation Responsiveness di WassidikPenyidikChatPage - COMPLETED ✅
 
 ### Deskripsi:
-User meminta pembuatan agen baru Wassidik untuk PenyidikAi.tsx dengan:
-- Service sama seperti siberService.ts tapi endpoint "wassidik-chat" 
-- Agen: Asisten Wassidik (Pengawasan Penyidikan) Polri untuk koordinasi dan pengawasan penyelidikan dan penyidikan
-- File baru: service, agent config, chat page
-- Tidak menggunakan agen wassidik yang ada di PerkabaChat.tsx
-- Gunakan modularisasi import untuk chat page
+User melaporkan bahwa tampilan loading animation di WassidikPenyidikChatPage.tsx tidak responsif di mobile. Meminta perbaikan dengan menggunakan pattern dari SkeletonMessage.tsx dan membuat skeleton dengan lebar full width.
 
-### Files yang Dibuat:
+### Masalah yang Ditemukan:
+- **Non-responsive loading**: Loading indicator sebelumnya menggunakan fixed container yang tidak responsif
+- **Mobile layout issues**: Dots animation dengan text terlalu kaku untuk layar kecil
+- **Inconsistent pattern**: Tidak mengikuti pattern skeleton yang sudah ada
 
-#### 1. Service Layer:
-- **src/services/wassidikPenyidikService.ts**: Service baru dengan endpoint "wassidik-chat"
-  * Copy dari siberService.ts dengan modifikasi endpoint
-  * Session management dan progress tracking
-  * File upload support dengan progress simulation
-  * Error handling dan retry logic
+### Solusi yang Diimplementasikan:
 
-#### 2. Agent Configuration:
-- **src/data/agents/wassidikPenyidikAgent.ts**: Konfigurasi agen baru
-  * ID: 'wassidik_penyidik_001'
-  * Type: 'wassidik_penyidik_chat'
-  * Icon: Eye (Lucide icon)
-  * Color: purple theme
+#### 1. Custom Skeleton dengan Pattern SkeletonMessage:
+- **Responsive container**: Menggunakan `flex gap-4 w-full max-w-[80%]` untuk responsivitas
+- **Full width bars**: Skeleton bars menggunakan `w-full`, `w-11/12`, `w-full` untuk variasi
+- **Proper spacing**: Menggunakan `flex-1 space-y-2 py-1 w-full` untuk layout yang flexibel
 
-#### 3. Chat Page Component:
-- **src/components/ui/WassidikPenyidikChatPage.tsx**: Component chat page lengkap
-  * Modular import dari utils/markdownFormatter
-  * Purple theme untuk konsistensi visual
-  * File upload functionality dengan progress bar
-  * Example questions untuk wassidik domain
-  * Copy-to-clipboard functionality
+#### 2. Improved Animation:
+- **Purple theme consistency**: Menggunakan `bg-purple-200` untuk skeleton bars yang konsisten dengan theme
+- **Smooth animation**: Menggunakan `animate-pulse` untuk efek yang halus
+- **Better text**: Mengganti text menjadi "Mencari informasi dan merangkum jawaban..."
 
-#### 4. Types & Utils Updates:
-- **src/types/index.ts**: Tambah 'wassidik_penyidik_chat' ke AgentType union
-- **src/utils/utils.ts**: Tambah WASSIDIK_PENYIDIK_CHAT ke AGENT_IDS dan mapping
-
-#### 5. UI Components Updates:
-- **src/components/AgentCard.tsx**: Tambah case untuk wassidik_penyidik_chat icon
-- **src/pages/PenyidikAi.tsx**: 
-  * Import WassidikPenyidikChatPage dan wassidikPenyidikAgent
-  * Tambah agen ke agents array dengan color 'teal'
-  * Tambah case di renderContent untuk route ke WassidikPenyidikChatPage
-
-#### 6. Assets:
-- **public/img/wassidik.svg**: Icon SVG custom dengan purple theme
-  * Design mata dengan lingkaran konsentris untuk represent pengawasan
-  * Purple color scheme (#8b5cf6, #7c3aed) sesuai theme UI
-
-### Implementation Highlights:
-
-#### 1. Service Architecture:
-- Mengikuti pattern siberService.ts dengan endpoint customization
-- Progress tracking untuk file upload besar
-- Supabase integration untuk user management
-- Comprehensive error handling dengan specific messages
-
-#### 2. UI/UX Consistency:
-- Purple theme untuk visual consistency
-- Professional styling sesuai police application
-- Responsive design dan accessibility features
-- Table rendering dengan proper styling
-
-#### 3. Modular Import Strategy:
-- Import formatMessage dari @/utils/markdownFormatter (bukan inline function)
-- Organized imports di PenyidikAi.tsx
-- Clean separation of concerns
-
-#### 4. Domain-Specific Features:
-- Example questions fokus pada pengawasan penyidikan
-- Welcome message yang spesifik untuk domain Wassidik
-- Error messages yang informatif untuk user
+#### 3. Mobile Optimization:
+- **Responsive width**: Container menggunakan `max-w-[80%]` untuk mobile compatibility
+- **Flexible layout**: Layout menggunakan flexbox dengan proper width constraints
+- **Icon consistency**: Mempertahankan wassidik.svg icon sesuai theme
 
 ### Benefits:
-- **Scalable Architecture**: Pattern yang konsisten untuk agen baru
-- **Professional UI**: Design yang sesuai untuk aplikasi kepolisian
-- **Comprehensive Features**: File upload, progress tracking, error handling
-- **Code Reusability**: Service pattern dapat digunakan untuk agen lain
-- **Maintainable**: Modular structure dan clear separation
+- **Better Mobile Experience**: Loading animation sekarang responsif di semua ukuran layar
+- **Visual Consistency**: Mengikuti pattern skeleton yang sudah established
+- **Professional Look**: Animation yang lebih smooth dan professional
+- **Theme Consistency**: Mempertahankan purple theme wassidik yang konsisten
 
 ### Status:
-✅ **COMPLETED** - Agen Wassidik Penyidik berhasil dibuat dengan semua fitur lengkap dan terintegrasi ke PenyidikAi.tsx
+✅ **COMPLETED** - Loading animation WassidikPenyidikChatPage sekarang responsif dengan pattern skeleton yang proper
+
+---
+
+## Previous Completed Tasks:
+
+## Task: Pembuatan Agen Wassidik Penyidik untuk PenyidikAi.tsx - COMPLETED ✅
 
 ---
 

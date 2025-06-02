@@ -437,21 +437,19 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
               )
             ))}
 
-            {/* Simple loading indicator */}
+            {/* Responsive loading indicator */}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="flex gap-4">
+                <div className="flex gap-4 w-full max-w-[80%]">
                   <div className="h-8 w-8 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
                     <img src="/img/wassidik.svg" alt="Wassidik AI" className="h-5 w-5" />
                   </div>
-                  <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="flex space-x-1">
-                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
-                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
-                      </div>
-                      <span className="text-sm text-gray-500">Mencari Informasi dan merangkum jawaban...</span>
+                  <div className="flex-1 space-y-2 py-1 w-full">
+                    <p className="text-xs text-gray-500 italic mb-1">Mencari informasi dan merangkum jawaban...</p>
+                    <div className="space-y-2 animate-pulse w-full">
+                      <div className="h-4 bg-purple-200 rounded w-full"></div>
+                      <div className="h-4 bg-purple-200 rounded w-11/12"></div>
+                      <div className="h-4 bg-purple-200 rounded w-full"></div>
                     </div>
                   </div>
                 </div>

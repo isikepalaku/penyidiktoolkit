@@ -11,6 +11,72 @@ marked.setOptions({
 });
 
 /**
+ * Process large tables from AI models like Gemini
+ * @param content - Markdown content to process
+ * @returns Processed markdown with fixed tables
+ */
+const processLargeTables = (content: string): string => {
+  if (!content || !content.includes('|')) return content;
+  
+  // Regular expression to identify markdown tables
+  const tableRegex = /(?:^\|[^\n]*\|\r?\n)((?:\|[^\n]*\|\r?\n)+)/gm;
+  
+  return content.replace(tableRegex, (tableMatch) => {
+    // Split table into rows
+    const rows = tableMatch.split('\n').filter(row => row.trim().startsWith('|') && row.trim().endsWith('|'));
+    
+    if (rows.length <= 2) return tableMatch; // Header + separator only, not a large table
+    
+    // Process the table header and separator
+    const headerRow = rows[0];
+    const separatorRow = rows[1];
+    
+    // Check if any row is excessively long (>1000 chars)
+    const hasLongRow = rows.some(row => row.length > 1000);
+    
+    if (!hasLongRow) return tableMatch; // Not a problematic table
+    
+    // Count the number of columns in the header
+    const columnCount = (headerRow.match(/\|/g) || []).length - 1;
+    
+    // Create a fixed version of the table with truncated cells
+    let newTable = headerRow + '\n' + separatorRow + '\n';
+    
+    // Process data rows (skip header and separator)
+    for (let i = 2; i < Math.min(rows.length, 20); i++) { // Limit to 20 rows max
+      const row = rows[i];
+      // Split the row into cells
+      const cells = row.split('|').slice(1, -1);
+      
+      // Create a new row with truncated cells
+      let newRow = '|';
+      for (let j = 0; j < Math.min(cells.length, columnCount); j++) {
+        let cellContent = cells[j] || '';
+        // Truncate cell content if too long (>200 chars)
+        if (cellContent.length > 200) {
+          cellContent = cellContent.substring(0, 197) + '...';
+        }
+        newRow += cellContent + '|';
+      }
+      
+      // If we're missing columns, add empty cells
+      while ((newRow.match(/\|/g) || []).length - 1 < columnCount) {
+        newRow += ' |';
+      }
+      
+      newTable += newRow + '\n';
+    }
+    
+    // Add a note if we truncated the table
+    if (rows.length > 20) {
+      newTable += '| *Tabel dipotong karena terlalu besar* |' + ' |'.repeat(columnCount - 1) + '\n';
+    }
+    
+    return newTable;
+  });
+};
+
+/**
  * Preprocessing untuk memperbaiki format markdown yang bermasalah
  */
 const preprocessMarkdown = (content: string): string => {
@@ -38,7 +104,7 @@ const preprocessMarkdown = (content: string): string => {
   
   // 5. Perbaiki nested list items dengan indentasi yang benar
   // Hanya untuk baris yang benar-benar list items
-  processed = processed.replace(/^(\s{2,})\*\s+/gm, (match, indent) => {
+  processed = processed.replace(/^(\s{2,})\*\s+/gm, (_, indent) => {
     // Normalisasi indentasi ke kelipatan 2
     const normalizedIndent = '  '.repeat(Math.floor(indent.length / 2));
     return `${normalizedIndent}* `;
@@ -78,6 +144,9 @@ const preprocessMarkdown = (content: string): string => {
   // 13. Remove trailing whitespace dari setiap line
   processed = processed.split('\n').map(line => line.trimEnd()).join('\n');
   
+  // 14. Handle large tables from AI models like Gemini
+  processed = processLargeTables(processed);
+  
   return processed.trim();
 };
 
@@ -101,6 +170,11 @@ const postprocessHTML = (html: string): string => {
   // 4. Pastikan heading memiliki spacing yang baik
   processed = processed.replace(/(<\/h[1-6]>)(?!<)/g, '$1\n');
   
+  // 5. Fix large table cells to prevent layout issues
+  processed = processed.replace(/<td([^>]*)>([^<]{500,})<\/td>/g, (_, attrs, content) => {
+    return `<td${attrs} class="truncated-cell" title="${content.substring(0, 100).replace(/"/g, '&quot;')}...">${content.substring(0, 497)}...</td>`;
+  });
+  
   return processed;
 };
 
@@ -113,6 +187,13 @@ export const formatMessage = (content: string): string => {
   try {
     if (!content || typeof content !== 'string') {
       return '';
+    }
+    
+    // Check if content is extremely large
+    if (content.length > 100000) {
+      console.warn('Extremely large content detected, length:', content.length);
+      // Truncate very large content to prevent browser performance issues
+      content = content.substring(0, 100000) + '\n\n*Konten terlalu panjang dan telah dipotong...*';
     }
     
     // Preprocessing untuk memperbaiki format markdown
@@ -132,7 +213,7 @@ export const formatMessage = (content: string): string => {
         'table', 'thead', 'tbody', 'tr', 'th', 'td',
         'a', 'img', 'hr', 'div', 'span'
       ],
-      ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'id']
+      ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'id', 'style']
     });
     
     return sanitizedHtml;
@@ -182,11 +263,13 @@ export const getProseClasses = (theme: 'default' | 'amber' | 'red' | 'blue' | 'p
   };
 
   const tableClasses = `
-    [&_table]:border-collapse [&_table]:my-4 [&_table]:w-full [&_table]:min-w-[500px] [&_table]:text-sm [&_table]:bg-white [&_table]:rounded-lg [&_table]:overflow-hidden [&_table]:shadow-sm [&_table]:font-sans
+    [&_table]:border-collapse [&_table]:my-4 [&_table]:w-full [&_table]:text-sm [&_table]:bg-white [&_table]:rounded-lg [&_table]:overflow-hidden [&_table]:shadow-sm [&_table]:font-sans
+    [&_table]:overflow-x-auto [&_table]:max-w-full [&_table]:block
     [&_th]:bg-gray-50 [&_th]:p-3 [&_th]:border [&_th]:border-gray-200 [&_th]:font-semibold [&_th]:text-left [&_th]:text-gray-800 [&_th]:whitespace-nowrap [&_th]:max-w-[200px] [&_th]:font-sans
-    [&_td]:p-3 [&_td]:border [&_td]:border-gray-100 [&_td]:align-top [&_td]:leading-relaxed [&_td]:break-words [&_td]:hyphens-auto [&_td]:font-sans
+    [&_td]:p-3 [&_td]:border [&_td]:border-gray-100 [&_td]:align-top [&_td]:leading-relaxed [&_td]:break-words [&_td]:hyphens-auto [&_td]:font-sans [&_td]:max-w-[350px] [&_td]:overflow-hidden
+    [&_td.truncated-cell]:relative [&_td.truncated-cell]:max-w-[350px] [&_td.truncated-cell]:truncate [&_td.truncated-cell]:cursor-help
     [&_td:first-child]:font-medium [&_td:first-child]:bg-gray-50/50 [&_td:first-child]:whitespace-nowrap [&_td:first-child]:min-w-[120px] [&_td:first-child]:max-w-[180px]
-    [&_td:last-child]:w-auto [&_td:last-child]:max-w-[350px]
+    [&_td:last-child]:w-auto
     [&_tr:hover]:bg-gray-50/30`;
 
   return `${baseClasses} ${themeClasses[theme]} ${tableClasses}`;
