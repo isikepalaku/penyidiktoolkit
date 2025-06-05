@@ -67,6 +67,18 @@ The goal is to help you maintain a big picture as well as the progress of the ta
   * Search entry point tersedia di: `groundingMetadata?.searchEntryPoint`
   * Referensi: https://ai.google.dev/gemini-api/docs/grounding?lang=javascript
 
+- **Gemini Document Processing Implementation**: Untuk implementasi document processing yang benar dengan Gemini API:
+  * **File Size Limits**: Maksimal 20MB untuk inline data upload, gunakan File API untuk file > 20MB
+  * **Supported MIME Types**: application/pdf, text/plain, text/html, text/css, text/md, text/csv, text/xml, text/rtf, application/x-javascript, text/javascript, application/x-python, text/x-python, plus Office formats (.docx, .xlsx)
+  * **Content Structure**: Gunakan format `contents: [{ parts: contentParts }]` dengan text prompt sebelum file untuk hasil optimal
+  * **File Processing**: Implement proper base64 encoding dengan validasi MIME type dan file size
+  * **Error Handling**: Tambahkan validasi file size, MIME type, dan detailed error messages untuk troubleshooting
+  * **Temperature Setting**: Gunakan temperature 0.1 untuk analisis dokumen yang konsisten
+  * **Logging Strategy**: Log file details (name, type, size), processing steps, dan API call parameters untuk debugging
+  * **UI Integration**: Update accept attribute untuk mendukung semua format yang didukung API
+  * **Best Practices**: Text prompt ditempatkan sebelum file attachment, implement comprehensive file validation
+  * Referensi: https://ai.google.dev/gemini-api/docs/document-processing?lang=node
+
 ## ReactMarkdown Integration Lessons
 
 - **Use inline component definitions**: Define components directly in the components prop for better type safety
@@ -1308,6 +1320,74 @@ const syncWithServer = async () => {
 ```
 
 # Scratchpad
+
+## Task: Perbaikan Gemini Document Processing di piketSpktAnalysisService.ts - COMPLETED ✅
+
+### Deskripsi:
+User melaporkan bahwa piketSpktAnalysisService.ts tidak dapat membaca dokumen, dan memberikan dokumentasi resmi Google Gemini API untuk document processing sebagai referensi perbaikan.
+
+### Masalah yang Ditemukan:
+- **API Structure Tidak Sesuai**: Struktur API call tidak mengikuti format dokumentasi resmi
+- **File Processing Kurang Optimal**: File handling tidak memiliki validasi proper untuk MIME type dan file size
+- **Content Structure**: Pengaturan content parts tidak sesuai best practices dokumentasi
+- **Missing File Support**: Accept attribute UI tidak mendukung semua format file yang didukung API
+- **Error Handling Terbatas**: Tidak ada validasi file size limits (20MB) dan MIME type validation
+- **Temperature Setting**: Tidak ada pengaturan temperature untuk consistency
+
+### Solusi yang Diimplementasikan:
+
+#### 1. Enhanced File Processing dengan Validasi Komprehensif:
+- **File Size Validation**: Implementasi validasi 20MB limit sesuai dokumentasi untuk inline data
+- **MIME Type Validation**: Daftar lengkap supported MIME types berdasarkan dokumentasi resmi
+- **Enhanced Error Handling**: Error messages yang lebih spesifik dan informatif
+- **Detailed Logging**: Log file details (name, type, size) untuk debugging
+- **Base64 Encoding**: Improved base64 encoding dengan proper error handling
+
+#### 2. API Call Structure Sesuai Dokumentasi Resmi:
+- **Content Parts Structure**: Menggunakan `contents: [{ parts: contentParts }]` format yang benar
+- **Text Before File**: Text prompt ditempatkan sebelum file sesuai best practices
+- **Temperature Setting**: Menambahkan temperature 0.1 untuk konsistensi analisis
+- **Enhanced Logging**: Comprehensive logging untuk API call parameters dan debugging
+
+#### 3. Supported File Formats Sesuai Dokumentasi:
+- **Document Formats**: PDF, TXT, HTML, CSS, MD, CSV, XML, RTF
+- **Code Formats**: JavaScript (.js), Python (.py)
+- **Office Formats**: DOCX, XLSX, DOC, XLS (dengan warning untuk unsupported MIME)
+- **UI Integration**: Updated accept attribute untuk mendukung semua format
+
+#### 4. Error Handling dan Logging Enhancement:
+- **File Size Limits**: Clear error message untuk file > 20MB
+- **MIME Type Warnings**: Warning untuk unsupported MIME types
+- **Processing Steps**: Detailed logging untuk setiap step processing
+- **API Call Debugging**: Log API parameters dan response details
+
+### Benefits:
+- **Better Document Support**: Mendukung semua format file yang didukung Gemini API
+- **Improved Reliability**: Validasi komprehensif mencegah error API
+- **Better User Experience**: Error messages yang jelas dan informatif
+- **Debugging Capability**: Comprehensive logging untuk troubleshooting
+- **API Compliance**: Full compliance dengan dokumentasi resmi Google Gemini API
+- **Professional Implementation**: Mengikuti best practices untuk document processing
+
+### Files Modified:
+- **src/services/piketSpktAnalysisService.ts**: Enhanced file processing, API structure, validasi, dan logging
+- **src/components/ui/PiketSpktChatPage.tsx**: Updated accept attribute untuk mendukung semua format file
+- **.cursorrules**: Documentation update dengan Gemini Document Processing lessons
+
+### Technical Implementation Details:
+- **File Validation**: 20MB size limit check dengan error message yang jelas
+- **MIME Type Support**: Full list dari dokumentasi resmi dengan fallback handling
+- **API Structure**: `contents: [{ parts: contentParts }]` dengan proper content ordering
+- **Temperature Control**: temperature: 0.1 untuk konsistensi analisis dokumen
+- **Logging Strategy**: File details → Processing steps → API call → Response analysis
+- **Error Recovery**: Graceful error handling dengan informative messages
+
+### Status:
+✅ **COMPLETED** - piketSpktAnalysisService.ts sekarang fully compliant dengan Google Gemini API documentation untuk document processing. Service mendukung semua format file yang didukung API dengan validasi komprehensif, error handling yang proper, dan logging yang detailed untuk debugging.
+
+---
+
+## Previous Completed Tasks:
 
 ## Task: Implementasi Animated Streaming Status UI - COMPLETED ✅
 

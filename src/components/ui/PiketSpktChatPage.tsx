@@ -909,7 +909,7 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
                 onChange={handleFileChange}
                 className="hidden"
                 multiple
-                accept=".pdf,.doc,.docx,.txt,.csv,.xls,.xlsx,.jpg,.jpeg,.png"
+                accept=".pdf,.doc,.docx,.txt,.csv,.xls,.xlsx,.jpg,.jpeg,.png,.html,.css,.md,.xml,.rtf,.js,.py"
               />
               
               <Button

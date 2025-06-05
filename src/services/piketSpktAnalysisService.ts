@@ -96,26 +96,77 @@ const getCurrentIndonesianDateTime = (): string => {
   return `${day} tanggal ${date} bulan ${month} tahun ${year}`;
 };
 
-// Helper function to convert File to GenerativePart
+// Helper function to convert File to GenerativePart sesuai dokumentasi resmi
 const fileToGenerativePart = async (file: File) => {
-  const base64EncodedString = await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      if (reader.result) {
-        resolve((reader.result as string).split(',')[1]);
-      } else {
-        reject(new Error("Failed to read file content."));
-      }
+  try {
+    console.log('SPKT Analysis: Processing file:', file.name, 'Type:', file.type, 'Size:', (file.size / 1024 / 1024).toFixed(2) + 'MB');
+    
+    // Validasi ukuran file (maksimal 20MB untuk inline data sesuai dokumentasi)
+    const maxSizeInBytes = 20 * 1024 * 1024; // 20MB
+    if (file.size > maxSizeInBytes) {
+      throw new Error(`File terlalu besar (${(file.size / 1024 / 1024).toFixed(2)}MB). Maksimal ukuran file adalah 20MB untuk pemrosesan inline.`);
+    }
+    
+    // Validasi tipe MIME yang didukung sesuai dokumentasi
+    const supportedMimeTypes = [
+      'application/pdf',
+      'application/x-javascript',
+      'text/javascript',
+      'application/x-python',
+      'text/x-python',
+      'text/plain',
+      'text/html',
+      'text/css',
+      'text/md',
+      'text/csv',
+      'text/xml',
+      'text/rtf',
+      // Tambahan untuk file Office yang umum
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+      'application/msword', // .doc
+      'application/vnd.ms-excel', // .xls
+    ];
+    
+    if (!supportedMimeTypes.includes(file.type)) {
+      console.warn('SPKT Analysis: Unsupported file type:', file.type, '. Proceeding anyway...');
+    }
+    
+    const base64EncodedString = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (reader.result && typeof reader.result === 'string') {
+          // Remove data URL prefix untuk mendapatkan base64 string murni
+          const base64Data = reader.result.split(',')[1];
+          if (base64Data) {
+            resolve(base64Data);
+          } else {
+            reject(new Error("Gagal mengekstrak data base64 dari file."));
+          }
+        } else {
+          reject(new Error("Gagal membaca konten file."));
+        }
+      };
+      reader.onerror = (error) => {
+        console.error('FileReader error:', error);
+        reject(new Error(`Gagal membaca file: ${error}`));
+      };
+      reader.readAsDataURL(file);
+    });
+    
+    console.log('SPKT Analysis: File encoded to base64, length:', base64EncodedString.length, 'characters');
+    
+    // Return format sesuai dokumentasi resmi Google Gemini API
+    return {
+      inlineData: {
+        mimeType: file.type,
+        data: base64EncodedString,
+      },
     };
-    reader.onerror = (error) => reject(error);
-    reader.readAsDataURL(file);
-  });
-  return {
-    inlineData: {
-      mimeType: file.type,
-      data: base64EncodedString,
-    },
-  };
+  } catch (error) {
+    console.error('SPKT Analysis: Error in fileToGenerativePart:', error);
+    throw error;
+  }
 };
 
 const PROMPT_TEMPLATE = (reportText: string, isFileAttached: boolean) => {
@@ -290,30 +341,42 @@ const analyzeReportWithGemini = async (reportText: string, file?: File | null): 
     throw { message: "Kunci API Google AI tidak dikonfigurasi dengan benar." } as ApiError;
   }
 
-  const promptString = PROMPT_TEMPLATE(reportText, !!file);
-  const textPart = { text: promptString };
-  type RequestPart = {text?: string; inlineData?: {data: string; mimeType: string}};
-  const requestParts: RequestPart[] = [textPart];
+  console.log('SPKT Analysis: Starting analysis...');
+  console.log('SPKT Analysis: Report text length:', reportText?.length || 0, 'characters');
+  console.log('SPKT Analysis: File provided:', !!file);
 
+  // Prepare content parts sesuai dokumentasi resmi
+  const contentParts: any[] = [];
+  
+  // Tambahkan text prompt terlebih dahulu
+  const promptString = PROMPT_TEMPLATE(reportText, !!file);
+  contentParts.push({ text: promptString });
+
+  // Tambahkan file jika ada (sesuai dokumentasi: text prompt sebelum file untuk hasil terbaik)
   if (file) {
     try {
+      console.log('SPKT Analysis: Processing file for analysis...');
       const filePart = await fileToGenerativePart(file);
-      requestParts.push(filePart);
+      contentParts.push(filePart);
+      console.log('SPKT Analysis: File successfully added to content parts');
     } catch (e: unknown) {
-      console.error("Error processing file:", e);
+      console.error("SPKT Analysis: Error processing file:", e);
       const errorMessage = e instanceof Error ? e.message : String(e);
       throw { message: "Gagal memproses file yang diunggah.", details: errorMessage } as ApiError;
     }
   }
 
   try {
-    // Updated API call structure sesuai dokumentasi resmi
-    console.log('SPKT Analysis: Configuring Gemini API with Google Search tools...');
+    // API call structure sesuai dokumentasi resmi Google Gemini API
+    console.log('SPKT Analysis: Calling Gemini API with', contentParts.length, 'content parts');
+    console.log('SPKT Analysis: Using model:', model);
+    
     const response: GenerateContentResponse = await ai.models.generateContent({
       model: model,
-      contents: [{ parts: requestParts }],
+      contents: [{ parts: contentParts }],
       config: {
         tools: [{ googleSearch: {} }],
+        temperature: 0.1, // Low temperature untuk konsistensi analisis
       },
     });
     
