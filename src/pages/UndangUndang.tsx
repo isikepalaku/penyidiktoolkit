@@ -308,25 +308,31 @@ export default function UndangUndang() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      {/* Compact Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="container mx-auto px-6 py-8">
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Scale className="w-6 h-6 text-blue-600" />
+      {/* Compact Header with Background Image */}
+      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 relative overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 bg-black/10"></div>
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSI0Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-20"></div>
+        
+        <div className="container mx-auto px-6 py-6 relative">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl border border-white/30">
+                <Scale className="w-5 h-5 text-white" />
               </div>
-              <div className="flex items-center gap-2 bg-blue-50 rounded-full px-3 py-1">
-                <Sparkles className="w-4 h-4 text-blue-600" />
-                <span className="text-blue-600 text-sm font-medium">AI Legal Assistant</span>
+              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-3 py-1 border border-white/20">
+                <Sparkles className="w-3 h-3 text-white" />
+                <span className="text-white text-xs font-medium">AI Legal Assistant</span>
               </div>
             </div>
-            
-            <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-3">
+          </div>
+          
+          <div className="mt-4">
+            <h1 className="text-2xl lg:text-3xl font-bold text-white mb-2">
               Undang-Undang AI
             </h1>
             
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            <p className="text-base text-white/90 max-w-xl">
               Pilih asisten AI untuk membantu memahami berbagai peraturan perundang-undangan
             </p>
           </div>

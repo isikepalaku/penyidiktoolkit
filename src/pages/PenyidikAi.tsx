@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
-import AgentCard from '../components/AgentCard';
-import { ArrowLeft } from 'lucide-react';
-import { DotBackground } from '@/components/ui/DotBackground';
-import { Agent } from '@/types';
+import { Search, Shield, Users, Pill, User, ChevronRight, Sparkles, Target } from 'lucide-react';
+import AgentCard from '@/components/AgentCard';
 import { penyidikAiAgent } from '@/data/agents/penyidikAiAgent';
 import { tipidkorAiAgent } from '@/data/agents/tipidkorAiAgent';
 import { fismondevAgent } from '@/data/agents/fismondevAgent';
@@ -24,6 +22,56 @@ import { wassidikPenyidikAgent } from '@/data/agents/wassidikPenyidikAgent';
 
 // Key untuk menyimpan data di localStorage
 const SELECTED_AGENT_KEY = 'penyidikai-selected-agent';
+
+// Definisikan tipe untuk agent di PenyidikAi
+interface PenyidikAgent {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  color: string;
+  type: string;
+  status: string;
+  category: string;
+  popularity?: number;
+  lastUpdated?: string;
+}
+
+// Categories untuk grouping
+const categories = [
+  {
+    id: 'khusus',
+    name: 'Tindak Pidana Khusus',
+    description: 'Asisten Penyidik tindak pidana khusus (Lex Specialis)',
+    icon: Shield,
+    color: 'from-purple-500 to-indigo-600',
+    bgColor: 'from-purple-50 to-indigo-50'
+  },
+  {
+    id: 'umum',
+    name: 'Tindak Pidana Umum',
+    description: 'Asisten Penyidik tindak pidana Umum (Lex Generalis)',
+    icon: Users,
+    color: 'from-blue-500 to-cyan-600',
+    bgColor: 'from-blue-50 to-cyan-50'
+  },
+  {
+    id: 'narkotika',
+    name: 'Tindak Pidana Narkotika',
+    description: 'Penanganan khusus kasus narkotika dan obat-obatan terlarang',
+    icon: Pill,
+    color: 'from-amber-500 to-orange-600',
+    bgColor: 'from-amber-50 to-orange-50'
+  },
+  {
+    id: 'internal',
+    name: 'Internal',
+    description: 'Pengawasan internal dan audit kepatuhan institusi',
+    icon: User,
+    color: 'from-teal-500 to-emerald-600',
+    bgColor: 'from-teal-50 to-emerald-50'
+  }
+];
 
 export default function PenyidikAi() {
   // Menggunakan localStorage untuk mempertahankan status saat reload
@@ -48,6 +96,9 @@ export default function PenyidikAi() {
       return null;
     }
   });
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   // Simpan selectedAgent ke localStorage setiap kali nilainya berubah
   useEffect(() => {
@@ -123,7 +174,7 @@ export default function PenyidikAi() {
     };
   }, [selectedAgent]);
 
-  const agents: Agent[] = [
+  const agents: PenyidikAgent[] = [
     {
       id: penyidikAiAgent.id,
       name: penyidikAiAgent.name,
@@ -131,7 +182,10 @@ export default function PenyidikAi() {
       type: penyidikAiAgent.type,
       status: penyidikAiAgent.status,
       color: 'purple',
-      icon: 'brain'
+      icon: 'brain',
+      category: 'khusus',
+      popularity: 95,
+      lastUpdated: '2024-01-15'
     },
     {
       id: tipidkorAiAgent.id,
@@ -140,7 +194,10 @@ export default function PenyidikAi() {
       type: tipidkorAiAgent.type,
       status: tipidkorAiAgent.status,
       color: 'blue',
-      icon: 'shield'
+      icon: 'shield',
+      category: 'khusus',
+      popularity: 92,
+      lastUpdated: '2024-01-14'
     },
     {
       id: fismondevAgent.id,
@@ -149,7 +206,10 @@ export default function PenyidikAi() {
       type: fismondevAgent.type,
       status: fismondevAgent.status,
       color: 'green',
-      icon: 'dollar'
+      icon: 'dollar',
+      category: 'khusus',
+      popularity: 88,
+      lastUpdated: '2024-01-13'
     },
     {
       id: siberAgent.id,
@@ -158,7 +218,10 @@ export default function PenyidikAi() {
       type: siberAgent.type,
       status: siberAgent.status,
       color: 'cyan',
-      icon: 'shield'
+      icon: 'shield',
+      category: 'khusus',
+      popularity: 90,
+      lastUpdated: '2024-01-12'
     },
     {
       id: tipidterAiAgent.id,
@@ -167,7 +230,10 @@ export default function PenyidikAi() {
       type: tipidterAiAgent.type,
       status: tipidterAiAgent.status,
       color: 'orange',
-      icon: 'alert-triangle'
+      icon: 'alert-triangle',
+      category: 'khusus',
+      popularity: 85,
+      lastUpdated: '2024-01-11'
     },
     {
       id: narkotikaAgent.id,
@@ -176,7 +242,10 @@ export default function PenyidikAi() {
       type: narkotikaAgent.type,
       status: narkotikaAgent.status,
       color: 'amber',
-      icon: 'pill'
+      icon: 'pill',
+      category: 'narkotika',
+      popularity: 87,
+      lastUpdated: '2024-01-10'
     },
     {
       id: ppaPpoAgent.id,
@@ -185,7 +254,10 @@ export default function PenyidikAi() {
       type: ppaPpoAgent.type,
       status: ppaPpoAgent.status,
       color: 'pink',
-      icon: 'users'
+      icon: 'users',
+      category: 'umum',
+      popularity: 83,
+      lastUpdated: '2024-01-09'
     },
     {
       id: reskrimumAgent.id,
@@ -194,7 +266,10 @@ export default function PenyidikAi() {
       type: reskrimumAgent.type,
       status: reskrimumAgent.status,
       color: 'indigo',
-      icon: 'file-text'
+      icon: 'file-text',
+      category: 'umum',
+      popularity: 80,
+      lastUpdated: '2024-01-08'
     },
     {
       id: wassidikPenyidikAgent.id,
@@ -203,32 +278,37 @@ export default function PenyidikAi() {
       type: wassidikPenyidikAgent.type,
       status: wassidikPenyidikAgent.status,
       color: 'teal',
-      icon: 'user'
+      icon: 'user',
+      category: 'internal',
+      popularity: 78,
+      lastUpdated: '2024-01-07'
     }
   ];
 
   const selectedAgentData = agents.find(agent => agent.id === selectedAgent);
+
+  // Filter agents based on search and category
+  const filteredAgents = agents.filter(agent => {
+    const matchesSearch = agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         agent.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = !selectedCategory || agent.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  // Group agents by category
+  const agentsByCategory = categories.reduce((acc, category) => {
+    acc[category.id] = filteredAgents.filter(agent => agent.category === category.id);
+    return acc;
+  }, {} as Record<string, PenyidikAgent[]>);
+
+
 
   const handleBack = () => {
     // Pesan tersimpan otomatis, tidak perlu konfirmasi
     setSelectedAgent(null);
   };
 
-  const handleReset = () => {
-    // Konfirmasi jika user ingin memulai percakapan baru
-    if (window.confirm('Apakah Anda yakin ingin memulai percakapan baru? Semua percakapan sebelumnya akan hilang.')) {
-      // Simpan agent yang dipilih
-      const currentAgent = selectedAgent;
 
-      // Reset state
-      setSelectedAgent(null);
-
-      // Re-set agent setelah jeda pendek untuk memicu reset komponen
-      setTimeout(() => {
-        setSelectedAgent(currentAgent);
-      }, 50);
-    }
-  };
 
   // Render error state jika terjadi error
   if (hasError) {
@@ -324,71 +404,198 @@ export default function PenyidikAi() {
     }
   };
 
+  if (selectedAgent) {
+    return renderContent();
+  }
+
   return (
-    <div className="relative min-h-screen">
-      <DotBackground className="absolute inset-0" />
-      <div className="relative z-10">
-        <div className="container mx-auto px-4 py-8 min-h-screen">
-          {selectedAgent ? (
-            <div className="max-w-5xl mx-auto">
-              <div className="mb-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-indigo-50">
+      {/* Compact Header with Background Image */}
+      <div className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 relative overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 bg-black/10"></div>
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSI0Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-20"></div>
+        
+        <div className="container mx-auto px-6 py-6 relative">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl border border-white/30">
+                <Target className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-3 py-1 border border-white/20">
+                <Sparkles className="w-3 h-3 text-white" />
+                <span className="text-white text-xs font-medium">AI Investigation Assistant</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-4">
+            <h1 className="text-2xl lg:text-3xl font-bold text-white mb-2">
+              Penyidik AI
+            </h1>
+            
+            <p className="text-base text-white/90 max-w-xl">
+              AI Assistant untuk membantu proses penyidikan dengan menyediakan analisis dan insight yang mendalam
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Search and Filter Section */}
+      <div className="container mx-auto px-6 py-6">
+        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+          <div className="flex flex-col lg:flex-row gap-4">
+            {/* Search */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Cari asisten AI atau topik..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              />
+            </div>
+
+            {/* Category Filter */}
+            <div className="flex gap-2 overflow-x-auto pb-2 lg:pb-0">
+              <button
+                onClick={() => setSelectedCategory(null)}
+                className={`px-4 py-3 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
+                  !selectedCategory
+                    ? 'bg-purple-600 text-white shadow-lg'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Semua Kategori
+              </button>
+              {categories.map((category) => (
                 <button
-                  onClick={handleBack}
-                  className="inline-flex items-center px-4 py-2 text-gray-700 bg-white rounded-lg shadow-sm hover:bg-gray-50 transition-all duration-200 border border-gray-200"
+                  key={category.id}
+                  onClick={() => setSelectedCategory(category.id)}
+                  className={`px-4 py-3 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
+                    selectedCategory === category.id
+                      ? 'bg-purple-600 text-white shadow-lg'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
                 >
-                  <ArrowLeft className="w-5 h-5 mr-2" />
-                  <span className="font-medium">Kembali</span>
+                  {category.name}
                 </button>
-                
-                {/* Tambahkan tombol Pilih Agent Lain yang tidak menghapus percakapan */}
-                <button
-                  onClick={handleReset}
-                  className="inline-flex items-center px-4 py-2 ml-2 text-blue-600 bg-blue-50 rounded-lg shadow-sm hover:bg-blue-100 transition-all duration-200 border border-blue-100"
-                >
-                  <span className="font-medium">Pilih Agent Lain</span>
-                </button>
-                
-                {selectedAgentData && (
-                  <div className="mt-6">
-                    <h1 className="text-2xl font-bold text-gray-900">{selectedAgentData.name}</h1>
-                    <p className="text-gray-600 mt-2">{selectedAgentData.description}</p>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Content Section */}
+      <div className="container mx-auto px-6 pb-12">
+        {selectedCategory ? (
+          // Show selected category
+          (() => {
+            const category = categories.find(c => c.id === selectedCategory);
+            const categoryAgents = agentsByCategory[selectedCategory] || [];
+            
+            if (!category) return null;
+
+            return (
+              <div className="space-y-8">
+                {/* Category Header */}
+                <div className={`bg-gradient-to-r ${category.bgColor} rounded-2xl p-8 border border-white/50`}>
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className={`p-3 bg-gradient-to-r ${category.color} rounded-xl text-white`}>
+                      <category.icon className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h2 className="text-3xl font-bold text-gray-900">{category.name}</h2>
+                      <p className="text-gray-600 mt-1">{category.description}</p>
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {categoryAgents.length} AI Assistant tersedia
+                  </div>
+                </div>
+
+                {/* Category Agents */}
+                {categoryAgents.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {categoryAgents.map((agent) => (
+                      <div
+                        key={agent.id}
+                        onClick={() => setSelectedAgent(agent.id)}
+                        className="cursor-pointer"
+                      >
+                        <AgentCard 
+                          agent={agent as any}
+                          popularity={agent.popularity}
+                          lastUpdated={agent.lastUpdated}
+                          className="hover:-translate-y-1"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Search className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Tidak ada hasil</h3>
+                    <p className="text-gray-500">Coba ubah kata kunci pencarian atau pilih kategori lain.</p>
                   </div>
                 )}
               </div>
-              {renderContent()}
-            </div>
-          ) : (
-            <div className="max-w-6xl mx-auto">
-              <div className="mb-8">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="h-8 w-1 bg-purple-500 rounded-full"></div>
-                  <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
-                    Penyidik AI
-                  </h1>
-                </div>
-                <p className="text-base md:text-lg text-gray-600 ml-11">
-                  AI Assistant untuk membantu proses penyidikan dengan menyediakan analisis dan insight yang mendalam
-                </p>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {agents.map((agent) => (
-                  <div
-                    key={agent.id}
-                    onClick={() => setSelectedAgent(agent.id)}
-                    className="cursor-pointer transform transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    <AgentCard 
-                      agent={agent}
-                      bgColor="bg-white"
-                      className="border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl overflow-hidden"
-                    />
+            );
+          })()
+        ) : (
+          // Show all categories
+          <div className="space-y-12">
+            {categories.map((category) => {
+              const categoryAgents = agentsByCategory[category.id] || [];
+              if (categoryAgents.length === 0) return null;
+
+              return (
+                <div key={category.id} className="space-y-6">
+                  {/* Category Header */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className={`p-3 bg-gradient-to-r ${category.color} rounded-xl text-white`}>
+                        <category.icon className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h2 className="text-2xl font-bold text-gray-900">{category.name}</h2>
+                        <p className="text-gray-600">{category.description}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setSelectedCategory(category.id)}
+                      className="text-purple-600 hover:text-purple-700 text-sm font-medium flex items-center gap-1"
+                    >
+                      Lihat Semua
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+
+                  {/* Category Agents */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {categoryAgents.slice(0, 3).map((agent) => (
+                      <div
+                        key={agent.id}
+                        onClick={() => setSelectedAgent(agent.id)}
+                        className="cursor-pointer"
+                      >
+                        <AgentCard 
+                          agent={agent as any}
+                          popularity={agent.popularity}
+                          lastUpdated={agent.lastUpdated}
+                          className="hover:-translate-y-1"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
