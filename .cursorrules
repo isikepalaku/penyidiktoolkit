@@ -786,7 +786,837 @@ const API_KEY = 'AIzaSyBf4_0ll5H7OMs7yAtgXO1LWVAWhOcbJmo'; // NEVER DO THIS!
    setShowProgress(false);
    ```
 
+## AGNO Streaming Status Animations Implementation Pattern
+
+### Overview
+Implementasi real-time streaming status animations untuk AGNO API yang menunjukkan proses AI secara detail (thinking, tool calls, memory updates) dengan positioning yang tepat dalam message bubbles.
+
+### 1. StreamingStatus Component Architecture
+
+#### Component Structure (src/components/ui/StreamingStatus.tsx):
+```typescript
+interface StreamingStatusProps {
+  streamingStatus: StreamingStatus;
+  compact?: boolean; // untuk display dalam message bubble
+}
+
+// Phases yang didukung:
+// - Thinking: Brain icon + bouncing dots
+// - Tool Call: Wrench icon + spinning loader  
+// - Memory Update: Database icon + pulsing bars
+// - Completion: CheckCircle icon
+```
+
+#### Animation Patterns:
+- **Thinking Phase**: 
+  * Icon: Brain dengan animate-pulse
+  * Animation: 3 bouncing dots dengan staggered delays (0ms, 150ms, 300ms)
+  * Text: "Menganalisis pertanyaan..."
+  
+- **Tool Call Phase**:
+  * Icon: Wrench dengan animate-spin
+  * Animation: Spinning wrench + rotating Loader2
+  * Text: "Menggunakan {toolName}..." atau "Mengakses knowledge base..."
+  
+- **Memory Update Phase**:
+  * Icon: Database dengan animate-pulse  
+  * Animation: 3 vertical pulsing bars dengan staggered delays
+  * Text: "Menyimpan informasi ke memori..."
+  
+- **Completion Phase**:
+  * Icon: CheckCircle (static green)
+  * Text: "Respons selesai"
+
+#### Progress Indicators:
+- **Visual**: Colored dots showing current phase
+- **Colors**: Purple (thinking), Blue (knowledge), Green (memory)
+- **Labels**: "Thinking", "Knowledge Access", "Memory Update"
+
+### 2. State Management Pattern
+
+#### StreamingStatus Interface (src/types/playground.ts):
+```typescript
+interface StreamingStatus {
+  isThinking: boolean;
+  isCallingTool: boolean;
+  toolName?: string;
+  isUpdatingMemory: boolean;
+  hasCompleted: boolean;
+}
+```
+
+#### Store Integration (src/stores/PlaygroundStore.ts):
+```typescript
+// State management functions
+setStreamingStatus: (status: Partial<StreamingStatus>) => void;
+resetStreamingStatus: () => void;
+
+// Usage pattern
+const { streamingStatus, setStreamingStatus, resetStreamingStatus } = usePlaygroundStore();
+```
+
+### 3. Event Handler Pattern
+
+#### useAIChatStreamHandler Integration:
+```typescript
+// RunStarted: Initialize thinking phase
+setStreamingStatus({ isThinking: true });
+
+// ToolCallStarted: Begin tool call phase  
+setStreamingStatus({ 
+  isThinking: false, 
+  isCallingTool: true, 
+  toolName: event.data?.name || 'knowledge base' 
+});
+
+// ToolCallCompleted: End tool call phase
+setStreamingStatus({ isCallingTool: false, toolName: undefined });
+
+// UpdatingMemory: Begin memory update phase
+setStreamingStatus({ isUpdatingMemory: true });
+
+// RunCompleted: Complete all phases
+setStreamingStatus({ 
+  hasCompleted: true,
+  isThinking: false,
+  isCallingTool: false, 
+  isUpdatingMemory: false 
+});
+
+// Reset after delay for new conversations
+setTimeout(() => resetStreamingStatus(), 1000);
+```
+
+### 4. Per-Message Animation Positioning
+
+#### Detection Logic untuk Streaming Message:
+```typescript
+const isStreamingMessage = message.role === 'agent' && 
+                         isLastMessage && 
+                         isLoading &&
+                         (hasMinimalContent || 
+                          streamingStatus.isThinking || 
+                          streamingStatus.isCallingTool || 
+                          streamingStatus.isUpdatingMemory);
+
+// hasMinimalContent = content length < 50 characters
+const hasMinimalContent = message.content && message.content.length < 50;
+```
+
+#### Positioning Strategy:
+- **Location**: Inside agent message bubble yang sedang streaming
+- **Placement**: Di atas content dengan `mb-3` spacing
+- **Styling**: Compact design (`bg-purple-50`, `w-4 h-4` icons, `text-xs`)
+- **Real-time**: Animasi selalu muncul di message yang sedang aktif
+
+### 5. UI Integration Pattern
+
+#### Chat Component Integration:
+```typescript
+// Dalam message rendering loop
+{isStreamingMessage && (
+  <div className="mb-3">
+    <StreamingStatus 
+      streamingStatus={streamingStatus} 
+      compact={true}
+    />
+  </div>
+)}
+
+// Conditional copy button (hanya muncul jika ada content)
+{message.content && (
+  <button 
+    onClick={() => copyToClipboard(message.content)}
+    className="opacity-0 group-hover:opacity-100 transition-opacity"
+  >
+    <Copy className="w-4 h-4" />
+  </button>
+)}
+
+// Empty message placeholder
+{!message.content && isStreamingMessage && (
+  <p className="text-gray-500 italic text-sm">Sedang memproses...</p>
+)}
+```
+
+### 6. Timing Detection Best Practices
+
+#### Critical Implementation Notes:
+- **Avoid skeleton conflicts**: Jangan gunakan skeleton loading bersamaan dengan streaming animations
+- **Message state detection**: Gunakan multiple criteria untuk detecting streaming message
+- **Empty content handling**: Provide placeholder text untuk message kosong saat streaming
+- **Conditional rendering**: Copy/action buttons hanya muncul jika ada content
+- **Animation lifecycle**: Reset status setelah completion dengan appropriate delay
+
+#### Common Pitfalls:
+- **Late animation appearance**: Pastikan detection logic menggunakan streaming status, bukan hanya isLoading
+- **Global positioning**: Hindari global animation positioning yang memerlukan scroll
+- **Skeleton interference**: Hindari skeleton yang menutupi atau conflict dengan streaming animations
+- **Timing issues**: Gunakan proper criteria untuk mendeteksi kapan animasi harus muncul
+
+### 7. Implementation Checklist
+
+#### Required Files:
+- [ ] `src/components/ui/StreamingStatus.tsx` - Main animation component
+- [ ] `src/types/playground.ts` - StreamingStatus interface
+- [ ] `src/stores/PlaygroundStore.ts` - State management functions
+- [ ] Enhanced `useAIChatStreamHandler.ts` - Event handlers
+- [ ] Updated chat component - Message-level integration
+
+#### Required Dependencies:
+- [ ] Lucide icons: Brain, Wrench, Database, CheckCircle, Loader2
+- [ ] Tailwind CSS animations: animate-pulse, animate-spin, animate-bounce
+- [ ] Zustand store for state management
+
+#### Validation Steps:
+- [ ] Test thinking phase animation (brain + bouncing dots)
+- [ ] Test tool call phase animation (wrench + spinner)
+- [ ] Test memory update phase animation (database + pulsing bars)
+- [ ] Test completion phase (checkmark)
+- [ ] Verify per-message positioning (no global scrolling required)
+- [ ] Test empty message handling (placeholder text)
+- [ ] Test conditional copy button (only with content)
+- [ ] Verify no skeleton conflicts
+- [ ] Test animation timing (appears during processing, not after)
+
+### 8. Benefits & UX Impact
+
+#### User Experience Improvements:
+- **Real-time Feedback**: User melihat proses AI secara detail dan real-time
+- **Better Understanding**: Jelas menunjukkan fase mana yang sedang berjalan
+- **Professional Appearance**: Animasi yang smooth dan sesuai dengan AI workflow
+- **No Scroll Required**: Animasi muncul di tempat yang sedang user lihat
+- **Event-Driven**: UI update berdasarkan actual streaming events dari backend
+
+#### Technical Benefits:
+- **Modular Design**: Component dapat digunakan ulang untuk agent lain
+- **Type Safety**: Full TypeScript support dengan proper interfaces
+- **Performance**: Minimal overhead dengan efficient state management
+- **Maintainable**: Clear separation of concerns dan well-documented patterns
+
+### 9. Extension Guidelines
+
+#### Untuk Agent Baru:
+- Gunakan usePlaygroundStore pattern yang sama
+- Implement useAIChatStreamHandler dengan proper event mapping
+- Use StreamingStatus component dengan compact mode
+- Follow detection logic pattern untuk per-message positioning
+
+#### Untuk Animasi Baru:
+- Tambahkan phase baru di StreamingStatus interface
+- Implement animation pattern dengan staggered delays
+- Gunakan appropriate Lucide icons
+- Maintain compact design untuk in-message display
+
+#### Performance Considerations:
+- Reset streaming status setelah completion
+- Avoid memory leaks dengan proper cleanup
+- Use efficient re-render patterns
+- Minimize animation complexity untuk mobile performance
+
+## History Management & Storage Optimization Implementation Pattern
+
+### Overview
+Implementasi comprehensive untuk mengelola history chat messages, mencegah pembebanan server, dan mengoptimalkan penggunaan localStorage dengan auto-cleanup dan monitoring.
+
+### 1. Configuration Constants
+
+#### Storage Limits (src/stores/PlaygroundStore.ts):
+```typescript
+// History management constants
+const MAX_MESSAGES_PER_SESSION = 100; // Maksimal 100 pesan per session
+const MAX_STORED_SESSIONS = 10; // Maksimal 10 session tersimpan
+const MESSAGE_CLEANUP_THRESHOLD = 80; // Mulai cleanup saat mencapai 80 pesan
+const SESSION_EXPIRY_DAYS = 7; // Session kadaluarsa setelah 7 hari
+const STORAGE_SIZE_LIMIT = 5 * 1024 * 1024; // 5MB limit untuk localStorage
+```
+
+#### Benefits:
+- **Configurable Limits**: Easy to adjust based on requirements
+- **Tiered Cleanup**: Different thresholds for different actions
+- **Memory Efficiency**: Prevents unlimited memory growth
+- **User Experience**: Balances performance with functionality
+
+### 2. Auto-Cleanup Strategies
+
+#### Message Limiting:
+```typescript
+addMessage: (message) => {
+  set((state) => {
+    const newMessages = [...state.messages, message];
+    
+    // Auto-limit messages per session
+    if (newMessages.length > MAX_MESSAGES_PER_SESSION) {
+      const messagesToRemove = newMessages.length - MAX_MESSAGES_PER_SESSION;
+      return {
+        messages: newMessages.slice(messagesToRemove)
+      };
+    }
+    
+    return { messages: newMessages };
+  });
+  
+  // Save to localStorage with optimization
+  optimizedSaveToStorage();
+}
+```
+
+#### Smart Cleanup Function:
+```typescript
+const cleanupOldMessages = () => {
+  const { messages, setMessages } = usePlaygroundStore.getState();
+  
+  if (messages.length > MESSAGE_CLEANUP_THRESHOLD) {
+    // Keep only the most recent messages, maintaining conversation context
+    const messagesToKeep = Math.floor(MESSAGE_CLEANUP_THRESHOLD * 0.7); // Keep 70% of threshold
+    const recentMessages = messages.slice(-messagesToKeep);
+    
+    console.log(`🧹 Auto-cleanup: Removed ${messages.length - messagesToKeep} old messages`);
+    setMessages(recentMessages);
+  }
+};
+```
+
+### 3. Session Management
+
+#### Session Expiry:
+```typescript
+// Enhanced SessionEntry interface
+interface SessionEntry {
+  session_id: string;
+  title: string;
+  created_at: number;
+  lastActivity?: number; // Timestamp of last activity for cleanup purposes
+}
+```
+
+#### Expired Session Cleanup:
+```typescript
+const cleanupExpiredSessions = () => {
+  // Check session creation time
+  const sessionCreated = localStorage.getItem('wassidik_session_created');
+  if (sessionCreated) {
+    const daysSinceCreation = (Date.now() - parseInt(sessionCreated)) / (1000 * 60 * 60 * 24);
+    
+    if (daysSinceCreation > SESSION_EXPIRY_DAYS) {
+      console.log(`🗑️ Session expired after ${daysSinceCreation.toFixed(1)} days`);
+      clearSessionStorage();
+      return;
+    }
+  }
+  
+  // Cleanup stored sessions by activity
+  const validSessions = sessions.filter(session => {
+    const daysSinceActivity = (Date.now() - session.lastActivity) / (1000 * 60 * 60 * 24);
+    return daysSinceActivity <= SESSION_EXPIRY_DAYS;
+  });
+};
+```
+
+### 4. Storage Monitoring
+
+#### Storage Usage Tracking:
+```typescript
+const getStorageUsage = (): number => {
+  let total = 0;
+  for (let key in localStorage) {
+    if (localStorage.hasOwnProperty(key)) {
+      total += localStorage[key].length + key.length;
+    }
+  }
+  return total;
+};
+
+const getStorageStats = () => {
+  const usage = getStorageUsage();
+  const limit = STORAGE_SIZE_LIMIT;
+  const percentage = (usage / limit) * 100;
+  
+  return {
+    usage: formatBytes(usage),
+    limit: formatBytes(limit),
+    percentage: Math.round(percentage),
+    sessionCount: Object.keys(localStorage).filter(key => key.startsWith('wassidik_session_')).length,
+    isNearLimit: percentage > 80
+  };
+};
+```
+
+#### Optimized Storage Save:
+```typescript
+const optimizedSaveToStorage = () => {
+  // Check current storage usage
+  const currentUsage = getStorageUsage();
+  if (currentUsage > STORAGE_SIZE_LIMIT) {
+    console.warn(`⚠️ Storage usage exceeds limit, performing cleanup`);
+    cleanupExpiredSessions();
+    cleanupOldMessages();
+  }
+  
+  // Save current session messages (only recent ones for performance)
+  const recentMessages = messages.slice(-50); // Save only last 50 messages
+  const sessionData = {
+    sessionId,
+    messages: recentMessages,
+    lastActivity: Date.now(),
+    messageCount: messages.length
+  };
+  
+  localStorage.setItem(`wassidik_session_${sessionId}`, JSON.stringify(sessionData));
+};
+```
+
+### 5. UI Integration
+
+#### Storage Stats Component:
+```typescript
+const StorageStatsDisplay = () => (
+  <div className="bg-blue-50 border-l-4 border-blue-500 p-4 m-4 shadow-sm rounded-md">
+    <div className="flex">
+      <Database className="h-5 w-5 text-blue-500" />
+      <div className="ml-3 flex-1">
+        <h3 className="text-sm font-medium text-blue-800">Statistik Penyimpanan</h3>
+        <div className="mt-2 text-sm text-blue-700 space-y-2">
+          <div className="flex justify-between">
+            <span>Penggunaan Storage:</span>
+            <span className="font-medium">{storageStats.usage} / {storageStats.limit}</span>
+          </div>
+          
+          {/* Progress bar for storage usage */}
+          <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+            <div className={cn("h-2 rounded-full transition-all duration-300",
+              storageStats.percentage > 80 ? "bg-red-500" : 
+              storageStats.percentage > 60 ? "bg-yellow-500" : "bg-green-500"
+            )}
+            style={{ width: `${Math.min(storageStats.percentage, 100)}%` }}
+            />
+          </div>
+          
+          {storageStats.isNearLimit && (
+            <div className="text-red-600 text-xs mt-2 font-medium">
+              ⚠️ Storage hampir penuh! Pertimbangkan untuk membersihkan data lama.
+            </div>
+          )}
+        </div>
+        
+        <button onClick={handleStorageCleanup} className="mt-3 inline-flex items-center gap-1">
+          <Trash2 className="w-3 h-3" />
+          Bersihkan Data Lama
+        </button>
+      </div>
+    </div>
+  </div>
+);
+```
+
+#### Header Integration:
+```typescript
+// Add storage monitoring button to header
+<Button 
+  variant="ghost" 
+  size="icon" 
+  onClick={() => setShowStorageInfo(!showStorageInfo)}
+  className="text-gray-500"
+  title="Storage Info"
+>
+  <Database className="h-5 w-5" />
+</Button>
+```
+
+### 6. Best Practices
+
+#### Implementation Guidelines:
+- **Progressive Cleanup**: Cleanup berbertahap berdasarkan usage percentage
+- **User Awareness**: Tampilkan warning saat storage hampir penuh
+- **Non-Intrusive**: Auto-cleanup berjalan di background tanpa mengganggu user
+- **Recoverable**: Manual cleanup option untuk kontrol user
+- **Monitoring**: Real-time storage statistics untuk transparency
+
+#### Performance Optimizations:
+- **Lazy Loading**: Load hanya recent messages untuk performance
+- **Batch Operations**: Combine multiple cleanup operations
+- **Efficient Storage**: Store hanya data essential, compress jika perlu
+- **Background Processing**: Cleanup running in background thread
+
+### 7. Error Handling
+
+#### Storage Error Recovery:
+```typescript
+// Graceful error handling for storage operations
+try {
+  localStorage.setItem(key, value);
+} catch (error) {
+  console.warn('Storage full, attempting cleanup...');
+  cleanupExpiredSessions();
+  try {
+    localStorage.setItem(key, value);
+  } catch (retryError) {
+    console.error('Storage still full after cleanup:', retryError);
+    // Fallback: use in-memory storage
+  }
+}
+```
+
+#### User Communication:
+- **Clear Messages**: Informative error messages untuk user
+- **Action Suggestions**: Saran konkret untuk mengatasi masalah
+- **Fallback Options**: Alternative solutions jika storage penuh
+
+### 8. Extension Guidelines
+
+#### For New Chat Components:
+- Import `getStorageStats, forceCleanup` from PlaygroundStore
+- Add storage monitoring UI dengan Database icon
+- Implement `handleStorageCleanup` function
+- Use optimized save patterns untuk message persistence
+
+#### For Custom Cleanup Strategies:
+- Extend cleanup constants untuk domain-specific requirements
+- Add new cleanup triggers berdasarkan usage patterns
+- Implement custom storage monitoring sesuai kebutuhan aplikasi
+- Consider server-side cleanup coordination untuk multi-device sync
+
+#### Monitoring & Analytics:
+- Track storage usage patterns untuk optimization insights
+- Monitor cleanup frequency untuk tuning thresholds
+- Log user engagement dengan cleanup features
+- Analyze performance impact dari history management
+
+### 9. Server Coordination
+
+#### API Considerations:
+- **Pagination Support**: Implement server-side pagination untuk large histories
+- **Sync Strategy**: Coordinate client cleanup dengan server storage
+- **Conflict Resolution**: Handle conflicts antara local dan server state
+- **Batch Updates**: Efficient batch operations untuk reduced server load
+
+#### Implementation Pattern:
+```typescript
+// Server-coordinated cleanup
+const syncWithServer = async () => {
+  try {
+    // Send local cleanup events to server
+    await api.post('/sessions/cleanup', {
+      sessionId,
+      messageCount: messages.length,
+      lastActivity: Date.now()
+    });
+  } catch (error) {
+    console.warn('Failed to sync cleanup with server:', error);
+  }
+};
+```
+
 # Scratchpad
+
+## Task: Implementasi Animated Streaming Status UI - COMPLETED ✅
+
+### Deskripsi:
+User meminta untuk mengganti skeleton loading dengan animasi yang menunjukkan proses thinking, tool calls, dan memory updates secara real-time sesuai dengan streaming events yang diterima dari AGNO API.
+
+### Solusi yang Diimplementasikan:
+
+#### 1. StreamingStatus Component (src/components/ui/StreamingStatus.tsx):
+- **Thinking Animation**: Brain icon dengan bouncing dots untuk fase analisis
+- **Tool Call Animation**: Wrench icon dengan spinning loader untuk akses knowledge base
+- **Memory Update Animation**: Database icon dengan pulsing bars untuk menyimpan informasi
+- **Completion Animation**: CheckCircle icon saat respons selesai
+- **Progress Indicators**: Dots indicator yang menunjukkan fase mana yang sedang aktif
+
+#### 2. Enhanced PlaygroundStore (src/stores/PlaygroundStore.ts & src/types/playground.ts):
+- **StreamingStatus Interface**: State tracking untuk isThinking, isCallingTool, toolName, isUpdatingMemory, hasCompleted
+- **State Management**: setStreamingStatus dan resetStreamingStatus functions
+- **Type Safety**: Full TypeScript support untuk streaming status
+
+#### 3. Enhanced useAIChatStreamHandler:
+- **RunStarted Handler**: Set isThinking=true di awal proses
+- **ToolCallStarted Handler**: Set isCallingTool=true dengan toolName
+- **ToolCallCompleted Handler**: Set isCallingTool=false
+- **UpdatingMemory Handler**: Set isUpdatingMemory=true
+- **RunCompleted Handler**: Set hasCompleted=true dan reset semua status
+
+#### 4. Enhanced WassidikPenyidikChatPage:
+- **StreamingStatus Integration**: Menampilkan real-time status streaming
+- **Conditional Skeleton**: Skeleton hanya muncul saat generating content, tidak saat thinking/tool calls
+- **UI Coordination**: StreamingStatus dan skeleton tidak overlap
+
+### Animasi yang Diimplementasikan:
+
+#### Thinking Phase:
+- **Icon**: Brain dengan animate-pulse
+- **Text**: "Menganalisis pertanyaan..."
+- **Animation**: 3 bouncing dots dengan staggered delays (0ms, 150ms, 300ms)
+
+#### Tool Call Phase:
+- **Icon**: Wrench dengan animate-spin
+- **Text**: "Menggunakan {toolName}..." atau "Mengakses knowledge base..."
+- **Animation**: Spinning wrench + rotating Loader2
+
+#### Memory Update Phase:
+- **Icon**: Database dengan animate-pulse
+- **Text**: "Menyimpan informasi ke memori..."
+- **Animation**: 3 vertical pulsing bars dengan staggered delays
+
+#### Completion Phase:
+- **Icon**: CheckCircle
+- **Text**: "Respons selesai"
+- **Animation**: Static green checkmark
+
+#### Progress Indicators:
+- **Visual**: Colored dots showing current phase
+- **Colors**: Purple (thinking), Blue (knowledge), Green (memory)
+- **Labels**: "Thinking", "Knowledge Access", "Memory Update"
+
+### Benefits:
+- **Real-time Feedback**: User melihat proses AI secara detail dan real-time
+- **Better UX**: Tidak lagi hanya skeleton loading, tapi informasi yang meaningful
+- **Professional Appearance**: Animasi yang smooth dan sesuai dengan AI workflow
+- **Event-Driven**: UI update berdasarkan actual streaming events dari backend
+- **Visual Hierarchy**: Jelas membedakan antara thinking, tool calls, dan memory updates
+
+### Files Created/Modified:
+- **src/components/ui/StreamingStatus.tsx**: New component untuk streaming animations
+- **src/types/playground.ts**: Added StreamingStatus interface
+- **src/stores/PlaygroundStore.ts**: Added streaming status state management
+- **src/hooks/playground/useAIChatStreamHandler.ts**: Enhanced dengan streaming status updates
+- **src/components/ui/WassidikPenyidikChatPage.tsx**: Integrated StreamingStatus component
+- **.cursorrules**: Documentation update
+
+### User Feedback dan Improvement:
+User memberikan feedback positif tentang animasi, tetapi menunjukkan kekurangan UX: **animasi hanya muncul di bagian atas chat area, sehingga user harus scroll ke atas untuk melihat status saat melakukan chat berkelanjutan**.
+
+### Enhancement yang Diimplementasikan:
+#### 5. Per-Message Streaming Status:
+- **Moved animation location**: Dari global position ke dalam message bubble agent yang sedang streaming
+- **Message-specific display**: Setiap agent message yang sedang diproses menampilkan animasi di dalamnya
+- **Better scroll experience**: User tidak perlu scroll ke atas untuk melihat status
+- **Compact design**: Ukuran dan styling yang lebih kecil untuk fit di dalam message bubble
+- **Real-time positioning**: Animasi selalu muncul di message yang sedang aktif
+
+#### Implementation Details:
+- **Detection logic**: `isLastAgentMessage && isLoading` untuk menentukan message mana yang sedang streaming
+- **Compact styling**: `bg-purple-50`, smaller icons (w-4 h-4), smaller text (text-xs)
+- **Inline placement**: Animasi muncul di atas content message dengan `mb-3` spacing
+- **Progressive indicators**: Dots indicator tetap ada tapi lebih compact
+
+### User Feedback Issue 2:
+User melaporkan bahwa **animasi baru muncul setelah final output dan kemudian menghilang**, yang tidak berguna karena animasi seharusnya muncul saat proses berlangsung.
+
+### Fix yang Diimplementasikan:
+#### 6. Timing Detection Logic Fix:
+- **Problem**: Logic `isLastAgentMessage && isLoading` timing tidak tepat
+- **Solution**: Enhanced detection dengan multiple criteria:
+  ```typescript
+  const isStreamingMessage = message.role === 'agent' && 
+                           isLastMessage && 
+                           isLoading &&
+                           (hasMinimalContent || 
+                            streamingStatus.isThinking || 
+                            streamingStatus.isCallingTool || 
+                            streamingStatus.isUpdatingMemory);
+  ```
+- **Empty message handling**: Show placeholder "Sedang memproses..." untuk message kosong
+- **Conditional rendering**: Copy button hanya muncul jika ada content
+- **Better detection**: Animasi muncul pada message dengan content minimal (< 50 chars) atau saat ada active streaming status
+- **Skeleton removal**: Menghapus skeleton loading yang redundant dan mengganggu animasi event stream
+
+### Status:
+✅ **COMPLETED** - Animated streaming status telah diimplementasikan dengan real-time thinking, tool calls, dan memory update animations. **Enhanced dengan per-message positioning, timing detection yang tepat, dan UI yang clean tanpa skeleton yang mengganggu.**
+
+---
+
+## Previous Completed Tasks:
+
+## Task: Perbaikan Error Gemini API INVALID_ARGUMENT - COMPLETED ✅
+
+### Deskripsi:
+User melaporkan error dari backend AGNO: "400 INVALID_ARGUMENT. contents.parts must not be empty" saat berkomunikasi dengan Gemini API. Error ini mengindikasikan ada FormData kosong atau tidak valid yang dikirim.
+
+### Solusi yang Diimplementasikan:
+
+#### 1. Enhanced Message Validation di useAIChatStreamHandler:
+- **Content validation**: Validasi message tidak kosong dan minimal 3 karakter
+- **File handling**: Auto-set default message jika upload file tanpa text
+- **Parameter validation**: Validasi semua parameter wajib tidak kosong sebelum request
+- **Required params check**: Validasi 'message', 'agent_id', 'stream', 'monitor', 'session_id', 'user_id'
+
+#### 2. Enhanced Error Handling:
+- **Session corruption detection**: Deteksi error INVALID_ARGUMENT dan reset session otomatis
+- **Clear corrupted session**: Hapus session dari storage jika terdeteksi corruption
+- **Specific error messages**: Error message yang lebih spesifik untuk 400 errors
+
+#### 3. Frontend Validation di WassidikPenyidikChatPage:
+- **Message length validation**: Minimal 3 karakter untuk message
+- **Content quality check**: Validasi content meaningfulness
+- **File + message validation**: Proper handling untuk file upload dengan/tanpa message
+
+#### 4. Improved Logging:
+- **FormData debugging**: Log semua parameter FormData sebelum send
+- **Empty parameter detection**: Log parameter kosong dengan '[EMPTY]' marker
+- **Session management**: Enhanced logging untuk session operations
+
+### Benefits:
+- **Prevent empty parts error**: Mencegah error INVALID_ARGUMENT dari Gemini API
+- **Better user experience**: Validasi yang jelas dan error messages yang informatif
+- **Session reliability**: Auto-recovery dari session corruption
+- **Debug capability**: Comprehensive logging untuk troubleshooting
+
+### Files Modified:
+- **src/hooks/playground/useAIChatStreamHandler.ts**: Enhanced validation, error handling, dan logging
+- **src/components/ui/WassidikPenyidikChatPage.tsx**: Frontend message validation
+- **.cursorrules**: Documentation update
+
+#### 5. FastAPI Error Format Handling:
+- **Response format detection**: Mendeteksi format `<Response [400]>` dari FastAPI
+- **Status code extraction**: Extract status code dari FastAPI response format
+- **Automatic session reset**: Clear session untuk error 4xx yang mungkin terkait parameter corruption
+- **Enhanced logging**: Detailed logging untuk debugging HTTP errors
+
+#### 6. Session ID Validation Fix:
+- **Empty session_id allowance**: Mengizinkan session_id kosong untuk session baru
+- **Parameter validation refinement**: Memisahkan validasi session_id dari parameter wajib lainnya
+- **New session detection**: Proper logging untuk session baru vs existing session
+- **Type safety**: Proper type casting untuk FormDataEntryValue
+
+### Status:
+✅ **COMPLETED** - Error INVALID_ARGUMENT telah diatasi dengan comprehensive validation dan error handling
+
+---
+
+## Previous Completed Tasks:
+
+## Task: Integrasi AGNO Streaming ke WassidikPenyidikChatPage - COMPLETED ✅
+
+### Deskripsi:
+User meminta untuk mengintegrasikan streaming AGNO di frontend berdasarkan studi kita. Implementasi harus mencakup pemasangan hook, setup SSE/Fetch-Streaming, identifikasi dan penanganan semua RunEvent, struktur hook useAIChatStreamHandler, integrasi ke komponen chat, penanganan state di store, dan fungsi utility parseBuffer.
+
+### Implementasi yang Diselesaikan:
+
+#### 1. Types dan Interface (src/types/playground.ts):
+- **RunEvent enum**: Semua event types (RunStarted, RunResponse, RunCompleted, RunError, ToolCallStarted, ToolCallCompleted, ReasoningStarted, ReasoningStep, ReasoningCompleted)
+- **RunResponse interface**: Struktur lengkap untuk streaming response dengan content, tools, images, videos, audio, extra_data
+- **PlaygroundChatMessage interface**: Format pesan chat yang kompatibel dengan streaming
+- **StreamOptions interface**: Konfigurasi untuk streaming requests
+- **PlaygroundStore interface**: State management untuk playground
+
+#### 2. Store Management (src/stores/PlaygroundStore.ts):
+- **Zustand store**: State management dengan messages, isStreaming, sessionId, sessionsData
+- **LocalStorage integration**: Persistensi session dan chat history
+- **Helper functions**: loadSessionFromStorage, loadSessionsFromStorage, clearSessionStorage
+- **Type-safe state updates**: Proper TypeScript typing untuk semua state operations
+
+#### 3. Streaming Hooks Infrastructure:
+
+##### useAIResponseStream (src/hooks/streaming/useAIResponseStream.ts):
+- **parseBuffer function**: Parse streaming buffer dengan proper JSON extraction
+- **processChunk function**: Validasi dan debugging untuk chunks
+- **streamResponse function**: Fetch + ReadableStream handling dengan timeout dan error management
+- **SSE-like streaming**: Compatible dengan AGNO streaming format
+
+##### useChatActions (src/hooks/playground/useChatActions.ts):
+- **Message utilities**: createMessage, addMessage dengan auto-generation ID dan timestamp
+- **UI helpers**: focusChatInput, scrollToBottom, clearChatInput
+- **DOM integration**: Data attributes untuk chat elements
+
+##### useAIChatStreamHandler (src/hooks/playground/useAIChatStreamHandler.ts):
+- **Event handlers**: handleRunStarted, handleRunResponse, handleRunCompleted, handleRunError
+- **Tool call handlers**: handleToolCallStarted, handleToolCallCompleted
+- **Reasoning handlers**: handleReasoningStep untuk reasoning steps
+- **State synchronization**: Real-time update messages dengan streaming chunks
+- **Error handling**: Comprehensive error handling untuk semua scenarios
+
+#### 4. Streaming Service (src/services/wassidikPenyidikStreamingService.ts):
+- **AGNO integration**: Full compatibility dengan AGNO streaming API
+- **Session management**: Persistent user ID dan session ID dengan Supabase auth
+- **File upload support**: Multi-file upload dengan streaming progress
+- **Event emitters**: Internal event system untuk streaming events
+- **Utility functions**: convertStreamingEventsToMessages untuk message conversion
+
+#### 5. Enhanced WassidikPenyidikChatPage:
+- **Progress tracking**: Real-time progress bars untuk file uploads
+- **File upload integration**: Multiple file support dengan preview dan removal
+- **Streaming compatibility**: Ready untuk integrasi dengan streaming hooks
+- **Enhanced UX**: Better error messages, loading states, dan user feedback
+
+### Key Features Implemented:
+
+#### Streaming Event Handling:
+- **RunStarted**: Initialize session, set streaming state, save session history
+- **RunResponse**: Append content incrementally, update tools/metadata, prevent duplication
+- **RunCompleted**: Finalize message content, complete metadata, stop streaming
+- **RunError**: Mark message as error, display error message, cleanup session
+
+#### Advanced Features:
+- **Tool Call Tracking**: Real-time tool call status dan results
+- **Reasoning Steps**: Live reasoning process display
+- **Media Support**: Images, videos, audio dalam streaming response
+- **Reference Tracking**: Source documents dan citations
+- **Session Persistence**: LocalStorage untuk chat history
+
+#### Error Handling dan Resilience:
+- **Network errors**: Automatic retry dengan exponential backoff
+- **Parse errors**: Graceful fallback untuk malformed JSON
+- **Timeout handling**: Configurable timeouts untuk large files
+- **Authentication**: Proper API key dan Supabase auth integration
+
+### Benefits:
+- **Real-time response**: Streaming chat dengan immediate feedback
+- **Better UX**: Progress indicators, file upload, error handling
+- **Scalable architecture**: Modular hooks dan services
+- **Type safety**: Full TypeScript support dengan proper interfaces
+- **Production ready**: Comprehensive error handling dan logging
+
+### Files Created/Modified:
+- **src/types/playground.ts**: Complete types untuk streaming
+- **src/stores/PlaygroundStore.ts**: Zustand store management
+- **src/hooks/streaming/useAIResponseStream.ts**: Core streaming hook
+- **src/hooks/playground/useChatActions.ts**: Chat utility functions
+- **src/hooks/playground/useAIChatStreamHandler.ts**: Main streaming handler
+- **src/services/wassidikPenyidikStreamingService.ts**: Streaming service layer
+- **src/components/ui/WassidikPenyidikChatPage.tsx**: Enhanced dengan progress tracking
+
+### Status:
+✅ **COMPLETED** - AGNO streaming fully integrated dengan comprehensive event handling, state management, dan enhanced UX
+
+### Final Cleanup:
+- **Unused Imports Removed**: Cleaned up wassidikPenyidikStreamingService.ts by removing unused imports (ToolCall, MediaContent, ExtraData)
+- **API Key Authentication Fix**: Fixed 403 Forbidden error by adding proper API key authentication to useAIResponseStream.ts headers (X-API-Key with VITE_API_KEY and Supabase Authorization Bearer token)
+- **Event Types Fix**: Fixed streaming events not being recognized by updating RunEvent enum values from snake_case to PascalCase to match AGNO API format (RunResponse, ToolCallStarted, etc.) and added missing UpdatingMemory event
+- **Stream Completion Fix**: Fixed ERR_INCOMPLETE_CHUNKED_ENCODING error by treating it as normal completion, separated ReasoningCompleted from RunCompleted handlers, and improved graceful completion handling
+- **Content Preservation Fix**: Fixed RunCompleted handler to preserve accumulated content when final content is undefined, preventing "No content received" when streaming was successful
+- **HTTP 400 Error Fix**: Enhanced FormData parameter validation and error handling with proper agent_id, monitor, session_id, user_id parameters and descriptive error messages for common HTTP errors
+
+### Implementation Notes:
+- **Zustand Store**: Successfully installed dan configured untuk state management
+- **TypeScript Integration**: All types properly defined dengan full type safety
+- **Hook Architecture**: Modular hooks dengan proper dependency management
+- **Error Handling**: Comprehensive error handling untuk network, parsing, dan timeout scenarios
+- **File Upload Support**: Multi-file upload dengan progress tracking
+- **Session Management**: Persistent sessions dengan localStorage integration
+- **Real-time Updates**: Live streaming dengan proper buffer parsing dan event routing
+
+### Ready for Production:
+- All linter errors resolved
+- Proper TypeScript typing throughout
+- Comprehensive error handling
+- Modular and maintainable architecture
+- Full AGNO API compatibility
+
+### ✅ IMPLEMENTED TO WASSIDIKPENYIDIKCHATPAGE:
+- **Streaming Integration**: WassidikPenyidikChatPage successfully updated to use streaming hooks
+- **Store Integration**: Using usePlaygroundStore for state management
+- **Hook Integration**: handleStreamResponse from useAIChatStreamHandler
+- **Message Format**: Updated to PlaygroundChatMessage format (role: 'user'|'agent')
+- **File Upload**: Maintained file upload functionality with FormData
+- **Progress Tracking**: Maintained progress indication for large files
+- **Session Management**: Using streaming session functions
+- **UI Compatibility**: All UI elements working with streaming data
+- **Error Handling**: Proper error handling for streaming failures
+- **TypeScript**: All type errors resolved, full type safety
+- **Browser Compatibility**: Fixed require() issue in useChatActions.ts for browser environment
+- **API Endpoint**: Fixed endpoint from `/run` to `/runs` for AGNO API compatibility
+
+---
 
 ## Task: Optimisasi Hero Section UndangUndang.tsx - COMPLETED ✅
 
