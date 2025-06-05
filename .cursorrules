@@ -67,6 +67,24 @@ The goal is to help you maintain a big picture as well as the progress of the ta
   * Search entry point tersedia di: `groundingMetadata?.searchEntryPoint`
   * Referensi: https://ai.google.dev/gemini-api/docs/grounding?lang=javascript
 
+## ReactMarkdown Integration Lessons
+
+- **Use inline component definitions**: Define components directly in the components prop for better type safety
+- **Component format example**:
+  ```typescript
+  components={{
+    h1: ({ children, ...props }) => (
+      <h1 className="text-2xl font-bold" {...props}>
+        {children}
+      </h1>
+    ),
+    // other components...
+  }}
+  ```
+- **Error prevention**: "Element type is invalid" errors typically occur when passing objects instead of React components
+- **Debugging tip**: If ReactMarkdown fails, check that all component values are actual React component functions
+- **Avoid helper functions**: ReactMarkdown components prop expects actual React components, not objects or helper function results
+
 ## API Integration Lessons
 
 - When using FormData for file uploads, don't set Content-Type header manually - let browser handle it
@@ -769,6 +787,139 @@ const API_KEY = 'AIzaSyBf4_0ll5H7OMs7yAtgXO1LWVAWhOcbJmo'; // NEVER DO THIS!
    ```
 
 # Scratchpad
+
+## Task: Optimisasi Hero Section UndangUndang.tsx - COMPLETED ✅
+
+### Deskripsi:
+User melaporkan bahwa hero section dengan gradient background terlalu besar dan membuat pengguna tidak fokus melihat ke agen yang tersedia sebagai konten utama.
+
+### Masalah yang Ditemukan:
+- **Hero section terlalu dominan**: Mengalihkan perhatian dari agen-agen AI yang seharusnya menjadi fokus utama
+- **Visual hierarchy tidak optimal**: Hero yang terlalu besar membuat konten agen kurang menonjol
+- **UX tidak efisien**: User harus scroll banyak untuk melihat agen yang tersedia
+
+### Solusi yang Diimplementasikan:
+
+#### 1. Compact Header Design:
+- **Reduced height**: Dari py-16 lg:py-24 menjadi py-8 yang lebih kompak
+- **Simplified content**: Menghilangkan elemen statistik yang tidak terlalu penting
+- **Clean background**: Menggunakan white background dengan subtle border
+
+#### 2. Content-First Approach:
+- **Focus on agents**: Membuat agen menjadi focal point utama halaman
+- **Better visual hierarchy**: Header yang lebih kecil membuat agen lebih visible
+- **Improved spacing**: Menyesuaikan spacing untuk transisi yang smooth
+
+#### 3. Streamlined UI Elements:
+- **Simplified branding**: Tetap professional tapi tidak overwhelming
+- **Essential information only**: Hanya menampilkan judul dan deskripsi singkat
+- **Clean design**: Menghilangkan decorative elements yang berlebihan
+
+#### 4. Better User Flow:
+- **Immediate access**: User bisa langsung melihat agen tanpa scroll banyak
+- **Clear purpose**: Langsung menunjukkan bahwa ini adalah halaman untuk memilih agen
+- **Reduced cognitive load**: Less visual noise, more focus on content
+
+### Benefits:
+- **Better UX**: User langsung fokus ke agen yang tersedia
+- **Improved conversion**: Lebih mudah untuk user memilih dan menggunakan agen
+- **Cleaner design**: Visual yang lebih professional dan fokus
+- **Mobile friendly**: Header yang kompak lebih baik untuk mobile experience
+
+### Status:
+✅ **COMPLETED** - Hero section telah dioptimisasi untuk memberikan fokus yang lebih baik pada agen-agen AI
+
+---
+
+## Previous Completed Tasks:
+
+## Task: Perbaikan Welcome Message dan SkeletonMessage Layout di PiketSpktChatPage - COMPLETED ✅
+
+### Deskripsi:
+User melaporkan bahwa pada fungsi analisis di PiketSpktChatPage.tsx, SkeletonMessage menutupi elemen lain saat di mobile, dan welcome message dengan contoh pertanyaan tidak hilang saat user mensubmit pertanyaan.
+
+### Masalah yang Ditemukan:
+- **Welcome Message Persistence**: Welcome message dan contoh pertanyaan tidak hilang setelah user submit pertanyaan
+- **SkeletonMessage Layout Issue**: SkeletonMessage menutupi elemen lain di mobile karena layout yang bermasalah
+- **Conditional Rendering**: Logic kondisi untuk menampilkan welcome screen vs chat messages tidak tepat
+
+### Solusi yang Diimplementasikan:
+
+#### 1. Fixed Welcome Message Logic:
+- **Added processing condition**: Menambahkan `!isProcessing` ke kondisi welcome screen agar hilang saat processing
+- **Cleaner conditions**: Welcome screen hanya muncul saat tidak ada task completed dan tidak sedang processing
+
+#### 2. Restructured Chat Messages Layout:
+- **Separated processing indicator**: Memisahkan SkeletonMessage dari dalam chat messages loop
+- **Container restructure**: Membuat container terpisah untuk chat messages dan processing indicator
+- **Better responsive layout**: Layout yang lebih responsive dan tidak saling menumpuk
+
+#### 3. Improved Message Rendering:
+- **Removed nested conditions**: Menghapus kondisi SkeletonMessage di dalam message loop
+- **Cleaner message flow**: Setiap message di-render tanpa conditional loading di dalamnya
+- **Separate loading state**: Loading indicator terpisah dari message content
+
+#### 4. Mobile Layout Fixes:
+- **No overlapping elements**: SkeletonMessage tidak lagi menutupi elemen lain
+- **Proper spacing**: Spacing yang konsisten untuk mobile dan desktop
+- **Responsive containers**: Container yang responsive untuk semua ukuran layar
+
+### Benefits:
+- **Better UX**: Welcome message hilang dengan benar saat user mulai chat
+- **Mobile Friendly**: Layout yang tidak overlap dan responsive di mobile
+- **Clean Rendering**: Proses loading yang jelas dan terpisah dari content
+- **Consistent Behavior**: Behavior yang konsisten across different screen sizes
+
+### Status:
+✅ **COMPLETED** - Welcome message logic dan SkeletonMessage layout telah diperbaiki untuk pengalaman mobile yang lebih baik
+
+---
+
+## Previous Completed Tasks:
+
+## Task: Perbaikan ReactMarkdown Error di PiketSpktChatPage - COMPLETED ✅
+
+### Deskripsi:
+User melaporkan error "Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: object" yang terjadi di komponen AnalysisMarkdown dalam PiketSpktChatPage.tsx.
+
+### Masalah yang Ditemukan:
+- **Invalid Component Type**: Fungsi `createComponentProps` menghasilkan objek yang tidak kompatibel dengan ReactMarkdown
+- **ReactMarkdown Expectations**: ReactMarkdown mengharapkan komponen React yang sebenarnya, bukan objek konfigurasi
+- **Helper Function Issue**: Helper function `createComponentProps` tidak menghasilkan format yang benar
+
+### Solusi yang Diimplementasikan:
+
+#### 1. Replaced createComponentProps with Inline Components:
+- **Direct component definition**: Mengganti `createComponentProps()` dengan definisi komponen langsung
+- **Proper React components**: Menggunakan arrow functions yang mengembalikan JSX elements
+- **Type safety**: Implementasi dengan proper TypeScript typing untuk props
+
+#### 2. Fixed Component Structure:
+- **h1 component**: Dengan styling border-bottom dan proper spacing
+- **a component**: Dengan target="_blank" dan proper link styling  
+- **p, strong, em, hr**: Masing-masing dengan styling yang sesuai
+- **Proper prop spreading**: Menggunakan `{ children, ...props }` pattern
+
+#### 3. Cleaned Up Imports:
+- **Removed unused import**: Menghapus import `createComponentProps` yang sudah tidak dipakai
+- **Maintained config**: Tetap menggunakan `analysisMarkdownConfig` untuk class names dan plugins
+
+#### 4. Removed Unused Helper Function:
+- **Deleted createComponentProps**: Menghapus fungsi yang tidak digunakan sepenuhnya dari codebase
+- **Clean codebase**: Tidak ada lagi kode yang tidak terpakai (dead code)
+
+### Benefits:
+- **Error Resolution**: Mengatasi "Element type is invalid" error sepenuhnya
+- **Better Type Safety**: Komponen inline lebih type-safe dan mudah debug
+- **Performance**: Tidak ada overhead dari helper function yang bermasalah
+- **Maintainability**: Kode lebih eksplisit dan mudah dimodifikasi
+
+### Status:
+✅ **COMPLETED** - ReactMarkdown error telah diperbaiki dengan menggunakan inline component definitions
+
+---
+
+## Previous Completed Tasks:
 
 ## Task: Perbaikan Loading Animation Responsiveness di WassidikPenyidikChatPage - COMPLETED ✅
 

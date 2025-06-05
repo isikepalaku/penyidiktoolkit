@@ -6,7 +6,7 @@ import { Textarea } from './textarea';
 import { AnimatedBotIcon } from './animated-bot-icon';
 import { SkeletonMessage } from '@/components/chat/SkeletonMessage';
 import ReactMarkdown from 'react-markdown';
-import { analysisMarkdownConfig, createComponentProps } from '@/utils/markdownFormatter';
+import { analysisMarkdownConfig } from '@/utils/markdownFormatter';
 import { printDocument, downloadDocument } from '@/utils/documentExport';
 
 import { sendChatMessage, clearChatHistory, initializeSession } from '@/services/piketSpktService';
@@ -449,7 +449,36 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
       <ReactMarkdown
         remarkPlugins={analysisMarkdownConfig.remarkPlugins}
         className={analysisMarkdownConfig.className}
-        components={createComponentProps(analysisMarkdownConfig.components)}
+        components={{
+          h1: ({ children, ...props }) => (
+            <h1 className="text-2xl font-bold text-blue-800 mb-4 flex items-center gap-2 border-b-2 border-blue-200 pb-2 mt-8 first:mt-0" {...props}>
+              {children}
+            </h1>
+          ),
+          a: ({ children, ...props }) => (
+            <a className="text-blue-600 hover:text-blue-800 underline font-medium" target="_blank" rel="noopener noreferrer" {...props}>
+              {children}
+            </a>
+          ),
+          p: ({ children, ...props }) => (
+            <p className="text-gray-700 leading-relaxed mb-4" {...props}>
+              {children}
+            </p>
+          ),
+          strong: ({ children, ...props }) => (
+            <strong className="text-gray-900 font-semibold" {...props}>
+              {children}
+            </strong>
+          ),
+          em: ({ children, ...props }) => (
+            <em className="text-gray-600 italic" {...props}>
+              {children}
+            </em>
+          ),
+          hr: ({ children, ...props }) => (
+            <hr className="border-blue-200 my-8" {...props} />
+          )
+        }}
       >
         {content}
       </ReactMarkdown>
@@ -637,8 +666,8 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
           ref={chatContainerRef}
           className="flex-1 overflow-y-auto p-4 space-y-4"
         >
-          {/* Show welcome screen only when no task completed and first message is empty */}
-          {messages.length === 1 && messages[0].content === '' && !isTaskCompleted ? (
+          {/* Show welcome screen only when no messages (excluding empty welcome message) and no task completed */}
+          {messages.length === 1 && messages[0].content === '' && !isTaskCompleted && !isProcessing ? (
             // Welcome screen
             <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
@@ -740,22 +769,21 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
               </div>
             </div>
           ) : (
-            // Chat messages
-            messages.slice(1).map((message, index) => (
-              <div key={index} className="chat-message">
-                {message.type === 'user' ? (
-                  <div className="flex justify-end">
-                    <div className="bg-blue-600 text-white rounded-lg px-4 py-2 max-w-[85%] lg:max-w-[75%] break-words">
-                      <p className="whitespace-pre-wrap">{message.content}</p>
+            // Chat messages container
+            <div className="space-y-4">
+              {/* Chat messages - skip the first empty welcome message */}
+              {messages.slice(1).map((message, index) => (
+                <div key={index} className="chat-message">
+                  {message.type === 'user' ? (
+                    <div className="flex justify-end">
+                      <div className="bg-blue-600 text-white rounded-lg px-4 py-2 max-w-[85%] lg:max-w-[75%] break-words">
+                        <p className="whitespace-pre-wrap">{message.content}</p>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="flex items-start space-x-3">
-                    <AnimatedBotIcon className="w-5 h-5 flex-shrink-0 mt-1" />
-                    <div className="flex-1 min-w-0">
-                      {isProcessing && index === messages.slice(1).length - 1 ? (
-                        <SkeletonMessage fullWidth={true} />
-                      ) : (
+                  ) : (
+                    <div className="flex items-start space-x-3">
+                      <AnimatedBotIcon className="w-5 h-5 flex-shrink-0 mt-1" />
+                      <div className="flex-1 min-w-0">
                         <div className="space-y-2">
                           <div className="bg-gray-50 rounded-lg px-4 py-2 text-sm text-gray-700">
                             {message.content}
@@ -766,18 +794,18 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
                             </span>
                           </div>
                         </div>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-          
-          {/* Processing indicator */}
-          {isProcessing && (
-            <div className="flex items-start space-x-3 w-full">
-              <SkeletonMessage fullWidth={true} className="w-full" />
+                  )}
+                </div>
+              ))}
+              
+              {/* Processing indicator - separate from messages */}
+              {isProcessing && (
+                <div className="flex items-start space-x-3">
+                  <SkeletonMessage fullWidth={true} />
+                </div>
+              )}
             </div>
           )}
           

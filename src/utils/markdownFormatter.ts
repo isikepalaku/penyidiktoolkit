@@ -341,22 +341,3 @@ export const analysisMarkdownConfig: MarkdownConfig = {
   remarkPlugins: [remarkGfm]
 };
 
-/**
- * TypeScript type for ReactMarkdown component props
- */
-export type MarkdownComponentProps = Record<string, Record<string, string | React.CSSProperties>>;
-
-/**
- * Helper function to create component mappings with class names
- * This is a pure TypeScript function that transforms our component configuration
- * into the format required by ReactMarkdown's components prop
- * 
- * @param components - Record of component configurations with className and other attributes
- * @returns An object that can be passed to ReactMarkdown's components prop
- */
-export const createComponentProps = (components: Record<string, { className: string } & Record<string, string>>): MarkdownComponentProps => {
-  return Object.entries(components).reduce((acc, [key, props]) => {
-    acc[key] = props;
-    return acc;
-  }, {} as MarkdownComponentProps);
-};
