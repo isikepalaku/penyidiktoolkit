@@ -210,10 +210,8 @@ export default function PenyidikAi() {
   const selectedAgentData = agents.find(agent => agent.id === selectedAgent);
 
   const handleBack = () => {
-    // Konfirmasi jika user ingin keluar
-    if (window.confirm('Apakah Anda yakin ingin keluar dari percakapan ini? Semua percakapan akan hilang.')) {
-      setSelectedAgent(null);
-    }
+    // Pesan tersimpan otomatis, tidak perlu konfirmasi
+    setSelectedAgent(null);
   };
 
   const handleReset = () => {

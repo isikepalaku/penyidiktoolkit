@@ -1425,6 +1425,122 @@ User melaporkan bahwa **animasi baru muncul setelah final output dan kemudian me
 
 ---
 
+## Task: Perbaikan File Upload di AGNO Streaming Service - COMPLETED ✅
+
+### Deskripsi:
+User melaporkan bahwa upload file di wassidikPenyidikStreamingService.ts tidak bekerja, sedangkan implementasi di wassidikPenyidikService.ts berfungsi dengan baik.
+
+### Masalah yang Ditemukan:
+- **Endpoint salah**: Streaming service menggunakan `run` untuk non-file, seharusnya `runs`
+- **Header tidak optimal**: Menggunakan `text/event-stream` untuk file upload yang mungkin tidak kompatibel
+- **Response handling kurang**: Tidak menangani mixed response (JSON untuk file upload, streaming untuk chat biasa)
+- **Progress tracking hilang**: Tidak ada progress callback untuk file upload
+- **Error handling terbatas**: Tidak menangani error spesifik file upload
+- **Parsing response kurang**: Tidak menangani RunResponse format dari API
+
+### Solusi yang Diimplementasikan:
+
+#### 1. Fixed Endpoint dan Headers:
+- **Perbaikan endpoint**: Menggunakan `runs` untuk non-file (sebelumnya `run`)
+- **Dynamic headers**: Menggunakan `application/json` untuk file upload, `text/event-stream` untuk chat biasa
+- **Enhanced authentication**: Menambahkan logging untuk API key status
+
+#### 2. Mixed Response Handling:
+- **JSON detection**: Mendeteksi `content-type: application/json` untuk file upload responses
+- **RunResponse parsing**: Mengimplementasikan `parseResponse` function untuk menangani RunResponse format
+- **Event conversion**: Mengkonversi JSON response ke streaming events (RunStarted, RunResponse, RunCompleted)
+- **Content extraction**: Extract content dari format kompleks API response
+
+#### 3. Progress Tracking Implementation:
+- **Progress callbacks**: Menambahkan `onProgress` event emitter seperti di service yang bekerja
+- **Upload phases**: Progress tracking untuk preparing, uploading, processing, completed
+- **File upload indicators**: Progress update khusus untuk file upload scenarios
+- **Error completion**: Mark progress as completed bahkan saat error untuk UX consistency
+
+#### 4. Enhanced Error Handling:
+- **HTTP status codes**: Menangani 429 (rate limit), 413 (file too large), 500+ (server errors)
+- **File-specific errors**: Error messages yang spesifik untuk file upload issues
+- **Parse error handling**: Graceful handling untuk JSON parsing errors
+- **Progress completion**: Proper progress completion pada error scenarios
+
+#### 5. Detailed Logging Implementation:
+- **File details**: Log nama, ukuran, dan tipe file seperti di service yang bekerja
+- **FormData tracking**: Log semua parameter FormData untuk debugging
+- **Response analysis**: Log content type dan response format detection
+- **Error context**: Enhanced error logging dengan konteks yang jelas
+
+#### 6. Response Format Compatibility:
+- **RunResponse format**: Menangani format response `RunResponse(content='...', content_type=...)` dari API
+- **Content extraction**: Extract content menggunakan string parsing dan regex fallback
+- **Backward compatibility**: Tetap kompatibel dengan format response lama
+- **Source documents**: Preserve sourceDocuments dari response
+
+### Benefits:
+- **File upload compatibility**: File upload sekarang bekerja dengan streaming architecture
+- **Mixed mode support**: Mendukung JSON response untuk file upload dan streaming untuk chat
+- **Progress transparency**: User mendapat feedback progress yang jelas untuk file upload
+- **Error clarity**: Error messages yang lebih informatif dan spesifik
+- **Debugging capability**: Comprehensive logging untuk troubleshooting
+- **Response flexibility**: Menangani berbagai format response dari API
+
+### Files Modified:
+- **src/services/wassidikPenyidikStreamingService.ts**: Enhanced dengan file upload support, progress tracking, error handling, dan response parsing
+- **.cursorrules**: Documentation update
+
+### Technical Implementation Details:
+- **Dynamic Accept headers**: `application/json` untuk file upload, `text/event-stream` untuk streaming
+- **Response cloning**: Clone response untuk parsing tanpa mengganggu stream reading
+- **Event emission**: Convert JSON responses ke streaming events untuk consistency
+- **Progress phases**: preparing → uploading → processing → completed
+- **Content extraction**: Smart parsing dari RunResponse format dengan string manipulation dan regex
+- **Error propagation**: Proper error handling dengan progress completion
+
+### Status:
+✅ **COMPLETED** - File upload di wassidikPenyidikStreamingService.ts sekarang berfungsi dengan mixed mode (JSON untuk file upload, streaming untuk chat biasa), progress tracking yang lengkap, dan error handling yang comprehensive.
+
+#### 7. Enhanced Based on Agent UI Documentation:
+- **FormData pattern alignment**: Mengikuti pattern Agent UI dengan `formData.append("session_id", sessionId ?? "")`
+- **Parameter order optimization**: Menyesuaikan urutan parameter FormData dengan best practices
+- **Session handling improvement**: Allow empty session_id untuk new sessions sesuai Agent UI pattern
+- **Debug logging enhancement**: Menambahkan detailed FormData logging untuk troubleshooting
+- **Type safety fixes**: Memperbaiki type errors dengan proper null handling
+
+### Files Modified:
+- **src/services/wassidikPenyidikStreamingService.ts**: Enhanced dengan file upload support, progress tracking, error handling, response parsing, dan alignment dengan Agent UI documentation
+- **src/components/ui/WassidikPenyidikChatPage.tsx**: Updated accept attribute untuk mendukung semua format file Agno
+- **.cursorrules**: Documentation update
+
+#### 8. Enhanced File Support Based on Agno Documentation:
+- **Complete file format support**: Updated accept attribute dari `.pdf,.jpg,.jpeg,.png` menjadi `.pdf,.csv,.txt,.docx,.json,.png,.jpeg,.jpg,.webp` sesuai dokumentasi Agno
+- **Document formats**: Menambahkan dukungan untuk CSV, TXT, DOCX, JSON files
+- **Image formats**: Menambahkan dukungan untuk WEBP format
+- **User guidance**: Updated placeholder text untuk menunjukkan semua format yang didukung
+- **Agno compatibility**: Endpoint `runs-with-files` sudah sesuai dengan dokumentasi Agno Agent UI
+
+#### 9. Critical File Upload Fix Based on siberService.ts Comparison:
+- **Root cause identified**: streaming service menggunakan `stream: 'true'` untuk file upload, sedangkan seharusnya `stream: 'false'`
+- **Fixed stream parameter**: File upload menggunakan `stream: 'false'`, chat biasa menggunakan `stream: 'true'`
+- **Simplified response handling**: File upload selalu return JSON response, tidak perlu complex mixed mode handling
+- **Headers alignment**: File upload menggunakan `Accept: application/json`, streaming menggunakan `Accept: text/event-stream`
+- **Mode detection**: Clear distinction antara `file_upload_json` mode dan `chat_streaming` mode
+- **Following siberService pattern**: Mengikuti pattern yang sudah terbukti bekerja di siberService.ts
+
+### Status:
+✅ **COMPLETED** - File upload di wassidikPenyidikStreamingService.ts sekarang berfungsi dengan mixed mode (JSON untuk file upload, streaming untuk chat biasa), progress tracking yang lengkap, error handling yang comprehensive, dan sesuai dengan pattern Agent UI documentation serta dukungan file format lengkap sesuai dokumentasi Agno. **Critical fix: menggunakan `stream: 'false'` untuk file upload dan `stream: 'true'` untuk chat biasa seperti di siberService.ts yang bekerja.**
+
+#### 10. File Upload Functionality Removal:
+- **User request**: Upload file functionality tidak bekerja dengan benar dan diminta untuk dihapus
+- **Service simplification**: wassidikPenyidikStreamingService.ts disederhanakan menjadi chat-only service 
+- **Removed components**: File upload parameter, progress tracking, file handling logic, mixed response mode
+- **Simplified interface**: `sendStreamingChatMessage(message: string, onEvent?)` tanpa files parameter
+- **Clean implementation**: Fokus pada streaming chat functionality saja
+- **UI cleanup**: File upload UI dan state management dihapus dari WassidikPenyidikChatPage.tsx
+
+### Status:
+✅ **COMPLETED** - File upload functionality telah dihapus dari Wassidik AI. Service dan UI sekarang fokus pada chat functionality saja.
+
+---
+
 ## Previous Completed Tasks:
 
 ## Task: Perbaikan Error Gemini API INVALID_ARGUMENT - COMPLETED ✅

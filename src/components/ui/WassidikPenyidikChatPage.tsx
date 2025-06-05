@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, Copy, Check, Loader2, Info, RefreshCw, Paperclip, File, X as XIcon, Database, Trash2 } from 'lucide-react';
+import { ArrowLeft, Send, Copy, Check, Loader2, Info, RefreshCw, Database, Trash2 } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { Button } from './button';
 import { Textarea } from './textarea';
@@ -7,7 +7,6 @@ import { DotBackground } from './DotBackground';
 import { formatMessage } from '@/utils/markdownFormatter';
 import useAIChatStreamHandler from '@/hooks/playground/useAIChatStreamHandler';
 import { usePlaygroundStore } from '@/stores/PlaygroundStore';
-import { PlaygroundChatMessage } from '@/types/playground';
 import StreamingStatus from './StreamingStatus';
 import { 
   clearStreamingChatHistory,
@@ -29,17 +28,11 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
   const [showInfo, setShowInfo] = useState(false);
   const [showStorageInfo, setShowStorageInfo] = useState(false);
   const [storageStats, setStorageStats] = useState<any>(null);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [progress, setProgress] = useState<{status: string, percent: number}>({
-    status: 'preparing',
-    percent: 0
-  });
-  const [showProgress, setShowProgress] = useState(false);
+  // File upload functionality removed
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const isSessionInitialized = useRef<boolean>(false);
 
   // Effect untuk inisialisasi session sekali saat komponen di-mount
@@ -86,22 +79,7 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
     textarea.style.height = `${textarea.scrollHeight}px`;
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const filesArray = Array.from(e.target.files);
-      setSelectedFiles(prev => [...prev, ...filesArray]);
-    }
-  };
-
-  const handleRemoveFile = (indexToRemove: number) => {
-    setSelectedFiles(prev => prev.filter((_, index) => index !== indexToRemove));
-  };
-
-  const handleOpenFileDialog = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
+  // File handling functions removed
 
   const handleStorageCleanup = () => {
     if (window.confirm('Apakah Anda yakin ingin membersihkan data lama? Data yang sudah dihapus tidak bisa dikembalikan.')) {
@@ -111,42 +89,7 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
     }
   };
 
-  // Progress Bar Component
-  const ProgressBar = ({ percent = 0, status = 'uploading' }) => {
-    const getStatusText = () => {
-      switch (status) {
-        case 'preparing': return 'Mempersiapkan...';
-        case 'uploading': return 'Mengunggah file...';
-        case 'processing': return 'Memproses dokumen...';
-        case 'completed': return 'Selesai!';
-        default: return 'Memproses...';
-      }
-    };
-    
-    const getColor = () => {
-      switch (status) {
-        case 'completed': return 'bg-green-500';
-        case 'processing': return 'bg-blue-500';
-        case 'uploading': return 'bg-amber-500';
-        default: return 'bg-blue-500';
-      }
-    };
-    
-    return (
-      <div className="w-full mb-3">
-        <div className="flex justify-between items-center mb-1">
-          <span className="text-sm font-medium text-gray-700">{getStatusText()}</span>
-          <span className="text-sm font-medium text-gray-700">{percent}%</span>
-        </div>
-        <div className="w-full bg-gray-200 rounded-full h-2.5">
-          <div 
-            className={`h-2.5 rounded-full ${getColor()} transition-all duration-500 ease-in-out`} 
-            style={{ width: `${percent}%` }}
-          ></div>
-        </div>
-      </div>
-    );
-  };
+  // Progress Bar component removed
 
   // Storage Stats Component
   const StorageStatsDisplay = () => {
@@ -222,30 +165,17 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
   };
 
   const handleSendMessage = async () => {
-    // Enhanced validation: check message length and content quality
+    // Simple validation - only text messages now
     const trimmedMessage = inputMessage.trim();
     
-    // Allow submission if there are files selected, even if inputMessage is empty
-    if ((selectedFiles.length === 0 && !trimmedMessage) || isLoading) return;
+    if (!trimmedMessage || isLoading) return;
     
-    // Validate message length if no files
-    if (selectedFiles.length === 0 && trimmedMessage.length < 3) {
+    // Validate message length
+    if (trimmedMessage.length < 3) {
       alert('Pesan terlalu pendek. Minimal 3 karakter.');
       return;
     }
 
-    // Prepare final message content
-    let userMessageContent = trimmedMessage;
-    if (!userMessageContent && selectedFiles.length > 0) {
-      userMessageContent = "Tolong analisis file yang saya kirimkan.";
-    }
-    
-    // Final validation: ensure we have meaningful content
-    if (!userMessageContent || userMessageContent.length < 3) {
-      alert('Pesan tidak valid. Harap masukkan pertanyaan yang jelas.');
-      return;
-    }
-    
     // Clear input and reset height immediately
     setInputMessage('');
     if (textareaRef.current) {
@@ -253,53 +183,17 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
       textareaRef.current.blur();
     }
 
-    // Check if any file is large (> 5MB) for progress indication
-    const hasLargeFile = selectedFiles.some(file => file.size > 5 * 1024 * 1024);
-    if (hasLargeFile) {
-      setShowProgress(true);
-      setProgress({ status: 'uploading', percent: 10 });
-    }
-
-    // Log file sizes if files are selected
-    if (selectedFiles.length > 0) {
-      console.log('Uploading files:');
-      selectedFiles.forEach((file, index) => {
-        console.log(`File ${index + 1}: ${file.name} - ${(file.size / 1024 / 1024).toFixed(2)}MB`);
-      });
-    }
-
     try {
-      // Prepare FormData for streaming
-      const formData = new FormData();
-      formData.append('message', userMessageContent);
-      
-      // Add files to FormData if any
-      if (selectedFiles.length > 0) {
-        selectedFiles.forEach(file => {
-          formData.append('files', file);
-        });
-      }
-
-      // Debug FormData sebelum send
-      console.log('📤 Sending FormData from UI:', {
-        message: userMessageContent.substring(0, 100) + (userMessageContent.length > 100 ? '...' : ''),
-        message_length: userMessageContent.length,
-        files_count: selectedFiles.length,
-        has_files: selectedFiles.length > 0
+      // Debug message sebelum send
+      console.log('📤 Sending message from UI:', {
+        message: trimmedMessage.substring(0, 100) + (trimmedMessage.length > 100 ? '...' : ''),
+        message_length: trimmedMessage.length
       });
 
-      // Use streaming handler
-      await handleStreamResponse(formData);
-      
-      // Reset selected files after successful send
-      setSelectedFiles([]);
-      setShowProgress(false);
+      // Use streaming handler with simple text message
+      await handleStreamResponse(trimmedMessage);
     } catch (error) {
       console.error('Error sending message:', error);
-      
-      // Reset files on error too
-      setSelectedFiles([]);
-      setShowProgress(false);
     } finally {
       // Focus the textarea after sending
       if (textareaRef.current) {
@@ -333,8 +227,6 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
         // Clear messages using store
         const { setMessages } = usePlaygroundStore.getState();
         setMessages([]);
-        setSelectedFiles([]);
-        setShowProgress(false);
       } catch (error) {
         console.error('Error resetting chat:', error);
       }
@@ -471,22 +363,7 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
               </div>
             )}
 
-            {/* Progress Bar */}
-            {showProgress && (
-              <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4 shadow-sm">
-                <ProgressBar 
-                  percent={progress.percent} 
-                  status={progress.status}
-                />
-                <p className="text-xs text-gray-500 italic">
-                  {progress.status === 'uploading' 
-                    ? 'Mengunggah file besar memerlukan waktu, mohon jangan refresh halaman.' 
-                    : progress.status === 'processing'
-                    ? 'AI sedang menganalisis dokumen, proses ini mungkin memerlukan beberapa menit untuk file besar.'
-                    : 'Sedang memproses...'}
-                </p>
-              </div>
-            )}
+            {/* Progress Bar removed */}
 
             {/* Chat Messages */}
             {messages.map((message, index) => {
@@ -606,27 +483,7 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
       {/* Input area fixed at bottom */}
       <div className="border-t border-gray-200 bg-white p-4 md:px-8 pb-safe">
         <div className="max-w-5xl mx-auto px-4 md:px-8">
-          {/* File Preview Area */}
-          {selectedFiles.length > 0 && (
-            <div className="mb-3 flex flex-wrap gap-2">
-              {selectedFiles.map((file, index) => (
-                <div 
-                  key={index}
-                  className="bg-purple-50 border border-purple-200 rounded-lg px-3 py-1 flex items-center gap-2 text-sm text-purple-700"
-                >
-                  <File className="w-4 h-4" />
-                  <span className="truncate max-w-[150px]">{file.name}</span>
-                  <button 
-                    onClick={() => handleRemoveFile(index)}
-                    className="text-purple-500 hover:text-purple-700"
-                    aria-label="Hapus file"
-                  >
-                    <XIcon className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
+          {/* File Preview Area removed */}
 
           <div className="relative">
             <Textarea
@@ -634,39 +491,18 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
               rows={1}
               value={inputMessage}
               onChange={handleInputChange}
-              placeholder="Ketik pesan Anda atau upload file..."
-              className="resize-none pr-20 py-3 pl-12 max-h-[200px] rounded-xl border-gray-300 focus:border-purple-500 focus:ring-purple-500 shadow-sm overflow-y-auto"
+              placeholder="Ketik pesan Anda..."
+              className="resize-none pr-14 py-3 pl-4 max-h-[200px] rounded-xl border-gray-300 focus:border-purple-500 focus:ring-purple-500 shadow-sm overflow-y-auto"
               disabled={isLoading}
               data-chat-input="true"
             />
             
-            {/* File Upload Button */}
-            <button
-              type="button"
-              onClick={handleOpenFileDialog}
-              disabled={isLoading}
-              className="absolute left-2 bottom-3 p-2 rounded-lg text-gray-500 hover:text-purple-500 hover:bg-purple-50 transition-colors"
-              aria-label="Upload file"
-            >
-              <Paperclip className="w-5 h-5" />
-            </button>
-
-            {/* Hidden file input */}
-            <input 
-              type="file" 
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              className="hidden"
-              multiple
-              accept=".pdf,.jpg,.jpeg,.png"
-            />
-            
             <Button
               onClick={handleSendMessage}
-              disabled={isLoading || (selectedFiles.length === 0 && !inputMessage.trim())}
+              disabled={isLoading || !inputMessage.trim()}
               className={cn(
                 "absolute right-2 bottom-3 p-2 rounded-lg",
-                isLoading || (selectedFiles.length === 0 && !inputMessage.trim())
+                isLoading || !inputMessage.trim()
                   ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                   : "bg-purple-600 text-white hover:bg-purple-700"
               )}

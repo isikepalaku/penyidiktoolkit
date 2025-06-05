@@ -27,6 +27,8 @@ let currentUserId: string | null = null;
 type StreamEventCallback = (event: RunResponse) => void;
 let streamEventCallbacks: StreamEventCallback[] = [];
 
+// Progress tracking removed for simplified chat-only service
+
 export const onStreamEvent = (callback: StreamEventCallback) => {
   streamEventCallbacks.push(callback);
   return () => {
@@ -39,6 +41,8 @@ const emitStreamEvent = (event: RunResponse) => {
     callback(event);
   });
 };
+
+// parseResponse function removed - not needed for streaming chat only
 
 /**
  * Fungsi untuk mem-parse buffer streaming dan mengekstrak JSON RunResponse yang lengkap
@@ -155,18 +159,22 @@ export interface StreamingChatResponse {
  */
 export const sendStreamingChatMessage = async (
   message: string, 
-  files?: File[],
   onEvent?: (event: RunResponse) => void
 ): Promise<StreamingChatResponse> => {
   try {
-    // Generate or retrieve session ID
-    if (!currentSessionId || !currentUserId) {
+    // Generate or retrieve user ID (required)
+    if (!currentUserId) {
       await initializeStreamingSession();
     }
     
-    // Double-check after initialization
-    if (!currentSessionId || !currentUserId) {
-      throw new Error('Tidak dapat menginisialisasi session atau user ID');
+    // Double-check user ID after initialization
+    if (!currentUserId) {
+      throw new Error('Tidak dapat menginisialisasi user ID');
+    }
+    
+    // Session ID can be empty for new sessions, following Agent UI pattern
+    if (!currentSessionId) {
+      console.log('No session ID found, will be created by API');
     }
     
     console.log('Starting streaming chat request');
@@ -174,28 +182,24 @@ export const sendStreamingChatMessage = async (
     const formData = new FormData();
     
     // Pastikan selalu ada pesan yang dikirim
-    const messageToSend = message.trim() || 
-      (files && files.length > 0 ? "Tolong analisis file yang saya kirimkan." : "");
+    const messageToSend = message.trim();
+    if (!messageToSend) {
+      throw new Error('Pesan tidak boleh kosong');
+    }
     
+    // Append FormData parameters - chat only mode
     formData.append('message', messageToSend);
     formData.append('agent_id', AGENT_ID);
-    formData.append('stream', 'true');
-    formData.append('monitor', 'false');
-    formData.append('session_id', currentSessionId);
+    formData.append('stream', 'true'); // Always streaming for chat
+    formData.append('session_id', currentSessionId || '');
     formData.append('user_id', currentUserId);
-    
-    // Tambahkan file ke formData jika disediakan
-    if (files && files.length > 0) {
-      files.forEach((file, index) => {
-        console.log(`Adding file ${index + 1}: ${file.name} - ${(file.size / 1024 / 1024).toFixed(2)}MB`);
-        formData.append('files', file);
-      });
-    }
+    formData.append('monitor', 'false');
 
+    // Set headers untuk streaming
     const headers: HeadersInit = {
+      'X-User-ID': currentUserId,
       'Accept': 'text/event-stream',
       'Cache-Control': 'no-cache',
-      'X-User-ID': currentUserId,
     };
     
     // Menambahkan informasi autentikasi
@@ -206,13 +210,24 @@ export const sendStreamingChatMessage = async (
     
     if (API_KEY) {
       headers['X-API-Key'] = API_KEY;
+      console.log('Using API key for authentication');
+    } else {
+      console.warn('No API key provided, request may fail');
     }
 
-    // Gunakan endpoint yang mendukung streaming
-    const endpoint = files && files.length > 0 ? 'runs-with-files' : 'run';
-    const url = `${API_BASE_URL}/v1/playground/agents/${AGENT_ID}/${endpoint}`;
+    // Gunakan endpoint streaming untuk chat
+    const url = `${API_BASE_URL}/v1/playground/agents/${AGENT_ID}/runs`;
     
     console.log('Sending streaming request to:', url);
+    
+    // Debug message info
+    console.log('Request summary:', {
+      message_length: messageToSend.length,
+      session_id: currentSessionId || '[EMPTY]',
+      user_id: currentUserId,
+      is_authenticated: currentUserId.startsWith('anon_') ? false : true,
+      mode: 'chat_streaming'
+    });
 
     // Setup AbortController untuk timeout
     const controller = new AbortController();
@@ -232,8 +247,20 @@ export const sendStreamingChatMessage = async (
 
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('Error response:', response.status, errorText);
+        
+        if (response.status === 429) {
+          throw new Error('Terlalu banyak permintaan. Silakan tunggu beberapa saat sebelum mencoba lagi.');
+        }
+        
+        if (response.status === 413) {
+          throw new Error('File terlalu besar. Harap gunakan file dengan ukuran lebih kecil.');
+        }
+        
         throw new Error(`Stream request failed: ${response.status} ${response.statusText}. ${errorText}`);
       }
+
+      // Handle streaming response only (no file uploads)
 
       if (!response.body) {
         throw new Error('Response body is null - streaming not supported');
@@ -298,7 +325,7 @@ export const sendStreamingChatMessage = async (
 
       return {
         success: true,
-        sessionId: currentSessionId
+        sessionId: currentSessionId || undefined
       };
 
     } catch (fetchError) {
