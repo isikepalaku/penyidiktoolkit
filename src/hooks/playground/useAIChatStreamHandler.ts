@@ -389,8 +389,10 @@ export default function useAIChatStreamHandler() {
   /**
    * Fungsi utama untuk menangani streaming response
    * @param input - Input string atau FormData yang akan dikirim ke API
+   * @param files - Optional files to upload
+   * @param agentId - Optional agent ID override (default: 'wassidik-chat')
    */
-  const handleStreamResponse = useCallback(async (input: string | FormData) => {
+  const handleStreamResponse = useCallback(async (input: string | FormData, files?: File[], agentId?: string) => {
     console.log('Starting stream response handling');
     
     setIsStreaming(true);
@@ -466,13 +468,13 @@ export default function useAIChatStreamHandler() {
     try {
       // Setup API endpoint
       const API_BASE_URL = env.apiUrl || 'https://api.reserse.id';
-      const agentId = 'wassidik-chat';
-      const playgroundRunUrl = `${API_BASE_URL}/v1/playground/agents/${agentId}/runs`;
+      const currentAgentId = agentId || 'wassidik-chat';
+      const playgroundRunUrl = `${API_BASE_URL}/v1/playground/agents/${currentAgentId}/runs`;
       
       // Pastikan parameter wajib ada (sesuai dengan wassidikPenyidikService.ts)
       // Cek apakah parameter sudah ada untuk mencegah duplikasi
       if (!formData.has('agent_id')) {
-        formData.append('agent_id', agentId);
+        formData.append('agent_id', currentAgentId);
       }
       if (!formData.has('stream')) {
         formData.append('stream', 'true');  // untuk streaming
@@ -501,7 +503,7 @@ export default function useAIChatStreamHandler() {
       }
       
       console.log('🔧 Request parameters:', {
-        agent_id: agentId,
+        agent_id: currentAgentId,
         stream: 'true',
         monitor: 'false',
         session_id: currentSessionId,
@@ -539,7 +541,7 @@ export default function useAIChatStreamHandler() {
       
       console.log('🔍 Final parameter validation:', {
         message_length: messageValue?.length || 0,
-        agent_id_valid: agentIdValue === 'wassidik-chat',
+        agent_id_valid: agentIdValue === currentAgentId,
         stream_value: streamValue,
         session_id: sessionIdValue || '[EMPTY - NEW SESSION]',
         is_new_session: !sessionIdValue || (typeof sessionIdValue === 'string' && sessionIdValue.trim() === ''),

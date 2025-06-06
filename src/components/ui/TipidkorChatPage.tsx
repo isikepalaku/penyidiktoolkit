@@ -1,287 +1,314 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, Copy, Check, Loader2, Info, X, RefreshCw, ChevronDown, AlertCircle, Clock } from 'lucide-react';
+import { ArrowLeft, Send, Copy, Check, Loader2, Info, RefreshCw, Database, Trash2 } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { Button } from './button';
 import { Textarea } from './textarea';
-import { AnimatedBotIcon } from './animated-bot-icon';
+
 import { DotBackground } from './DotBackground';
-import { sendChatMessage, initializeSession, clearChatHistory } from '@/services/tipidkorService';
+
 import { formatMessage } from '@/utils/markdownFormatter';
+import useAIChatStreamHandler from '@/hooks/playground/useAIChatStreamHandler';
+import { usePlaygroundStore } from '@/stores/PlaygroundStore';
+import StreamingStatus from '@/hooks/streaming/StreamingStatus';
+import { 
+  clearTipidkorStreamingChatHistory,
+  initializeTipidkorStreamingSession
+} from '@/services/tipidkorStreamingService';
+import { getStorageStats, forceCleanup } from '@/stores/PlaygroundStore';
 
-interface Message {
-  content: string;
-  type: 'user' | 'bot';
-  timestamp: Date;
-  sourceDocuments?: Array<{
-    pageContent: string;
-    metadata: Record<string, string>;
-  }>;
-  error?: boolean;
-  isAnimating?: boolean;
-  isRateLimit?: boolean;
-}
 
-// Skeleton component for loading state - improved with more realistic structure
-const SkeletonMessage = () => (
-  <div className="flex items-start space-x-3">
-    <AnimatedBotIcon className="w-5 h-5 flex-shrink-0 mt-1" />
-    <div className="flex-1 space-y-3 py-1">
-      <p className="text-xs text-gray-500 italic mb-2">Sedang menyusun hasil...</p>
-      <div className="space-y-3 animate-pulse">
-        {/* First paragraph-like block */}
-        <div className="space-y-2">
-          <div className="h-4 bg-gray-300 rounded w-full"></div>
-          <div className="h-4 bg-gray-300 rounded w-[90%]"></div>
-          <div className="h-4 bg-gray-300 rounded w-[95%]"></div>
-        </div>
-        
-        {/* Second paragraph with space between */}
-        <div className="space-y-2">
-          <div className="h-4 bg-gray-300 rounded w-[85%]"></div>
-          <div className="h-4 bg-gray-300 rounded w-[70%]"></div>
-        </div>
-        
-        {/* Simulated list items */}
-        <div className="pl-4 space-y-2">
-          <div className="flex items-start">
-            <div className="h-3 w-3 mt-0.5 rounded-full bg-gray-300 mr-2 flex-shrink-0"></div>
-            <div className="h-4 flex-grow bg-gray-300 rounded w-[90%]"></div>
-          </div>
-          <div className="flex items-start">
-            <div className="h-3 w-3 mt-0.5 rounded-full bg-gray-300 mr-2 flex-shrink-0"></div>
-            <div className="h-4 flex-grow bg-gray-300 rounded w-[80%]"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-);
+
+
 
 interface TipidkorChatPageProps {
   onBack?: () => void;
 }
 
 const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      content: '',
-      type: 'bot',
-      timestamp: new Date(),
-    }
-  ]);
+  // Use streaming hooks and store
+  const { handleStreamResponse } = useAIChatStreamHandler();
+  const { messages, isStreaming: isLoading, streamingStatus } = usePlaygroundStore();
   
   const [inputMessage, setInputMessage] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
-  const [hasError, setHasError] = useState(false);
-  const [isConnectionError, setIsConnectionError] = useState(false);
-  const [userHasScrolled, setUserHasScrolled] = useState(false);
-  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [showStorageInfo, setShowStorageInfo] = useState(false);
+  const [storageStats, setStorageStats] = useState<any>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const scrollTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const focusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isDesktopRef = useRef<boolean>(false);
+  const streamingStatusRef = useRef<HTMLDivElement>(null);
+  const isSessionInitialized = useRef<boolean>(false);
 
-  // Reusable function to adjust textarea height
-  const adjustTextareaHeight = (textarea: HTMLTextAreaElement | null) => {
-    if (!textarea) return;
-    
-    // Reset the height temporarily to get the correct scrollHeight
-    textarea.style.height = 'auto';
-    
-    // Set the height to match content
-    textarea.style.height = `${textarea.scrollHeight}px`;
-  };
-
+  // Effect untuk inisialisasi session dan clear store saat komponen di-mount
   useEffect(() => {
-    // Initialize chat session
-    try {
-      initializeSession();
-      
-      // Set empty welcome message to trigger welcome UI if tidak ada messages
-      if (messages.length === 0) {
-        setMessages([
-          {
-            content: '',
-            type: 'bot',
-            timestamp: new Date(),
-          }
-        ]);
-      }
-      
-      // Detect if desktop (for Enter key handling)
-      isDesktopRef.current = window.innerWidth >= 1024;
-      
-      // Focus textarea after component mounts with slight delay for mobile
-      focusTimeoutRef.current = setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.focus();
-          // Also initialize height
-          adjustTextareaHeight(textareaRef.current);
-        }
-      }, 500);
-    } catch (error) {
-      console.error('Error initializing session:', error);
-      setHasError(true);
+    if (isSessionInitialized.current) {
+      console.log('TIPIDKOR session already initialized, skipping');
+      return;
     }
 
-    // Error boundary untuk komponen ini
-    const handleError = (event: ErrorEvent) => {
-      console.error('Chat component error caught:', event.error);
-      setHasError(true);
-    };
-
-    window.addEventListener('error', handleError);
-
-    // Clean up on unmount
-    return () => {
-      window.removeEventListener('error', handleError);
-      try {
-        clearChatHistory();
-      } catch (error) {
-        console.error('Error clearing chat history:', error);
-      }
-      // Clear any hanging timeouts
-      if (focusTimeoutRef.current) {
-        clearTimeout(focusTimeoutRef.current);
-      }
-      if (scrollTimerRef.current) {
-        clearTimeout(scrollTimerRef.current);
-      }
-    };
+    try {
+      // Clear any existing messages from other agents
+      const { setMessages, resetStreamingStatus } = usePlaygroundStore.getState();
+      setMessages([]);
+      resetStreamingStatus();
+      console.log('🧹 TIPIDKOR: Cleared existing messages from store');
+      
+      // Initialize TIPIDKOR session
+      initializeTipidkorStreamingSession();
+      isSessionInitialized.current = true;
+      console.log('TIPIDKOR session initialized successfully');
+    } catch (error) {
+      console.error('Error initializing TIPIDKOR session:', error);
+    }
   }, []);
 
-  // Handle scroll detection
+  // Auto-focus management for better UX
   useEffect(() => {
-    const container = chatContainerRef.current;
-    if (!container) return;
-    
-    const handleScroll = () => {
-      if (!container) return;
-      
-      const { scrollTop, scrollHeight, clientHeight } = container;
-      const isScrolledToBottom = scrollHeight - scrollTop - clientHeight < 100;
-      
-      if (!isScrolledToBottom && !userHasScrolled) {
-        setUserHasScrolled(true);
-      }
-      
-      setShowScrollButton(!isScrolledToBottom);
-    };
-    
-    container.addEventListener('scroll', handleScroll);
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, [userHasScrolled]);
+    const isAnyStreamingActive = streamingStatus.isThinking || 
+                                streamingStatus.isCallingTool || 
+                                streamingStatus.isAccessingKnowledge || 
+                                streamingStatus.isUpdatingMemory;
 
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    if (messages.length > 0) {
-      // Reset scroll state when sending a new message
-      const lastMessage = messages[messages.length - 1];
-      if (lastMessage.type === 'user') {
-        setUserHasScrolled(false);
-      }
-      
-      // Only auto-scroll if user hasn't manually scrolled up
-      if (!userHasScrolled) {
-        scrollToBottom();
-      }
-    }
-  }, [messages, userHasScrolled]);
-
-  const scrollToBottom = (forceScroll = false) => {
-    try {
-      // Use requestAnimationFrame for smoother scrolling
-      requestAnimationFrame(() => {
-        if (chatContainerRef.current && (forceScroll || !userHasScrolled)) {
-          const { scrollHeight } = chatContainerRef.current;
-          
-          chatContainerRef.current.scrollTo({
-            top: scrollHeight,
-            behavior: 'smooth',
+    if (isLoading && isAnyStreamingActive) {
+      // Focus on streaming status area when streaming is active
+      const timer = setTimeout(() => {
+        if (streamingStatusRef.current) {
+          streamingStatusRef.current.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center',
+            inline: 'nearest'
           });
-          
-          // Fallback mechanism in case smooth scrolling doesn't work
-          if (scrollTimerRef.current) {
-            clearTimeout(scrollTimerRef.current);
-          }
-          
-          scrollTimerRef.current = setTimeout(() => {
-            if (chatContainerRef.current) {
-              chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+          console.log('🎯 TIPIDKOR Auto-focus: Scrolled to streaming status area -', {
+            thinking: streamingStatus.isThinking,
+            callingTool: streamingStatus.isCallingTool,
+            accessingKnowledge: streamingStatus.isAccessingKnowledge,
+            updatingMemory: streamingStatus.isUpdatingMemory
+          });
+        } else {
+          console.warn('🎯 TIPIDKOR Auto-focus: StreamingStatus ref not found');
+        }
+      }, 500); // Increased delay to ensure element is fully rendered
+      
+      return () => clearTimeout(timer);
+    } else if (!isLoading && streamingStatus.hasCompleted) {
+      // Return focus to input area when completed
+      const timer = setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'end',
+            inline: 'nearest'
+          });
+          // Additional delay before focusing to ensure scroll completes
+          setTimeout(() => {
+            if (textareaRef.current) {
+              textareaRef.current.focus();
             }
           }, 300);
-          
-          // Reset user scroll state if forced
-          if (forceScroll) {
-            setUserHasScrolled(false);
-            setShowScrollButton(false);
-          }
+          console.log('🎯 TIPIDKOR Auto-focus: Returned focus to input area after completion');
         }
-      });
-    } catch (error) {
-      console.error('Error scrolling to bottom:', error);
-      // Fallback direct scrolling
+      }, 1200); // Slightly increased delay to let user appreciate completion
+      
+      return () => clearTimeout(timer);
+    }
+  }, [
+    isLoading, 
+    streamingStatus.isThinking, 
+    streamingStatus.isCallingTool, 
+    streamingStatus.isAccessingKnowledge, 
+    streamingStatus.isUpdatingMemory, 
+    streamingStatus.hasCompleted
+  ]);
+
+  // Load storage stats when showing storage info
+  useEffect(() => {
+    if (showStorageInfo) {
+      const stats = getStorageStats();
+      setStorageStats(stats);
+    }
+  }, [showStorageInfo]);
+
+  // Setup progress tracking (simplified for streaming)
+  useEffect(() => {
+    // Progress tracking akan dihandle internal oleh streaming hooks
+    // Hanya perlu setup state untuk UI feedback
+  }, []);
+
+  // Auto-scroll to latest message (but don't interfere with streaming focus)
+  useEffect(() => {
+    const isAnyStreamingActive = streamingStatus.isThinking || 
+                                streamingStatus.isCallingTool || 
+                                streamingStatus.isAccessingKnowledge || 
+                                streamingStatus.isUpdatingMemory;
+    
+    // Only auto-scroll if not actively streaming (to avoid interfering with focus management)
+    if (!isLoading || !isAnyStreamingActive) {
       if (chatContainerRef.current) {
         chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
       }
     }
-  };
+  }, [messages, isLoading, streamingStatus.isThinking, streamingStatus.isCallingTool, 
+      streamingStatus.isAccessingKnowledge, streamingStatus.isUpdatingMemory]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputMessage(e.target.value);
-    // Use the reusable function to adjust height
-    adjustTextareaHeight(e.target);
+    // Adjust height dynamically
+    const textarea = e.target;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${textarea.scrollHeight}px`;
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Only use Enter to submit on desktop, not on mobile
-    if (isDesktopRef.current && e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
+  const handleStorageCleanup = () => {
+    if (window.confirm('Apakah Anda yakin ingin membersihkan data lama? Data yang sudah dihapus tidak bisa dikembalikan.')) {
+      const newStats = forceCleanup();
+      setStorageStats(newStats);
+      alert(`Cleanup selesai! Storage yang dibebaskan: ${newStats.usage}`);
     }
   };
-  
-  const handleScrollToBottom = () => {
-    scrollToBottom(true); // Force scroll to bottom
-  };
 
-  const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(text);
-    setTimeout(() => setCopied(null), 2000);
-  };
-
-
-
-  const handleRetry = () => {
-    setHasError(false);
-    setIsConnectionError(false);
+  // Storage Stats Component
+  const StorageStatsDisplay = () => {
+    if (!storageStats) return null;
     
-    // Reinitialize session
-    try {
-      initializeSession();
-    } catch (error) {
-      console.error('Error reinitializing session:', error);
+    return (
+      <div className="bg-red-50 border-l-4 border-red-500 p-4 m-4 shadow-sm rounded-md">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <Database className="h-5 w-5 text-red-500" />
+          </div>
+          <div className="ml-3 flex-1">
+            <h3 className="text-sm font-medium text-red-800">Statistik Penyimpanan</h3>
+            <div className="mt-2 text-sm text-red-700 space-y-2">
+              <div className="flex justify-between">
+                <span>Penggunaan Storage:</span>
+                <span className="font-medium">{storageStats.usage} / {storageStats.limit}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Persentase:</span>
+                <span className={cn("font-medium", 
+                  storageStats.percentage > 80 ? "text-red-600" : "text-red-600"
+                )}>
+                  {storageStats.percentage}%
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Session Tersimpan:</span>
+                <span className="font-medium">{storageStats.sessionCount}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Pesan Saat Ini:</span>
+                <span className="font-medium">{messages.length}</span>
+              </div>
+              
+              {/* Progress bar for storage usage */}
+              <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                <div 
+                  className={cn("h-2 rounded-full transition-all duration-300",
+                    storageStats.percentage > 80 ? "bg-red-500" : 
+                    storageStats.percentage > 60 ? "bg-yellow-500" : "bg-green-500"
+                  )}
+                  style={{ width: `${Math.min(storageStats.percentage, 100)}%` }}
+                ></div>
+              </div>
+              
+              {storageStats.isNearLimit && (
+                <div className="text-red-600 text-xs mt-2 font-medium">
+                  ⚠️ Storage hampir penuh! Pertimbangkan untuk membersihkan data lama.
+                </div>
+              )}
+            </div>
+            
+            <div className="mt-3 flex gap-2">
+              <button 
+                onClick={handleStorageCleanup}
+                className="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium text-red-600 hover:text-red-500 focus:outline-none"
+              >
+                <Trash2 className="w-3 h-3" />
+                Bersihkan Data Lama
+              </button>
+              <button 
+                className="text-xs font-medium text-red-600 hover:text-red-500 focus:outline-none"
+                onClick={() => setShowStorageInfo(false)}
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const handleSendMessage = async () => {
+    // Simple validation - only text messages now
+    const trimmedMessage = inputMessage.trim();
+    
+    if (!trimmedMessage || isLoading) return;
+    
+    // Validate message length
+    if (trimmedMessage.length < 3) {
+      alert('Pesan terlalu pendek. Minimal 3 karakter.');
+      return;
     }
+
+    // Clear input and reset height immediately
+    setInputMessage('');
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.blur();
+    }
+
+    try {
+      // Debug message sebelum send
+      console.log('📤 Sending TIPIDKOR message from UI:', {
+        message: trimmedMessage.substring(0, 100) + (trimmedMessage.length > 100 ? '...' : ''),
+        message_length: trimmedMessage.length
+      });
+
+      // Use streaming handler with tipidkor agent_id
+      await handleStreamResponse(trimmedMessage, [], 'tipidkor-chat');
+    } catch (error) {
+      console.error('Error sending TIPIDKOR message:', error);
+    } finally {
+      // Focus the textarea after sending (but streaming focus will take over during processing)
+      setTimeout(() => {
+        if (textareaRef.current && !isLoading) {
+          textareaRef.current.focus();
+        }
+      }, 100);
+    }
+  };
+
+  const handleCopy = (text: string, messageId: string) => {
+    navigator.clipboard.writeText(text).then(
+      () => {
+        setCopied(messageId);
+        setTimeout(() => {
+          setCopied(null);
+        }, 2000);
+      },
+      (err) => {
+        console.error('Could not copy text: ', err);
+      }
+    );
   };
 
   const handleChatReset = () => {
-    try {
-      clearChatHistory();
-      setMessages([{
-        content: '',
-        type: 'bot',
-        timestamp: new Date(),
-      }]);
-      setHasError(false);
-      setIsConnectionError(false);
-    } catch (error) {
-      console.error('Error resetting chat:', error);
+    if (window.confirm('Apakah Anda yakin ingin menghapus semua riwayat percakapan?')) {
+      try {
+        console.log('Resetting TIPIDKOR chat history but maintaining user identity');
+        clearTipidkorStreamingChatHistory();
+        initializeTipidkorStreamingSession();
+        console.log('TIPIDKOR session reinitialized with fresh session_id but same user_id');
+        
+        // Clear messages using store
+        const { setMessages } = usePlaygroundStore.getState();
+        setMessages([]);
+      } catch (error) {
+        console.error('Error resetting TIPIDKOR chat:', error);
+      }
     }
   };
 
@@ -295,153 +322,14 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
 
   const handleSelectQuestion = (question: string) => {
     setInputMessage(question);
-    // Focus and adjust height after setting content
     setTimeout(() => {
       if (textareaRef.current) {
         textareaRef.current.focus();
-        adjustTextareaHeight(textareaRef.current);
+        textareaRef.current.style.height = 'auto';
+        textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
       }
-    }, 10);
+    }, 100);
   };
-
-  const handleSubmit = async () => {
-    if (!inputMessage.trim() || isProcessing) return;
-
-    const userMessage: Message = {
-      content: inputMessage.trim(),
-      type: 'user',
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setInputMessage('');
-    // Reset textarea height after clearing input
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.blur(); // Hide keyboard on mobile
-    }
-    setIsProcessing(true);
-    setIsConnectionError(false);
-    // Reset scroll position state
-    setUserHasScrolled(false);
-
-    try {
-      // Add a placeholder bot message with animation
-      setMessages((prev) => [
-        ...prev,
-        {
-          content: '',
-          type: 'bot',
-          timestamp: new Date(),
-          isAnimating: true,
-        },
-      ]);
-
-      const response = await sendChatMessage(userMessage.content);
-
-      // Replace the placeholder with the actual response
-      setMessages((prev) => {
-        const newMessages = [...prev];
-        // Remove the last message (placeholder)
-        newMessages.pop();
-        
-        // Add the actual response
-        newMessages.push({
-          content: response.text,
-          type: 'bot',
-          timestamp: new Date(),
-          sourceDocuments: response.sourceDocuments,
-          error: !!response.error,
-        });
-        
-        return newMessages;
-      });
-    } catch (error) {
-      console.error('Error sending message:', error);
-      
-      // Check if it's a network error
-      const isNetworkError = error instanceof TypeError && 
-        (error.message.includes('network') || 
-         error.message.includes('fetch') || 
-         error.message.includes('Failed to fetch'));
-      
-      if (isNetworkError) {
-        setIsConnectionError(true);
-      }
-      
-      // Check if it's a rate limit error
-      const isRateLimitError = error instanceof Error && 
-        (error.message.includes('Terlalu banyak permintaan') || 
-         error.message.includes('429'));
-      
-      // Replace the placeholder with an error message
-      setMessages((prev) => {
-        const newMessages = [...prev];
-        // Remove the last message (placeholder)
-        newMessages.pop();
-        
-        // Add error message with enhanced styling
-        newMessages.push({
-          content: 'rate_limit_error', // Special marker for rate limit errors
-          type: 'bot',
-          timestamp: new Date(),
-          error: true,
-          isRateLimit: isRateLimitError || (!isNetworkError), // Assume rate limit unless clearly network error
-        });
-        
-        return newMessages;
-      });
-    } finally {
-      setIsProcessing(false);
-      // Focus the textarea after sending
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-      }
-    }
-  };
-
-  // Render error states
-  if (hasError) {
-    return (
-      <div className="fixed inset-0 z-20 bg-white lg:pl-64 flex flex-col">
-        <header className="flex items-center justify-between p-4 border-b border-gray-200 shadow-sm">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onBack}
-              className="rounded-full"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="font-semibold">TIPIDKOR AI</h1>
-              <p className="text-sm text-gray-600 hidden sm:block">Asisten untuk Tindak Pidana Korupsi</p>
-            </div>
-          </div>
-        </header>
-
-        <div className="flex flex-col items-center justify-center flex-1 p-6">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md text-center">
-            <X className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-red-700 mb-2">Terjadi Kesalahan</h2>
-            <p className="text-gray-700 mb-4">
-              Mohon maaf, terjadi kesalahan dalam sistem chat. Ini mungkin karena masalah server atau koneksi.
-            </p>
-            <div className="flex justify-center gap-3">
-              <Button onClick={handleRetry} className="gap-2">
-                <RefreshCw className="h-4 w-4" />
-                Coba Lagi
-              </Button>
-              <Button variant="outline" onClick={handleChatReset}>
-                Mulai Baru
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="fixed inset-0 z-20 bg-white lg:pl-64 flex flex-col">
@@ -465,6 +353,15 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
           <Button 
             variant="ghost" 
             size="icon" 
+            onClick={() => setShowStorageInfo(!showStorageInfo)}
+            className="text-gray-500"
+            title="Storage Info"
+          >
+            <Database className="h-5 w-5" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
             onClick={() => setShowInfo(!showInfo)}
             className="text-gray-500"
           >
@@ -481,6 +378,8 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
         </div>
       </header>
       
+      {showStorageInfo && <StorageStatsDisplay />}
+      
       {showInfo && (
         <div className="bg-red-50 border-l-4 border-red-500 p-4 m-4 shadow-sm rounded-md">
           <div className="flex">
@@ -491,6 +390,9 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
               <h3 className="text-sm font-medium text-red-800">Informasi TIPIDKOR AI</h3>
               <div className="mt-2 text-sm text-red-700">
                 <p>TIPIDKOR AI merupakan asisten kepolisian yang membantu dalam penanganan tindak pidana korupsi. Asisten ini dapat menjawab pertanyaan terkait pencegahan dan penindakan korupsi, regulasi anti-korupsi, dan terminologi korupsi.</p>
+                <p className="mt-2 text-xs">
+                  💡 Tip: Gunakan tombol database untuk melihat penggunaan storage dan membersihkan data lama.
+                </p>
               </div>
               <button 
                 className="mt-2 text-sm font-medium text-red-600 hover:text-red-500 focus:outline-none"
@@ -506,11 +408,12 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
       <div 
         ref={chatContainerRef}
         className="flex-1 overflow-y-auto overscroll-contain pb-32 pt-4"
+        data-chat-container="true"
       >
         <DotBackground>
           <div className="max-w-5xl mx-auto px-4 md:px-8 space-y-6">
             {/* Welcome Message - Bold TIPIDKOR AI in center */}
-            {messages.length <= 1 && messages[0].content === '' && (
+            {messages.length === 0 && (
               <div className="flex flex-col items-center justify-center h-[50vh] text-center">
                 <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-4">
                   <img 
@@ -527,7 +430,7 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
             )}
 
             {/* Example Questions - only show at the beginning */}
-            {messages.length <= 1 && (
+            {messages.length === 0 && (
               <div className="space-y-4">
                 <h3 className="text-sm font-medium text-gray-500">Contoh pertanyaan:</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -544,162 +447,160 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
               </div>
             )}
 
-            {/* Connection Error Banner */}
-            {isConnectionError && (
-              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md mb-4">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <Info className="h-5 w-5 text-yellow-400" />
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-yellow-700">
-                      Terdeteksi masalah koneksi. Pastikan Anda terhubung ke internet dan coba lagi.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Chat Messages */}
-            {messages.map((message, index) => (
-              // Hanya tampilkan message dengan content (kecuali animating placeholder)
-              (message.content || message.isAnimating) && (
+            {messages.map((message, index) => {
+              // Check if this is an agent message that is currently streaming
+              const isLastMessage = index === messages.length - 1;
+              const hasMinimalContent = !message.content || message.content.trim().length < 50;
+              const isStreamingMessage = message.role === 'agent' && 
+                                       isLastMessage && 
+                                       isLoading &&
+                                       (hasMinimalContent || 
+                                        streamingStatus.isThinking || 
+                                        streamingStatus.isCallingTool || 
+                                        streamingStatus.isAccessingKnowledge ||
+                                        streamingStatus.isUpdatingMemory);
+              
+              return (message.content || isStreamingMessage) && (
                 <div
-                  key={index}
-                  className={cn("flex", message.type === "user" ? "justify-end" : "justify-start")}
+                  key={message.id}
+                  className={cn("flex", message.role === "user" ? "justify-end" : "justify-start")}
                 >
-                  <div
-                    className={cn(
-                      "flex flex-col max-w-[90%] sm:max-w-[85%] md:max-w-[80%] lg:max-w-[75%]",
-                      message.type === "user"
-                        ? "bg-gray-100 text-gray-900 rounded-2xl px-4 py-3"
-                        : message.error
-                        ? "bg-red-50 text-gray-800 rounded-2xl px-4 py-3 border border-red-200"
-                        : message.isAnimating
-                        ? "text-gray-800 w-full"
-                        : "text-gray-800"
+                  <div className={cn("flex gap-4", message.role === "user" ? "flex-row-reverse" : "flex-row")}>
+                    {message.role === 'agent' && (
+                      <div className="h-8 w-8 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                        <img 
+                          src="/img/krimsus.png"
+                          alt="TIPIDKOR AI"
+                          className="h-5 w-5 object-contain"
+                        />
+                      </div>
                     )}
-                  >
-                    {message.type === "bot" && !message.isAnimating ? (
-                      <>
-                        {message.content === 'rate_limit_error' ? (
-                          // Tampilan khusus untuk error rate limit
-                          <div className="space-y-3">
-                            <div className="flex items-start gap-3">
-                              <AlertCircle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
-                              <div>
-                                <h3 className="font-medium text-amber-800">Batas Permintaan Tercapai</h3>
-                                <p className="text-amber-700 mt-1">
-                                  Dengan bertumbuhnya pengguna, kami membatasi permintaan untuk menjaga kualitas layanan.
-                                </p>
+                    <div className={cn("max-w-[80%]", message.role === 'user' ? "order-first" : "")}>
+                      <div
+                        className={cn(
+                          "px-4 py-3 rounded-xl break-words",
+                          message.role === 'user'
+                            ? 'bg-red-600 text-white ml-auto'
+                            : 'bg-white border border-gray-200 text-gray-900'
+                        )}
+                      >
+                        {message.role === 'agent' ? (
+                          <div className="relative group">
+                            {/* Streaming Status for this specific message */}
+                            {isStreamingMessage && (
+                              <div 
+                                ref={streamingStatusRef} 
+                                className="mb-3 scroll-mt-4 transition-all duration-300"
+                              >
+                                <StreamingStatus 
+                                  isStreaming={true} 
+                                  streamingStatus={streamingStatus}
+                                  compact={true}
+                                />
                               </div>
-                            </div>
+                            )}
                             
-                            <div className="bg-amber-100 rounded-lg p-3 flex items-center gap-2 text-amber-800">
-                              <Clock className="h-4 w-4 flex-shrink-0" />
-                              <span className="text-sm">Silakan coba lagi dalam 2 menit.</span>
-                            </div>
-                            
-                            <p className="text-sm text-gray-600 italic pt-1">
-                              Terima kasih atas pengertian Anda. Kami terus meningkatkan infrastruktur kami untuk melayani Anda lebih baik.
-                            </p>
+                            {message.content ? (
+                              <div 
+                                className="prose prose-sm max-w-none
+                                          prose-headings:font-semibold prose-headings:text-gray-900 prose-headings:my-3
+                                          prose-h1:text-lg prose-h2:text-base prose-h3:text-sm
+                                          prose-p:my-2 prose-p:text-gray-800 prose-p:leading-relaxed
+                                          prose-ul:my-2 prose-ol:my-2 prose-li:my-1
+                                          prose-strong:font-semibold prose-strong:text-gray-900
+                                          prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline
+                                          prose-code:bg-gray-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm
+                                          [&_table]:w-full [&_table]:my-4 [&_table]:border-collapse
+                                          [&_th]:border-b [&_th]:border-gray-200 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-semibold [&_th]:text-gray-900 [&_th]:bg-gray-50
+                                          [&_td]:border-b [&_td]:border-gray-100 [&_td]:px-3 [&_td]:py-2 [&_td]:text-gray-800 [&_td]:align-top
+                                          [&_td]:break-words [&_td]:max-w-[300px]
+                                          [&_tr:last-child_td]:border-b-0"
+                                dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
+                              />
+                            ) : (
+                              // Placeholder for empty streaming message
+                              <div className="text-gray-400 text-sm italic">
+                                Sedang memproses...
+                              </div>
+                            )}
+                            {message.content && (
+                              <div className="flex justify-end mt-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 px-3"
+                                  onClick={() => handleCopy(message.content, message.id || '')}
+                                >
+                                  {copied === message.id ? (
+                                    <Check className="h-3.5 w-3.5 text-green-500" />
+                                  ) : (
+                                    <Copy className="h-3.5 w-3.5" />
+                                  )}
+                                  <span className="ml-2 text-xs">{copied === message.id ? "Disalin" : "Salin"}</span>
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         ) : (
-                          <div 
-                            className="prose prose-sm max-w-none
-                                      prose-headings:font-semibold prose-headings:text-gray-900 prose-headings:my-3
-                                      prose-h1:text-lg prose-h2:text-base prose-h3:text-sm
-                                      prose-p:my-2 prose-p:text-gray-800 prose-p:leading-relaxed
-                                      prose-ul:my-2 prose-ol:my-2 prose-li:my-1
-                                      prose-strong:font-semibold prose-strong:text-gray-900
-                                      prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline
-                                      prose-code:bg-gray-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm
-                                      [&_table]:w-full [&_table]:my-4 [&_table]:border-collapse
-                                      [&_th]:border-b [&_th]:border-gray-200 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-semibold [&_th]:text-gray-900 [&_th]:bg-gray-50
-                                      [&_td]:border-b [&_td]:border-gray-100 [&_td]:px-3 [&_td]:py-2 [&_td]:text-gray-800 [&_td]:align-top
-                                      [&_td]:break-words [&_td]:max-w-[300px]
-                                      [&_tr:last-child_td]:border-b-0"
-                            dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
-                          />
+                          <div className="whitespace-pre-wrap">{message.content}</div>
                         )}
-                        <div className="flex justify-start mt-3 pt-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 px-3 text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-                            onClick={() => handleCopy(message.content === 'rate_limit_error' ? 
-                              "Batas permintaan tercapai. Silakan coba lagi dalam 2 menit." : 
-                              message.content)}
-                          >
-                            {copied === message.content ? (
-                              <Check className="h-4 w-4 text-green-500" />
-                            ) : (
-                              <Copy className="h-4 w-4" />
-                            )}
-                            <span className="ml-2 text-xs">{copied === message.content ? "Disalin" : "Salin"}</span>
-                          </Button>
-                        </div>
-                      </>
-                    ) : message.isAnimating ? (
-                      <SkeletonMessage />
-                    ) : (
-                      <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-2 px-1">
+                        {message.created_at ? new Date(message.created_at * 1000).toLocaleTimeString('id-ID', { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        }) : ''}
+                      </div>
+                    </div>
+                    {message.role === 'user' && (
+                      <div className="h-8 w-8 bg-red-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                        <span className="text-white text-sm font-medium">U</span>
+                      </div>
                     )}
                   </div>
                 </div>
               )
-            ))}
+            })}
+
             <div ref={messagesEndRef} />
           </div>
         </DotBackground>
       </div>
 
-      {/* Scroll to bottom button */}
-      {showScrollButton && (
-        <button
-          onClick={handleScrollToBottom}
-          className="fixed bottom-28 right-4 md:right-8 z-20 bg-red-600 text-white p-2 rounded-full shadow-lg hover:bg-red-700 transition-all duration-200 flex items-center justify-center"
-          aria-label="Scroll ke bawah"
-        >
-          <ChevronDown className="h-5 w-5" />
-        </button>
-      )}
-
       {/* Input area fixed at bottom */}
       <div className="border-t border-gray-200 bg-white p-4 md:px-8 pb-safe">
         <div className="max-w-5xl mx-auto px-4 md:px-8">
-          <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="relative">
+          <div className="relative">
             <Textarea
               ref={textareaRef}
-              rows={1} // Start with one row
+              rows={1}
               value={inputMessage}
               onChange={handleInputChange}
-              onKeyDown={handleKeyDown}
               placeholder="Ketik pesan..."
-              className="resize-none pl-4 pr-12 py-3 max-h-[200px] rounded-xl border border-gray-300 focus:border-red-500 focus:ring-1 focus:ring-red-500 overflow-y-auto z-10"
-              disabled={isProcessing}
-              readOnly={false}
-              autoComplete="off"
+              className="resize-none pr-14 py-3 pl-4 max-h-[200px] rounded-xl border-gray-300 focus:border-red-500 focus:ring-red-500 shadow-sm overflow-y-auto"
+              disabled={isLoading}
+              data-chat-input="true"
             />
-            <Button 
-              type="button"
-              onClick={handleSubmit}
-              disabled={isProcessing || !inputMessage.trim()}
+            
+            <Button
+              onClick={handleSendMessage}
+              disabled={isLoading || !inputMessage.trim()}
               className={cn(
-                "absolute bottom-3 right-2.5 h-8 w-8 p-0 rounded-lg z-20",
-                isProcessing || !inputMessage.trim()
+                "absolute right-2 bottom-3 p-2 rounded-lg",
+                isLoading || !inputMessage.trim()
                   ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                   : "bg-red-600 text-white hover:bg-red-700"
               )}
               aria-label="Kirim pesan"
             >
-              {isProcessing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+              {isLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                <Send className="h-4 w-4" />
+                <Send className="w-5 h-5" />
               )}
             </Button>
-          </form>
+          </div>
           <p className="text-xs text-gray-500 mt-2 text-center">
             TIPIDKOR AI dapat memberikan informasi yang tidak akurat. Verifikasi fakta penting dengan dokumen resmi.
           </p>

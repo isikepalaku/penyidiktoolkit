@@ -39,16 +39,23 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
   // Effect untuk inisialisasi session sekali saat komponen di-mount
   useEffect(() => {
     if (isSessionInitialized.current) {
-      console.log('Session already initialized, skipping');
+      console.log('WASSIDIK session already initialized, skipping');
       return;
     }
 
     try {
+      // Clear any existing messages from other agents
+      const { setMessages, resetStreamingStatus } = usePlaygroundStore.getState();
+      setMessages([]);
+      resetStreamingStatus();
+      console.log('🧹 WASSIDIK: Cleared existing messages from store');
+      
+      // Initialize WASSIDIK session
       initializeStreamingSession();
       isSessionInitialized.current = true;
-      console.log('Session initialized successfully');
+      console.log('WASSIDIK session initialized successfully');
     } catch (error) {
-      console.error('Error initializing session:', error);
+      console.error('Error initializing WASSIDIK session:', error);
     }
   }, []);
 
