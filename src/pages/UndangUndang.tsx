@@ -3,6 +3,7 @@ import { Search, Scale, Sparkles } from 'lucide-react';
 import AgentCard from '../components/AgentCard';
 import KUHPChatPage from '../components/ui/KUHPChatPage';
 import UndangChatPage from '../components/ui/UndangChatPage';
+import P2SKChatPage from '../components/ui/P2SKChatPage';
 import ITEChatPage from '../components/ui/ITEChatPage';
 import CiptaKerjaChatPage from '../components/ui/CiptaKerjaChatPage';
 import KesehatanChatPage from '../components/ui/KesehatanChatPage';
@@ -45,7 +46,7 @@ export default function UndangUndang() {
   const agents: ExtendedAgent[] = [
     {
       id: 'kuhp_001',
-      name: 'KUHP AI',
+      name: 'Ahli Pidana',
       description: 'Ahli hukum AI untuk memahami Kitab Undang-Undang Hukum Pidana (KUHP)',
       type: 'kuhp_chat',
       status: 'on',
@@ -61,9 +62,9 @@ export default function UndangUndang() {
     },
     {
       id: 'p2sk_001',
-      name: 'P2SK AI',
-      description: 'Ahli hukum AI untuk memahami Undang-Undang Sektor Jasa Keuangan',
-      type: 'undang_chat',
+      name: 'Ahli OJK',
+      description: 'Ahli hukum AI untuk memahami regulasi Otoritas Jasa Keuangan dan sektor keuangan',
+      type: 'p2sk_chat',
       status: 'on',
       fields: []
     },
@@ -130,6 +131,12 @@ export default function UndangUndang() {
         return (
           <div className="fixed inset-0 z-20">
             <KUHAPChatPage onBack={handleBack} />
+          </div>
+        );
+      case 'p2sk_chat':
+        return (
+          <div className="fixed inset-0 z-20">
+            <P2SKChatPage onBack={handleBack} />
           </div>
         );
       case 'undang_chat':

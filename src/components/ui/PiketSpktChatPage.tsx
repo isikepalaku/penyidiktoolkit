@@ -475,7 +475,7 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
               {children}
             </em>
           ),
-          hr: ({ children, ...props }) => (
+          hr: ({ ...props }) => (
             <hr className="border-blue-200 my-8" {...props} />
           )
         }}
@@ -1002,4 +1002,4 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
   );
 };
 
-export default PiketSpktChatPage; 
+export default PiketSpktChatPage;

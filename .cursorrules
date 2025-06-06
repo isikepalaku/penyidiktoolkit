@@ -2286,3 +2286,250 @@ User meminta untuk mengubah tipidkorService.ts dan TipidkorChatPage.tsx menjadi 
 ---
 
 ## Previous Completed Tasks:
+
+## Task: Enhanced P2SK Service dengan File Upload Support - COMPLETED ✅
+
+### Deskripsi:
+User meminta untuk mengubah p2skService.ts agar dapat menerima file seperti siberService.ts dan merefaktor tampilan P2SKChatPage.tsx mengikuti style SiberChatPage.tsx yang dapat menerima file.
+
+### Perubahan yang Diimplementasikan:
+
+#### 1. Complete p2skService.ts Overhaul:
+- **File Upload Support**: Menambahkan parameter files dengan FormData handling
+- **Progress Tracking**: Implementasi onProgress callback dengan event emitter pattern
+- **Enhanced Retry Logic**: Meningkatkan MAX_RETRIES dari 3 ke 5 dan RETRY_DELAY ke 2000ms
+- **Large File Handling**: Special handling untuk file > 5MB dengan progress simulation
+- **Response Parsing**: Enhanced parseResponse untuk handle RunResponse format
+- **Error Handling**: Comprehensive error handling untuk file upload, network errors, dan rate limiting
+- **Timeout Handling**: Extended timeout ke 30 menit untuk file besar
+- **Dual Endpoint Support**: Menggunakan 'runs-with-files' untuk file upload, 'runs' untuk chat biasa
+- **Agent ID Configuration**: Menggunakan 'p2sk-chat' endpoint sesuai Ahli OJK branding
+- **Session Management**: Implementasi initializeSession dan clearChatHistory functions
+
+#### 2. Complete P2SKChatPage.tsx Refactor:
+- **Architecture Update**: Mengadopsi modern architecture dari SiberChatPage.tsx
+- **File Upload Integration**: 
+  * useFileUpload hook untuk state management
+  * File preview dengan blue-themed styling sesuai OJK branding
+  * Progress bar untuk upload tracking
+  * Multiple file support dengan accepted types (.pdf,.csv,.txt,.docx,.json,.png,.jpeg,.jpg,.webp)
+- **Enhanced UI Components**:
+  * DotBackground untuk visual enhancement
+  * ProgressBar untuk file upload feedback
+  * ErrorScreen untuk error state handling
+  * FileAttachments untuk displaying uploaded files
+  * SkeletonMessage untuk loading states
+- **Utility Functions Integration**:
+  * formatMessage dari markdownFormatter
+  * scrollToBottom, adjustTextareaHeight, focusTextareaWithDelay dari chatHelpers
+  * copyToClipboard, getErrorMessage dari chatHelpers
+- **Enhanced Error Handling**:
+  * Network error detection dan recovery
+  * Rate limit error dengan custom UI
+  * Connection error banner
+  * Session reinitialization
+- **Enhanced UX Features**:
+  * Chat reset functionality dengan RefreshCw button
+  * Session isolation dengan proper cleanup
+  * File size logging untuk debugging
+  * Smart focus management
+  * Blue-themed design sesuai OJK branding
+
+#### 3. Key Features Implemented:
+
+##### File Upload Capabilities:
+- **Multi-file Upload**: Support untuk multiple files dengan preview dan removal
+- **File Type Validation**: Accept berbagai format dokumen dan gambar
+- **Progress Tracking**: Real-time progress untuk file besar dengan status (preparing, uploading, processing, completed)
+- **File Size Handling**: Special handling untuk file > 5MB dengan progress simulation
+- **Error Recovery**: Graceful error handling untuk file terlalu besar, timeout, dan network issues
+
+##### Enhanced Chat Experience:
+- **Blue Theme Consistency**: Semua elemen UI menggunakan blue color scheme untuk konsistensi OJK branding
+- **Smart Input Handling**: Mendukung submission dengan file saja atau kombinasi text + file
+- **Session Management**: Proper session initialization dan cleanup
+- **Mobile Optimization**: Responsive design dengan proper textarea handling
+
+##### Error Handling & Recovery:
+- **Rate Limit UI**: Special UI untuk error rate limit dengan countdown timer
+- **Network Error Detection**: Automatic detection dan retry untuk network issues
+- **Session Recovery**: Ability untuk reinitialize session saat terjadi error
+- **Progress Completion**: Proper progress completion bahkan saat error
+
+#### 4. Code Quality Improvements:
+- **Type Safety**: Full TypeScript integration dengan proper interfaces
+- **Modern Hooks**: Menggunakan useFileUpload, utility functions, dan modern React patterns
+- **Component Separation**: Proper separation of concerns dengan dedicated components
+- **Consistent Styling**: Blue-themed styling konsisten across all UI elements
+- **Performance Optimization**: Efficient re-rendering dan proper cleanup
+
+### Benefits:
+- **Enhanced Functionality**: P2SK AI (Ahli OJK) sekarang mendukung file upload seperti agent modern lain
+- **Consistent Architecture**: Mengikuti pattern yang sama dengan service modern lain (siberService)
+- **Better User Experience**: Professional file upload experience dengan progress tracking
+- **Improved Error Handling**: Comprehensive error handling dengan user-friendly messages
+- **Professional Branding**: Blue-themed UI yang konsisten dengan OJK branding
+- **Code Maintainability**: Clean, modular code yang mudah di-maintain
+
+### Files Modified:
+- **src/services/p2skService.ts**: Complete overhaul dari re-export menjadi full service dengan file upload support
+- **src/components/ui/P2SKChatPage.tsx**: Complete refactor dengan file upload capabilities dan modern UI mengikuti SiberChatPage style
+- **.cursorrules**: Documentation update
+
+### Status:
+✅ **COMPLETED** - P2SK Service (Ahli OJK) successfully enhanced dengan comprehensive file upload functionality, modern architecture, enhanced error handling, dan blue-themed UI yang konsisten dengan OJK branding. Service sekarang mendukung multiple file types, progress tracking, session management, dan responsive design yang mengikuti standards aplikasi modern.
+
+---
+
+## Previous Completed Tasks:
+
+## Task: Update P2SK menjadi Ahli OJK - COMPLETED ✅
+
+### Deskripsi:
+User meminta untuk mengubah P2SKChatPage.tsx menjadi "Ahli OJK" dan mengubah card-nya, tanpa perlu mengubah endpoint karena sudah sesuai.
+
+### Perubahan yang Diimplementasikan:
+
+#### 1. Enhanced P2SKChatPage.tsx:
+- **Display Update**: Mengubah semua referensi "P2SK AI" menjadi "Ahli OJK"
+- **Header Update**: Mengubah judul dari "P2SK AI" ke "Ahli OJK" dan deskripsi menjadi "Otoritas Jasa Keuangan dan Regulasi"
+- **Info Panel**: Mengubah deskripsi menjadi fokus pada OJK dan regulasi sektor jasa keuangan
+- **Welcome Message**: Mengubah welcome message dan branding menjadi "Ahli OJK"
+- **Example Questions**: Mengubah contoh pertanyaan menjadi fokus pada regulasi OJK dan pengawasan sektor keuangan
+- **Footer**: Mengubah disclaimer menjadi "Ahli OJK memberikan informasi umum..."
+
+#### 2. Enhanced AgentCard.tsx:
+- **New Case**: Menambahkan case 'p2sk_chat' dengan text badge "Ahli OJK"
+- **Visual Design**: Menggunakan blue-themed badge (bg-blue-100, text-blue-600) dengan design yang professional
+- **Typography**: Font bold dengan line break untuk "Ahli<br/>OJK" dalam container 12x12
+
+#### 3. Type System Update:
+- **AgentType**: Menambahkan 'p2sk_chat' ke union type AgentType di types/index.ts
+- **Utils Update**: Mengubah getAgentTypeFromId untuk P2SK_CHAT dari 'undang_chat' menjadi 'p2sk_chat'
+
+#### 4. UndangUndang.tsx Integration:
+- **Agent Config**: Mengubah agent P2SK dari "P2SK AI" menjadi "Ahli OJK" dengan type 'p2sk_chat'
+- **Description Update**: Mengubah deskripsi menjadi fokus pada regulasi OJK
+- **Import Addition**: Menambahkan import P2SKChatPage
+- **Route Handler**: Menambahkan case 'p2sk_chat' di renderContent untuk menampilkan P2SKChatPage
+
+### Benefits:
+- **Professional Branding**: "Ahli OJK" branding yang lebih professional dan spesifik
+- **Clear Specialization**: Fokus yang jelas pada expertise OJK dan regulasi keuangan
+- **Consistent Type System**: Type system yang konsisten dengan agent type baru
+- **Updated UI**: Text badge yang professional untuk card display
+- **Enhanced User Experience**: Example questions dan messaging yang sesuai dengan domain OJK
+
+### Files Modified:
+- **src/components/ui/P2SKChatPage.tsx**: Complete rebranding dari P2SK AI ke Ahli OJK
+- **src/components/AgentCard.tsx**: Added case 'p2sk_chat' dengan "Ahli OJK" text badge
+- **src/types/index.ts**: Added 'p2sk_chat' to AgentType union
+- **src/utils/utils.ts**: Updated getAgentTypeFromId untuk P2SK_CHAT
+- **src/pages/UndangUndang.tsx**: Updated agent config, import, dan route handler
+- **.cursorrules**: Documentation update
+
+### Status:
+✅ **COMPLETED** - P2SK AI successfully transformed menjadi "Ahli OJK" dengan professional branding, updated agent type system, specialized content focusing pada regulasi OJK, dan integrated card display yang menampilkan text badge "Ahli OJK". Endpoint tetap sama (p2sk-chat) sesuai permintaan user.
+
+---
+
+## Task: Update KUHP Service ke Ahli Hukum Pidana dengan File Upload - COMPLETED ✅
+
+### Deskripsi:
+User meminta untuk mengganti endpoint kuhpService.ts menjadi "ahli-hukum-pidana", memodifikasi AgentCard.tsx untuk menyesuaikan KUHP AI menjadi "Ahli Pidana", dan menambahkan fungsi upload file pada KUHPChatPage.tsx mengikuti pola siberService.ts dan SiberChatPage.tsx.
+
+### Perubahan yang Diimplementasikan:
+
+#### 1. Enhanced kuhpService.ts:
+- **Endpoint Update**: Mengganti 'kuhp-chat' menjadi 'ahli-hukum-pidana' di seluruh service
+- **File Upload Support**: Menambahkan parameter files dengan FormData handling
+- **Progress Tracking**: Implementasi onProgress callback dengan event emitter pattern
+- **Enhanced Retry Logic**: Meningkatkan MAX_RETRIES dari 3 ke 5 dan RETRY_DELAY dari 1000ms ke 2000ms
+- **Large File Handling**: Special handling untuk file > 5MB dengan progress simulation
+- **Response Parsing**: Enhanced parseResponse untuk handle RunResponse format
+- **Error Handling**: Comprehensive error handling untuk file upload, network errors, dan rate limiting
+- **Timeout Handling**: Extended timeout dari 10 menit ke 30 menit untuk file besar
+- **Dual Endpoint Support**: Menggunakan 'runs-with-files' untuk file upload, 'runs' untuk chat biasa
+
+#### 2. Enhanced AgentCard.tsx:
+- **Display Update**: Mengubah case 'kuhp_chat' dari icon image menjadi text badge "Ahli Pidana"
+- **Visual Design**: Menggunakan rose-themed badge (bg-rose-100, text-rose-600) dengan rounded design
+- **Typography**: Font bold text-sm untuk readability yang optimal
+
+#### 3. Complete KUHPChatPage.tsx Refactor:
+- **Architecture Update**: Mengadopsi modern architecture dari SiberChatPage.tsx
+- **File Upload Integration**: 
+  * useFileUpload hook untuk state management
+  * File preview dengan rose-themed styling
+  * Progress bar untuk upload tracking
+  * Multiple file support dengan accepted types (.pdf,.csv,.txt,.docx,.json,.png,.jpeg,.jpg,.webp)
+- **Enhanced UI Components**:
+  * DotBackground untuk visual enhancement
+  * ProgressBar untuk file upload feedback
+  * ErrorScreen untuk error state handling
+  * FileAttachments untuk displaying uploaded files
+  * SkeletonMessage untuk loading states
+- **Utility Functions Integration**:
+  * formatMessage dari markdownFormatter
+  * scrollToBottom, adjustTextareaHeight, focusTextareaWithDelay dari chatHelpers
+  * copyToClipboard, getErrorMessage dari chatHelpers
+- **Enhanced Error Handling**:
+  * Network error detection dan recovery
+  * Rate limit error dengan custom UI
+  * Connection error banner
+  * Session reinitialization
+- **Enhanced UX Features**:
+  * Chat reset functionality dengan RefreshCw button
+  * Session isolation dengan proper cleanup
+  * File size logging untuk debugging
+  * Smart focus management
+  * Mobile-friendly design
+
+#### 4. Key Features Implemented:
+
+##### File Upload Capabilities:
+- **Multi-file Upload**: Support untuk multiple files dengan preview dan removal
+- **File Type Validation**: Accept berbagai format dokumen dan gambar
+- **Progress Tracking**: Real-time progress untuk file besar dengan status (preparing, uploading, processing, completed)
+- **File Size Handling**: Special handling untuk file > 5MB dengan progress simulation
+- **Error Recovery**: Graceful error handling untuk file terlalu besar, timeout, dan network issues
+
+##### Enhanced Chat Experience:
+- **Rose Theme Consistency**: Semua elemen UI menggunakan rose color scheme untuk konsistensi KUHP branding
+- **Smart Input Handling**: Mendukung submission dengan file saja atau kombinasi text + file
+- **Session Management**: Proper session initialization dan cleanup
+- **Mobile Optimization**: Responsive design dengan proper textarea handling
+
+##### Error Handling & Recovery:
+- **Rate Limit UI**: Special UI untuk error rate limit dengan countdown timer
+- **Network Error Detection**: Automatic detection dan retry untuk network issues
+- **Session Recovery**: Ability untuk reinitialize session saat terjadi error
+- **Progress Completion**: Proper progress completion bahkan saat error
+
+#### 5. Code Quality Improvements:
+- **Type Safety**: Full TypeScript integration dengan proper interfaces
+- **Modern Hooks**: Menggunakan useFileUpload, utility functions, dan modern React patterns
+- **Component Separation**: Proper separation of concerns dengan dedicated components
+- **Consistent Styling**: Rose-themed styling konsisten across all UI elements
+- **Performance Optimization**: Efficient re-rendering dan proper cleanup
+
+### Benefits:
+- **Enhanced Functionality**: KUHP AI sekarang mendukung file upload seperti agent lain
+- **Consistent Architecture**: Mengikuti pattern yang sama dengan service modern lain
+- **Better User Experience**: Professional file upload experience dengan progress tracking
+- **Improved Error Handling**: Comprehensive error handling dengan user-friendly messages
+- **Professional Branding**: "Ahli Pidana" branding yang lebih professional
+- **Code Maintainability**: Clean, modular code yang mudah di-maintain
+
+### Files Modified:
+- **src/services/kuhpService.ts**: Complete overhaul dengan file upload support dan enhanced error handling
+- **src/components/AgentCard.tsx**: Updated display untuk KUHP menjadi "Ahli Pidana" text badge
+- **src/components/ui/KUHPChatPage.tsx**: Complete refactor dengan file upload capabilities dan modern UI
+- **.cursorrules**: Documentation update
+
+### Status:
+✅ **COMPLETED** - KUHP AI successfully transformed menjadi "Ahli Hukum Pidana" dengan endpoint update, professional "Ahli Pidana" branding, dan comprehensive file upload functionality yang mengikuti pattern modern dari SiberChatPage.tsx. Service sekarang mendukung multiple file types, progress tracking, enhanced error handling, dan responsive design yang konsisten dengan standards aplikasi.
+
+---
+
+## Previous Completed Tasks:

@@ -42,7 +42,7 @@ export default function AgentCard({ agent, bgColor = '', className = '', popular
       case 'undang_chat':
         return <img src="/img/book.svg" alt="Google Scholar" className="h-12 w-12" />;
       case 'kuhp_chat':
-        return <img src="/img/book.svg" alt="Google Scholar" className="h-12 w-12" />;
+        return <img src="/img/ahli.svg" alt="Ahli Pidana" className="h-12 w-12" />;
       case 'kuhap_chat':
         return <img src="/img/book.svg" alt="KUHAP AI" className="h-12 w-12" />;
       case 'ite_chat':
@@ -79,6 +79,8 @@ export default function AgentCard({ agent, bgColor = '', className = '', popular
         return <img src="/img/Wikipedia.svg" alt="Encyclopedia" className="h-12 w-12" />;
       case 'laporan_intelejen':
         return <img src="/img/LOGO_INTELKAM_POLRI.svg" alt="Intelkam Polri" className="h-12 w-12" />;
+      case 'p2sk_chat':
+        return <img src="/img/ojk.svg" alt="OJK" className="h-12 w-12" />;
     }
   };
 

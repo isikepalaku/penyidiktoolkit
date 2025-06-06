@@ -94,7 +94,7 @@ export const getAgentTypeFromId = (id: string): AgentType | null => {
       return 'laporan_intelejen';
     // Chat agents
     case AGENT_IDS.P2SK_CHAT:
-      return 'undang_chat';
+      return 'p2sk_chat';
     case AGENT_IDS.KUHP_CHAT:
       return 'kuhp_chat';
     case AGENT_IDS.ITE_CHAT:

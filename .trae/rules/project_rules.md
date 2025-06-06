@@ -10,102 +10,40 @@ Also update the progress of the task in the Scratchpad when you finish a subtask
 Especially when you finished a milestone, it will help to improve your depth of task accomplishment to use the Scratchpad to reflect and plan.
 The goal is to help you maintain a big picture as well as the progress of the task. Always refer to the Scratchpad when you plan the next step.
 
-# Tools
+## Instructions for Using Graphiti's MCP Tools for Agent Memory
 
-Note all the tools are in python. So in the case you need to do batch processing, you can always consult the python files and write your own script.
+### Before Starting Any Task
 
-## Screenshot Verification
+- **Always search first:** Use the `search_nodes` tool to look for relevant preferences and procedures before beginning work.
+- **Search for facts too:** Use the `search_facts` tool to discover relationships and factual information that may be relevant to your task.
+- **Filter by entity type:** Specify `Preference`, `Procedure`, or `Requirement` in your node search to get targeted results.
+- **Review all matches:** Carefully examine any preferences, procedures, or facts that match your current task.
 
-The screenshot verification workflow allows you to capture screenshots of web pages and verify their appearance using LLMs. The following tools are available:
+### Always Save New or Updated Information
 
-1. Screenshot Capture:
-```bash
-venv/bin/python tools/screenshot_utils.py URL [--output OUTPUT] [--width WIDTH] [--height HEIGHT]
-```
+- **Capture requirements and preferences immediately:** When a user expresses a requirement or preference, use `add_episode` to store it right away.
+  - _Best practice:_ Split very long requirements into shorter, logical chunks.
+- **Be explicit if something is an update to existing knowledge.** Only add what's changed or new to the graph.
+- **Document procedures clearly:** When you discover how a user wants things done, record it as a procedure.
+- **Record factual relationships:** When you learn about connections between entities, store these as facts.
+- **Be specific with categories:** Label preferences and procedures with clear categories for better retrieval later.
 
-2. LLM Verification with Images:
-```bash
-venv/bin/python tools/llm_api.py --prompt "Your verification question" --provider {openai|anthropic} --image path/to/screenshot.png
-```
+### During Your Work
 
-Example workflow:
-```python
-from screenshot_utils import take_screenshot_sync
-from llm_api import query_llm
+- **Respect discovered preferences:** Align your work with any preferences you've found.
+- **Follow procedures exactly:** If you find a procedure for your current task, follow it step by step.
+- **Apply relevant facts:** Use factual information to inform your decisions and recommendations.
+- **Stay consistent:** Maintain consistency with previously identified preferences, procedures, and facts.
 
-# Take a screenshot
+### Best Practices
 
-screenshot_path = take_screenshot_sync('https://example.com', 'screenshot.png')
+- **Search before suggesting:** Always check if there's established knowledge before making recommendations.
+- **Combine node and fact searches:** For complex tasks, search both nodes and facts to build a complete picture.
+- **Use `center_node_uuid`:** When exploring related information, center your search around a specific node.
+- **Prioritize specific matches:** More specific information takes precedence over general information.
+- **Be proactive:** If you notice patterns in user behavior, consider storing them as preferences or procedures.
 
-# Verify with LLM
-
-response = query_llm(
-    "What is the background color and title of this webpage?",
-    provider="openai",  # or "anthropic"
-    image_path=screenshot_path
-)
-print(response)
-```
-
-## LLM
-
-You always have an LLM at your side to help you with the task. For simple tasks, you could invoke the LLM by running the following command:
-```
-venv/bin/python ./tools/llm_api.py --prompt "What is the capital of France?" --provider "anthropic"
-```
-
-The LLM API supports multiple providers:
-- OpenAI (default, model: gpt-4o)
-- Azure OpenAI (model: configured via AZURE_OPENAI_MODEL_DEPLOYMENT in .env file, defaults to gpt-4o-ms)
-- DeepSeek (model: deepseek-chat)
-- Anthropic (model: claude-3-sonnet-20240229)
-- Gemini (model: gemini-pro)
-- Local LLM (model: Qwen/Qwen2.5-32B-Instruct-AWQ)
-
-But usually it's a better idea to check the content of the file and use the APIs in the `tools/llm_api.py` file to invoke the LLM if needed.
-
-## Web browser
-
-You could use the `tools/web_scraper.py` file to scrape the web.
-```
-venv/bin/python ./tools/web_scraper.py --max-concurrent 3 URL1 URL2 URL3
-```
-This will output the content of the web pages.
-
-## Search engine
-
-You could use the `tools/search_engine.py` file to search the web.
-```
-venv/bin/python ./tools/search_engine.py "your search keywords"
-```
-This will output the search results in the following format:
-```
-URL: https://example.com
-Title: This is the title of the search result
-Snippet: This is a snippet of the search result
-```
-If needed, you can further use the `web_scraper.py` file to scrape the web page content.
-
-# Lessons
-
-## User Specified Lessons
-
-- You have a python venv in ./venv. Use it.
-- Include info useful for debugging in the program output.
-- Read the file before you try to edit it.
-- Due to Cursor's limit, when you use `git` and `gh` and need to submit a multiline commit message, first write the message in a file, and then use `git commit -F <filename>` or similar command to commit. And then remove the file. Include "[Cursor] " in the commit message and PR title.
-
-## Cursor learned
-
-- For search results, ensure proper handling of different character encodings (UTF-8) for international queries
-- Add debug information to stderr while keeping the main output clean in stdout for better pipeline integration
-- When using seaborn styles in matplotlib, use 'seaborn-v0_8' instead of 'seaborn' as the style name due to recent seaborn version changes
-- Use 'gpt-4o' as the model name for OpenAI's GPT-4 with vision capabilities
-- When using external packages like `@google/genai`, always import and use their existing type definitions instead of creating custom interfaces that may conflict. For example, use `import { GroundingChunk } from "@google/genai"` instead of defining a custom GroundingChunk interface.
-- Remove unused variables and parameters to prevent TypeScript warnings:
-  * Remove unused regex patterns that are declared but never used
-  * Use underscore (_) for unused parameters in forEach loops instead of named parameters
-  * Clean up unused imports to prevent TypeScript errors
+**Remember:** The knowledge graph is your memory. Use it consistently to provide personalized assistance that respects the user's established preferences, procedures, and factual context.
 
 ## Gemini API Prompt Engineering Lessons
 
@@ -117,6 +55,47 @@ If needed, you can further use the `web_scraper.py` file to scrape the web page 
   * Struktur prompt dengan role definition yang langsung ke tugas tanpa instruksi bertahap
   * Contoh yang baik: "Anda adalah analis intelijen yang bertugas menyusun laporan..." (langsung ke tugas)
   * Contoh yang buruk: "Gunakan kemampuan pencarian web Anda untuk mengumpulkan informasi... Setelah itu, buatlah laporan..." (memicu konfirmasi)
+
+- **Gemini 2.0 Grounding Implementation**: Untuk implementasi grounding yang benar dengan Gemini 2.0:
+  * Gunakan struktur API call yang benar: `contents: [{ parts: requestParts }]` bukan `contents: { parts: requestParts }`
+  * Akses grounding metadata dengan: `response.candidates?.[0]?.groundingMetadata`
+  * Grounding chunks tersedia di: `groundingMetadata?.groundingChunks`
+  * Setiap chunk memiliki struktur: `chunk.web?.uri` dan `chunk.web?.title`
+  * Gunakan Map untuk deduplikasi sources berdasarkan URI
+  * Tambahkan logging untuk debugging: console.log jumlah chunks dan domains yang ditemukan
+  * Jika tidak ada sources yang ditemukan, log warning untuk debugging
+  * Search entry point tersedia di: `groundingMetadata?.searchEntryPoint`
+  * Referensi: https://ai.google.dev/gemini-api/docs/grounding?lang=javascript
+
+- **Gemini Document Processing Implementation**: Untuk implementasi document processing yang benar dengan Gemini API:
+  * **File Size Limits**: Maksimal 20MB untuk inline data upload, gunakan File API untuk file > 20MB
+  * **Supported MIME Types**: application/pdf, text/plain, text/html, text/css, text/md, text/csv, text/xml, text/rtf, application/x-javascript, text/javascript, application/x-python, text/x-python, plus Office formats (.docx, .xlsx)
+  * **Content Structure**: Gunakan format `contents: [{ parts: contentParts }]` dengan text prompt sebelum file untuk hasil optimal
+  * **File Processing**: Implement proper base64 encoding dengan validasi MIME type dan file size
+  * **Error Handling**: Tambahkan validasi file size, MIME type, dan detailed error messages untuk troubleshooting
+  * **Temperature Setting**: Gunakan temperature 0.1 untuk analisis dokumen yang konsisten
+  * **Logging Strategy**: Log file details (name, type, size), processing steps, dan API call parameters untuk debugging
+  * **UI Integration**: Update accept attribute untuk mendukung semua format yang didukung API
+  * **Best Practices**: Text prompt ditempatkan sebelum file attachment, implement comprehensive file validation
+  * Referensi: https://ai.google.dev/gemini-api/docs/document-processing?lang=node
+
+## ReactMarkdown Integration Lessons
+
+- **Use inline component definitions**: Define components directly in the components prop for better type safety
+- **Component format example**:
+  ```typescript
+  components={{
+    h1: ({ children, ...props }) => (
+      <h1 className="text-2xl font-bold" {...props}>
+        {children}
+      </h1>
+    ),
+    // other components...
+  }}
+  ```
+- **Error prevention**: "Element type is invalid" errors typically occur when passing objects instead of React components
+- **Debugging tip**: If ReactMarkdown fails, check that all component values are actual React component functions
+- **Avoid helper functions**: ReactMarkdown components prop expects actual React components, not objects or helper function results
 
 ## API Integration Lessons
 
@@ -504,6 +483,17 @@ const API_KEY = 'AIzaSyBf4_0ll5H7OMs7yAtgXO1LWVAWhOcbJmo'; // NEVER DO THIS!
   - Keep tables and code blocks within container width
   - Use space-y utilities for consistent message spacing
   - Ensure enough bottom padding to prevent content from being hidden under input area
+
+- Responsive Loading Animation Best Practices:
+  - **Mobile-first skeleton design**: Gunakan `flex gap-4 w-full max-w-[80%]` untuk container yang responsif
+  - **Full-width skeleton bars**: Gunakan variasi width (`w-full`, `w-11/12`, `w-full`) untuk natural skeleton appearance
+  - **Flexible layout structure**: Gunakan `flex-1 space-y-2 py-1 w-full` untuk content area yang expandable
+  - **Theme consistency in skeletons**: Gunakan warna yang sesuai dengan theme (e.g. `bg-purple-200` untuk purple theme)
+  - **Smooth animations**: Selalu gunakan `animate-pulse` untuk skeleton loading effects
+  - **Descriptive loading text**: Berikan text yang jelas seperti "Mencari informasi dan merangkum jawaban..."
+  - **Icon consistency**: Pertahankan icon/avatar yang sesuai dengan agent theme saat loading
+  - **Avoid fixed containers**: Jangan gunakan fixed width containers untuk loading states pada mobile
+  - **Pattern consistency**: Ikuti established skeleton patterns dari components yang sudah ada
 - Consider different AI response formats:
   - Code blocks
   - Tables
@@ -808,909 +798,1491 @@ const API_KEY = 'AIzaSyBf4_0ll5H7OMs7yAtgXO1LWVAWhOcbJmo'; // NEVER DO THIS!
    setShowProgress(false);
    ```
 
+## AGNO Streaming Status Animations Implementation Pattern
+
+### Overview
+Implementasi real-time streaming status animations untuk AGNO API yang menunjukkan proses AI secara detail (thinking, tool calls, memory updates) dengan positioning yang tepat dalam message bubbles.
+
+### 1. StreamingStatus Component Architecture
+
+#### Component Structure (src/components/ui/StreamingStatus.tsx):
+```typescript
+interface StreamingStatusProps {
+  streamingStatus: StreamingStatus;
+  compact?: boolean; // untuk display dalam message bubble
+}
+
+// Phases yang didukung:
+// - Thinking: Brain icon + bouncing dots
+// - Tool Call: Wrench icon + spinning loader  
+// - Memory Update: Database icon + pulsing bars
+// - Completion: CheckCircle icon
+```
+
+#### Animation Patterns:
+- **Thinking Phase**: 
+  * Icon: Brain dengan animate-pulse
+  * Animation: 3 bouncing dots dengan staggered delays (0ms, 150ms, 300ms)
+  * Text: "Menganalisis pertanyaan..."
+  
+- **Tool Call Phase**:
+  * Icon: Wrench dengan animate-spin
+  * Animation: Spinning wrench + rotating Loader2
+  * Text: "Menggunakan {toolName}..." atau "Mengakses knowledge base..."
+  
+- **Memory Update Phase**:
+  * Icon: Database dengan animate-pulse  
+  * Animation: 3 vertical pulsing bars dengan staggered delays
+  * Text: "Menyimpan informasi ke memori..."
+  
+- **Completion Phase**:
+  * Icon: CheckCircle (static green)
+  * Text: "Respons selesai"
+
+#### Progress Indicators:
+- **Visual**: Colored dots showing current phase
+- **Colors**: Purple (thinking), Blue (knowledge), Green (memory)
+- **Labels**: "Thinking", "Knowledge Access", "Memory Update"
+
+### 2. State Management Pattern
+
+#### StreamingStatus Interface (src/types/playground.ts):
+```typescript
+interface StreamingStatus {
+  isThinking: boolean;
+  isCallingTool: boolean;
+  toolName?: string;
+  isUpdatingMemory: boolean;
+  hasCompleted: boolean;
+}
+```
+
+#### Store Integration (src/stores/PlaygroundStore.ts):
+```typescript
+// State management functions
+setStreamingStatus: (status: Partial<StreamingStatus>) => void;
+resetStreamingStatus: () => void;
+
+// Usage pattern
+const { streamingStatus, setStreamingStatus, resetStreamingStatus } = usePlaygroundStore();
+```
+
+### 3. Event Handler Pattern
+
+#### useAIChatStreamHandler Integration:
+```typescript
+// RunStarted: Initialize thinking phase
+setStreamingStatus({ isThinking: true });
+
+// ToolCallStarted: Begin tool call phase  
+setStreamingStatus({ 
+  isThinking: false, 
+  isCallingTool: true, 
+  toolName: event.data?.name || 'knowledge base' 
+});
+
+// ToolCallCompleted: End tool call phase
+setStreamingStatus({ isCallingTool: false, toolName: undefined });
+
+// UpdatingMemory: Begin memory update phase
+setStreamingStatus({ isUpdatingMemory: true });
+
+// RunCompleted: Complete all phases
+setStreamingStatus({ 
+  hasCompleted: true,
+  isThinking: false,
+  isCallingTool: false, 
+  isUpdatingMemory: false 
+});
+
+// Reset after delay for new conversations
+setTimeout(() => resetStreamingStatus(), 1000);
+```
+
+### 4. Per-Message Animation Positioning
+
+#### Detection Logic untuk Streaming Message:
+```typescript
+const isStreamingMessage = message.role === 'agent' && 
+                         isLastMessage && 
+                         isLoading &&
+                         (hasMinimalContent || 
+                          streamingStatus.isThinking || 
+                          streamingStatus.isCallingTool || 
+                          streamingStatus.isUpdatingMemory);
+
+// hasMinimalContent = content length < 50 characters
+const hasMinimalContent = message.content && message.content.length < 50;
+```
+
+#### Positioning Strategy:
+- **Location**: Inside agent message bubble yang sedang streaming
+- **Placement**: Di atas content dengan `mb-3` spacing
+- **Styling**: Compact design (`bg-purple-50`, `w-4 h-4` icons, `text-xs`)
+- **Real-time**: Animasi selalu muncul di message yang sedang aktif
+
+### 5. UI Integration Pattern
+
+#### Chat Component Integration:
+```typescript
+// Dalam message rendering loop
+{isStreamingMessage && (
+  <div className="mb-3">
+    <StreamingStatus 
+      streamingStatus={streamingStatus} 
+      compact={true}
+    />
+  </div>
+)}
+
+// Conditional copy button (hanya muncul jika ada content)
+{message.content && (
+  <button 
+    onClick={() => copyToClipboard(message.content)}
+    className="opacity-0 group-hover:opacity-100 transition-opacity"
+  >
+    <Copy className="w-4 h-4" />
+  </button>
+)}
+
+// Empty message placeholder
+{!message.content && isStreamingMessage && (
+  <p className="text-gray-500 italic text-sm">Sedang memproses...</p>
+)}
+```
+
+### 6. Timing Detection Best Practices
+
+#### Critical Implementation Notes:
+- **Avoid skeleton conflicts**: Jangan gunakan skeleton loading bersamaan dengan streaming animations
+- **Message state detection**: Gunakan multiple criteria untuk detecting streaming message
+- **Empty content handling**: Provide placeholder text untuk message kosong saat streaming
+- **Conditional rendering**: Copy/action buttons hanya muncul jika ada content
+- **Animation lifecycle**: Reset status setelah completion dengan appropriate delay
+
+#### Common Pitfalls:
+- **Late animation appearance**: Pastikan detection logic menggunakan streaming status, bukan hanya isLoading
+- **Global positioning**: Hindari global animation positioning yang memerlukan scroll
+- **Skeleton interference**: Hindari skeleton yang menutupi atau conflict dengan streaming animations
+- **Timing issues**: Gunakan proper criteria untuk mendeteksi kapan animasi harus muncul
+
+### 7. Implementation Checklist
+
+#### Required Files:
+- [ ] `src/components/ui/StreamingStatus.tsx` - Main animation component
+- [ ] `src/types/playground.ts` - StreamingStatus interface
+- [ ] `src/stores/PlaygroundStore.ts` - State management functions
+- [ ] Enhanced `useAIChatStreamHandler.ts` - Event handlers
+- [ ] Updated chat component - Message-level integration
+
+#### Required Dependencies:
+- [ ] Lucide icons: Brain, Wrench, Database, CheckCircle, Loader2
+- [ ] Tailwind CSS animations: animate-pulse, animate-spin, animate-bounce
+- [ ] Zustand store for state management
+
+#### Validation Steps:
+- [ ] Test thinking phase animation (brain + bouncing dots)
+- [ ] Test tool call phase animation (wrench + spinner)
+- [ ] Test memory update phase animation (database + pulsing bars)
+- [ ] Test completion phase (checkmark)
+- [ ] Verify per-message positioning (no global scrolling required)
+- [ ] Test empty message handling (placeholder text)
+- [ ] Test conditional copy button (only with content)
+- [ ] Verify no skeleton conflicts
+- [ ] Test animation timing (appears during processing, not after)
+
+### 8. Benefits & UX Impact
+
+#### User Experience Improvements:
+- **Real-time Feedback**: User melihat proses AI secara detail dan real-time
+- **Better Understanding**: Jelas menunjukkan fase mana yang sedang berjalan
+- **Professional Appearance**: Animasi yang smooth dan sesuai dengan AI workflow
+- **No Scroll Required**: Animasi muncul di tempat yang sedang user lihat
+- **Event-Driven**: UI update berdasarkan actual streaming events dari backend
+
+#### Technical Benefits:
+- **Modular Design**: Component dapat digunakan ulang untuk agent lain
+- **Type Safety**: Full TypeScript support dengan proper interfaces
+- **Performance**: Minimal overhead dengan efficient state management
+- **Maintainable**: Clear separation of concerns dan well-documented patterns
+
+### 9. Extension Guidelines
+
+#### Untuk Agent Baru:
+- Gunakan usePlaygroundStore pattern yang sama
+- Implement useAIChatStreamHandler dengan proper event mapping
+- Use StreamingStatus component dengan compact mode
+- Follow detection logic pattern untuk per-message positioning
+
+#### Untuk Animasi Baru:
+- Tambahkan phase baru di StreamingStatus interface
+- Implement animation pattern dengan staggered delays
+- Gunakan appropriate Lucide icons
+- Maintain compact design untuk in-message display
+
+#### Performance Considerations:
+- Reset streaming status setelah completion
+- Avoid memory leaks dengan proper cleanup
+- Use efficient re-render patterns
+- Minimize animation complexity untuk mobile performance
+
+## History Management & Storage Optimization Implementation Pattern
+
+### Overview
+Implementasi comprehensive untuk mengelola history chat messages, mencegah pembebanan server, dan mengoptimalkan penggunaan localStorage dengan auto-cleanup dan monitoring.
+
+### 1. Configuration Constants
+
+#### Storage Limits (src/stores/PlaygroundStore.ts):
+```typescript
+// History management constants
+const MAX_MESSAGES_PER_SESSION = 100; // Maksimal 100 pesan per session
+const MAX_STORED_SESSIONS = 10; // Maksimal 10 session tersimpan
+const MESSAGE_CLEANUP_THRESHOLD = 80; // Mulai cleanup saat mencapai 80 pesan
+const SESSION_EXPIRY_DAYS = 7; // Session kadaluarsa setelah 7 hari
+const STORAGE_SIZE_LIMIT = 5 * 1024 * 1024; // 5MB limit untuk localStorage
+```
+
+#### Benefits:
+- **Configurable Limits**: Easy to adjust based on requirements
+- **Tiered Cleanup**: Different thresholds for different actions
+- **Memory Efficiency**: Prevents unlimited memory growth
+- **User Experience**: Balances performance with functionality
+
+### 2. Auto-Cleanup Strategies
+
+#### Message Limiting:
+```typescript
+addMessage: (message) => {
+  set((state) => {
+    const newMessages = [...state.messages, message];
+    
+    // Auto-limit messages per session
+    if (newMessages.length > MAX_MESSAGES_PER_SESSION) {
+      const messagesToRemove = newMessages.length - MAX_MESSAGES_PER_SESSION;
+      return {
+        messages: newMessages.slice(messagesToRemove)
+      };
+    }
+    
+    return { messages: newMessages };
+  });
+  
+  // Save to localStorage with optimization
+  optimizedSaveToStorage();
+}
+```
+
+#### Smart Cleanup Function:
+```typescript
+const cleanupOldMessages = () => {
+  const { messages, setMessages } = usePlaygroundStore.getState();
+  
+  if (messages.length > MESSAGE_CLEANUP_THRESHOLD) {
+    // Keep only the most recent messages, maintaining conversation context
+    const messagesToKeep = Math.floor(MESSAGE_CLEANUP_THRESHOLD * 0.7); // Keep 70% of threshold
+    const recentMessages = messages.slice(-messagesToKeep);
+    
+    console.log(`🧹 Auto-cleanup: Removed ${messages.length - messagesToKeep} old messages`);
+    setMessages(recentMessages);
+  }
+};
+```
+
+### 3. Session Management
+
+#### Session Expiry:
+```typescript
+// Enhanced SessionEntry interface
+interface SessionEntry {
+  session_id: string;
+  title: string;
+  created_at: number;
+  lastActivity?: number; // Timestamp of last activity for cleanup purposes
+}
+```
+
+#### Expired Session Cleanup:
+```typescript
+const cleanupExpiredSessions = () => {
+  // Check session creation time
+  const sessionCreated = localStorage.getItem('wassidik_session_created');
+  if (sessionCreated) {
+    const daysSinceCreation = (Date.now() - parseInt(sessionCreated)) / (1000 * 60 * 60 * 24);
+    
+    if (daysSinceCreation > SESSION_EXPIRY_DAYS) {
+      console.log(`🗑️ Session expired after ${daysSinceCreation.toFixed(1)} days`);
+      clearSessionStorage();
+      return;
+    }
+  }
+  
+  // Cleanup stored sessions by activity
+  const validSessions = sessions.filter(session => {
+    const daysSinceActivity = (Date.now() - session.lastActivity) / (1000 * 60 * 60 * 24);
+    return daysSinceActivity <= SESSION_EXPIRY_DAYS;
+  });
+};
+```
+
+### 4. Storage Monitoring
+
+#### Storage Usage Tracking:
+```typescript
+const getStorageUsage = (): number => {
+  let total = 0;
+  for (let key in localStorage) {
+    if (localStorage.hasOwnProperty(key)) {
+      total += localStorage[key].length + key.length;
+    }
+  }
+  return total;
+};
+
+const getStorageStats = () => {
+  const usage = getStorageUsage();
+  const limit = STORAGE_SIZE_LIMIT;
+  const percentage = (usage / limit) * 100;
+  
+  return {
+    usage: formatBytes(usage),
+    limit: formatBytes(limit),
+    percentage: Math.round(percentage),
+    sessionCount: Object.keys(localStorage).filter(key => key.startsWith('wassidik_session_')).length,
+    isNearLimit: percentage > 80
+  };
+};
+```
+
+#### Optimized Storage Save:
+```typescript
+const optimizedSaveToStorage = () => {
+  // Check current storage usage
+  const currentUsage = getStorageUsage();
+  if (currentUsage > STORAGE_SIZE_LIMIT) {
+    console.warn(`⚠️ Storage usage exceeds limit, performing cleanup`);
+    cleanupExpiredSessions();
+    cleanupOldMessages();
+  }
+  
+  // Save current session messages (only recent ones for performance)
+  const recentMessages = messages.slice(-50); // Save only last 50 messages
+  const sessionData = {
+    sessionId,
+    messages: recentMessages,
+    lastActivity: Date.now(),
+    messageCount: messages.length
+  };
+  
+  localStorage.setItem(`wassidik_session_${sessionId}`, JSON.stringify(sessionData));
+};
+```
+
+### 5. UI Integration
+
+#### Storage Stats Component:
+```typescript
+const StorageStatsDisplay = () => (
+  <div className="bg-blue-50 border-l-4 border-blue-500 p-4 m-4 shadow-sm rounded-md">
+    <div className="flex">
+      <Database className="h-5 w-5 text-blue-500" />
+      <div className="ml-3 flex-1">
+        <h3 className="text-sm font-medium text-blue-800">Statistik Penyimpanan</h3>
+        <div className="mt-2 text-sm text-blue-700 space-y-2">
+          <div className="flex justify-between">
+            <span>Penggunaan Storage:</span>
+            <span className="font-medium">{storageStats.usage} / {storageStats.limit}</span>
+          </div>
+          
+          {/* Progress bar for storage usage */}
+          <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+            <div className={cn("h-2 rounded-full transition-all duration-300",
+              storageStats.percentage > 80 ? "bg-red-500" : 
+              storageStats.percentage > 60 ? "bg-yellow-500" : "bg-green-500"
+            )}
+            style={{ width: `${Math.min(storageStats.percentage, 100)}%` }}
+            />
+          </div>
+          
+          {storageStats.isNearLimit && (
+            <div className="text-red-600 text-xs mt-2 font-medium">
+              ⚠️ Storage hampir penuh! Pertimbangkan untuk membersihkan data lama.
+            </div>
+          )}
+        </div>
+        
+        <button onClick={handleStorageCleanup} className="mt-3 inline-flex items-center gap-1">
+          <Trash2 className="w-3 h-3" />
+          Bersihkan Data Lama
+        </button>
+      </div>
+    </div>
+  </div>
+);
+```
+
+#### Header Integration:
+```typescript
+// Add storage monitoring button to header
+<Button 
+  variant="ghost" 
+  size="icon" 
+  onClick={() => setShowStorageInfo(!showStorageInfo)}
+  className="text-gray-500"
+  title="Storage Info"
+>
+  <Database className="h-5 w-5" />
+</Button>
+```
+
+### 6. Best Practices
+
+#### Implementation Guidelines:
+- **Progressive Cleanup**: Cleanup berbertahap berdasarkan usage percentage
+- **User Awareness**: Tampilkan warning saat storage hampir penuh
+- **Non-Intrusive**: Auto-cleanup berjalan di background tanpa mengganggu user
+- **Recoverable**: Manual cleanup option untuk kontrol user
+- **Monitoring**: Real-time storage statistics untuk transparency
+
+#### Performance Optimizations:
+- **Lazy Loading**: Load hanya recent messages untuk performance
+- **Batch Operations**: Combine multiple cleanup operations
+- **Efficient Storage**: Store hanya data essential, compress jika perlu
+- **Background Processing**: Cleanup running in background thread
+
+### 7. Error Handling
+
+#### Storage Error Recovery:
+```typescript
+// Graceful error handling for storage operations
+try {
+  localStorage.setItem(key, value);
+} catch (error) {
+  console.warn('Storage full, attempting cleanup...');
+  cleanupExpiredSessions();
+  try {
+    localStorage.setItem(key, value);
+  } catch (retryError) {
+    console.error('Storage still full after cleanup:', retryError);
+    // Fallback: use in-memory storage
+  }
+}
+```
+
+#### User Communication:
+- **Clear Messages**: Informative error messages untuk user
+- **Action Suggestions**: Saran konkret untuk mengatasi masalah
+- **Fallback Options**: Alternative solutions jika storage penuh
+
+### 8. Extension Guidelines
+
+#### For New Chat Components:
+- Import `getStorageStats, forceCleanup` from PlaygroundStore
+- Add storage monitoring UI dengan Database icon
+- Implement `handleStorageCleanup` function
+- Use optimized save patterns untuk message persistence
+
+#### For Custom Cleanup Strategies:
+- Extend cleanup constants untuk domain-specific requirements
+- Add new cleanup triggers berdasarkan usage patterns
+- Implement custom storage monitoring sesuai kebutuhan aplikasi
+- Consider server-side cleanup coordination untuk multi-device sync
+
+#### Monitoring & Analytics:
+- Track storage usage patterns untuk optimization insights
+- Monitor cleanup frequency untuk tuning thresholds
+- Log user engagement dengan cleanup features
+- Analyze performance impact dari history management
+
+### 9. Server Coordination
+
+#### API Considerations:
+- **Pagination Support**: Implement server-side pagination untuk large histories
+- **Sync Strategy**: Coordinate client cleanup dengan server storage
+- **Conflict Resolution**: Handle conflicts antara local dan server state
+- **Batch Updates**: Efficient batch operations untuk reduced server load
+
+#### Implementation Pattern:
+```typescript
+// Server-coordinated cleanup
+const syncWithServer = async () => {
+  try {
+    // Send local cleanup events to server
+    await api.post('/sessions/cleanup', {
+      sessionId,
+      messageCount: messages.length,
+      lastActivity: Date.now()
+    });
+  } catch (error) {
+    console.warn('Failed to sync cleanup with server:', error);
+  }
+};
+```
+
 # Scratchpad
 
-## Task: Migrasi piketSpktAnalysisService.ts ke Gemini API - COMPLETED ✅
+## Task: Perbaikan Gemini Document Processing di piketSpktAnalysisService.ts - COMPLETED ✅
 
 ### Deskripsi:
-Mengganti endpoint di piketSpktAnalysisService.ts dari API backend custom ke Gemini API untuk analisis kasus SPKT dengan dukungan upload file dan pencarian web.
-
-### Perubahan yang Diimplementasikan:
-- **API Migration**: Mengganti dari custom backend API ke Google Gemini API
-- **File Upload Support**: Implementasi dukungan upload file dengan base64 encoding
-- **Web Search Integration**: Menggunakan Google Search tools untuk pencarian informasi terkini
-- **Structured Output**: Parsing output terstruktur dengan 5 bagian analisis
-- **Markdown Formatting**: Format output sebagai Markdown untuk ditampilkan di area dokumen
-- **React Markdown Integration**: Menggunakan React Markdown untuk proper rendering
-- **Enhanced Error Handling**: Error handling yang lebih spesifik untuk Gemini API
-
-### Technical Implementation:
-
-1. **Import Changes**:
-   ```typescript
-   import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
-   import ReactMarkdown from 'react-markdown';
-   import remarkGfm from 'remark-gfm';
-   ```
-
-2. **API Configuration**:
-   ```typescript
-   const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-   const ai = new GoogleGenAI({ apiKey: API_KEY || "MISSING_API_KEY" });
-   const model = 'gemini-2.5-flash-preview-04-17';
-   ```
-
-3. **Types Definition**:
-   ```typescript
-   export interface CaseAnalysis {
-     chronology: string;
-     relevantArticles: string;
-     deepLegalAnalysis: string;
-     recommendedUnit: string;
-     requiredEvidence: string;
-   }
-   
-   export interface GroundingSource {
-     uri: string;
-     title: string;
-     sourceId?: string;
-   }
-   
-   export interface AnalysisResult {
-     analysis: CaseAnalysis;
-     sources: GroundingSource[];
-   }
-   ```
-
-4. **File Processing**:
-   ```typescript
-   const fileToGenerativePart = async (file: File) => {
-     // Convert file to base64 for Gemini API
-     const base64EncodedString = await new Promise<string>((resolve, reject) => {
-       const reader = new FileReader();
-       reader.onloadend = () => {
-         if (reader.result) {
-           resolve((reader.result as string).split(',')[1]);
-         } else {
-           reject(new Error("Failed to read file content."));
-         }
-       };
-       reader.onerror = (error) => reject(error);
-       reader.readAsDataURL(file);
-     });
-     return {
-       inlineData: {
-         mimeType: file.type,
-         data: base64EncodedString,
-       },
-     };
-   };
-   ```
-
-5. **Comprehensive Prompt Template**:
-   - Analisis kronologi perkara
-   - Identifikasi pasal-pasal relevan dengan pencarian web
-   - Analisis hukum mendalam dengan asas lex specialis
-   - Rekomendasi unit penyidik (Ditreskrimum, Ditreskrimsus, Ditresnarkoba, dll)
-   - Daftar bukti-bukti yang diperlukan
-
-6. **Structured Text Parsing**:
-   ```typescript
-   function parseAnalysisText(text: string): CaseAnalysis {
-     // Parse 5 sections dari output Gemini
-     const sections = [
-       { key: 'chronology', heading: 'KRONOLOGI PERKARA:' },
-       { key: 'relevantArticles', heading: 'PASAL-PASAL YANG RELEVAN:' },
-       { key: 'deepLegalAnalysis', heading: 'ANALISIS HUKUM MENDALAM:' },
-       { key: 'recommendedUnit', heading: 'UNIT PENYIDIK YANG DIREKOMENDASIKAN:' },
-       { key: 'requiredEvidence', heading: 'BUKTI-BUKTI YANG DIPERLUKAN:' },
-     ];
-     // ... parsing logic
-   }
-   ```
-
-7. **Markdown Output Formatting**:
-   ```typescript
-   const formatAnalysisAsMarkdown = (analysisResult: AnalysisResult): string => {
-     // Clean markdown formatting dengan proper headers
-     // Professional structure dengan emoji headers
-     // Sources sebagai markdown links dengan domain info
-     // Proper paragraph breaks dan formatting
-   }
-   ```
-
-8. **React Markdown Component**:
-   ```typescript
-   const AnalysisMarkdown: React.FC<{ content: string }> = ({ content }) => (
-     <ReactMarkdown
-       remarkPlugins={[remarkGfm]}
-       className="prose prose-lg max-w-none..."
-       components={{
-         h1: ({ children }) => (...),
-         a: ({ href, children }) => (...),
-         p: ({ children }) => (...),
-         // Custom components untuk styling
-       }}
-     >
-       {content}
-     </ReactMarkdown>
-   );
-   ```
-
-9. **Enhanced Main Function**:
-   ```typescript
-   export const sendAnalysisChatMessage = async (
-     message: string,
-     files?: File[]
-   ): Promise<string> => {
-     // Session management tetap dipertahankan
-     // Hanya ambil file pertama jika multiple files
-     // Call Gemini API dengan tools Google Search
-     // Return formatted Markdown
-   }
-   ```
-
-### Key Features:
-- **Google Search Integration**: Menggunakan tools Google Search untuk informasi terkini
-- **File Upload Support**: Mendukung upload dokumen (PDF, Word, gambar, dll)
-- **Structured Legal Analysis**: Output terstruktur sesuai kebutuhan SPKT
-- **Web Sources**: Menampilkan sumber-sumber internet yang digunakan
-- **Professional Formatting**: Output Markdown yang di-render dengan React Markdown
-- **Proper Typography**: Custom components untuk styling yang konsisten
-- **Error Handling**: Handling khusus untuk API key, quota, file size, dll
-
-### Environment Variables Required:
-- **VITE_GEMINI_API_KEY**: API key untuk Google Gemini API
-
-### Dependencies Added:
-- **react-markdown**: Untuk rendering markdown content
-- **remark-gfm**: GitHub Flavored Markdown support
-- **rehype-raw**: HTML support dalam markdown
-
-### Benefits:
-- **No Backend Dependency**: Tidak bergantung pada backend custom
-- **Real-time Web Search**: Informasi hukum terkini dari pencarian web
-- **File Analysis**: Dapat menganalisis dokumen yang diupload
-- **Cost Effective**: Menggunakan Gemini API yang lebih cost-effective
-- **Reliable**: Menggunakan Google infrastructure yang stabil
-- **Proper Rendering**: Markdown di-render dengan benar sebagai HTML
-- **Professional Appearance**: Typography dan styling yang konsisten
-
-### Update: React Markdown Integration - COMPLETED ✅
-
-#### Masalah yang Diperbaiki:
-- **Raw HTML Display**: Output HTML ditampilkan sebagai text, bukan di-render
-- **Formatting Issues**: Styling tidak diterapkan dengan benar
-- **Link Handling**: Link tidak dapat diklik dan tidak membuka di tab baru
-- **Typography Problems**: Inconsistent spacing dan formatting
-
-#### Solusi yang Diimplementasikan:
-- **React Markdown**: Menggunakan react-markdown untuk proper rendering
-- **Custom Components**: Custom components untuk h1, a, p, strong, em, hr
-- **Professional Styling**: Consistent typography dengan Tailwind CSS
-- **External Links**: Links membuka di tab baru dengan proper security
-- **Reusable Component**: AnalysisMarkdown component untuk menghindari duplikasi
-
-#### Technical Improvements:
-- **Markdown Format**: Output sebagai clean markdown instead of HTML
-- **GFM Support**: GitHub Flavored Markdown untuk tables dan features
-- **Custom Styling**: Prose classes dengan custom component overrides
-- **Link Security**: target="_blank" dan rel="noopener noreferrer"
-- **Responsive Design**: Proper spacing dan typography untuk semua ukuran layar
-
-### Files Modified:
-- **src/services/piketSpktAnalysisService.ts**: Complete migration to Gemini API dengan Markdown output
-- **src/components/ui/PiketSpktChatPage.tsx**: React Markdown integration
-- **package.json**: Added react-markdown, remark-gfm, rehype-raw dependencies
-- **.cursorrules**: Dokumentasi migrasi
-
-### Status:
-✅ **COMPLETED** - Service berhasil dimigrasi ke Gemini API dengan React Markdown rendering yang proper
-
----
-
-## Task: Perbaikan Error hasValidInput di PiketSpktChatPage.tsx - COMPLETED ✅
-
-### Deskripsi:
-Memperbaiki error fatal "ReferenceError: hasValidInput is not defined" yang menyebabkan aplikasi tidak dapat dimuat saat mengakses halaman Piket SPKT.
+User melaporkan bahwa piketSpktAnalysisService.ts tidak dapat membaca dokumen, dan memberikan dokumentasi resmi Google Gemini API untuk document processing sebagai referensi perbaikan.
 
 ### Masalah yang Ditemukan:
-- **ReferenceError**: `hasValidInput is not defined` di baris 1170 PiketSpktChatPage.tsx
-- **DOM Error**: "Failed to execute 'removeChild' on 'Node'" yang terkait dengan React re-rendering
-- **Scope Issue**: Variabel `hasValidInput` didefinisikan sebagai variabel biasa yang mungkin tidak tersedia saat komponen di-render ulang
+- **API Structure Tidak Sesuai**: Struktur API call tidak mengikuti format dokumentasi resmi
+- **File Processing Kurang Optimal**: File handling tidak memiliki validasi proper untuk MIME type dan file size
+- **Content Structure**: Pengaturan content parts tidak sesuai best practices dokumentasi
+- **Missing File Support**: Accept attribute UI tidak mendukung semua format file yang didukung API
+- **Error Handling Terbatas**: Tidak ada validasi file size limits (20MB) dan MIME type validation
+- **Temperature Setting**: Tidak ada pengaturan temperature untuk consistency
 
 ### Solusi yang Diimplementasikan:
-- **Added useMemo Import**: Menambahkan `useMemo` ke React imports
-- **Refactored hasValidInput**: Mengubah dari variabel biasa menjadi `useMemo` dengan proper dependencies
-- **Dependency Tracking**: Menggunakan `[activeTab, inputMessage, selectedFiles]` sebagai dependencies
-- **Stable Reference**: Memberikan referensi yang stabil untuk nilai yang dihitung
 
-### Technical Changes:
-- **Import Statement**: `import React, { useState, useRef, useEffect, useMemo } from 'react';`
-- **hasValidInput Definition**: 
-  ```typescript
-  const hasValidInput = useMemo(() => {
-    return activeTab === 'analysis' 
-      ? inputMessage.trim()
-      : (selectedFiles.length > 0 || inputMessage.trim());
-  }, [activeTab, inputMessage, selectedFiles]);
-  ```
+#### 1. Enhanced File Processing dengan Validasi Komprehensif:
+- **File Size Validation**: Implementasi validasi 20MB limit sesuai dokumentasi untuk inline data
+- **MIME Type Validation**: Daftar lengkap supported MIME types berdasarkan dokumentasi resmi
+- **Enhanced Error Handling**: Error messages yang lebih spesifik dan informatif
+- **Detailed Logging**: Log file details (name, type, size) untuk debugging
+- **Base64 Encoding**: Improved base64 encoding dengan proper error handling
+
+#### 2. API Call Structure Sesuai Dokumentasi Resmi:
+- **Content Parts Structure**: Menggunakan `contents: [{ parts: contentParts }]` format yang benar
+- **Text Before File**: Text prompt ditempatkan sebelum file sesuai best practices
+- **Temperature Setting**: Menambahkan temperature 0.1 untuk konsistensi analisis
+- **Enhanced Logging**: Comprehensive logging untuk API call parameters dan debugging
+
+#### 3. Supported File Formats Sesuai Dokumentasi:
+- **Document Formats**: PDF, TXT, HTML, CSS, MD, CSV, XML, RTF
+- **Code Formats**: JavaScript (.js), Python (.py)
+- **Office Formats**: DOCX, XLSX, DOC, XLS (dengan warning untuk unsupported MIME)
+- **UI Integration**: Updated accept attribute untuk mendukung semua format
+
+#### 4. Error Handling dan Logging Enhancement:
+- **File Size Limits**: Clear error message untuk file > 20MB
+- **MIME Type Warnings**: Warning untuk unsupported MIME types
+- **Processing Steps**: Detailed logging untuk setiap step processing
+- **API Call Debugging**: Log API parameters dan response details
 
 ### Benefits:
-- **No More Fatal Errors**: Aplikasi dapat dimuat tanpa ReferenceError
-- **Stable Performance**: useMemo mencegah re-calculation yang tidak perlu
-- **Better React Patterns**: Menggunakan React hooks yang tepat untuk computed values
-- **Dependency Management**: React dapat melacak perubahan dependencies dengan benar
+- **Better Document Support**: Mendukung semua format file yang didukung Gemini API
+- **Improved Reliability**: Validasi komprehensif mencegah error API
+- **Better User Experience**: Error messages yang jelas dan informatif
+- **Debugging Capability**: Comprehensive logging untuk troubleshooting
+- **API Compliance**: Full compliance dengan dokumentasi resmi Google Gemini API
+- **Professional Implementation**: Mengikuti best practices untuk document processing
 
 ### Files Modified:
-- **src/components/ui/PiketSpktChatPage.tsx**: Fixed hasValidInput definition dengan useMemo
-- **.cursorrules**: Dokumentasi perbaikan
+- **src/services/piketSpktAnalysisService.ts**: Enhanced file processing, API structure, validasi, dan logging
+- **src/components/ui/PiketSpktChatPage.tsx**: Updated accept attribute untuk mendukung semua format file
+- **.cursorrules**: Documentation update dengan Gemini Document Processing lessons
+
+### Technical Implementation Details:
+- **File Validation**: 20MB size limit check dengan error message yang jelas
+- **MIME Type Support**: Full list dari dokumentasi resmi dengan fallback handling
+- **API Structure**: `contents: [{ parts: contentParts }]` dengan proper content ordering
+- **Temperature Control**: temperature: 0.1 untuk konsistensi analisis dokumen
+- **Logging Strategy**: File details → Processing steps → API call → Response analysis
+- **Error Recovery**: Graceful error handling dengan informative messages
 
 ### Status:
-✅ **COMPLETED** - Error hasValidInput berhasil diperbaiki, aplikasi dapat dimuat normal
-
----
-
-## Task: Implementasi Tab System untuk Piket SPKT dengan Endpoint Berbeda - COMPLETED ✅
-
-### Deskripsi:
-Menambahkan sistem tab di halaman Piket SPKT untuk memisahkan fungsi analisis dan chat umum dengan endpoint API yang berbeda. Tab "Analisis SPKT" menggunakan endpoint khusus untuk analisis data, sedangkan tab "Chat Umum" menggunakan endpoint Gemini yang sudah ada.
-
-### Komponen yang Telah Dibuat:
-[X] Service untuk Analysis (src/services/piketSpktAnalysisService.ts)
-[X] Update PiketSpktChatPage.tsx dengan tab functionality
-[X] Implementasi conditional service calls berdasarkan tab aktif
-[X] Update welcome messages dan example questions per tab
-[X] Session management terpisah untuk setiap tab
-[X] Clean TypeScript implementation tanpa warnings
-
-### Technical Implementation:
-1. **Analysis Service**: 
-   - Menggunakan endpoint `${API_BASE_URL}/v1/playground/teams/spkt-analysis-team/runs`
-   - API Key: `import.meta.env.VITE_API_KEY` (dari environment variables)
-   - Mengikuti pola yang sama dengan tipidkorService.ts (tidak hardcode URL atau API key)
-   - Implementasi retry logic dan error handling yang robust
-
-2. **Tab Interface**:
-   - Tab "📊 Analisis SPKT" untuk analisis data dan evaluasi kinerja
-   - Tab "💬 Chat Umum" untuk chat administrasi umum
-   - Visual indicator dengan border dan background color untuk tab aktif
-   - Smooth transition dan responsive design
-
-3. **Conditional Logic**:
-   - `handleSubmit()` menggunakan service yang sesuai berdasarkan `activeTab`
-   - Session management terpisah dengan `initializeAnalysisSession()` dan `initializeSession()`
-   - Welcome message dan example questions yang berbeda per tab
-   - Reset messages dan document content saat switch tab
-
-4. **User Experience**:
-   - Tab Analysis: Fokus pada analisis tren, evaluasi kinerja, dan rekomendasi
-   - Tab General: Fokus pada administrasi, SOP, dan template dokumen
-   - Seamless switching tanpa kehilangan context
-   - Document area tetap berfungsi untuk kedua tab
-
-### Status:
-✅ **COMPLETED** - Tab system berhasil diimplementasikan dengan endpoint berbeda
-
-### Update: Customization untuk Analisis Kasus - COMPLETED ✅
-
-#### Perubahan yang Diimplementasikan:
-- **Welcome Message**: Mengubah dari "Analisis SPKT AI" menjadi "Analisis Kasus SPKT"
-- **Panduan Singkat**: "Silahkan masukkan kronologis singkat kejadian, untuk dilakukan analisis awal"
-- **Example Questions**: Menggunakan contoh kronologis kejadian nyata (kecelakaan, pencurian, perkelahian, penipuan, dll)
-- **No File Upload**: Menghilangkan fitur upload file untuk tab analisis karena endpoint tidak kompatibel
-- **Placeholder Text**: Mengubah placeholder menjadi "Masukkan kronologis singkat kejadian untuk analisis awal..."
-- **Input Validation**: Tab analisis hanya menerima text input, tab general tetap support file upload
-
-### Update: Perbaikan Loop Request - COMPLETED ✅
-
-#### Masalah yang Ditemukan:
-- **Loop Request**: Service mengirim request berulang kali karena retry logic yang berlebihan
-- **Backend Overload**: FastAPI backend menerima multiple request untuk prompt yang sama
-- **Inefficient**: Retry logic tidak diperlukan untuk analysis endpoint yang membutuhkan waktu lama
-
-#### Solusi yang Diimplementasikan:
-- **Single Request**: Menghapus retry logic, hanya mengirim 1 kali request
-- **Extended Timeout**: Meningkatkan timeout dari 10 menit menjadi 15 menit untuk analysis
-- **Better Error Handling**: Error handling yang lebih spesifik tanpa retry
-- **Clean Logging**: Logging yang lebih jelas untuk debugging
-
-#### Technical Changes:
-- **Removed Retry Logic**: Menghapus while loop dan retry mechanism
-- **Simplified Function**: Fungsi menjadi lebih sederhana dan predictable
-- **Extended Timeout**: 900000ms (15 menit) untuk analysis requests
-- **Enhanced Error Messages**: Pesan error yang lebih informatif dan spesifik
-- **Fixed CORS Issue**: Menggunakan relative URL di development untuk melewati proxy Vite
-- **Enhanced 504 Handling**: Pesan error yang lebih informatif untuk Gateway Timeout
-- **Request Duration Logging**: Menambahkan logging durasi request untuk debugging
-
-#### Server Configuration - COMPLETED ✅:
-- **Nginx Timeout Configuration**: 
-  * proxy_read_timeout 900s (15 menit) - ✅ Aktif
-  * proxy_connect_timeout 60s - ✅ Aktif  
-  * proxy_send_timeout 60s - ✅ Aktif
-- **Production Ready**: Sistem dapat menangani request analisis hingga 15 menit
-- **Stable Connection**: Koneksi ke backend lebih stabil dengan timeout yang optimal
-
----
-
-## Previous Task: Membuat Halaman Piket SPKT dengan Tampilan Microsoft Word + Chat - COMPLETED ✅
-
-### Deskripsi:
-Membuat halaman baru "Piket SPKT" dengan tampilan seperti Microsoft Word yang memiliki chat input di samping. Halaman ini akan memiliki layout split dengan area dokumen di kiri dan chat interface di kanan. Hasil chat ditampilkan di area dokumen untuk kemudahan membaca dan mencetak.
-
-### Komponen yang Perlu Dibuat:
-[X] Service untuk Piket SPKT (src/services/piketSpktService.ts)
-[ ] Agent configuration (src/data/agents/piketSpktAgent.ts)
-[X] Chat page component (src/components/ui/PiketSpktChatPage.tsx)
-[X] Main page component (src/pages/PiketSpkt.tsx)
-[X] Update types dan utils
-[X] Update routing dan navigation
-
-### Rencana Implementasi:
-1. **Analisis Struktur Existing**: Mempelajari pola chat page yang sudah ada
-2. **Buat Service**: Implementasi service dengan endpoint yang akan diberikan user
-3. **Buat Agent Config**: Konfigurasi agent dengan icon dan metadata
-4. **Buat Chat Page**: Component dengan layout split Microsoft Word + Chat
-5. **Buat Main Page**: Halaman utama yang menggunakan chat page
-6. **Update Navigation**: Tambahkan ke routing dan sidebar
-7. **Testing**: Verifikasi tampilan dan fungsionalitas
-
-### Layout Design:
-- **Left Panel (60-70%)**: Area dokumen dengan tampilan seperti Microsoft Word
-- **Right Panel (30-40%)**: Chat interface dengan input dan history
-- **Responsive**: Adaptif untuk mobile dengan collapsible panels
-- **Clean UI**: Menggunakan design system yang konsisten
-
-### Status:
-✅ **COMPLETED** - Halaman Piket SPKT berhasil dibuat dengan layout Microsoft Word + Chat
-
-### Komponen yang Telah Dibuat:
-1. **Service (piketSpktService.ts)**: ✅ Implementasi lengkap dengan Gemini API
-2. **Chat Page (PiketSpktChatPage.tsx)**: ✅ Layout split dengan area dokumen + chat
-3. **Main Page (PiketSpkt.tsx)**: ✅ Wrapper component untuk routing
-4. **Types Update**: ✅ Menambahkan 'piket_spkt_chat' ke AgentType
-5. **Routing**: ✅ Route '/piket-spkt' ditambahkan ke App.tsx
-6. **Navigation**: ✅ Menu 'Piket SPKT' ditambahkan ke Sidebar
-7. **TypeScript Cleanup**: ✅ Menghapus unused imports dan variables
-
-### Fitur Utama:
-- **Split Layout**: Area dokumen (60-70%) + Chat (30-40%) di desktop
-- **Document Display**: Hasil chat ditampilkan di area dokumen seperti Microsoft Word
-- **Responsive Design**: 
-  * Desktop: Split layout dengan dokumen di kiri, chat di kanan
-  * Mobile: Full screen chat dengan modal dokumen
-- **Document Actions**: Copy dan print dokumen
-- **File Upload**: Support upload dokumen dengan progress bar
-- **Chat Interface**: Clean interface dengan example questions
-- **Professional Styling**: Konsisten dengan design system aplikasi
-- **Clean Code**: Tidak ada TypeScript warnings
-- **No Overlap**: Desktop dan mobile tidak tumpang tindih
-
-### Siap untuk Testing:
-Halaman dapat diakses melalui menu "Piket SPKT" di sidebar atau URL '/piket-spkt'
+✅ **COMPLETED** - piketSpktAnalysisService.ts sekarang fully compliant dengan Google Gemini API documentation untuk document processing. Service mendukung semua format file yang didukung API dengan validasi komprehensif, error handling yang proper, dan logging yang detailed untuk debugging.
 
 ---
 
 ## Previous Completed Tasks:
-[X] Task: Fix TypeScript Warnings di PiketSpktChatPage.tsx (Round 2) - COMPLETED ✅
-[X] Task: Fix TypeScript Warnings di PiketSpktChatPage.tsx - COMPLETED ✅
-[X] Task: Menerapkan Welcome Message Baru di Multiple Chat Pages
-[X] Task: Membuat Agen Narkotika AI baru
-[X] Task: Meningkatkan UX Textarea Input Mobile
-[X] Task: Mendokumentasikan perubahan di .cursorrules
-[X] Task: Perbaikan textarea input pada mobile devices di SiberChatPage.tsx
-[X] Task: Memisahkan konfigurasi markdown formatter dari SiberChatPage.tsx
-[X] Task: Refactoring SiberChatPage.tsx dengan modular components
-[X] Task: Implementasi File Attachments Visualization di SiberChatPage.tsx
-[X] Task: Migrasi agentSentimentAnalyst.ts ke Gemini Gen AI API - COMPLETED ✅
-[X] Task: Migrasi agentModusKejahatan.ts ke Gemini Gen AI API - COMPLETED ✅
-[X] Task: Migrasi agentCrimeTrendAnalyst.ts ke Gemini Gen AI API - COMPLETED ✅
-[X] Task: Implementasi Modular Analysis Canvas untuk Crime Trend Analysis - COMPLETED ✅
-[X] Task: Enhancement Temporal Analysis untuk Crime Trend Analyst - COMPLETED ✅
-[X] Task: Enhancement Temporal Analysis untuk Sentiment Analyst - COMPLETED ✅
-[X] Task: Migrasi agentSpkt.ts ke Gemini Gen AI API - COMPLETED ✅
-[X] Task: Migrasi imageService.ts ke Gemini Gen AI API - COMPLETED ✅
-[X] Task: Cleanup TypeScript warnings untuk unused imports - COMPLETED ✅
-[X] Task: Membuat Agen Ensiklopedia Kepolisian Baru di Agents.tsx
-[X] Task: Membuat Agen Laporan Intelejen Baru di Agents.tsx
-[X] Task: Implementasi Service Laporan Intelejen dengan Gemini API - COMPLETED ✅
-[X] Task: Membuat Custom Form dan Result Display untuk Laporan Intelejen - COMPLETED ✅
-[X] Task: Fix Form Submission dan Clean TypeScript Warnings - COMPLETED ✅
-[X] Task: Enhancement Structured Parsing untuk Intelligence Analysis - COMPLETED ✅
-[X] Task: Perbaikan Structured Parsing Function untuk Format Output Actual - COMPLETED ✅
-[X] Task: Perbaikan Responsivitas Mobile dan Struktur Angka Romawi di IntelligenceResultDisplay - COMPLETED ✅
-[X] Task: Cleanup TypeScript Warnings di agentLaporanIntelejen.ts - COMPLETED ✅
-[X] Task: Perbaikan Nama dan Deskripsi Agent Intelkam AI - COMPLETED ✅
-[X] Task: Implementasi Fungsi Waktu Terkini untuk Pencarian Spesifik - COMPLETED ✅
-[X] Task: Konfigurasi Link Referensi untuk Dibuka di Tab Baru - COMPLETED ✅
-[X] Task: Menghilangkan Duplikasi Header Form Intelkam AI - COMPLETED ✅
-[X] Task: Cleanup TypeScript Warnings di IntelligenceAgentForm.tsx - COMPLETED ✅
-[X] Task: Perbaikan Keamanan Supabase Database - COMPLETED ✅
-[X] Task: Perbaikan Prompt Gemini untuk Menghilangkan Frasa Berulang - COMPLETED ✅
-[X] Task: Perbaikan Sinkronisasi Form Laporan Intelijen - COMPLETED ✅
-[X] Task: Perbaikan Rendering Tabel di TipidkorChatPage.tsx - COMPLETED ✅
-[X] Task: Fix Duplicate Case Clause Warning di AgentCard.tsx - COMPLETED ✅
-[X] Task: Refactoring NarkotikaChatPage.tsx dengan Modular Markdown Formatter - COMPLETED ✅
-[X] Task: Memperlebar Area Chat Output di NarkotikaChatPage.tsx - COMPLETED ✅
-[X] Task: Fix TypeScript Warning di markdownFormatter.ts - COMPLETED ✅
 
-## Task: Perbaikan Sinkronisasi Form Laporan Intelijen - COMPLETED ✅
+## Task: Implementasi Animated Streaming Status UI - COMPLETED ✅
 
 ### Deskripsi:
-Memperbaiki sinkronisasi field "Waktu Mendapatkan Informasi" di IntelligenceAgentForm.tsx agar menggunakan nilai default yang sama dengan service agentLaporanIntelejen.ts dan selalu menampilkan waktu terkini.
-
-### Masalah yang Ditemukan:
-- **Form Tidak Tersinkronisasi**: Field waktu di form tidak menggunakan nilai default dari service
-- **Waktu Statis**: Field waktu tidak diperbarui dengan waktu terkini saat form dimuat
-- **Inkonsistensi Data**: Form menggunakan string kosong sementara service menggunakan getCurrentDateTime()
-- **Manual Update**: Tidak ada cara mudah untuk memperbarui waktu ke waktu saat ini
+User meminta untuk mengganti skeleton loading dengan animasi yang menunjukkan proses thinking, tool calls, dan memory updates secara real-time sesuai dengan streaming events yang diterima dari AGNO API.
 
 ### Solusi yang Diimplementasikan:
-- **Import INITIAL_REPORT_DATA**: Menggunakan data default dari service untuk inisialisasi form
-- **Export getCurrentDateTime**: Membuat fungsi getCurrentDateTime dapat diakses dari komponen
-- **useEffect Hook**: Menambahkan useEffect untuk memperbarui waktu saat komponen dimount
-- **Refresh Button**: Menambahkan tombol untuk memperbarui waktu secara manual
-- **Consistent Initialization**: Semua field menggunakan nilai default yang sama dengan service
 
-### Technical Changes:
-- **IntelligenceAgentForm.tsx**: 
-  * Import INITIAL_REPORT_DATA dan getCurrentDateTime dari service
-  * Inisialisasi formData dengan nilai default dari service
-  * Tambah useEffect untuk update waktu saat mount
-  * Tambah tombol refresh dengan ikon Clock
-  * Layout flex untuk input waktu dengan tombol refresh
-- **agentLaporanIntelejen.ts**:
-  * Export getCurrentDateTime function untuk akses eksternal
+#### 1. StreamingStatus Component (src/components/ui/StreamingStatus.tsx):
+- **Thinking Animation**: Brain icon dengan bouncing dots untuk fase analisis
+- **Tool Call Animation**: Wrench icon dengan spinning loader untuk akses knowledge base
+- **Memory Update Animation**: Database icon dengan pulsing bars untuk menyimpan informasi
+- **Completion Animation**: CheckCircle icon saat respons selesai
+- **Progress Indicators**: Dots indicator yang menunjukkan fase mana yang sedang aktif
 
-### Benefits:
-- **Synchronized Data**: Form dan service menggunakan nilai default yang sama
-- **Real-time Updates**: Waktu selalu menampilkan waktu terkini saat form dibuka
-- **Better UX**: User dapat dengan mudah memperbarui waktu dengan tombol refresh
-- **Consistent Behavior**: Semua field menggunakan pola inisialisasi yang sama
-- **Professional Appearance**: Tombol refresh dengan ikon yang jelas dan tooltip
+#### 2. Enhanced PlaygroundStore (src/stores/PlaygroundStore.ts & src/types/playground.ts):
+- **StreamingStatus Interface**: State tracking untuk isThinking, isCallingTool, toolName, isUpdatingMemory, hasCompleted
+- **State Management**: setStreamingStatus dan resetStreamingStatus functions
+- **Type Safety**: Full TypeScript support untuk streaming status
 
-### Files Modified:
-- **src/components/agent-forms/IntelligenceAgentForm.tsx**: Enhanced form initialization dan UI
-- **src/services/agentLaporanIntelejen.ts**: Export getCurrentDateTime function
-- **.cursorrules**: Dokumentasi perbaikan
+#### 3. Enhanced useAIChatStreamHandler:
+- **RunStarted Handler**: Set isThinking=true di awal proses
+- **ToolCallStarted Handler**: Set isCallingTool=true dengan toolName
+- **ToolCallCompleted Handler**: Set isCallingTool=false
+- **UpdatingMemory Handler**: Set isUpdatingMemory=true
+- **RunCompleted Handler**: Set hasCompleted=true dan reset semua status
 
-### Status:
-✅ **COMPLETED** - Form berhasil disinkronisasi dengan service dan waktu selalu terkini
+#### 4. Enhanced WassidikPenyidikChatPage:
+- **StreamingStatus Integration**: Menampilkan real-time status streaming
+- **Conditional Skeleton**: Skeleton hanya muncul saat generating content, tidak saat thinking/tool calls
+- **UI Coordination**: StreamingStatus dan skeleton tidak overlap
 
-## Task: Perbaikan Rendering Tabel di TipidkorChatPage.tsx - COMPLETED ✅
+### Animasi yang Diimplementasikan:
 
-### Deskripsi:
-Memperbaiki rendering tabel di TipidkorChatPage.tsx yang menampilkan kolom kedua dengan lebar berlebihan dan tidak terbaca, menyebabkan tabel tidak responsif dan sulit dibaca.
+#### Thinking Phase:
+- **Icon**: Brain dengan animate-pulse
+- **Text**: "Menganalisis pertanyaan..."
+- **Animation**: 3 bouncing dots dengan staggered delays (0ms, 150ms, 300ms)
 
-### Masalah yang Ditemukan:
-- **Kolom Terlalu Lebar**: Kolom kedua tabel memiliki lebar berlebihan yang menyebabkan teks tidak terbaca
-- **Tidak Responsif**: Tabel tidak dapat di-scroll horizontal dengan baik pada layar kecil
-- **CSS Prose Terbatas**: CSS prose default tidak cukup untuk menangani tabel kompleks dari backend
-- **Format Backend**: Output backend menghasilkan tabel dengan format yang tidak standar
+#### Tool Call Phase:
+- **Icon**: Wrench dengan animate-spin
+- **Text**: "Menggunakan {toolName}..." atau "Mengakses knowledge base..."
+- **Animation**: Spinning wrench + rotating Loader2
 
-### Solusi yang Diimplementasikan:
-- **Tailwind CSS Arbitrary Values**: Menggunakan `[&_table]`, `[&_th]`, `[&_td]` untuk styling tabel yang lebih spesifik
-- **Responsive Wrapper**: Menambahkan `overflow-x-auto` wrapper untuk scroll horizontal
-- **Column Width Control**: Mengatur `max-width` untuk kolom pertama dan terakhir
-- **Better Typography**: Menggunakan `break-words`, `hyphens-auto` untuk text wrapping yang lebih baik
-- **Visual Enhancement**: Menambahkan hover effects, alternating row colors, dan shadow
+#### Memory Update Phase:
+- **Icon**: Database dengan animate-pulse
+- **Text**: "Menyimpan informasi ke memori..."
+- **Animation**: 3 vertical pulsing bars dengan staggered delays
 
-### Technical Changes:
-- **TipidkorChatPage.tsx**:
-  * Menambahkan wrapper `overflow-x-auto` untuk scroll horizontal
-  * Menggunakan Tailwind arbitrary values untuk styling tabel yang detail
-  * Mengatur `min-width: 600px` untuk tabel agar tetap readable
-  * Membatasi lebar kolom pertama (`max-w-[200px]`) dan terakhir (`max-w-[400px]`)
-  * Menambahkan `break-words` dan `hyphens-auto` untuk text wrapping
-  * Styling visual dengan background colors, borders, dan hover effects
+#### Completion Phase:
+- **Icon**: CheckCircle
+- **Text**: "Respons selesai"
+- **Animation**: Static green checkmark
+
+#### Progress Indicators:
+- **Visual**: Colored dots showing current phase
+- **Colors**: Purple (thinking), Blue (knowledge), Green (memory)
+- **Labels**: "Thinking", "Knowledge Access", "Memory Update"
 
 ### Benefits:
-- **Readable Tables**: Tabel sekarang dapat dibaca dengan baik pada semua ukuran layar
-- **Responsive Design**: Scroll horizontal otomatis pada layar kecil
-- **Better UX**: Visual enhancement dengan hover effects dan alternating colors
-- **Consistent Styling**: Styling tabel yang konsisten dengan tema aplikasi
-- **Professional Appearance**: Tabel terlihat lebih profesional dengan shadow dan rounded corners
+- **Real-time Feedback**: User melihat proses AI secara detail dan real-time
+- **Better UX**: Tidak lagi hanya skeleton loading, tapi informasi yang meaningful
+- **Professional Appearance**: Animasi yang smooth dan sesuai dengan AI workflow
+- **Event-Driven**: UI update berdasarkan actual streaming events dari backend
+- **Visual Hierarchy**: Jelas membedakan antara thinking, tool calls, dan memory updates
 
-### Files Modified:
-- **src/components/ui/TipidkorChatPage.tsx**: Enhanced table styling dengan Tailwind arbitrary values
-- **.cursorrules**: Dokumentasi perbaikan dan lessons learned
+### Files Created/Modified:
+- **src/components/ui/StreamingStatus.tsx**: New component untuk streaming animations
+- **src/types/playground.ts**: Added StreamingStatus interface
+- **src/stores/PlaygroundStore.ts**: Added streaming status state management
+- **src/hooks/playground/useAIChatStreamHandler.ts**: Enhanced dengan streaming status updates
+- **src/components/ui/WassidikPenyidikChatPage.tsx**: Integrated StreamingStatus component
+- **.cursorrules**: Documentation update
 
-### Status:
-✅ **COMPLETED** - Tabel berhasil diperbaiki dan responsif pada semua ukuran layar
+### User Feedback dan Improvement:
+User memberikan feedback positif tentang animasi, tetapi menunjukkan kekurangan UX: **animasi hanya muncul di bagian atas chat area, sehingga user harus scroll ke atas untuk melihat status saat melakukan chat berkelanjutan**.
 
-### Update: Clean ChatGPT-style Interface - COMPLETED ✅
+### Enhancement yang Diimplementasikan:
+#### 5. Per-Message Streaming Status:
+- **Moved animation location**: Dari global position ke dalam message bubble agent yang sedang streaming
+- **Message-specific display**: Setiap agent message yang sedang diproses menampilkan animasi di dalamnya
+- **Better scroll experience**: User tidak perlu scroll ke atas untuk melihat status
+- **Compact design**: Ukuran dan styling yang lebih kecil untuk fit di dalam message bubble
+- **Real-time positioning**: Animasi selalu muncul di message yang sedang aktif
 
-#### Masalah Tambahan:
-- **Border Mengganggu**: Styling tabel sebelumnya menambahkan border yang mengganggu tampilan chat
-- **Chat Area Terpersempit**: Wrapper overflow-x-auto mempersempit area chat
-- **Tidak Clean**: Tampilan tidak sebersih ChatGPT dengan banyak visual noise
+#### Implementation Details:
+- **Detection logic**: `isLastAgentMessage && isLoading` untuk menentukan message mana yang sedang streaming
+- **Compact styling**: `bg-purple-50`, smaller icons (w-4 h-4), smaller text (text-xs)
+- **Inline placement**: Animasi muncul di atas content message dengan `mb-3` spacing
+- **Progressive indicators**: Dots indicator tetap ada tapi lebih compact
 
-#### Solusi Clean Interface:
-- **Removed Message Borders**: Menghilangkan border dan shadow dari message bubbles
-- **Simplified Table Styling**: Menggunakan border minimal hanya pada table elements
-- **Clean Typography**: Menggunakan warna yang lebih subtle dan spacing yang lebih natural
-- **ChatGPT-style Layout**: Message tanpa background untuk bot, rounded untuk user
-- **Minimal Copy Button**: Copy button dengan styling yang lebih subtle dan posisi kiri
+### User Feedback Issue 2:
+User melaporkan bahwa **animasi baru muncul setelah final output dan kemudian menghilang**, yang tidak berguna karena animasi seharusnya muncul saat proses berlangsung.
 
-#### Technical Improvements:
-- **Message Styling**: Bot messages tanpa background, user messages dengan bg-gray-100
-- **Table Borders**: Hanya border-b pada th dan td, tanpa border samping
-- **Color Scheme**: Gray-based colors untuk tampilan yang lebih clean
-- **Button Position**: Copy button di kiri bawah seperti ChatGPT
-- **Responsive**: Tetap responsive tanpa wrapper yang mengganggu
-
-## Task: Fix Duplicate Case Clause Warning di AgentCard.tsx - COMPLETED ✅
-
-### Deskripsi:
-Memperbaiki warning Vite tentang duplicate case clause di AgentCard.tsx yang menyebabkan case 'ppa_ppo_chat' didefinisikan dua kali dalam switch statement.
-
-### Masalah yang Ditemukan:
-- **Duplicate Case**: Case 'ppa_ppo_chat' didefinisikan di baris 76 dan 78
-- **Unreachable Code**: Case kedua tidak akan pernah dieksekusi karena case pertama sudah menangani kondisi yang sama
-- **Vite Warning**: Warning yang mengganggu proses development
-
-### Solusi yang Diimplementasikan:
-- **Removed Duplicate**: Menghapus case 'ppa_ppo_chat' yang duplikat (yang menggunakan PieChart icon)
-- **Keep Original**: Mempertahankan case pertama yang menggunakan img src="/img/krimum.svg"
-- **Clean Code**: Membersihkan kode dari redundancy
-
-### Technical Changes:
-- **AgentCard.tsx**: Menghapus duplicate case clause untuk 'ppa_ppo_chat'
-
-### Benefits:
-- **No More Warnings**: Menghilangkan warning Vite yang mengganggu
-- **Clean Code**: Kode yang lebih bersih tanpa redundancy
-- **Consistent Icon**: PPA PPO agent menggunakan ikon yang konsisten (krimum.svg)
-
-### Files Modified:
-- **src/components/AgentCard.tsx**: Removed duplicate case clause
-- **.cursorrules**: Dokumentasi perbaikan
+### Fix yang Diimplementasikan:
+#### 6. Timing Detection Logic Fix:
+- **Problem**: Logic `isLastAgentMessage && isLoading` timing tidak tepat
+- **Solution**: Enhanced detection dengan multiple criteria:
+  ```typescript
+  const isStreamingMessage = message.role === 'agent' && 
+                           isLastMessage && 
+                           isLoading &&
+                           (hasMinimalContent || 
+                            streamingStatus.isThinking || 
+                            streamingStatus.isCallingTool || 
+                            streamingStatus.isUpdatingMemory);
+  ```
+- **Empty message handling**: Show placeholder "Sedang memproses..." untuk message kosong
+- **Conditional rendering**: Copy button hanya muncul jika ada content
+- **Better detection**: Animasi muncul pada message dengan content minimal (< 50 chars) atau saat ada active streaming status
+- **Skeleton removal**: Menghapus skeleton loading yang redundant dan mengganggu animasi event stream
 
 ### Status:
-✅ **COMPLETED** - Warning duplicate case clause berhasil diperbaiki
-
-## Task: Refactoring NarkotikaChatPage.tsx dengan Modular Markdown Formatter - COMPLETED ✅
-
-### Deskripsi:
-Memisahkan bagian yang memproses struktur markdown dari NarkotikaChatPage.tsx ke utility file terpisah dan memperbaiki tampilan dengan gaya yang lebih bersih seperti ChatGPT.
-
-### Masalah yang Ditemukan:
-- **Kode Tidak Modular**: Fungsi formatMessage terduplikasi di berbagai chat components
-- **Styling Tabel Tidak Konsisten**: Setiap component memiliki styling tabel yang berbeda
-- **Tampilan Tidak Clean**: Message bubbles dengan border dan shadow yang mengganggu
-- **Copy Button Tidak Optimal**: Posisi dan styling copy button tidak seperti ChatGPT
-
-### Solusi yang Diimplementasikan:
-- **Modular Markdown Formatter**: Membuat `src/utils/markdownFormatter.ts` dengan fungsi reusable
-- **Theme-based Prose Classes**: Fungsi `getProseClasses()` dengan support untuk berbagai tema
-- **Table Wrapper Utility**: Fungsi `createTableWrapper()` untuk responsive table handling
-- **Clean ChatGPT-style Interface**: Menghilangkan border dan shadow yang tidak perlu
-- **Improved Copy Button**: Styling yang lebih minimal dan posisi yang lebih baik
-
-### Technical Changes:
-- **src/utils/markdownFormatter.ts**: 
-  * Fungsi `formatMessage()` untuk convert markdown ke HTML
-  * Fungsi `getProseClasses()` dengan theme support (default, amber, red, blue)
-  * Fungsi `createTableWrapper()` untuk responsive table handling
-  * Optimized table styling dengan Tailwind arbitrary values
-- **src/components/ui/NarkotikaChatPage.tsx**:
-  * Import utility functions dari markdownFormatter
-  * Menghapus duplicate formatMessage function
-  * Clean message styling tanpa border dan shadow untuk bot messages
-  * Improved copy button dengan hover effects dan positioning
-  * Menggunakan theme 'amber' untuk konsistensi dengan branding Narkotika AI
-
-### Benefits:
-- **Code Reusability**: Markdown formatter dapat digunakan di semua chat components
-- **Consistent Styling**: Semua tabel menggunakan styling yang sama
-- **Better Maintainability**: Perubahan styling cukup dilakukan di satu tempat
-- **Clean Interface**: Tampilan yang lebih bersih seperti ChatGPT
-- **Theme Support**: Mudah mengubah tema untuk berbagai jenis agent
-- **Responsive Tables**: Tabel otomatis responsive dengan scroll horizontal
-
-### Files Modified:
-- **src/utils/markdownFormatter.ts**: New utility file untuk markdown processing
-- **src/components/ui/NarkotikaChatPage.tsx**: Refactored untuk menggunakan utility
-- **.cursorrules**: Dokumentasi perbaikan
-
-### Status:
-✅ **COMPLETED** - NarkotikaChatPage berhasil direfactor dengan markdown formatter modular
-
-## Task: Memperlebar Area Chat Output di NarkotikaChatPage.tsx - COMPLETED ✅
-
-### Deskripsi:
-Memperlebar area chat output di NarkotikaChatPage.tsx untuk memberikan lebih banyak ruang bagi konten chat dan meningkatkan pengalaman membaca, terutama untuk tabel dan konten yang lebar.
-
-### Masalah yang Ditemukan:
-- **Area Chat Terbatas**: Container chat menggunakan `max-w-3xl` yang membatasi lebar konten
-- **Message Bubbles Sempit**: Message bubbles dibatasi hingga 75% dari container
-- **Tabel Terpotong**: Tabel lebar tidak dapat ditampilkan dengan optimal
-- **Ruang Tidak Optimal**: Layar lebar tidak dimanfaatkan secara maksimal
-
-### Solusi yang Diimplementasikan:
-- **Expanded Container Width**: Mengubah `max-w-3xl` menjadi `max-w-5xl` untuk semua container
-- **Wider Message Bubbles**: Meningkatkan max-width message dari 75% menjadi 85% pada desktop
-- **Consistent Spacing**: Mempertahankan spacing dan responsivitas yang baik
-- **Better Content Display**: Memberikan lebih banyak ruang untuk tabel dan konten kompleks
-
-### Technical Changes:
-- **Chat Container**: `max-w-3xl` → `max-w-5xl` untuk area chat utama
-- **Info Panel**: `max-w-3xl` → `max-w-5xl` untuk panel informasi
-- **Input Area**: `max-w-3xl` → `max-w-5xl` untuk area input
-- **Message Bubbles**: `max-w-[75%]` → `max-w-[85%]` untuk message bubbles pada desktop
-- **Mobile Optimization**: `max-w-[85%]` → `max-w-[90%]` untuk mobile devices
-
-### Benefits:
-- **Better Content Visibility**: Tabel dan konten lebar dapat ditampilkan dengan lebih baik
-- **Improved Reading Experience**: Lebih banyak ruang untuk membaca konten panjang
-- **Optimal Screen Usage**: Memanfaatkan layar lebar secara maksimal
-- **Consistent Layout**: Layout tetap responsif dan konsisten di semua ukuran layar
-- **Professional Appearance**: Tampilan yang lebih profesional dengan ruang yang cukup
-
-### Files Modified:
-- **src/components/ui/NarkotikaChatPage.tsx**: Enhanced container widths dan message bubble sizes
-- **.cursorrules**: Dokumentasi perbaikan
-
-### Status:
-✅ **COMPLETED** - Area chat berhasil diperlebar untuk pengalaman yang lebih baik
-
-## Task: Fix TypeScript Warning di markdownFormatter.ts - COMPLETED ✅
-
-### Deskripsi:
-Memperbaiki TypeScript warning tentang parameter `theme` yang tidak digunakan dalam fungsi `createTableWrapper` di markdownFormatter.ts.
-
-### Masalah yang Ditemukan:
-- **Unused Parameter**: Parameter `theme` di fungsi `createTableWrapper` dideklarasikan tapi tidak digunakan
-- **TypeScript Warning**: Warning TS6133 yang mengganggu development experience
-- **Code Cleanliness**: Parameter yang tidak digunakan membuat kode tidak bersih
-
-### Solusi yang Diimplementasikan:
-- **Removed Unused Parameter**: Menghapus parameter `theme` dari fungsi `createTableWrapper`
-- **Updated Function Calls**: Memperbarui pemanggilan fungsi di NarkotikaChatPage.tsx untuk tidak mengirim parameter theme
-- **Clean Function Signature**: Fungsi sekarang hanya menerima parameter yang benar-benar digunakan
-
-### Technical Changes:
-- **src/utils/markdownFormatter.ts**: 
-  * Menghapus parameter `theme` dari fungsi `createTableWrapper`
-  * Menyederhanakan function signature
-- **src/components/ui/NarkotikaChatPage.tsx**:
-  * Memperbarui pemanggilan `createTableWrapper` tanpa parameter theme
-
-### Benefits:
-- **No More Warnings**: Menghilangkan TypeScript warning yang mengganggu
-- **Cleaner Code**: Kode yang lebih bersih tanpa parameter yang tidak digunakan
-- **Better Maintainability**: Function signature yang lebih sederhana dan jelas
-- **Consistent Pattern**: Mengikuti best practice untuk tidak memiliki unused parameters
-
-### Files Modified:
-- **src/utils/markdownFormatter.ts**: Removed unused theme parameter
-- **src/components/ui/NarkotikaChatPage.tsx**: Updated function call
-- **.cursorrules**: Dokumentasi perbaikan
-
-### Status:
-✅ **COMPLETED** - TypeScript warning berhasil diperbaiki
-
-## Task: Fix TypeScript Warnings di PiketSpktChatPage.tsx - COMPLETED ✅
-
-### Deskripsi:
-Memperbaiki TypeScript warnings yang muncul di PiketSpktChatPage.tsx karena adanya import dan variabel yang dideklarasikan tapi tidak digunakan.
-
-### Masalah yang Ditemukan:
-- **Unused Imports**: Import `AlertCircle` dan `Clock` dari lucide-react tidak digunakan
-- **Unused Import**: Import `DotBackground` tidak digunakan dalam component
-- **Unused Variable**: Variable `setProgress` dideklarasikan tapi tidak pernah digunakan
-- **TypeScript Warnings**: 4 warning TS6133 yang mengganggu development experience
-
-### Solusi yang Diimplementasikan:
-- **Removed Unused Imports**: Menghapus `AlertCircle` dan `Clock` dari import lucide-react
-- **Removed DotBackground Import**: Menghapus import yang tidak digunakan
-- **Fixed setProgress**: Mengubah `setProgress` menjadi hanya `progress` karena tidak ada setter yang digunakan
-- **Clean Code**: Membersihkan semua unused declarations
-
-### Technical Changes:
-- **Import Statement**: Menghapus `AlertCircle`, `Clock` dari lucide-react imports
-- **DotBackground**: Menghapus import line yang tidak digunakan
-- **Progress State**: Mengubah `const [progress, setProgress]` menjadi `const [progress]`
-
-### Benefits:
-- **No More Warnings**: Menghilangkan semua TypeScript warnings yang mengganggu
-- **Cleaner Code**: Kode yang lebih bersih tanpa unused imports dan variables
-- **Better Maintainability**: Kode yang lebih mudah dipelihara dan dibaca
-- **Consistent Pattern**: Mengikuti best practice untuk tidak memiliki unused declarations
-
-### Files Modified:
-- **src/components/ui/PiketSpktChatPage.tsx**: Cleaned up unused imports dan variables
-- **.cursorrules**: Dokumentasi perbaikan
-
-### Status:
-✅ **COMPLETED** - Semua TypeScript warnings berhasil diperbaiki
-
-## Task: Fix TypeScript Warnings di PiketSpktChatPage.tsx (Round 2) - COMPLETED ✅
-
-### Deskripsi:
-Memperbaiki TypeScript warnings tambahan yang muncul setelah perubahan layout, yaitu import yang tidak digunakan lagi setelah menghilangkan toggle functionality untuk mobile.
-
-### Masalah yang Ditemukan:
-- **Unused Import**: `Maximize2` tidak digunakan lagi setelah menghilangkan toggle button
-- **Unused Import**: `Minimize2` tidak digunakan lagi setelah menghilangkan toggle button  
-- **Unused Import**: `Download` diimport tapi tidak digunakan dalam implementasi
-
-### Solusi yang Diimplementasikan:
-- **Removed Unused Imports**: Menghapus `Maximize2`, `Minimize2`, dan `Download` dari import lucide-react
-- **Clean Import Statement**: Menyederhanakan import statement untuk hanya include yang digunakan
-
-### Technical Changes:
-- **Import Statement**: Menghapus `Maximize2`, `Minimize2`, `Download` dari lucide-react imports
-
-### Benefits:
-- **No More Warnings**: Menghilangkan 3 TypeScript warnings (TS6133) yang tersisa
-- **Cleaner Code**: Import statement yang lebih bersih dan focused
-- **Better Maintainability**: Tidak ada unused dependencies
-- **Consistent Pattern**: Mengikuti best practice untuk clean imports
-
-### Files Modified:
-- **src/components/ui/PiketSpktChatPage.tsx**: Cleaned up unused imports
-- **.cursorrules**: Dokumentasi perbaikan
-
-### Status:
-✅ **COMPLETED** - Semua TypeScript warnings berhasil diperbaiki
-
-## Task: Perbaikan Prompt Gemini untuk Menghilangkan Frasa Berulang - COMPLETED ✅
-
-### Deskripsi:
-Memperbaiki prompt di agentLaporanIntelejen.ts untuk menghilangkan frasa berulang yang selalu muncul di awal respons Gemini seperti "Baik, saya akan menyusun laporan intelijen sesuai dengan instruksi..." dan "Baik, berdasarkan pencarian web yang telah saya lakukan...".
-
-### Masalah yang Ditemukan:
-- **Frasa Berulang**: Model Gemini selalu menambahkan konfirmasi di awal respons
-- **Instruksi Bertahap**: Prompt menggunakan instruksi bertahap yang memicu respons konfirmasi
-- **Kata Trigger**: Penggunaan kata "HARUS" dan frasa "Setelah itu, buatlah..." memicu konfirmasi
-- **Struktur Prompt**: Prompt terlalu eksplisit dalam menginstruksikan pencarian web
-
-### Solusi yang Diimplementasikan:
-- **Direct Role Definition**: Mengubah dari instruksi bertahap ke role definition langsung
-- **Simplified Instructions**: Menghilangkan frasa "Gunakan kemampuan pencarian web Anda..."
-- **Direct Task Assignment**: Menggunakan "Susun laporan..." instead of "Setelah itu, buatlah laporan..."
-- **Removed Trigger Words**: Menghilangkan kata "HARUS" dan "Anda HARUS"
-- **Streamlined Format**: Menyederhanakan struktur prompt untuk langsung ke tugas
-
-### Technical Changes:
-- **buildIntelligenceReportPrompt()**: Simplified prompt structure dengan direct task assignment
-- **buildIntelligenceProductSearchPrompt()**: Removed step-by-step instructions yang memicu konfirmasi
-- **Role Definition**: Changed from "Anda adalah seorang analis... yang bertugas..." to "Anda adalah analis... yang bertugas..."
-- **Instruction Flow**: Direct flow tanpa "Setelah itu" atau "Pastikan semua informasi..."
-
-### Benefits:
-- **Clean Output**: Respons langsung ke konten tanpa frasa berulang
-- **Professional Appearance**: Output yang lebih profesional dan langsung ke point
-- **Better UX**: User tidak perlu membaca konfirmasi yang tidak perlu
-- **Consistent Format**: Format output yang konsisten tanpa variasi konfirmasi
-- **Improved Efficiency**: Respons yang lebih efisien dan fokus pada konten
-
-### Files Modified:
-- **src/services/agentLaporanIntelejen.ts**: Enhanced prompt engineering untuk kedua fungsi
-- **.cursorrules**: Dokumentasi pattern dan lessons learned
-
-### Status:
-✅ **COMPLETED** - Prompt berhasil diperbaiki untuk menghilangkan frasa berulang
-
-## Task: Perbaikan Output Duplikat di Chat dan Dokumen - COMPLETED ✅
-
-### Deskripsi:
-Memperbaiki masalah output yang muncul duplikat di chat page dan area dokumen. Sekarang output AI hanya ditampilkan di area dokumen, sedangkan chat page menampilkan konfirmasi dan riwayat percakapan.
-
-### Masalah yang Ditemukan:
-- **Output Duplikat**: Respons AI muncul di chat page dan area dokumen
-- **Redundant Information**: User melihat informasi yang sama di dua tempat
-- **Poor UX**: Membingungkan dan tidak efisien
-- **Scroll Issues**: Chat area menjadi terlalu panjang dengan konten duplikat
-
-### Solusi yang Diimplementasikan:
-- **Single Source Display**: Output AI hanya ditampilkan di area dokumen
-- **Chat Confirmation**: Chat menampilkan pesan konfirmasi singkat
-- **Visual Indicators**: Indikator untuk menunjukkan lokasi dokumen
-- **Mobile Notification**: Animasi dan badge pada tombol dokumen mobile
-- **Clean Chat History**: Chat fokus pada percakapan, bukan output lengkap
-
-### Technical Changes:
-- **Document Content State**: `setDocumentContent(response)` dipindah ke atas
-- **Chat Message**: Diganti dengan konfirmasi singkat dan petunjuk lokasi
-- **Mobile Indicator**: `hasNewDocument` state untuk notifikasi visual
-- **Button Animation**: Pulse animation dan badge untuk dokumen baru
-- **Simplified Chat Display**: Bot messages menggunakan simple styling
-
-### Benefits:
-- **No Duplication**: Output hanya muncul di satu tempat
-- **Clear Separation**: Chat untuk interaksi, dokumen untuk hasil
-- **Better Mobile UX**: Visual indicator untuk dokumen baru
-- **Cleaner Interface**: Chat area tidak overloaded dengan konten
-- **Focused Experience**: User tahu persis di mana mencari hasil
-
-### Files Modified:
-- **src/components/ui/PiketSpktChatPage.tsx**: Implemented single source display
-- **.cursorrules**: Dokumentasi perbaikan
-
-### Status:
-✅ **COMPLETED** - Output tidak lagi duplikat, UX lebih clean dan focused
-
-### Update: Perbaikan Markdown Formatting - COMPLETED ✅
-
-#### Masalah yang Ditemukan:
-- **Unwanted Markdown**: Output Gemini API menambahkan `**` di awal dan akhir setiap section
-- **Poor Formatting**: Tampilan menjadi tidak rapi dengan markdown formatting yang tidak diinginkan
-- **Inconsistent Display**: Section content dimulai dan diakhiri dengan `**` yang mengganggu
-
-#### Solusi yang Diimplementasikan:
-- **Enhanced formatContent Function**: Menambahkan regex untuk menghapus `**` di awal dan akhir content
-- **Parsing Cleanup**: Membersihkan markdown formatting saat parsing setiap section
-- **Multiple Pattern Removal**: Menangani berbagai pola `**` (awal line, akhir line, standalone)
-- **Consistent Output**: Memastikan output yang bersih tanpa formatting yang tidak diinginkan
-
-#### Technical Changes:
-- **formatContent()**: Added regex patterns untuk remove unwanted `**`
-- **parseAnalysisText()**: Enhanced section parsing dengan cleanup formatting
-- **Pattern Matching**: 
-  * `^\*\*\s*` - Remove opening ** with optional whitespace
-  * `\s*\*\*$` - Remove closing ** with optional whitespace  
-  * `^\*\*\n` - Remove ** at start of new line
-  * `\n\*\*$` - Remove ** at end of line
-
-#### Benefits:
-- **Clean Output**: Section content tampil bersih tanpa markdown artifacts
-- **Professional Appearance**: Formatting yang konsisten dan rapi
-- **Better Readability**: Content lebih mudah dibaca tanpa distraksi formatting
-- **Consistent Parsing**: Semua section di-parse dengan standar yang sama
-
-### Files Modified:
-- **src/services/piketSpktAnalysisService.ts**: Enhanced content formatting dan parsing
-- **.cursorrules**: Dokumentasi perbaikan
-
-### Status:
-✅ **COMPLETED** - Markdown formatting berhasil dibersihkan dari output
-
-### Update: Perbaikan Fungsi Print untuk Area Dokumen - COMPLETED ✅
-
-#### Masalah yang Ditemukan:
-- **Print Area Salah**: Fungsi `window.print()` mencetak seluruh halaman termasuk area chat input
-- **Format Tidak Sesuai**: Output print tidak menggunakan format A4 yang proper
-- **Tidak Professional**: Tidak ada header resmi dan formatting yang sesuai untuk dokumen kepolisian
-- **Markdown Tidak Ter-render**: Content markdown tidak dikonversi dengan baik untuk print
-
-#### Solusi yang Diimplementasikan:
-- **Custom Print Function**: Membuat fungsi `printDocument()` yang khusus untuk area dokumen
-- **New Window Approach**: Menggunakan `window.open()` untuk membuat window print terpisah
-- **A4 Format**: Menggunakan CSS `@page { size: A4; margin: 2cm 2.5cm 2cm 2.5cm; }`
-- **Professional Header**: Header resmi dengan logo Kepolisian RI dan informasi SPKT
-- **Markdown to HTML Conversion**: Fungsi `markdownToHtml()` untuk konversi proper
-- **Print Styling**: CSS khusus untuk print dengan font Times New Roman 12pt
-- **Page Break Control**: Menggunakan `page-break-after: avoid` untuk headers
-- **Footer dengan Page Number**: Footer dengan informasi halaman dan sumber dokumen
-
-#### Technical Implementation:
-- **Print Window**: `window.open('', '_blank')` untuk window terpisah
-- **Date/Time Header**: Menggunakan `toLocaleDateString('id-ID')` untuk format Indonesia
-- **Markdown Parsing**: Regex patterns untuk konversi markdown ke HTML:
-  * Headers: `^# (.*$)` → `<h1>$1</h1>`
-  * Bold: `\*\*(.*?)\*\*` → `<strong>$1</strong>`
-  * Links: `\[([^\]]+)\]\(([^)]+)\)` → `<a href="$2">$1</a>`
-  * Lists: `^\* (.*$)` → `<li>$1</li>`
-- **Auto Print**: `window.onload` trigger print dialog
-- **Auto Close**: `window.onafterprint` close window setelah print
-
-#### Benefits:
-- **Professional Output**: Dokumen print dengan header resmi Kepolisian RI
-- **A4 Format**: Format standar dokumen resmi dengan margin yang tepat
-- **Multi-page Support**: Automatic page breaks untuk dokumen panjang
-- **Clean Content**: Hanya area dokumen yang dicetak, tanpa UI elements
-- **Proper Typography**: Font Times New Roman dengan spacing yang sesuai
-- **Date/Time Stamp**: Informasi kapan dokumen dicetak
-- **Page Numbers**: Footer dengan nomor halaman untuk referensi
-
-#### Files Modified:
-- **src/components/ui/PiketSpktChatPage.tsx**: Added printDocument function dan markdown to HTML conversion
-- **.cursorrules**: Dokumentasi perbaikan
-
-#### Status:
-✅ **COMPLETED** - Fungsi print berhasil diperbaiki untuk mencetak area dokumen dengan format A4 professional
+✅ **COMPLETED** - Animated streaming status telah diimplementasikan dengan real-time thinking, tool calls, dan memory update animations. **Enhanced dengan per-message positioning, timing detection yang tepat, dan UI yang clean tanpa skeleton yang mengganggu.**
 
 ---
+
+## Task: Perbaikan File Upload di AGNO Streaming Service - COMPLETED ✅
+
+### Deskripsi:
+User melaporkan bahwa upload file di wassidikPenyidikStreamingService.ts tidak bekerja, sedangkan implementasi di wassidikPenyidikService.ts berfungsi dengan baik.
+
+### Masalah yang Ditemukan:
+- **Endpoint salah**: Streaming service menggunakan `run` untuk non-file, seharusnya `runs`
+- **Header tidak optimal**: Menggunakan `text/event-stream` untuk file upload yang mungkin tidak kompatibel
+- **Response handling kurang**: Tidak menangani mixed response (JSON untuk file upload, streaming untuk chat biasa)
+- **Progress tracking hilang**: Tidak ada progress callback untuk file upload
+- **Error handling terbatas**: Tidak menangani error spesifik file upload
+- **Parsing response kurang**: Tidak menangani RunResponse format dari API
+
+### Solusi yang Diimplementasikan:
+
+#### 1. Fixed Endpoint dan Headers:
+- **Perbaikan endpoint**: Menggunakan `runs` untuk non-file (sebelumnya `run`)
+- **Dynamic headers**: Menggunakan `application/json` untuk file upload, `text/event-stream` untuk chat biasa
+- **Enhanced authentication**: Menambahkan logging untuk API key status
+
+#### 2. Mixed Response Handling:
+- **JSON detection**: Mendeteksi `content-type: application/json` untuk file upload responses
+- **RunResponse parsing**: Mengimplementasikan `parseResponse` function untuk menangani RunResponse format
+- **Event conversion**: Mengkonversi JSON response ke streaming events (RunStarted, RunResponse, RunCompleted)
+- **Content extraction**: Extract content dari format kompleks API response
+
+#### 3. Progress Tracking Implementation:
+- **Progress callbacks**: Menambahkan `onProgress` event emitter seperti di service yang bekerja
+- **Upload phases**: Progress tracking untuk preparing, uploading, processing, completed
+- **File upload indicators**: Progress update khusus untuk file upload scenarios
+- **Error completion**: Mark progress as completed bahkan saat error untuk UX consistency
+
+#### 4. Enhanced Error Handling:
+- **HTTP status codes**: Menangani 429 (rate limit), 413 (file too large), 500+ (server errors)
+- **File-specific errors**: Error messages yang spesifik untuk file upload issues
+- **Parse error handling**: Graceful handling untuk JSON parsing errors
+- **Progress completion**: Proper progress completion pada error scenarios
+
+#### 5. Detailed Logging Implementation:
+- **File details**: Log nama, ukuran, dan tipe file seperti di service yang bekerja
+- **FormData tracking**: Log semua parameter FormData untuk debugging
+- **Response analysis**: Log content type dan response format detection
+- **Error context**: Enhanced error logging dengan konteks yang jelas
+
+#### 6. Response Format Compatibility:
+- **RunResponse format**: Menangani format response `RunResponse(content='...', content_type=...)` dari API
+- **Content extraction**: Extract content menggunakan string parsing dan regex fallback
+- **Backward compatibility**: Tetap kompatibel dengan format response lama
+- **Source documents**: Preserve sourceDocuments dari response
+
+### Benefits:
+- **File upload compatibility**: File upload sekarang bekerja dengan streaming architecture
+- **Mixed mode support**: Mendukung JSON response untuk file upload dan streaming untuk chat
+- **Progress transparency**: User mendapat feedback progress yang jelas untuk file upload
+- **Error clarity**: Error messages yang lebih informatif dan spesifik
+- **Debugging capability**: Comprehensive logging untuk troubleshooting
+- **Response flexibility**: Menangani berbagai format response dari API
+
+### Files Modified:
+- **src/services/wassidikPenyidikStreamingService.ts**: Enhanced dengan file upload support, progress tracking, error handling, dan response parsing
+- **.cursorrules**: Documentation update
+
+### Technical Implementation Details:
+- **Dynamic Accept headers**: `application/json` untuk file upload, `text/event-stream` untuk streaming
+- **Response cloning**: Clone response untuk parsing tanpa mengganggu stream reading
+- **Event emission**: Convert JSON responses ke streaming events untuk consistency
+- **Progress phases**: preparing → uploading → processing → completed
+- **Content extraction**: Smart parsing dari RunResponse format dengan string manipulation dan regex
+- **Error propagation**: Proper error handling dengan progress completion
+
+### Status:
+✅ **COMPLETED** - File upload di wassidikPenyidikStreamingService.ts sekarang berfungsi dengan mixed mode (JSON untuk file upload, streaming untuk chat biasa), progress tracking yang lengkap, dan error handling yang comprehensive.
+
+#### 7. Enhanced Based on Agent UI Documentation:
+- **FormData pattern alignment**: Mengikuti pattern Agent UI dengan `formData.append("session_id", sessionId ?? "")`
+- **Parameter order optimization**: Menyesuaikan urutan parameter FormData dengan best practices
+- **Session handling improvement**: Allow empty session_id untuk new sessions sesuai Agent UI pattern
+- **Debug logging enhancement**: Menambahkan detailed FormData logging untuk troubleshooting
+- **Type safety fixes**: Memperbaiki type errors dengan proper null handling
+
+### Files Modified:
+- **src/services/wassidikPenyidikStreamingService.ts**: Enhanced dengan file upload support, progress tracking, error handling, response parsing, dan alignment dengan Agent UI documentation
+- **src/components/ui/WassidikPenyidikChatPage.tsx**: Updated accept attribute untuk mendukung semua format file Agno
+- **.cursorrules**: Documentation update
+
+#### 8. Enhanced File Support Based on Agno Documentation:
+- **Complete file format support**: Updated accept attribute dari `.pdf,.jpg,.jpeg,.png` menjadi `.pdf,.csv,.txt,.docx,.json,.png,.jpeg,.jpg,.webp` sesuai dokumentasi Agno
+- **Document formats**: Menambahkan dukungan untuk CSV, TXT, DOCX, JSON files
+- **Image formats**: Menambahkan dukungan untuk WEBP format
+- **User guidance**: Updated placeholder text untuk menunjukkan semua format yang didukung
+- **Agno compatibility**: Endpoint `runs-with-files` sudah sesuai dengan dokumentasi Agno Agent UI
+
+#### 9. Critical File Upload Fix Based on siberService.ts Comparison:
+- **Root cause identified**: streaming service menggunakan `stream: 'true'` untuk file upload, sedangkan seharusnya `stream: 'false'`
+- **Fixed stream parameter**: File upload menggunakan `stream: 'false'`, chat biasa menggunakan `stream: 'true'`
+- **Simplified response handling**: File upload selalu return JSON response, tidak perlu complex mixed mode handling
+- **Headers alignment**: File upload menggunakan `Accept: application/json`, streaming menggunakan `Accept: text/event-stream`
+- **Mode detection**: Clear distinction antara `file_upload_json` mode dan `chat_streaming` mode
+- **Following siberService pattern**: Mengikuti pattern yang sudah terbukti bekerja di siberService.ts
+
+### Status:
+✅ **COMPLETED** - File upload di wassidikPenyidikStreamingService.ts sekarang berfungsi dengan mixed mode (JSON untuk file upload, streaming untuk chat biasa), progress tracking yang lengkap, error handling yang comprehensive, dan sesuai dengan pattern Agent UI documentation serta dukungan file format lengkap sesuai dokumentasi Agno. **Critical fix: menggunakan `stream: 'false'` untuk file upload dan `stream: 'true'` untuk chat biasa seperti di siberService.ts yang bekerja.**
+
+#### 10. File Upload Functionality Removal:
+- **User request**: Upload file functionality tidak bekerja dengan benar dan diminta untuk dihapus
+- **Service simplification**: wassidikPenyidikStreamingService.ts disederhanakan menjadi chat-only service 
+- **Removed components**: File upload parameter, progress tracking, file handling logic, mixed response mode
+- **Simplified interface**: `sendStreamingChatMessage(message: string, onEvent?)` tanpa files parameter
+- **Clean implementation**: Fokus pada streaming chat functionality saja
+- **UI cleanup**: File upload UI dan state management dihapus dari WassidikPenyidikChatPage.tsx
+
+### Status:
+✅ **COMPLETED** - File upload functionality telah dihapus dari Wassidik AI. Service dan UI sekarang fokus pada chat functionality saja.
+
+---
+
+## Previous Completed Tasks:
+
+## Task: Perbaikan Error Gemini API INVALID_ARGUMENT - COMPLETED ✅
+
+### Deskripsi:
+User melaporkan error dari backend AGNO: "400 INVALID_ARGUMENT. contents.parts must not be empty" saat berkomunikasi dengan Gemini API. Error ini mengindikasikan ada FormData kosong atau tidak valid yang dikirim.
+
+### Solusi yang Diimplementasikan:
+
+#### 1. Enhanced Message Validation di useAIChatStreamHandler:
+- **Content validation**: Validasi message tidak kosong dan minimal 3 karakter
+- **File handling**: Auto-set default message jika upload file tanpa text
+- **Parameter validation**: Validasi semua parameter wajib tidak kosong sebelum request
+- **Required params check**: Validasi 'message', 'agent_id', 'stream', 'monitor', 'session_id', 'user_id'
+
+#### 2. Enhanced Error Handling:
+- **Session corruption detection**: Deteksi error INVALID_ARGUMENT dan reset session otomatis
+- **Clear corrupted session**: Hapus session dari storage jika terdeteksi corruption
+- **Specific error messages**: Error message yang lebih spesifik untuk 400 errors
+
+#### 3. Frontend Validation di WassidikPenyidikChatPage:
+- **Message length validation**: Minimal 3 karakter untuk message
+- **Content quality check**: Validasi content meaningfulness
+- **File + message validation**: Proper handling untuk file upload dengan/tanpa message
+
+#### 4. Improved Logging:
+- **FormData debugging**: Log semua parameter FormData sebelum send
+- **Empty parameter detection**: Log parameter kosong dengan '[EMPTY]' marker
+- **Session management**: Enhanced logging untuk session operations
+
+### Benefits:
+- **Prevent empty parts error**: Mencegah error INVALID_ARGUMENT dari Gemini API
+- **Better user experience**: Validasi yang jelas dan error messages yang informatif
+- **Session reliability**: Auto-recovery dari session corruption
+- **Debug capability**: Comprehensive logging untuk troubleshooting
+
+### Files Modified:
+- **src/hooks/playground/useAIChatStreamHandler.ts**: Enhanced validation, error handling, dan logging
+- **src/components/ui/WassidikPenyidikChatPage.tsx**: Frontend message validation
+- **.cursorrules**: Documentation update
+
+#### 5. FastAPI Error Format Handling:
+- **Response format detection**: Mendeteksi format `<Response [400]>` dari FastAPI
+- **Status code extraction**: Extract status code dari FastAPI response format
+- **Automatic session reset**: Clear session untuk error 4xx yang mungkin terkait parameter corruption
+- **Enhanced logging**: Detailed logging untuk debugging HTTP errors
+
+#### 6. Session ID Validation Fix:
+- **Empty session_id allowance**: Mengizinkan session_id kosong untuk session baru
+- **Parameter validation refinement**: Memisahkan validasi session_id dari parameter wajib lainnya
+- **New session detection**: Proper logging untuk session baru vs existing session
+- **Type safety**: Proper type casting untuk FormDataEntryValue
+
+### Status:
+✅ **COMPLETED** - Error INVALID_ARGUMENT telah diatasi dengan comprehensive validation dan error handling
+
+---
+
+## Previous Completed Tasks:
+
+## Task: Integrasi AGNO Streaming ke WassidikPenyidikChatPage - COMPLETED ✅
+
+### Deskripsi:
+User meminta untuk mengintegrasikan streaming AGNO di frontend berdasarkan studi kita. Implementasi harus mencakup pemasangan hook, setup SSE/Fetch-Streaming, identifikasi dan penanganan semua RunEvent, struktur hook useAIChatStreamHandler, integrasi ke komponen chat, penanganan state di store, dan fungsi utility parseBuffer.
+
+### Implementasi yang Diselesaikan:
+
+#### 1. Types dan Interface (src/types/playground.ts):
+- **RunEvent enum**: Semua event types (RunStarted, RunResponse, RunCompleted, RunError, ToolCallStarted, ToolCallCompleted, ReasoningStarted, ReasoningStep, ReasoningCompleted)
+- **RunResponse interface**: Struktur lengkap untuk streaming response dengan content, tools, images, videos, audio, extra_data
+- **PlaygroundChatMessage interface**: Format pesan chat yang kompatibel dengan streaming
+- **StreamOptions interface**: Konfigurasi untuk streaming requests
+- **PlaygroundStore interface**: State management untuk playground
+
+#### 2. Store Management (src/stores/PlaygroundStore.ts):
+- **Zustand store**: State management dengan messages, isStreaming, sessionId, sessionsData
+- **LocalStorage integration**: Persistensi session dan chat history
+- **Helper functions**: loadSessionFromStorage, loadSessionsFromStorage, clearSessionStorage
+- **Type-safe state updates**: Proper TypeScript typing untuk semua state operations
+
+#### 3. Streaming Hooks Infrastructure:
+
+##### useAIResponseStream (src/hooks/streaming/useAIResponseStream.ts):
+- **parseBuffer function**: Parse streaming buffer dengan proper JSON extraction
+- **processChunk function**: Validasi dan debugging untuk chunks
+- **streamResponse function**: Fetch + ReadableStream handling dengan timeout dan error management
+- **SSE-like streaming**: Compatible dengan AGNO streaming format
+
+##### useChatActions (src/hooks/playground/useChatActions.ts):
+- **Message utilities**: createMessage, addMessage dengan auto-generation ID dan timestamp
+- **UI helpers**: focusChatInput, scrollToBottom, clearChatInput
+- **DOM integration**: Data attributes untuk chat elements
+
+##### useAIChatStreamHandler (src/hooks/playground/useAIChatStreamHandler.ts):
+- **Event handlers**: handleRunStarted, handleRunResponse, handleRunCompleted, handleRunError
+- **Tool call handlers**: handleToolCallStarted, handleToolCallCompleted
+- **Reasoning handlers**: handleReasoningStep untuk reasoning steps
+- **State synchronization**: Real-time update messages dengan streaming chunks
+- **Error handling**: Comprehensive error handling untuk semua scenarios
+
+#### 4. Streaming Service (src/services/wassidikPenyidikStreamingService.ts):
+- **AGNO integration**: Full compatibility dengan AGNO streaming API
+- **Session management**: Persistent user ID dan session ID dengan Supabase auth
+- **File upload support**: Multi-file upload dengan streaming progress
+- **Event emitters**: Internal event system untuk streaming events
+- **Utility functions**: convertStreamingEventsToMessages untuk message conversion
+
+#### 5. Enhanced WassidikPenyidikChatPage:
+- **Progress tracking**: Real-time progress bars untuk file uploads
+- **File upload integration**: Multiple file support dengan preview dan removal
+- **Streaming compatibility**: Ready untuk integrasi dengan streaming hooks
+- **Enhanced UX**: Better error messages, loading states, dan user feedback
+
+### Key Features Implemented:
+
+#### Streaming Event Handling:
+- **RunStarted**: Initialize session, set streaming state, save session history
+- **RunResponse**: Append content incrementally, update tools/metadata, prevent duplication
+- **RunCompleted**: Finalize message content, complete metadata, stop streaming
+- **RunError**: Mark message as error, display error message, cleanup session
+
+#### Advanced Features:
+- **Tool Call Tracking**: Real-time tool call status dan results
+- **Reasoning Steps**: Live reasoning process display
+- **Media Support**: Images, videos, audio dalam streaming response
+- **Reference Tracking**: Source documents dan citations
+- **Session Persistence**: LocalStorage untuk chat history
+
+#### Error Handling dan Resilience:
+- **Network errors**: Automatic retry dengan exponential backoff
+- **Parse errors**: Graceful fallback untuk malformed JSON
+- **Timeout handling**: Configurable timeouts untuk large files
+- **Authentication**: Proper API key dan Supabase auth integration
+
+### Benefits:
+- **Real-time response**: Streaming chat dengan immediate feedback
+- **Better UX**: Progress indicators, file upload, error handling
+- **Scalable architecture**: Modular hooks dan services
+- **Type safety**: Full TypeScript support dengan proper interfaces
+- **Production ready**: Comprehensive error handling dan logging
+
+### Files Created/Modified:
+- **src/types/playground.ts**: Complete types untuk streaming
+- **src/stores/PlaygroundStore.ts**: Zustand store management
+- **src/hooks/streaming/useAIResponseStream.ts**: Core streaming hook
+- **src/hooks/playground/useChatActions.ts**: Chat utility functions
+- **src/hooks/playground/useAIChatStreamHandler.ts**: Main streaming handler
+- **src/services/wassidikPenyidikStreamingService.ts**: Streaming service layer
+- **src/components/ui/WassidikPenyidikChatPage.tsx**: Enhanced dengan progress tracking
+
+### Status:
+✅ **COMPLETED** - AGNO streaming fully integrated dengan comprehensive event handling, state management, dan enhanced UX
+
+### Final Cleanup:
+- **Unused Imports Removed**: Cleaned up wassidikPenyidikStreamingService.ts by removing unused imports (ToolCall, MediaContent, ExtraData)
+- **API Key Authentication Fix**: Fixed 403 Forbidden error by adding proper API key authentication to useAIResponseStream.ts headers (X-API-Key with VITE_API_KEY and Supabase Authorization Bearer token)
+- **Event Types Fix**: Fixed streaming events not being recognized by updating RunEvent enum values from snake_case to PascalCase to match AGNO API format (RunResponse, ToolCallStarted, etc.) and added missing UpdatingMemory event
+- **Stream Completion Fix**: Fixed ERR_INCOMPLETE_CHUNKED_ENCODING error by treating it as normal completion, separated ReasoningCompleted from RunCompleted handlers, and improved graceful completion handling
+- **Content Preservation Fix**: Fixed RunCompleted handler to preserve accumulated content when final content is undefined, preventing "No content received" when streaming was successful
+- **HTTP 400 Error Fix**: Enhanced FormData parameter validation and error handling with proper agent_id, monitor, session_id, user_id parameters and descriptive error messages for common HTTP errors
+
+### Implementation Notes:
+- **Zustand Store**: Successfully installed dan configured untuk state management
+- **TypeScript Integration**: All types properly defined dengan full type safety
+- **Hook Architecture**: Modular hooks dengan proper dependency management
+- **Error Handling**: Comprehensive error handling untuk network, parsing, dan timeout scenarios
+- **File Upload Support**: Multi-file upload dengan progress tracking
+- **Session Management**: Persistent sessions dengan localStorage integration
+- **Real-time Updates**: Live streaming dengan proper buffer parsing dan event routing
+
+### Ready for Production:
+- All linter errors resolved
+- Proper TypeScript typing throughout
+- Comprehensive error handling
+- Modular and maintainable architecture
+- Full AGNO API compatibility
+
+### ✅ IMPLEMENTED TO WASSIDIKPENYIDIKCHATPAGE:
+- **Streaming Integration**: WassidikPenyidikChatPage successfully updated to use streaming hooks
+- **Store Integration**: Using usePlaygroundStore for state management
+- **Hook Integration**: handleStreamResponse from useAIChatStreamHandler
+- **Message Format**: Updated to PlaygroundChatMessage format (role: 'user'|'agent')
+- **File Upload**: Maintained file upload functionality with FormData
+- **Progress Tracking**: Maintained progress indication for large files
+- **Session Management**: Using streaming session functions
+- **UI Compatibility**: All UI elements working with streaming data
+- **Error Handling**: Proper error handling for streaming failures
+- **TypeScript**: All type errors resolved, full type safety
+- **Browser Compatibility**: Fixed require() issue in useChatActions.ts for browser environment
+- **API Endpoint**: Fixed endpoint from `/run` to `/runs` for AGNO API compatibility
+
+---
+
+## Task: Optimisasi Hero Section UndangUndang.tsx - COMPLETED ✅
+
+### Deskripsi:
+User melaporkan bahwa hero section dengan gradient background terlalu besar dan membuat pengguna tidak fokus melihat ke agen yang tersedia sebagai konten utama.
+
+### Masalah yang Ditemukan:
+- **Hero section terlalu dominan**: Mengalihkan perhatian dari agen-agen AI yang seharusnya menjadi fokus utama
+- **Visual hierarchy tidak optimal**: Hero yang terlalu besar membuat konten agen kurang menonjol
+- **UX tidak efisien**: User harus scroll banyak untuk melihat agen yang tersedia
+
+### Solusi yang Diimplementasikan:
+
+#### 1. Compact Header Design:
+- **Reduced height**: Dari py-16 lg:py-24 menjadi py-8 yang lebih kompak
+- **Simplified content**: Menghilangkan elemen statistik yang tidak terlalu penting
+- **Clean background**: Menggunakan white background dengan subtle border
+
+#### 2. Content-First Approach:
+- **Focus on agents**: Membuat agen menjadi focal point utama halaman
+- **Better visual hierarchy**: Header yang lebih kecil membuat agen lebih visible
+- **Improved spacing**: Menyesuaikan spacing untuk transisi yang smooth
+
+#### 3. Streamlined UI Elements:
+- **Simplified branding**: Tetap professional tapi tidak overwhelming
+- **Essential information only**: Hanya menampilkan judul dan deskripsi singkat
+- **Clean design**: Menghilangkan decorative elements yang berlebihan
+
+#### 4. Better User Flow:
+- **Immediate access**: User bisa langsung melihat agen tanpa scroll banyak
+- **Clear purpose**: Langsung menunjukkan bahwa ini adalah halaman untuk memilih agen
+- **Reduced cognitive load**: Less visual noise, more focus on content
+
+### Benefits:
+- **Better UX**: User langsung fokus ke agen yang tersedia
+- **Improved conversion**: Lebih mudah untuk user memilih dan menggunakan agen
+- **Cleaner design**: Visual yang lebih professional dan fokus
+- **Mobile friendly**: Header yang kompak lebih baik untuk mobile experience
+
+### Status:
+✅ **COMPLETED** - Hero section telah dioptimisasi untuk memberikan fokus yang lebih baik pada agen-agen AI
+
+---
+
+## Previous Completed Tasks:
+
+## Task: Perbaikan Welcome Message dan SkeletonMessage Layout di PiketSpktChatPage - COMPLETED ✅
+
+### Deskripsi:
+User melaporkan bahwa pada fungsi analisis di PiketSpktChatPage.tsx, SkeletonMessage menutupi elemen lain saat di mobile, dan welcome message dengan contoh pertanyaan tidak hilang saat user mensubmit pertanyaan.
+
+### Masalah yang Ditemukan:
+- **Welcome Message Persistence**: Welcome message dan contoh pertanyaan tidak hilang setelah user submit pertanyaan
+- **SkeletonMessage Layout Issue**: SkeletonMessage menutupi elemen lain di mobile karena layout yang bermasalah
+- **Conditional Rendering**: Logic kondisi untuk menampilkan welcome screen vs chat messages tidak tepat
+
+### Solusi yang Diimplementasikan:
+
+#### 1. Fixed Welcome Message Logic:
+- **Added processing condition**: Menambahkan `!isProcessing` ke kondisi welcome screen agar hilang saat processing
+- **Cleaner conditions**: Welcome screen hanya muncul saat tidak ada task completed dan tidak sedang processing
+
+#### 2. Restructured Chat Messages Layout:
+- **Separated processing indicator**: Memisahkan SkeletonMessage dari dalam chat messages loop
+- **Container restructure**: Membuat container terpisah untuk chat messages dan processing indicator
+- **Better responsive layout**: Layout yang lebih responsive dan tidak saling menumpuk
+
+#### 3. Improved Message Rendering:
+- **Removed nested conditions**: Menghapus kondisi SkeletonMessage di dalam message loop
+- **Cleaner message flow**: Setiap message di-render tanpa conditional loading di dalamnya
+- **Separate loading state**: Loading indicator terpisah dari message content
+
+#### 4. Mobile Layout Fixes:
+- **No overlapping elements**: SkeletonMessage tidak lagi menutupi elemen lain
+- **Proper spacing**: Spacing yang konsisten untuk mobile dan desktop
+- **Responsive containers**: Container yang responsive untuk semua ukuran layar
+
+### Benefits:
+- **Better UX**: Welcome message hilang dengan benar saat user mulai chat
+- **Mobile Friendly**: Layout yang tidak overlap dan responsive di mobile
+- **Clean Rendering**: Proses loading yang jelas dan terpisah dari content
+- **Consistent Behavior**: Behavior yang konsisten across different screen sizes
+
+### Status:
+✅ **COMPLETED** - Welcome message logic dan SkeletonMessage layout telah diperbaiki untuk pengalaman mobile yang lebih baik
+
+---
+
+## Previous Completed Tasks:
+
+## Task: Perbaikan ReactMarkdown Error di PiketSpktChatPage - COMPLETED ✅
+
+### Deskripsi:
+User melaporkan error "Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: object" yang terjadi di komponen AnalysisMarkdown dalam PiketSpktChatPage.tsx.
+
+### Masalah yang Ditemukan:
+- **Invalid Component Type**: Fungsi `createComponentProps` menghasilkan objek yang tidak kompatibel dengan ReactMarkdown
+- **ReactMarkdown Expectations**: ReactMarkdown mengharapkan komponen React yang sebenarnya, bukan objek konfigurasi
+- **Helper Function Issue**: Helper function `createComponentProps` tidak menghasilkan format yang benar
+
+### Solusi yang Diimplementasikan:
+
+#### 1. Replaced createComponentProps with Inline Components:
+- **Direct component definition**: Mengganti `createComponentProps()` dengan definisi komponen langsung
+- **Proper React components**: Menggunakan arrow functions yang mengembalikan JSX elements
+- **Type safety**: Implementasi dengan proper TypeScript typing untuk props
+
+#### 2. Fixed Component Structure:
+- **h1 component**: Dengan styling border-bottom dan proper spacing
+- **a component**: Dengan target="_blank" dan proper link styling  
+- **p, strong, em, hr**: Masing-masing dengan styling yang sesuai
+- **Proper prop spreading**: Menggunakan `{ children, ...props }` pattern
+
+#### 3. Cleaned Up Imports:
+- **Removed unused import**: Menghapus import `createComponentProps` yang sudah tidak dipakai
+- **Maintained config**: Tetap menggunakan `analysisMarkdownConfig` untuk class names dan plugins
+
+#### 4. Removed Unused Helper Function:
+- **Deleted createComponentProps**: Menghapus fungsi yang tidak digunakan sepenuhnya dari codebase
+- **Clean codebase**: Tidak ada lagi kode yang tidak terpakai (dead code)
+
+### Benefits:
+- **Error Resolution**: Mengatasi "Element type is invalid" error sepenuhnya
+- **Better Type Safety**: Komponen inline lebih type-safe dan mudah debug
+- **Performance**: Tidak ada overhead dari helper function yang bermasalah
+- **Maintainability**: Kode lebih eksplisit dan mudah dimodifikasi
+
+### Status:
+✅ **COMPLETED** - ReactMarkdown error telah diperbaiki dengan menggunakan inline component definitions
+
+---
+
+## Previous Completed Tasks:
+
+## Task: Perbaikan Loading Animation Responsiveness di WassidikPenyidikChatPage - COMPLETED ✅
+
+### Deskripsi:
+User melaporkan bahwa tampilan loading animation di WassidikPenyidikChatPage.tsx tidak responsif di mobile. Meminta perbaikan dengan menggunakan pattern dari SkeletonMessage.tsx dan membuat skeleton dengan lebar full width.
+
+### Masalah yang Ditemukan:
+- **Non-responsive loading**: Loading indicator sebelumnya menggunakan fixed container yang tidak responsif
+- **Mobile layout issues**: Dots animation dengan text terlalu kaku untuk layar kecil
+- **Inconsistent pattern**: Tidak mengikuti pattern skeleton yang sudah ada
+
+### Solusi yang Diimplementasikan:
+
+#### 1. Custom Skeleton dengan Pattern SkeletonMessage:
+- **Responsive container**: Menggunakan `flex gap-4 w-full max-w-[80%]` untuk responsivitas
+- **Full width bars**: Skeleton bars menggunakan `w-full`, `w-11/12`, `w-full` untuk variasi
+- **Proper spacing**: Menggunakan `flex-1 space-y-2 py-1 w-full` untuk layout yang flexibel
+
+#### 2. Improved Animation:
+- **Purple theme consistency**: Menggunakan `bg-purple-200` untuk skeleton bars yang konsisten dengan theme
+- **Smooth animation**: Menggunakan `animate-pulse` untuk efek yang halus
+- **Better text**: Mengganti text menjadi "Mencari informasi dan merangkum jawaban..."
+
+#### 3. Mobile Optimization:
+- **Responsive width**: Container menggunakan `max-w-[80%]` untuk mobile compatibility
+- **Flexible layout**: Layout menggunakan flexbox dengan proper width constraints
+- **Icon consistency**: Mempertahankan wassidik.svg icon sesuai theme
+
+### Benefits:
+- **Better Mobile Experience**: Loading animation sekarang responsif di semua ukuran layar
+- **Visual Consistency**: Mengikuti pattern skeleton yang sudah established
+- **Professional Look**: Animation yang lebih smooth dan professional
+- **Theme Consistency**: Mempertahankan purple theme wassidik yang konsisten
+
+### Status:
+✅ **COMPLETED** - Loading animation WassidikPenyidikChatPage sekarang responsif dengan pattern skeleton yang proper
+
+---
+
+## Previous Completed Tasks:
+
+## Task: Pembuatan Agen Wassidik Penyidik untuk PenyidikAi.tsx - COMPLETED ✅
+
+---
+
+## Previous Completed Tasks:
+
+## Task: Menghilangkan Input Chat Umum PiketSpktChatPage - COMPLETED ✅
+
+### Deskripsi:
+User meminta untuk menghilangkan input dan service pada bagian chat umum di PiketSpktChatPage.tsx, sehingga input hanya muncul ketika pengguna memilih tugas yang tersedia.
+
+### Perubahan yang Diimplementasikan:
+
+#### 1. Modifikasi Tool Selection di General Tab:
+- ❌ Menghapus option 'chat' dari tool selection
+- ✅ Hanya tersisa option 'laporanInformasi' sebagai tugas yang tersedia
+- ✅ Input area disembunyikan sampai user memilih Laporan Informasi
+
+#### 2. Kondisi Input Validation:
+- **Analysis Tab**: Input tetap bisa menerima text dan file upload
+- **General Tab**: Input hanya muncul jika `activeGeneralTool === 'laporanInformasi'`
+- **No Tool Selected**: Input area tidak ditampilkan sama sekali
+
+#### 3. Penyederhanaan Logic:
+- ❌ Menghapus fungsi `getExampleQuestions()` 
+- ✅ Mengganti dengan array `exampleQuestions` langsung untuk analysis tab
+- ❌ Menghapus example questions untuk chat umum
+- ✅ File upload button hanya muncul di analysis tab
+
+#### 4. UI Flow Improvement:
+- **Welcome Screen**: Menampilkan pilihan tool untuk general tab
+- **Tool Selection**: User harus memilih Laporan Informasi untuk input
+- **Input Appearance**: Input hanya muncul setelah tool dipilih
+- **Back Navigation**: User bisa kembali ke menu utama dari tool yang dipilih
+
+#### 5. Benefits:
+- **Cleaner UX**: User tidak bingung dengan terlalu banyak option
+- **Focused Purpose**: Setiap tab memiliki tujuan yang lebih jelas
+- **Guided Workflow**: User dipandu untuk memilih tugas spesifik
+- **Reduced Complexity**: Kode lebih sederhana dan maintainable
+
+### Files Modified:
+- **src/components/ui/PiketSpktChatPage.tsx**: 
+  * Removed chat option from general tab
+  * Modified input visibility logic
+  * Simplified example questions handling
+  * Updated file upload button visibility
+- **.cursorrules**: Dokumentasi completion
+
+### Status:
+✅ **COMPLETED** - Input dan service chat umum berhasil dihilangkan, input hanya muncul saat user memilih tugas Laporan Informasi
+
+---
+
+## Previous Completed Tasks:
+
+## Task: Perbaikan Spacing Tab DOCX - COMPLETED ✅
+
+### Deskripsi:
+User melaporkan bahwa spasi/tab pada DOCX terlalu jauh, terutama di bagian PENDAHULUAN dan FAKTA-FAKTA.
+
+### Masalah yang Ditemukan:
+- **Excessive Tab Characters**: Menggunakan 9 tab untuk PENDAHULUAN dan 7 tab untuk subyek items
+- **Header Spacing**: 20 tab character antara KOPSTUK dan S-1.2 terlalu berlebihan
+- **Inconsistent with Display**: Spacing tidak sesuai dengan tampilan di komponen display
+
+### Solusi yang Diimplementasikan:
+
+#### 1. Reduced Tab Spacing:
+- **PENDAHULUAN items**: Mengurangi dari `\t\t\t\t\t\t\t\t\t:` (9 tabs) menjadi `\t\t\t:` (3 tabs)
+- **Subyek items**: Mengurangi dari `\t\t\t\t\t\t\t:` (7 tabs) menjadi `\t\t:` (2 tabs)
+- **Header alignment**: Mengurangi dari 20 tabs menjadi 10 tabs antara KOPSTUK dan S-1.2
+
+#### 2. Benefits:
+- **Consistent Spacing**: Tab spacing sekarang proporsional dan tidak berlebihan
+- **Better Readability**: Teks lebih rapi dan mudah dibaca
+- **Professional Appearance**: Format yang lebih profesional dan standar
+
+### Files Modified:
+- **src/utils/documentExport.ts**: Reduced tab characters in multiple places
+- **.cursorrules**: Dokumentasi perbaikan
+
+### Status:
+✅ **COMPLETED** - Spacing tab DOCX telah diperbaiki dan lebih proporsional
+
+---
+
+## Previous Completed Tasks:
+
+## Task: Perbaikan Ukuran DOCX dan JSON Parsing Error - COMPLETED ✅
+
+## Document Export Consistency Lessons
+
+- **Font Size Consistency**: Pastikan ukuran font antara display component dan export format konsisten:
+  * Display `text-xs` (12px) = DOCX `size: 20` (10pt)
+  * Display `text-sm` (14px) = DOCX `size: 22` (11pt)  
+  * Display `text-base` (16px) = DOCX `size: 24` (12pt)
+- **Structure Synchronization**: Selalu sinkronkan struktur antara display component dan export function
+- **Comment Documentation**: Tambahkan komentar yang menjelaskan korelasi ukuran antara display dan export
+- **Visual Consistency**: Pastikan spacing, alignment, dan layout konsisten across all formats
+- **Regular Validation**: Secara berkala validasi bahwa display dan export menghasilkan output yang identical
+- **Tab Spacing Control**: Kontrol penggunaan tab character untuk alignment yang proper:
+  * PENDAHULUAN items: Gunakan maksimal 3-4 tab untuk spacing yang wajar
+  * Subyek items (indented): Gunakan maksimal 2 tab setelah indentasi
+  * Header alignment: Gunakan tab yang proporsional, maksimal 10 tab untuk alignment
+  * Avoid excessive tabs: Lebih dari 5-10 tab biasanya menghasilkan spacing yang berlebihan
+- **Proportional Spacing**: Pastikan spacing proporsional dengan ukuran font dan layout
+
+## Gemini API JSON Parsing Lessons
+
+- **JSON Temperature Setting**: Gunakan temperature 0.1 atau lebih rendah untuk output JSON yang konsisten dari Gemini API
+- **JSON Cleanup Patterns**: Implementasikan regex patterns untuk memperbaiki JSON yang malformed:
+  * Remove trailing commas: `replace(/,(\s*[\]}])/g, '$1')`
+  * Fix missing commas: `replace(/"\s*\n\s*"/g, '",\n    "')`
+  * Remove control characters: `replace(/[\u0000-\u001F\u007F-\u009F]/g, '')`
+  * Convert single to double quotes: `replace(/'/g, '"')`
+- **Fallback Parsing**: Implementasikan try-catch dengan fallback untuk extract JSON dari response yang mengandung text tambahan
+- **Array Validation**: Selalu validasi bahwa array fields (uraianPerkara, kesimpulan, saran) dalam format yang benar
+- **Debug Logging**: Gunakan extensive logging untuk debugging JSON parsing issues dengan substring preview
+- **Prompt Engineering for JSON**: 
+  * Berikan instruksi eksplisit tentang format JSON yang valid
+  * Sertakan contoh format array yang benar
+  * Peringatkan tentang trailing comma dan quote types
+  * Minta output hanya JSON tanpa text tambahan
+
+## Previous Lessons:
+
+## Task: StreamingStatus Synchronization dengan AGNO Events - COMPLETED ✅
+
+### Deskripsi:
+User melaporkan bahwa StreamingStatus design sudah bagus tapi belum tersinkron dengan useAIResponseStream.ts. Perlu memastikan events dari streaming API bisa mengupdate StreamingStatus dengan benar.
+
+### Implementasi yang Diselesaikan:
+
+#### 1. Updated StreamingStatus Interface:
+- **Props Matching**: Changed dari `currentStatus` ke `streamingStatus` untuk match dengan PlaygroundStore
+- **Compact Mode**: Added optional `compact` prop untuk flexibility di berbagai UI contexts
+- **Event Comments**: Added comments untuk setiap phase dengan source event (RunStarted, ToolCallStarted, etc.)
+
+#### 2. Enhanced Event Detection di useAIResponseStream:
+- **Detailed Logging**: Added comprehensive event logging dengan phase detection
+- **Event Mapping**: Clear mapping antara API events dan UI phases:
+  - `RunStarted/ReasoningStarted` → 🧠 Thinking phase  
+  - `ToolCallStarted` → 🔧 Tool call phase
+  - `UpdatingMemory` → 💾 Memory update phase
+  - `RunResponse` → 📝 Content generation phase
+  - `RunCompleted` → ✅ Completion phase
+
+#### 3. Proper Status Transitions di useAIChatStreamHandler:
+- **UpdatingMemory Event**: Enhanced dengan proper state reset
+- **Tool Call Management**: Proper toolName setting dan clearing
+- **State Isolation**: Setiap phase secara eksplisit mereset phase lain
+
+#### 4. Complete resetStreamingStatus Implementation:
+- **All Fields Reset**: Termasuk `toolName: undefined`
+- **Consistent State**: Semua streaming status fields direset secara konsisten
+- **Clean Transitions**: Memastikan tidak ada state yang tertinggal
+
+### Event Flow Synchronization:
+
+#### Streaming Phases:
+1. **Thinking**: `isThinking: true` (from RunStarted/ReasoningStarted)
+2. **Tool Call**: `isCallingTool: true, toolName: string` (from ToolCallStarted)  
+3. **Knowledge Access**: `isAccessingKnowledge: true` (from AccessingKnowledge)
+4. **Memory Update**: `isUpdatingMemory: true` (from UpdatingMemory)
+5. **Processing**: Default state (during RunResponse)
+6. **Completion**: `hasCompleted: true` (from RunCompleted)
+
+#### Status Management:
+- **Proper Transitions**: Setiap phase mereset phase sebelumnya
+- **Tool Name Tracking**: toolName diset saat ToolCallStarted dan cleared saat selesai
+- **Clean Reset**: resetStreamingStatus mengembalikan semua field ke initial state
+
+### Benefits:
+- **Real-time Sync**: StreamingStatus sekarang perfectly synchronized dengan AGNO streaming events
+- **Visual Feedback**: User melihat progress yang akurat sesuai dengan proses backend
+- **Debug Capability**: Enhanced logging untuk troubleshooting synchronization issues
+- **Flexible UI**: Compact mode untuk berbagai konteks UI
+- **Consistent State**: Proper state management dengan clean transitions
+
+### Files Modified:
+- **src/hooks/streaming/StreamingStatus.tsx**: Updated interface dan prop names
+- **src/hooks/streaming/useAIResponseStream.ts**: Enhanced event logging dan detection
+- **src/hooks/playground/useAIChatStreamHandler.ts**: Proper UpdatingMemory event handling
+- **src/stores/PlaygroundStore.ts**: Complete resetStreamingStatus implementation
+
+### Status:
+✅ **COMPLETED** - StreamingStatus component sekarang fully synchronized dengan AGNO streaming events, memberikan feedback visual yang akurat dan real-time untuk semua phases dari thinking sampai completion.
+
+#### Auto-Focus UX Enhancement - COMPLETED ✅
+- **Streaming Focus**: Auto-scroll ke StreamingStatus area saat proses streaming aktif (thinking, tool calls, knowledge access, memory update)
+- **Completion Focus**: Auto-scroll kembali ke input area setelah streaming selesai dengan delay 1.2 detik
+- **Smart Timing**: Timing yang optimal (500ms untuk streaming focus, 1200ms + 300ms untuk completion focus)
+- **Non-Interfering**: Auto-scroll messages normal tidak mengganggu streaming focus management
+- **Visual Enhancement**: Scroll margin dan transition untuk smooth user experience
+- **Cleanup**: Proper timer cleanup untuk prevent memory leaks
+- **Logging**: Comprehensive logging untuk debugging auto-focus behavior
+
+---
+
+## Previous Completed Tasks:
+
+## Task: Konversi TIPIDKOR ke Streaming dengan Animasi - COMPLETED ✅
+
+### Deskripsi:
+User meminta untuk mengubah tipidkorService.ts dan TipidkorChatPage.tsx menjadi streaming dengan animasi-animasi yang sudah disediakan, mengikuti pola wassidikPenyidikStreamingService.ts dan WassidikPenyidikChatPage.tsx. Endpoint tipidkor tetap sama namun disesuaikan untuk streaming.
+
+### Implementasi yang Diselesaikan:
+
+#### 1. Buat tipidkorStreamingService.ts:
+- **Streaming Service Pattern**: Mengikuti exact pattern dari wassidikPenyidikStreamingService.ts
+- **Agent ID Configuration**: Menggunakan 'tipidkor-chat' sesuai endpoint yang sudah ada
+- **Session Management**: Implementasi initializeTipidkorStreamingSession dan clearTipidkorStreamingChatHistory
+- **Buffer Parsing**: parseStreamBuffer function untuk handle streaming JSON chunks
+- **Event Emitter**: onStreamEvent system untuk internal event handling
+- **FormData Processing**: Proper FormData append untuk agent_id, stream, session_id, user_id, monitor
+- **Timeout Handling**: 30 menit timeout dengan AbortController
+- **Error Handling**: Comprehensive error handling untuk 429, 413, dan server errors
+- **Content Extraction**: Utility function convertTipidkorStreamingEventsToMessages
+- **Logging**: Detailed logging dengan TIPIDKOR prefix untuk debugging
+
+#### 2. Update TipidkorChatPage.tsx untuk Streaming:
+- **Hooks Integration**: Menggunakan useAIChatStreamHandler dan usePlaygroundStore
+- **Streaming Status**: Integrasi StreamingStatus component dengan animasi thinking, tool calls, memory updates
+- **Red Theme Consistency**: Mempertahankan warna merah untuk konsistensi TIPIDKOR brand
+- **Storage Management**: Implementasi storage statistics dan cleanup functionality
+- **Auto-focus UX**: Enhanced auto-focus management untuk streaming status dan input area
+- **Session Handling**: Menggunakan tipidkor streaming session functions
+- **Agent ID Parameter**: Menggunakan 'tipidkor-chat' parameter dalam handleStreamResponse
+- **Error State Removal**: Menghapus skeleton loading dan error states yang tidak perlu
+- **Storage Stats Display**: Red-themed storage stats dengan cleanup functionality
+
+#### 3. Enhanced useAIChatStreamHandler Hook:
+- **Dynamic Agent ID**: Support untuk agent ID parameter yang dapat dikonfigurasi
+- **Backward Compatibility**: Default ke 'wassidik-chat' jika tidak ada agent ID yang diberikan
+- **Parameter Validation**: Validasi agent_id yang sesuai dengan agent yang dipilih
+- **Multi-Agent Support**: Hook sekarang dapat handle multiple agents (wassidik, tipidkor, dll)
+- **Function Signature**: `handleStreamResponse(input, files?, agentId?)`
+
+#### 4. Files Created/Modified:
+- **src/services/tipidkorStreamingService.ts**: New streaming service for TIPIDKOR
+- **src/components/ui/TipidkorChatPage.tsx**: Converted to streaming with full animations
+- **src/hooks/playground/useAIChatStreamHandler.ts**: Enhanced dengan dynamic agent ID support
+- **.cursorrules**: Documentation update
+
+### Key Features Implemented:
+
+#### Real-time Streaming Events:
+- **RunStarted**: Initialize session, set thinking status, save session history
+- **RunResponse**: Append content incrementally dengan real-time display
+- **RunCompleted**: Finalize message content, complete metadata, stop streaming
+- **RunError**: Mark message as error, display error message, cleanup session
+- **ToolCallStarted/Completed**: Real-time tool call status dan results tracking
+- **UpdatingMemory**: Live memory update process display dengan progress indicators
+
+#### Enhanced UX with Animations:
+- **Thinking Phase**: Brain icon dengan bouncing dots animation
+- **Tool Call Phase**: Wrench icon dengan spinning loader animation
+- **Memory Update Phase**: Database icon dengan pulsing bars animation
+- **Completion Phase**: CheckCircle icon untuk completion feedback
+- **Auto-focus Management**: Smart focus management antara streaming status dan input area
+- **Progressive Indicators**: Colored dots showing current processing phase
+
+#### Red Theme Integration:
+- **Consistent Branding**: Semua elemen UI menggunakan red color scheme untuk TIPIDKOR
+- **Storage Stats**: Red-themed storage statistics dan cleanup functionality
+- **Error States**: Red-themed error messages dan status indicators
+- **Input Focus**: Red focus ring dan hover states untuk consistency
+- **Agent Avatar**: Menggunakan krimsus.png icon dengan red background
+
+### Benefits:
+- **Real-time Feedback**: User melihat proses AI secara detail dan real-time untuk TIPIDKOR
+- **Consistent Experience**: Pengalaman yang sama dengan Wassidik AI tapi dengan TIPIDKOR theming
+- **Multi-Agent Architecture**: Hook yang dapat digunakan untuk multiple agents
+- **Professional Appearance**: Animasi yang smooth dan sesuai dengan AI workflow
+- **Enhanced Performance**: Streaming architecture untuk response yang lebih cepat
+- **Storage Management**: Built-in storage cleanup untuk mencegah memory issues
+
+### Status:
+✅ **COMPLETED** - TIPIDKOR AI streaming fully integrated dengan comprehensive event handling, state management, enhanced UX dengan animasi real-time, dan red theme consistency. Hook useAIChatStreamHandler sekarang mendukung multiple agents dengan parameter agentId yang dapat dikonfigurasi.
+
+#### 5. Store Isolation Fix - COMPLETED ✅:
+- **Problem**: PlaygroundStore menggunakan state global, sehingga messages dari wassidik dan tipidkor tercampur
+- **Solution**: Added store cleanup pada component initialization untuk memisahkan data antar agent
+- **Implementation**: Clear messages dan reset streaming status saat mount component agent baru
+- **Benefits**: Setiap agent memiliki chat history yang terpisah dan tidak tercampur
+- **Files Modified**: TipidkorChatPage.tsx dan WassidikPenyidikChatPage.tsx dengan store cleanup pada useEffect initialization
+
+#### 6. Skeleton Animation Cleanup & Auto-Focus Consistency - COMPLETED ✅:
+- **Skeleton Cleanup**: Removed all remaining skeleton animation references dari TipidkorChatPage.tsx
+- **Import Cleanup**: Removed unused AnimatedBotIcon import
+- **Auto-Focus Synchronization**: Ensured auto-focus management identical dengan WassidikPenyidikChatPage.tsx
+- **Progress Tracking**: Added consistent progress tracking useEffect untuk UI feedback
+- **State View**: Fokus view ke streaming status animation saat proses belum selesai
+- **Benefits**: Konsisten user experience dan clean codebase tanpa unused components
+
+---
+
+## Previous Completed Tasks:

@@ -1,586 +1,641 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, Copy, Check, Loader2, Banknote, Info, X, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Send, Copy, Check, Loader2, Info, RefreshCw, Paperclip, File, X as XIcon, AlertCircle, Clock, Banknote } from 'lucide-react';
 import { cn } from '@/utils/utils';
-import { AnimatedBotIcon } from './animated-bot-icon';
-import { sendChatMessage, clearChatHistory, initializeSession } from '../../services/undangService';
-import { marked } from 'marked';
-import DOMPurify from 'dompurify';
+import { Button } from './button';
 import { Textarea } from './textarea';
+import { DotBackground } from './DotBackground';
+import { sendChatMessage, initializeSession, clearChatHistory, onProgress } from '@/services/p2skService';
+import { formatMessage } from '@/utils/markdownFormatter';
 
-// Konfigurasi marked dan DOMPurify untuk safe link handling
-marked.setOptions({
-  breaks: true,
-  gfm: true,
-  headerIds: false,
-  mangle: false
-});
+// Imports untuk refactoring
+import { Message, ChatPageProps, FileAttachment } from '@/types/chat';
+import { SkeletonMessage } from '@/components/chat/SkeletonMessage';
+import { ProgressBar } from '@/components/chat/ProgressBar';
+import { ErrorScreen } from '@/components/chat/ErrorScreen';
+import { FileAttachments } from '@/components/chat/FileAttachments';
+import { 
+  scrollToBottom, 
+  adjustTextareaHeight, 
+  focusTextareaWithDelay, 
+  copyToClipboard, 
+  getErrorMessage 
+} from '@/utils/chatHelpers';
+import { useFileUpload } from '@/hooks/useFileUpload';
 
-DOMPurify.setConfig({
-  ADD_TAGS: ['a'],
-  ADD_ATTR: ['target', 'rel', 'class'],
-  FORBID_TAGS: ['style', 'script'],
-  FORBID_ATTR: ['style', 'onerror', 'onload']
-});
+// Example questions dan constants untuk P2SK (Ahli OJK)
+const P2SK_EXAMPLE_QUESTIONS = [
+  "Apa saja regulasi OJK terkait perbankan digital?",
+  "Jelaskan tentang Undang-Undang OJK",
+  "Bagaimana sanksi OJK untuk pelanggaran lembaga keuangan?",
+  "Apa peran OJK dalam mengawasi pasar modal?"
+];
 
-interface Message {
-  content: string;
-  type: 'user' | 'bot';
-  timestamp: Date;
-  sourceDocuments?: Array<{
-    pageContent: string;
-    metadata: Record<string, string>;
-  }>;
-  error?: boolean;
-  isAnimating?: boolean;
-}
+const ACCEPTED_FILE_TYPES = ".pdf,.csv,.txt,.docx,.json,.png,.jpeg,.jpg,.webp";
+const FOCUS_DELAY_MS = 500;
 
-// Skeleton component for loading state - improved with more realistic patterns
-const SkeletonMessage = () => (
-  <div className="flex items-start space-x-3 w-full">
-    <AnimatedBotIcon className="w-5 h-5 flex-shrink-0 mt-1" />
-    <div className="flex-1 space-y-3 py-1">
-      <p className="text-xs text-gray-500 italic mb-2">Sedang menyusun hasil...</p>
-      <div className="space-y-3 animate-pulse">
-        {/* Simulate paragraphs with varying widths */}
-        <div className="h-4 bg-gray-300 rounded w-3/4"></div>
-        <div className="h-4 bg-gray-300 rounded w-5/6"></div>
-        <div className="h-4 bg-gray-300 rounded w-2/3"></div>
-        
-        {/* Simulate gap between paragraphs */}
-        <div className="h-2"></div>
-        
-        {/* Simulate second paragraph */}
-        <div className="h-4 bg-gray-300 rounded w-4/5"></div>
-        <div className="h-4 bg-gray-300 rounded w-3/4"></div>
-        
-        {/* Simulate a list with bullets */}
-        <div className="pl-5 space-y-2 mt-1">
-          <div className="flex items-start">
-            <div className="h-3 w-3 bg-gray-300 rounded-full flex-shrink-0 mt-0.5 mr-2"></div>
-            <div className="h-4 bg-gray-300 rounded w-2/3 flex-grow"></div>
-          </div>
-          <div className="flex items-start">
-            <div className="h-3 w-3 bg-gray-300 rounded-full flex-shrink-0 mt-0.5 mr-2"></div>
-            <div className="h-4 bg-gray-300 rounded w-3/4 flex-grow"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-interface P2SKChatPageProps {
-  onBack?: () => void;
-}
-
-const P2SKChatPage: React.FC<P2SKChatPageProps> = ({ onBack }) => {
-  const [messages, setMessages] = useState<Message[]>([]);
+const P2SKChatPage: React.FC<ChatPageProps> = ({ onBack }) => {
+  const [messages, setMessages] = useState<Message[]>([{
+    content: '',
+    type: 'bot',
+    timestamp: new Date(),
+  }]);
+  
   const [inputMessage, setInputMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
-  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const [isConnectionError, setIsConnectionError] = useState(false);
+
+  // File upload dengan custom hook
+  const {
+    selectedFiles,
+    progress,
+    showProgress,
+    fileInputRef,
+    handleFileChange,
+    handleRemoveFile,
+    handleOpenFileDialog,
+    resetFiles,
+    logFilesSizes
+  } = useFileUpload();
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const isSessionInitialized = useRef<boolean>(false);
   const focusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastScrollPositionRef = useRef<number>(0);
 
-  // Reusable function to adjust textarea height
-  const adjustTextareaHeight = (textarea: HTMLTextAreaElement) => {
-    textarea.style.height = 'auto'; // Reset height
-    textarea.style.height = `${textarea.scrollHeight}px`; // Set to scroll height
-  };
-
-  // Initialize session
+  // Setup progress listener untuk service
   useEffect(() => {
-    initializeSession();
+    const unsubscribe = onProgress(() => {
+      // Progress akan dihandle oleh service, tidak perlu update di sini
+    });
     
-    // Add welcome message
-    setMessages([
-      {
-        content: '',
-        type: 'bot',
-        timestamp: new Date()
-      }
-    ]);
-    
-    // Focus the textarea with a slight delay for better UX
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  // Effect untuk inisialisasi session sekali saat komponen di-mount
+  useEffect(() => {
+    // Jangan inisialisasi ulang jika sudah dilakukan
+    if (isSessionInitialized.current) {
+      console.log('P2SK: Session already initialized, skipping');
+      return;
+    }
+
+    try {
+      // Inisialisasi session hanya sekali
+      initializeSession();
+      isSessionInitialized.current = true;
+      console.log('P2SK: Session initialized successfully');
+      
+      // Focus pada textarea setelah inisialisasi
+      focusTextareaWithDelay(textareaRef, FOCUS_DELAY_MS);
+    } catch (error) {
+      console.error('P2SK: Error initializing session:', error);
+      setHasError(true);
+    }
+
+    // Error boundary untuk komponen ini
+    const handleError = (event: ErrorEvent) => {
+      console.error('P2SK: Chat component error caught:', event.error);
+      setHasError(true);
+    };
+
+    window.addEventListener('error', handleError);
+
+    // Clean up on unmount
+    return () => {
+      window.removeEventListener('error', handleError);
+    };
+    // Jangan hapus session saat unmount agar memory tetap terjaga
+  }, []);
+
+  // Add focus on component mount with delay
+  useEffect(() => {
     focusTimeoutRef.current = setTimeout(() => {
       if (textareaRef.current) {
         textareaRef.current.focus();
       }
-    }, 500);
-    
+    }, FOCUS_DELAY_MS);
+
     return () => {
-      // Clear chat history and timeout when component unmounts
-      clearChatHistory();
       if (focusTimeoutRef.current) {
         clearTimeout(focusTimeoutRef.current);
       }
     };
   }, []);
 
-  // Scroll to bottom when messages change
   useEffect(() => {
-    // Reset user scroll state when new message is added
-    if (messages.length > 0 && !messages[messages.length-1].isAnimating) {
-      scrollToBottom();
-    }
+    scrollToBottom(chatContainerRef);
   }, [messages]);
-
-  // Setup scroll detection
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!chatContainerRef.current) return;
-      
-      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
-      const isScrolledToBottom = scrollHeight - scrollTop - clientHeight < 50;
-      
-      // Show the scroll button if not near bottom
-      setShowScrollButton(!isScrolledToBottom);
-      
-      // Remember the last scroll position
-      lastScrollPositionRef.current = scrollTop;
-    };
-    
-    const chatContainer = chatContainerRef.current;
-    if (chatContainer) {
-      chatContainer.addEventListener('scroll', handleScroll);
-    }
-    
-    return () => {
-      if (chatContainer) {
-        chatContainer.removeEventListener('scroll', handleScroll);
-      }
-    };
-  }, []);
-
-  const scrollToBottom = () => {
-    // Use requestAnimationFrame for smoother scrolling
-    requestAnimationFrame(() => {
-      if (chatContainerRef.current) {
-        chatContainerRef.current.scrollTo({
-          top: chatContainerRef.current.scrollHeight,
-          behavior: 'smooth'
-        });
-        
-        // Fallback mechanism in case the smooth scroll doesn't work
-        setTimeout(() => {
-          if (chatContainerRef.current) {
-            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-          }
-        }, 500);
-      }
-    });
-  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputMessage(e.target.value);
-    // Adjust height using the reusable function
-    if (e.target) {
-      adjustTextareaHeight(e.target);
-    }
+    // Adjust height dynamically menggunakan utility function
+    adjustTextareaHeight(e.target, e.target.value);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Check if device is probably desktop by looking at screen size
-    const isLikelyDesktop = window.innerWidth >= 768;
+  const handleKeyDown = (_e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Remove Enter key submission for mobile compatibility
+    // Submission is handled by the Send button
+  };
+
+  const handleRetry = () => {
+    setHasError(false);
+    setIsConnectionError(false);
     
-    // Only enable Enter key submission on desktop devices
-    if (isLikelyDesktop && e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
+    // Reinitialize session
+    try {
+      initializeSession();
+    } catch (error) {
+      console.error('P2SK: Error reinitializing session:', error);
     }
   };
 
   const handleSubmit = async () => {
-    if (!inputMessage.trim() || isProcessing) return;
+    if ((selectedFiles.length === 0 && !inputMessage.trim()) || isProcessing) return;
 
+    const userMessageContent = inputMessage.trim() || (selectedFiles.length > 0 ? "Analisis file berikut" : "");
+    
+    // Simpan informasi file untuk ditampilkan di message
+    const fileAttachments: FileAttachment[] = selectedFiles.map(file => ({
+      name: file.name,
+      size: file.size,
+      type: file.type
+    }));
+    
     const userMessage: Message = {
-      content: inputMessage.trim(),
-      type: 'user',
-      timestamp: new Date()
+      content: userMessageContent,
+      type: "user",
+      timestamp: new Date(),
+      attachments: fileAttachments.length > 0 ? fileAttachments : undefined
     };
 
-    setMessages(prev => [...prev, userMessage]);
-    setInputMessage('');
-    // Reset textarea height after clearing input
+    // Clear input and reset height immediately
+    setInputMessage("");
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      // On mobile, blur the textarea to hide the keyboard
-      if (window.innerWidth < 768) {
-        textareaRef.current.blur();
-      }
+      textareaRef.current.blur(); // Remove focus to hide keyboard on mobile
     }
     
-    // Reset scroll state to enable auto-scrolling for the new message
-    setShowScrollButton(false);
+    // Add user message to state
+    setMessages((prev) => [...prev, userMessage]);
     setIsProcessing(true);
+    setIsConnectionError(false);
 
     try {
       // Add a placeholder bot message with animation
-      setMessages(prev => [
+      setMessages((prev) => [
         ...prev,
         {
-          content: '', // Gunakan content kosong untuk skeleton
+          content: '', // Content is empty for the skeleton/placeholder
           type: 'bot',
           timestamp: new Date(),
-          isAnimating: true
-        }
+          isAnimating: true,
+        },
       ]);
-      
-      // Send message to API
-      const response = await sendChatMessage(userMessage.content);
-      
+
+      // Log file sizes sebelum upload menggunakan utility function
+      logFilesSizes();
+
+      // Kirim pesan dengan file jika ada
+      const response = await sendChatMessage(
+        userMessage.content, 
+        selectedFiles.length > 0 ? selectedFiles : undefined
+      );
+
+      // Reset selected files setelah berhasil mengirim
+      resetFiles();
+
       // Replace the placeholder with the actual response
-      setMessages(prev => {
+      setMessages((prev) => {
         const newMessages = [...prev];
-        newMessages.pop(); // Remove placeholder
+        // Remove the last message (placeholder)
+        newMessages.pop();
         
-        return [
-          ...newMessages,
-          {
-            content: response.text,
-            type: 'bot',
-            timestamp: new Date(),
-            sourceDocuments: response.sourceDocuments,
-            error: !!response.error,
-            isAnimating: false
-          }
-        ];
+        // Add the actual response
+        newMessages.push({
+          content: response.text,
+          type: 'bot',
+          timestamp: new Date(),
+          sourceDocuments: response.sourceDocuments,
+          error: !!response.error,
+        });
+        
+        return newMessages;
       });
-    } catch (error) {
-      console.error('Error sending message:', error);
+    } catch (error: any) {
+      console.error('P2SK: Error sending message:', error);
       
-      // Remove placeholder message and add error message
-      setMessages(prev => {
+      // Check if it's a network error
+      const isNetworkError = error instanceof TypeError && 
+        (error.message.includes('network') || 
+         error.message.includes('fetch') || 
+         error.message.includes('Failed to fetch'));
+      
+      if (isNetworkError) {
+        setIsConnectionError(true);
+      }
+      
+      // Reset progress display
+      resetFiles();
+      
+      // Check if it's a rate limit error
+      const errorMsg = getErrorMessage(error);
+      const isRateLimitError = errorMsg === 'rate_limit_error';
+      
+      // Replace the placeholder with an error message
+      setMessages((prev) => {
         const newMessages = [...prev];
-        newMessages.pop(); // Remove placeholder
+        // Remove the last message (placeholder)
+        newMessages.pop();
         
-        return [
-          ...newMessages,
-          {
-            content: 'Dengan bertumbuhnya pengguna, saat ini kami membatasi permintaan (1 permintaan dalam 2 menit) untuk menjaga kualitas layanan',
-            type: 'bot',
-            timestamp: new Date(),
-            error: true,
-            isAnimating: false
-          }
-        ];
+        // Add error message with specific details
+        newMessages.push({
+          content: errorMsg,
+          type: 'bot',
+          timestamp: new Date(),
+          error: true,
+          isRateLimit: isRateLimitError,
+        });
+        
+        return newMessages;
       });
     } finally {
       setIsProcessing(false);
-      
-      // Focus textarea after sending message
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-      }
+      // Focus the textarea after sending
+      focusTextareaWithDelay(textareaRef, 100);
     }
   };
 
-  const copyToClipboard = (content: string) => {
-    navigator.clipboard.writeText(content).then(
-      () => {
-        setCopied(content);
-        setTimeout(() => {
-          setCopied(null);
-        }, 2000);
-      },
-      (err) => {
-        console.error('Could not copy text: ', err);
-      }
-    );
+  const handleCopy = (text: string) => {
+    copyToClipboard(text, setCopied);
   };
 
-  const formatMessage = (content: string) => {
+  const handleChatReset = () => {
     try {
-      // Pastikan content ada dan bukan string kosong
-      if (!content) return { __html: '' };
+      console.log('P2SK: Resetting chat history but maintaining user identity');
+      clearChatHistory(); // Ini hanya akan menghapus session_id, tapi mempertahankan user_id
       
-      // Parse markdown menjadi HTML
-      const rawHtml = marked.parse(content);
+      // Inisialisasi ulang session dengan user_id yang sama
+      initializeSession();
+      console.log('P2SK: Session reinitialized with fresh session_id but same user_id');
       
-      // Sanitasi HTML untuk mencegah XSS
-      const sanitizedHtml = DOMPurify.sanitize(rawHtml);
-      
-      return { __html: sanitizedHtml };
+      // Reset UI state
+      setMessages([{
+        content: '',
+        type: 'bot',
+        timestamp: new Date(),
+      }]);
+      setHasError(false);
+      setIsConnectionError(false);
+      resetFiles();
     } catch (error) {
-      console.error('Error formatting message:', error);
-      return { __html: content };
+      console.error('P2SK: Error resetting chat:', error);
     }
   };
-
-  const handleBack = () => {
-    // Bersihkan riwayat chat sebelum kembali
-    clearChatHistory();
-    
-    // Panggil fungsi onBack jika disediakan
-    if (onBack) {
-      onBack();
-    }
-  };
-
-  // Example questions for the user
-  const exampleQuestions = [
-    "Apa saja bentuk tindak pidana di bidang perbankan?",
-    "Jelaskan tentang UU TPPU",
-    "Apa sanksi terkait tindak pidana pencucian uang?",
-    "Bagaimana prosedur penanganan kasus pidana perbankan?"
-  ];
 
   const handleSelectQuestion = (question: string) => {
     setInputMessage(question);
-    if (textareaRef.current) {
-      textareaRef.current.focus();
-      // Manually adjust the height after setting content
-      setTimeout(() => {
-        if (textareaRef.current) {
-          adjustTextareaHeight(textareaRef.current);
-        }
-      }, 0);
-    }
+    focusTextareaWithDelay(textareaRef, 100);
   };
+
+  // Render error states menggunakan ErrorScreen component
+  if (hasError) {
+    return (
+      <ErrorScreen
+        title="Ahli OJK"
+        subtitle="Asisten untuk regulasi Otoritas Jasa Keuangan"
+        onBack={onBack}
+        onRetry={handleRetry}
+        onReset={handleChatReset}
+      />
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-20 bg-white lg:pl-64 flex flex-col">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm">
+      <header className="flex items-center justify-between p-4 border-b border-gray-200 shadow-sm">
         <div className="flex items-center gap-3">
-          <button
-            onClick={handleBack}
-            className="inline-flex items-center p-2 rounded-full hover:bg-gray-100 transition-colors"
-            aria-label="Kembali"
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onBack}
+            className="rounded-full"
           >
-            <ArrowLeft className="w-5 h-5 text-gray-700" />
-          </button>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
           <div className="flex items-center gap-2">
             <div className="flex items-center justify-center w-9 h-9 bg-blue-100 rounded-full">
               <Banknote className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <h1 className="font-semibold text-gray-900">P2SK AI</h1>
-              <p className="text-xs text-gray-500">Perbankan, Sistem Keuangan, dan Perpajakan</p>
+              <h1 className="font-semibold">Ahli OJK</h1>
+              <p className="text-sm text-gray-600 hidden sm:block">Otoritas Jasa Keuangan dan Regulasi</p>
             </div>
           </div>
         </div>
-        <button
-          onClick={() => setShowInfo(!showInfo)}
-          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-          aria-label={showInfo ? 'Tutup informasi' : 'Tampilkan informasi'}
-        >
-          <Info className="w-5 h-5 text-gray-700" />
-        </button>
+        
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => setShowInfo(!showInfo)}
+            className="text-gray-500"
+          >
+            <Info className="h-5 w-5" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleChatReset}
+            className="text-gray-500"
+          >
+            <RefreshCw className="h-5 w-5" />
+          </Button>
+        </div>
       </header>
-
-      {/* Info Panel */}
+      
       {showInfo && (
-        <div className="p-4 bg-gray-50 border-b border-gray-200">
-          <div className="flex justify-between items-start">
-            <h2 className="text-sm font-medium text-gray-800">Tentang P2SK AI</h2>
-            <button
-              onClick={() => setShowInfo(false)}
-              className="text-gray-500 hover:text-gray-700"
-              aria-label="Tutup informasi"
-            >
-              <X className="w-4 h-4" />
-            </button>
+        <div className="bg-blue-50 border-l-4 border-blue-500 p-4 m-4 shadow-sm rounded-md">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <Info className="h-5 w-5 text-blue-500" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-blue-800">Tentang Ahli OJK</h3>
+              <div className="mt-2 text-sm text-blue-700">
+                <p>Ahli OJK adalah asisten berbasis kecerdasan buatan yang berfokus pada bidang Otoritas Jasa Keuangan. Asisten ini dapat membantu menjawab pertanyaan tentang regulasi OJK, pengawasan sektor jasa keuangan, perbankan, pasar modal, dan industri keuangan non-bank.</p>
+              </div>
+              <button 
+                className="mt-2 text-sm font-medium text-blue-600 hover:text-blue-500 focus:outline-none"
+                onClick={() => setShowInfo(false)}
+              >
+                Tutup
+              </button>
+            </div>
           </div>
-          <p className="mt-1 text-xs text-gray-700">
-            P2SK AI adalah asisten berbasis kecerdasan buatan yang berfokus pada bidang Perbankan, Sistem Pembayaran, dan Kejahatan Keuangan.
-            Asisten ini dapat membantu menjawab pertanyaan tentang tindak pidana perbankan, tindak pidana pencucian uang, dan kejahatan keuangan lainnya.
-            Informasi yang diberikan bersifat umum dan sebaiknya dikonfirmasi dengan sumber resmi atau konsultasi dengan ahli hukum yang berkualifikasi.
-          </p>
         </div>
       )}
 
-      {/* Chat Container */}
       <div 
         ref={chatContainerRef}
-        className="flex-1 overflow-y-auto pb-32"
+        className="flex-1 overflow-y-auto overscroll-contain pb-32 pt-4"
       >
-        {/* Welcome Message - Bold AI NAME in center */}
-        {messages.length <= 1 && (
-          <div className="flex flex-col items-center justify-center h-[50vh] text-center">
-            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-              <img 
-                src="/img/krimsus.png"
-                alt="Krimsus"
-                className="w-16 h-16 object-contain"
-              />
-            </div>
-            <h1 className="text-4xl font-bold text-blue-600 mb-4">P2SK AI</h1>
-            <p className="text-gray-600 max-w-md">
-              Asisten untuk membantu Anda dengan pertanyaan seputar Perbankan, Sistem Keuangan, dan Perpajakan.
-            </p>
-          </div>
-        )}
-
-        <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-          {/* Example Questions */}
-          {messages.length <= 1 && (
-            <div className="mt-6">
-              <p className="text-sm text-gray-500 mb-3">Contoh pertanyaan yang dapat Anda ajukan:</p>
-              <div className="space-y-2">
-                {exampleQuestions.map((question, index) => (
-                  <div
-                    key={index}
-                    onClick={() => handleSelectQuestion(question)}
-                    className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm cursor-pointer hover:bg-gray-100 transition-colors"
-                  >
-                    {question}
-                  </div>
-                ))}
+        <DotBackground>
+          <div className="max-w-5xl mx-auto px-4 md:px-8 space-y-6">
+            {/* Welcome Message - Bold Ahli OJK in center */}
+            {messages.length <= 1 && messages[0].content === '' && (
+              <div className="flex flex-col items-center justify-center h-[50vh] text-center">
+                <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                  <img 
+                    src="/img/ojk.svg"
+                    alt="OJK"
+                    className="w-16 h-16 object-contain"
+                  />
+                </div>
+                <h1 className="text-4xl font-bold text-blue-600 mb-4">Ahli OJK</h1>
+                <p className="text-gray-600 max-w-md">
+                  Asisten untuk membantu Anda dengan pertanyaan seputar Otoritas Jasa Keuangan dan regulasi sektor keuangan.
+                </p>
               </div>
+            )}
+
+            {/* Example Questions - only show at the beginning */}
+            {messages.length <= 1 && (
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium text-gray-500">Contoh pertanyaan:</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {P2SK_EXAMPLE_QUESTIONS.map((question, idx) => (
+                    <button
+                      key={idx}
+                      className="text-left p-3 border border-gray-200 rounded-lg text-gray-700 hover:bg-blue-50 transition-colors shadow-sm"
+                      onClick={() => handleSelectQuestion(question)}
+                    >
+                      {question}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Connection Error Banner */}
+            {isConnectionError && (
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md mb-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <Info className="h-5 w-5 text-yellow-400" />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-yellow-700">
+                      Terdeteksi masalah koneksi. Pastikan Anda terhubung ke internet dan coba lagi.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Progress Bar for file uploads and processing - only show when active */}
+            {showProgress && (
+              <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4 shadow-sm">
+                <ProgressBar 
+                  percent={progress.percent} 
+                  status={progress.status}
+                />
+                <p className="text-xs text-gray-500 italic">
+                  {progress.status === 'uploading' 
+                    ? 'Mengunggah file besar memerlukan waktu, mohon jangan refresh halaman.' 
+                    : progress.status === 'processing'
+                    ? 'AI sedang menganalisis dokumen, proses ini mungkin memerlukan beberapa menit untuk file besar.'
+                    : 'Sedang memproses...'}
+                </p>
+              </div>
+            )}
+
+            {/* Chat Messages */}
+            {messages.map((message, index) => (
+              (message.content || message.isAnimating) && (
+                <div
+                  key={index}
+                  className={cn("flex", message.type === "user" ? "justify-end" : "justify-start")}
+                >
+                  <div
+                    className={cn(
+                      "flex flex-col max-w-[90%] sm:max-w-[85%] md:max-w-[80%] lg:max-w-[75%] rounded-xl p-4 shadow-sm",
+                      message.type === "user"
+                        ? "bg-gray-100 text-gray-900 rounded-tr-none"
+                        : message.error
+                        ? "bg-amber-50 text-gray-800 rounded-tl-none border border-amber-200"
+                        : message.isAnimating
+                        ? "bg-white text-gray-800 rounded-tl-none border border-gray-200 w-full"
+                        : "bg-white text-gray-800 rounded-tl-none border border-gray-200"
+                    )}
+                  >
+                    {message.type === "bot" && !message.isAnimating ? (
+                      <>
+                        {message.content === 'rate_limit_error' ? (
+                          // Tampilan khusus untuk error rate limit
+                          <div className="space-y-3">
+                            <div className="flex items-start gap-3">
+                              <AlertCircle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                              <div>
+                                <h3 className="font-medium text-amber-800">Batas Permintaan Tercapai</h3>
+                                <p className="text-amber-700 mt-1">
+                                  Dengan bertumbuhnya pengguna, kami membatasi permintaan untuk menjaga kualitas layanan.
+                                </p>
+                              </div>
+                            </div>
+                            
+                            <div className="bg-amber-100 rounded-lg p-3 flex items-center gap-2 text-amber-800">
+                              <Clock className="h-4 w-4 flex-shrink-0" />
+                              <span className="text-sm">Silakan coba lagi dalam 2 menit.</span>
+                            </div>
+                            
+                            <p className="text-sm text-gray-600 italic pt-1">
+                              Terima kasih atas pengertian Anda. Kami terus meningkatkan infrastruktur kami untuk melayani Anda lebih baik.
+                            </p>
+                          </div>
+                        ) : (
+                          <div 
+                            className="prose prose-sm max-w-none md:prose-base lg:prose-lg overflow-x-auto
+                                      prose-headings:font-bold prose-headings:text-blue-800 prose-headings:my-4
+                                      prose-h1:text-xl prose-h2:text-lg prose-h3:text-base
+                                      prose-p:my-2 prose-p:text-gray-700
+                                      prose-ul:pl-6 prose-ul:my-2 prose-ol:pl-6 prose-ol:my-2
+                                      prose-li:my-1
+                                      prose-table:border-collapse prose-table:my-4
+                                      prose-th:bg-blue-50 prose-th:p-2 prose-th:border prose-th:border-gray-300
+                                      prose-td:p-2 prose-td:border prose-td:border-gray-300
+                                      prose-strong:font-bold prose-strong:text-gray-800
+                                      prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-800"
+                            dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
+                          />
+                        )}
+                        <div className="flex justify-end mt-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-3"
+                            onClick={() => handleCopy(message.content === 'rate_limit_error' ? 
+                              "Batas permintaan tercapai. Silakan coba lagi dalam 2 menit." : 
+                              message.content)}
+                          >
+                            {copied === message.content ? (
+                              <Check className="h-3.5 w-3.5 text-green-500" />
+                            ) : (
+                              <Copy className="h-3.5 w-3.5" />
+                            )}
+                            <span className="ml-2 text-xs">{copied === message.content ? "Disalin" : "Salin"}</span>
+                          </Button>
+                        </div>
+                      </>
+                    ) : message.isAnimating ? (
+                      // Render Skeleton component with AnimatedBotIcon when animating
+                      <SkeletonMessage />
+                    ) : (
+                      <>
+                        <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                        {message.attachments && message.attachments.length > 0 && (
+                          <FileAttachments 
+                            attachments={message.attachments} 
+                            className="mt-3" 
+                          />
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+        </DotBackground>
+      </div>
+
+      {/* Input area fixed at bottom */}
+      <div className="border-t border-gray-200 bg-white p-4 md:px-8 pb-safe">
+        <div className="max-w-5xl mx-auto px-4 md:px-8">
+          {/* File Preview Area */}
+          {selectedFiles.length > 0 && (
+            <div className="mb-3 flex flex-wrap gap-2">
+              {selectedFiles.map((file, index) => (
+                <div 
+                  key={index}
+                  className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-1 flex items-center gap-2 text-sm text-blue-700"
+                >
+                  <File className="w-4 h-4" />
+                  <span className="truncate max-w-[150px]">{file.name}</span>
+                  <button 
+                    onClick={() => handleRemoveFile(index)}
+                    className="text-blue-500 hover:text-blue-700"
+                    aria-label="Hapus file"
+                  >
+                    <XIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
             </div>
           )}
 
-          {/* Messages */}
-          <div className="space-y-6">
-            {messages.map((message, index) => (
-              message.content || message.isAnimating ? (
-                <div 
-                  key={index} 
-                  className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`flex ${message.type === 'user' ? 'flex-row-reverse' : 'flex-row'} items-end ${message.isAnimating ? 'w-full' : 'max-w-[85%] sm:max-w-[75%]'} group`}
-                  >
-                    {message.type === 'bot' && (
-                      <div className="flex-shrink-0 mr-2 mb-1">
-                        {message.isAnimating ? (
-                          <div className="w-8 h-8 text-gray-600">
-                            <AnimatedBotIcon />
-                          </div>
-                        ) : (
-                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center shadow-sm">
-                            <Banknote className="w-5 h-5 text-blue-600" />
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    
-                    <div 
-                      className={cn(
-                        "rounded-2xl px-4 py-3 shadow-sm",
-                        message.type === 'user' 
-                          ? "bg-gray-100 text-gray-900 rounded-tr-none" 
-                          : message.error 
-                            ? "bg-red-50 text-red-800 rounded-tl-none border border-red-200" 
-                            : message.isAnimating
-                            ? "bg-white text-gray-800 rounded-tl-none border border-gray-200 w-full"
-                            : "bg-white text-gray-800 rounded-tl-none border border-gray-200"
-                      )}
-                    >
-                      {message.isAnimating ? (
-                        <SkeletonMessage />
-                      ) : message.type === 'bot' ? (
-                        <div className="space-y-0">
-                          <div 
-                            className="prose prose-sm max-w-none prose-headings:font-semibold prose-headings:text-gray-900 prose-p:text-gray-700 prose-pre:bg-gray-100 prose-pre:text-gray-800 prose-code:text-gray-800 prose-code:bg-gray-100 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-sm prose-code:font-mono prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-li:text-gray-700 prose-li:marker:text-gray-500 prose-strong:text-gray-900 prose-em:text-gray-700 prose-p:my-0.5 prose-headings:my-0.5 prose-headings:mb-0 prose-ul:my-0.5 prose-ol:my-0.5 prose-li:my-0.5 prose-pre:my-1 leading-tight [&_p]:!my-0.5 [&_br]:leading-none [&_h1+p]:!mt-0.5 [&_h2+p]:!mt-0.5 [&_h3+p]:!mt-0.5 [&_table]:overflow-x-auto [&_table]:max-w-full"
-                            dangerouslySetInnerHTML={formatMessage(message.content)}
-                          />
-                          
-                          {/* Source documents */}
-                          {message.sourceDocuments && message.sourceDocuments.length > 0 && (
-                            <div className="mt-3 pt-3 border-t border-gray-200">
-                              <p className="text-xs text-gray-500 font-medium mb-1">Sumber:</p>
-                              <ul className="text-xs text-gray-500 space-y-1">
-                                {message.sourceDocuments.map((doc, i) => (
-                                  <li key={i} className="flex items-start">
-                                    <span className="inline-block w-4 flex-shrink-0">•</span>
-                                    <span>{doc.metadata.title || 'Untitled Document'}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                          
-                          {/* Copy button */}
-                          <div className="mt-2 flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={() => copyToClipboard(message.content)}
-                              className="text-gray-400 hover:text-gray-600 p-1 rounded-md inline-flex items-center text-xs gap-1"
-                              aria-label="Salin ke clipboard"
-                            >
-                              {copied === message.content ? (
-                                <>
-                                  <Check className="w-3 h-3" />
-                                  <span>Tersalin</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Copy className="w-3 h-3" />
-                                  <span>Salin</span>
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        // User message
-                        <div className="whitespace-pre-wrap break-words">{message.content}</div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ) : null
-            ))}
+          <div className="relative">
+            <Textarea
+              ref={textareaRef}
+              rows={1} // Start with one row
+              value={inputMessage}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              placeholder="Ketik pesan Anda atau upload file..."
+              className="resize-none pr-12 py-3 pl-10 max-h-[200px] rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm overflow-y-auto z-10"
+              disabled={isProcessing}
+              readOnly={false}
+              autoComplete="off"
+            />
             
-            {/* Invisible div to anchor scrolling to bottom */}
-            <div ref={messagesEndRef} />
+            {/* File upload button */}
+            <button
+              type="button"
+              onClick={handleOpenFileDialog}
+              disabled={isProcessing}
+              className="absolute left-2 bottom-3 p-2 rounded-lg text-gray-500 hover:text-blue-500 hover:bg-blue-50 transition-colors z-20"
+              aria-label="Upload file"
+            >
+              <Paperclip className="w-5 h-5" />
+            </button>
+            
+            {/* Hidden file input */}
+            <input 
+              type="file" 
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+              multiple
+              accept={ACCEPTED_FILE_TYPES}
+            />
+            
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={(selectedFiles.length === 0 && !inputMessage.trim()) || isProcessing}
+              className={cn(
+                "absolute right-2 bottom-3 p-2 rounded-lg z-20",
+                (selectedFiles.length === 0 && !inputMessage.trim()) || isProcessing
+                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  : "bg-blue-600 text-white hover:bg-blue-700"
+              )}
+              aria-label="Kirim pesan"
+            >
+              {isProcessing ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Send className="w-5 h-5" />
+              )}
+            </Button>
           </div>
-        </div>
-      </div>
-      
-      {/* Scroll to bottom button */}
-      {showScrollButton && (
-        <div className="absolute right-4 bottom-32 z-10">
-          <button
-            onClick={scrollToBottom}
-            className="bg-blue-600 text-white p-2 rounded-full shadow-md hover:bg-blue-700 transition-colors"
-            aria-label="Scroll to bottom"
-          >
-            <ChevronDown className="w-5 h-5" />
-          </button>
-        </div>
-      )}
-
-      {/* Input area */}
-      <div className="fixed bottom-0 left-0 right-0 lg:pl-64 bg-white border-t border-gray-200 p-4 z-10">
-        <div className="max-w-3xl mx-auto relative">
-          <Textarea
-            ref={textareaRef}
-            value={inputMessage}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            placeholder="Ketik pesan Anda..."
-            className="resize-none pr-12 py-3 min-h-[52px] max-h-[200px] rounded-xl focus:border-blue-500 focus:ring-blue-500 overflow-y-auto"
-            readOnly={false}
-            autoComplete="off"
-            rows={1}
-            disabled={isProcessing}
-          />
-          
-          <button
-            onClick={handleSubmit}
-            disabled={!inputMessage.trim() || isProcessing}
-            type="button"
-            className="absolute right-3 bottom-3 p-2 rounded-lg text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors z-20"
-            aria-label="Kirim pesan"
-          >
-            {isProcessing ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Send className="w-5 h-5" />
-            )}
-          </button>
-        </div>
-        
-        <div className="max-w-3xl mx-auto mt-2">
-          <p className="text-xs text-center text-gray-500">
-            P2SK AI memberikan informasi umum dan tidak bisa menggantikan nasihat hukum profesional.
+          <p className="text-xs text-gray-500 mt-2 text-center">
+            Ahli OJK memberikan informasi umum dan tidak bisa menggantikan nasihat hukum profesional.
           </p>
         </div>
       </div>
