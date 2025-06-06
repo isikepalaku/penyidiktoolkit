@@ -6,14 +6,7 @@ import { Textarea } from './textarea';
 import { AnimatedBotIcon } from './animated-bot-icon';
 import { DotBackground } from './DotBackground';
 import { sendChatMessage, clearChatHistory, initializeSession } from '@/services/reskrimumService';
-import { marked } from 'marked';
-import DOMPurify from 'dompurify';
-
-// Konfigurasi marked
-marked.setOptions({
-  breaks: true,
-  gfm: true,
-});
+import { formatMessage } from '@/utils/markdownFormatter';
 
 interface Message {
   content: string;
@@ -689,20 +682,7 @@ const ReskrimumChatPage: React.FC<ReskrimumChatPageProps> = ({ onBack }) => {
     );
   };
 
-  const formatMessage = (content: string) => {
-    try {
-      if (!content) return '';
-      
-      let processedContent = content.replace(/\\n/g, '\n');
-      const rawHtml = marked.parse(processedContent);
-      const sanitizedHtml = DOMPurify.sanitize(rawHtml);
-      
-      return sanitizedHtml;
-    } catch (error) {
-      console.error('Error formatting message:', error);
-      return 'Error formatting message.';
-    }
-  };
+
 
   const handleBack = () => {
     clearChatHistory();

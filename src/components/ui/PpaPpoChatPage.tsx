@@ -6,14 +6,7 @@ import { Textarea } from './textarea';
 import { AnimatedBotIcon } from './animated-bot-icon';
 import { DotBackground } from './DotBackground';
 import { sendChatMessage, clearChatHistory, initializeSession } from '@/services/ppaPpoService';
-import { marked } from 'marked';
-import DOMPurify from 'dompurify';
-
-// Konfigurasi marked
-marked.setOptions({
-  breaks: true,
-  gfm: true,
-});
+import { formatMessage } from '@/utils/markdownFormatter';
 
 interface Message {
   content: string;
@@ -293,21 +286,6 @@ const PpaPpoChatPage: React.FC<PpaPpoChatPageProps> = ({ onBack }) => {
         console.error('Could not copy text: ', err);
       }
     );
-  };
-
-  const formatMessage = (content: string) => {
-    try {
-      // Convert markdown to HTML
-      const html = marked(content);
-      
-      // Sanitize HTML to prevent XSS
-      const sanitizedHtml = DOMPurify.sanitize(html);
-      
-      return sanitizedHtml;
-    } catch (error) {
-      console.error('Error formatting message:', error);
-      return content;
-    }
   };
 
   const handleBack = () => {

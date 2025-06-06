@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Shield, Users, Pill, User, ChevronRight, Sparkles, Target } from 'lucide-react';
 import AgentCard from '@/components/AgentCard';
+import { DotBackground } from '@/components/ui/DotBackground';
 import { penyidikAiAgent } from '@/data/agents/penyidikAiAgent';
 import { tipidkorAiAgent } from '@/data/agents/tipidkorAiAgent';
 import { fismondevAgent } from '@/data/agents/fismondevAgent';
@@ -409,20 +410,19 @@ export default function PenyidikAi() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-indigo-50">
-      {/* Compact Header with Background Image */}
-      <div className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 relative overflow-hidden">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 bg-black/10"></div>
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSI0Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-20"></div>
+    <DotBackground className="min-h-screen">
+      {/* Sleek Clean Header */}
+      <div className="bg-gradient-to-r from-slate-800 via-slate-900 to-gray-900 relative overflow-hidden border-b border-gray-200/10">
+        {/* Subtle overlay */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>
         
         <div className="container mx-auto px-6 py-6 relative">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl border border-white/30">
+              <div className="p-2 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
                 <Target className="w-5 h-5 text-white" />
               </div>
-              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-3 py-1 border border-white/20">
+              <div className="flex items-center gap-2 bg-white/5 backdrop-blur-sm rounded-full px-3 py-1 border border-white/10">
                 <Sparkles className="w-3 h-3 text-white" />
                 <span className="text-white text-xs font-medium">AI Investigation Assistant</span>
               </div>
@@ -453,7 +453,7 @@ export default function PenyidikAi() {
                 placeholder="Cari asisten AI atau topik..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all"
               />
             </div>
 
@@ -463,7 +463,7 @@ export default function PenyidikAi() {
                 onClick={() => setSelectedCategory(null)}
                 className={`px-4 py-3 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
                   !selectedCategory
-                    ? 'bg-purple-600 text-white shadow-lg'
+                    ? 'bg-slate-800 text-white shadow-lg'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
@@ -475,7 +475,7 @@ export default function PenyidikAi() {
                   onClick={() => setSelectedCategory(category.id)}
                   className={`px-4 py-3 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
                     selectedCategory === category.id
-                      ? 'bg-purple-600 text-white shadow-lg'
+                      ? 'bg-slate-800 text-white shadow-lg'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
@@ -500,16 +500,16 @@ export default function PenyidikAi() {
             return (
               <div className="space-y-8">
                 {/* Category Header */}
-                <div className={`bg-gradient-to-r ${category.bgColor} rounded-2xl p-8 border border-white/50`}>
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className={`p-3 bg-gradient-to-r ${category.color} rounded-xl text-white`}>
-                      <category.icon className="w-8 h-8" />
+                                  <div className={`bg-gradient-to-r ${category.bgColor} rounded-2xl p-6 border border-white/50`}>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className={`p-2 bg-gradient-to-r ${category.color} rounded-xl text-white`}>
+                        <category.icon className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h2 className="text-2xl font-bold text-gray-900">{category.name}</h2>
+                        <p className="text-gray-600 text-sm mt-1">{category.description}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h2 className="text-3xl font-bold text-gray-900">{category.name}</h2>
-                      <p className="text-gray-600 mt-1">{category.description}</p>
-                    </div>
-                  </div>
                   <div className="text-sm text-gray-500">
                     {categoryAgents.length} AI Assistant tersedia
                   </div>
@@ -527,7 +527,6 @@ export default function PenyidikAi() {
                         <AgentCard 
                           agent={agent as any}
                           popularity={agent.popularity}
-                          lastUpdated={agent.lastUpdated}
                           className="hover:-translate-y-1"
                         />
                       </div>
@@ -556,21 +555,22 @@ export default function PenyidikAi() {
                 <div key={category.id} className="space-y-6">
                   {/* Category Header */}
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className={`p-3 bg-gradient-to-r ${category.color} rounded-xl text-white`}>
-                        <category.icon className="w-6 h-6" />
+                    <div className="flex items-center gap-2 md:gap-4">
+                      <div className={`p-1.5 md:p-2 bg-gradient-to-r ${category.color} rounded-lg md:rounded-xl text-white`}>
+                        <category.icon className="w-4 h-4 md:w-6 md:h-6" />
                       </div>
                       <div>
-                        <h2 className="text-2xl font-bold text-gray-900">{category.name}</h2>
-                        <p className="text-gray-600">{category.description}</p>
+                        <h2 className="text-lg md:text-2xl font-bold text-gray-900">{category.name}</h2>
+                        <p className="text-gray-600 text-sm md:text-base hidden sm:block">{category.description}</p>
                       </div>
                     </div>
                     <button
                       onClick={() => setSelectedCategory(category.id)}
-                      className="text-purple-600 hover:text-purple-700 text-sm font-medium flex items-center gap-1"
+                      className="text-slate-600 hover:text-slate-800 text-xs md:text-sm font-medium flex items-center gap-1 flex-shrink-0"
                     >
-                      Lihat Semua
-                      <ChevronRight className="w-4 h-4" />
+                      <span className="hidden sm:inline">Lihat Semua</span>
+                      <span className="sm:hidden">Semua</span>
+                      <ChevronRight className="w-3 h-3 md:w-4 md:h-4" />
                     </button>
                   </div>
 
@@ -585,7 +585,6 @@ export default function PenyidikAi() {
                         <AgentCard 
                           agent={agent as any}
                           popularity={agent.popularity}
-                          lastUpdated={agent.lastUpdated}
                           className="hover:-translate-y-1"
                         />
                       </div>
@@ -597,6 +596,6 @@ export default function PenyidikAi() {
           </div>
         )}
       </div>
-    </div>
+    </DotBackground>
   );
 }

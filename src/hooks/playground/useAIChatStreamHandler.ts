@@ -198,6 +198,7 @@ export default function useAIChatStreamHandler() {
       hasCompleted: true,
       isThinking: false,
       isCallingTool: false,
+      isAccessingKnowledge: false,
       isUpdatingMemory: false
     });
   }, [setMessages, setIsStreaming, setStreamingStatus]);
@@ -597,10 +598,28 @@ export default function useAIChatStreamHandler() {
               handleReasoningStep(chunk);
               break;
               
+            case RunEvent.AccessingKnowledge:
+              console.log('Accessing knowledge base:', chunk.content);
+              // Update streaming status for knowledge access
+              setStreamingStatus({ 
+                isThinking: false,
+                isCallingTool: false,
+                isAccessingKnowledge: true,
+                isUpdatingMemory: false,
+                toolName: undefined
+              });
+              break;
+              
             case RunEvent.UpdatingMemory:
               console.log('Updating memory:', chunk.content);
               // Update streaming status for memory update
-              setStreamingStatus({ isUpdatingMemory: true });
+              setStreamingStatus({ 
+                isThinking: false,
+                isCallingTool: false,
+                isAccessingKnowledge: false,
+                isUpdatingMemory: true,
+                toolName: undefined
+              });
               break;
               
             default:

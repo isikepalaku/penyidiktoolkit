@@ -24,6 +24,7 @@ export const usePlaygroundStore = create<PlaygroundStoreInterface>()((set, get) 
   streamingStatus: {
     isThinking: false,
     isCallingTool: false,
+    isAccessingKnowledge: false,
     isUpdatingMemory: false,
     hasCompleted: false,
   },
@@ -132,8 +133,10 @@ export const usePlaygroundStore = create<PlaygroundStoreInterface>()((set, get) 
       streamingStatus: {
         isThinking: false,
         isCallingTool: false,
+        isAccessingKnowledge: false,
         isUpdatingMemory: false,
         hasCompleted: false,
+        toolName: undefined,
       }
     });
   },

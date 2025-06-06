@@ -8,6 +8,7 @@ export enum RunEvent {
   ReasoningStarted = 'ReasoningStarted',
   ReasoningStep = 'ReasoningStep',
   ReasoningCompleted = 'ReasoningCompleted',
+  AccessingKnowledge = 'AccessingKnowledge',
   UpdatingMemory = 'UpdatingMemory'
 }
 
@@ -101,6 +102,7 @@ export interface StreamingStatus {
   isThinking: boolean;
   isCallingTool: boolean;
   toolName?: string;
+  isAccessingKnowledge: boolean;
   isUpdatingMemory: boolean;
   hasCompleted: boolean;
 }

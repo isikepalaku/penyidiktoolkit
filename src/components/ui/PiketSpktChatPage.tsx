@@ -572,7 +572,7 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
                 <ArrowLeft className="w-4 h-4" />
               </Button>
               <MessageSquare className="w-5 h-5 text-blue-600" />
-              <h2 className="text-lg font-semibold text-gray-900">Piket SPKT AI</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Piket SPKT</h2>
             </div>
             <div className="flex items-center space-x-2">
             {/* Mobile Document View Button */}
@@ -638,7 +638,7 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
             <div className="flex items-start space-x-3">
               <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
-                <h3 className="font-semibold text-blue-900 mb-2">Piket SPKT AI Assistant</h3>
+                <h3 className="font-semibold text-blue-900 mb-2">Piket SPKT</h3>
                 <p className="text-sm text-blue-800 mb-3">
                   Asisten digital untuk petugas piket SPKT yang membantu dalam administrasi, dokumentasi, dan pelayanan masyarakat.
                 </p>

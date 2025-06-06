@@ -1,16 +1,14 @@
-import { PieChart, BarChart3, TrendingUp, AlertTriangle, ChevronRight } from 'lucide-react';
+import { BarChart3, TrendingUp, AlertTriangle, ChevronRight } from 'lucide-react';
 import type { Agent, ExtendedAgent } from '../types/index';
-import { getTypeDisplay } from '@/utils/utils';
 
 interface AgentCardProps {
   agent: Agent | ExtendedAgent;
   bgColor?: string;
   className?: string;
   popularity?: number;
-  lastUpdated?: string;
 }
 
-export default function AgentCard({ agent, bgColor = 'bg-white', className = '', popularity = 0, lastUpdated }: AgentCardProps) {
+export default function AgentCard({ agent, bgColor = '', className = '', popularity = 0 }: AgentCardProps) {
   
 
   const getAgentIcon = () => {
@@ -52,7 +50,7 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '',
       case 'sentiment_analyst':
         return <TrendingUp className="text-gray-600" size={32} />;
       case 'tipidkor_chat':
-        return <img src="/img/krimsus.png" alt="Tipidkor ai" className="h-12 w-12" />;
+        return <img src="/img/bareskrim.svg" alt="Tipidkor ai" className="h-12 w-12" />;
       case 'tipikor_analyst':
         return <img src="/img/pngegg.png" alt="tipidkor analyst" className="h-12 w-12" />;
       case 'ciptakerja_chat':
@@ -60,15 +58,15 @@ export default function AgentCard({ agent, bgColor = 'bg-white', className = '',
       case 'kesehatan_chat':
         return <img src="/img/book.svg" alt="Google Scholar" className="h-12 w-12" />;
       case 'penyidik_chat':
-        return <img src="/img/krimsus.png" alt="Tipidkor ai" className="h-12 w-12" />;
+        return <img src="/img/bareskrim.svg" alt="Tipidkor ai" className="h-12 w-12" />;
       case 'siber_chat':
         return <img src="/img/siber.svg" alt="Siber AI" className="h-12 w-12" />;
       case 'wassidik_penyidik_chat':
         return <img src="/img/wassidik.svg" alt="Wassidik AI" className="h-12 w-12" />;
       case 'fismondev_chat':
-        return <img src="/img/krimsus.png" alt="Fismondev AI" className="h-12 w-12" />;
+        return <img src="/img/bareskrim.svg" alt="Fismondev AI" className="h-12 w-12" />;
       case 'tipidter_chat':
-        return <img src="/img/krimsus.png" alt="Tipidter AI" className="h-12 w-12" />;
+        return <img src="/img/bareskrim.svg" alt="Tipidter AI" className="h-12 w-12" />;
       case 'perbankan_chat':
         return <img src="/img/book.svg" alt="Perbankan AI" className="h-12 w-12" />;
       case 'narkotika_chat':

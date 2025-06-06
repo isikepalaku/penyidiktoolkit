@@ -80,16 +80,57 @@ function processChunk(chunk: RunResponse, onChunk: (chunk: RunResponse) => void)
     return;
   }
   
-  // Log chunk untuk debugging
+  // Log chunk dengan detail event untuk debugging StreamingStatus sync
   console.log('Processing chunk:', {
     event: chunk.event,
+    event_type: typeof chunk.event,
     content_preview: typeof chunk.content === 'string' 
       ? chunk.content.substring(0, 50) + (chunk.content.length > 50 ? '...' : '')
       : typeof chunk.content,
     session_id: chunk.session_id,
     has_tools: chunk.tools && chunk.tools.length > 0,
-    has_extra_data: !!chunk.extra_data
+    tool_names: chunk.tools?.map(t => t.function?.name).join(', '),
+    has_extra_data: !!chunk.extra_data,
+    has_reasoning: chunk.extra_data?.reasoning_steps && chunk.extra_data.reasoning_steps.length > 0
   });
+  
+  // Log specific events for StreamingStatus synchronization
+  switch (chunk.event) {
+    case 'RunStarted':
+    case 'ReasoningStarted':
+      console.log('🧠 Thinking phase detected:', chunk.event);
+      break;
+    case 'ToolCallStarted':
+      console.log('🔧 Tool call phase detected:', chunk.tools?.map(t => t.function?.name).join(', '));
+      break;
+    case 'AccessingKnowledge':
+      console.log('📚 Knowledge access phase detected');
+      break;
+    case 'UpdatingMemory':
+      console.log('💾 Memory update phase detected');
+      break;
+    case 'RunResponse':
+      console.log('📝 Content generation phase:', chunk.content?.length || 0, 'chars');
+      break;
+    case 'RunCompleted':
+      console.log('✅ Completion phase detected');
+      break;
+    case 'ToolCallCompleted':
+      console.log('🔧✅ Tool call completed');
+      break;
+    case 'ReasoningStep':
+      console.log('🤔 Reasoning step received');
+      break;
+    case 'ReasoningCompleted':
+      console.log('🤔✅ Reasoning completed');
+      break;
+    case 'RunError':
+      console.log('❌ Error phase detected:', chunk.content);
+      break;
+    default:
+      console.log('❓ Unknown event detected:', chunk.event);
+      break;
+  }
   
   onChunk(chunk);
 }

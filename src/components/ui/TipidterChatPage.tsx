@@ -6,23 +6,7 @@ import { Textarea } from './textarea';
 import { AnimatedBotIcon } from './animated-bot-icon';
 import { DotBackground } from './DotBackground';
 import { sendChatMessage, initializeSession, clearChatHistory } from '@/services/tipidterService';
-import { marked } from 'marked';
-import DOMPurify from 'dompurify';
-
-// Konfigurasi marked dan DOMPurify for safe link handling
-marked.setOptions({
-  breaks: true,
-  gfm: true,
-  headerIds: false,
-  mangle: false
-});
-
-DOMPurify.setConfig({
-  ADD_TAGS: ['a'],
-  ADD_ATTR: ['target', 'rel', 'class'],
-  FORBID_TAGS: ['style', 'script'],
-  FORBID_ATTR: ['style', 'onerror', 'onload']
-});
+import { formatMessage } from '@/utils/markdownFormatter';
 
 interface Message {
   content: string;
@@ -272,23 +256,7 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const formatMessage = (content: string) => {
-    try {
-      // Pastikan content ada dan bukan string kosong
-      if (!content) return '';
-      
-      // Parse markdown menjadi HTML
-      const rawHtml = marked.parse(content);
-      
-      // Sanitasi HTML untuk mencegah XSS
-      const sanitizedHtml = DOMPurify.sanitize(rawHtml);
-      
-      return sanitizedHtml;
-    } catch (error) {
-      console.error('Error formatting message:', error);
-      return 'Error formatting message.';
-    }
-  };
+
 
   const handleRetry = () => {
     setHasError(false);

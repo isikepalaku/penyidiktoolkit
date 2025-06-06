@@ -7,7 +7,7 @@ import { DotBackground } from './DotBackground';
 import { formatMessage } from '@/utils/markdownFormatter';
 import useAIChatStreamHandler from '@/hooks/playground/useAIChatStreamHandler';
 import { usePlaygroundStore } from '@/stores/PlaygroundStore';
-import StreamingStatus from './StreamingStatus';
+import StreamingStatus from '@/hooks/streaming/StreamingStatus';
 import { 
   clearStreamingChatHistory,
   initializeStreamingSession
@@ -33,6 +33,7 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const streamingStatusRef = useRef<HTMLDivElement>(null);
   const isSessionInitialized = useRef<boolean>(false);
 
   // Effect untuk inisialisasi session sekali saat komponen di-mount
@@ -51,6 +52,64 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
     }
   }, []);
 
+  // Auto-focus management for better UX
+  useEffect(() => {
+    const isAnyStreamingActive = streamingStatus.isThinking || 
+                                streamingStatus.isCallingTool || 
+                                streamingStatus.isAccessingKnowledge || 
+                                streamingStatus.isUpdatingMemory;
+
+    if (isLoading && isAnyStreamingActive) {
+      // Focus on streaming status area when streaming is active
+      const timer = setTimeout(() => {
+        if (streamingStatusRef.current) {
+          streamingStatusRef.current.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center',
+            inline: 'nearest'
+          });
+          console.log('🎯 Auto-focus: Scrolled to streaming status area -', {
+            thinking: streamingStatus.isThinking,
+            callingTool: streamingStatus.isCallingTool,
+            accessingKnowledge: streamingStatus.isAccessingKnowledge,
+            updatingMemory: streamingStatus.isUpdatingMemory
+          });
+        } else {
+          console.warn('🎯 Auto-focus: StreamingStatus ref not found');
+        }
+      }, 500); // Increased delay to ensure element is fully rendered
+      
+      return () => clearTimeout(timer);
+    } else if (!isLoading && streamingStatus.hasCompleted) {
+      // Return focus to input area when completed
+      const timer = setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'end',
+            inline: 'nearest'
+          });
+          // Additional delay before focusing to ensure scroll completes
+          setTimeout(() => {
+            if (textareaRef.current) {
+              textareaRef.current.focus();
+            }
+          }, 300);
+          console.log('🎯 Auto-focus: Returned focus to input area after completion');
+        }
+      }, 1200); // Slightly increased delay to let user appreciate completion
+      
+      return () => clearTimeout(timer);
+    }
+  }, [
+    isLoading, 
+    streamingStatus.isThinking, 
+    streamingStatus.isCallingTool, 
+    streamingStatus.isAccessingKnowledge, 
+    streamingStatus.isUpdatingMemory, 
+    streamingStatus.hasCompleted
+  ]);
+
   // Load storage stats when showing storage info
   useEffect(() => {
     if (showStorageInfo) {
@@ -65,11 +124,21 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
     // Hanya perlu setup state untuk UI feedback
   }, []);
 
+  // Auto-scroll to latest message (but don't interfere with streaming focus)
   useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    const isAnyStreamingActive = streamingStatus.isThinking || 
+                                streamingStatus.isCallingTool || 
+                                streamingStatus.isAccessingKnowledge || 
+                                streamingStatus.isUpdatingMemory;
+    
+    // Only auto-scroll if not actively streaming (to avoid interfering with focus management)
+    if (!isLoading || !isAnyStreamingActive) {
+      if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      }
     }
-  }, [messages]);
+  }, [messages, isLoading, streamingStatus.isThinking, streamingStatus.isCallingTool, 
+      streamingStatus.isAccessingKnowledge, streamingStatus.isUpdatingMemory]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputMessage(e.target.value);
@@ -195,10 +264,12 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
     } catch (error) {
       console.error('Error sending message:', error);
     } finally {
-      // Focus the textarea after sending
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-      }
+      // Focus the textarea after sending (but streaming focus will take over during processing)
+      setTimeout(() => {
+        if (textareaRef.current && !isLoading) {
+          textareaRef.current.focus();
+        }
+      }, 100);
     }
   };
 
@@ -379,6 +450,7 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
                                        (hasMinimalContent || 
                                         streamingStatus.isThinking || 
                                         streamingStatus.isCallingTool || 
+                                        streamingStatus.isAccessingKnowledge ||
                                         streamingStatus.isUpdatingMemory);
               
                              return (message.content || isStreamingMessage) && (
@@ -405,10 +477,14 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
                           <div className="relative group">
                             {/* Streaming Status for this specific message */}
                             {isStreamingMessage && (
-                              <div className="mb-3">
+                              <div 
+                                ref={streamingStatusRef} 
+                                className="mb-3 scroll-mt-4 transition-all duration-300"
+                              >
                                 <StreamingStatus 
                                   isStreaming={true} 
-                                  currentStatus={streamingStatus} 
+                                  streamingStatus={streamingStatus}
+                                  compact={true}
                                 />
                               </div>
                             )}
