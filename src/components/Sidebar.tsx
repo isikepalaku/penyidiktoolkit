@@ -72,9 +72,9 @@ const Sidebar = () => {
         text: 'Penyidik AI'
       },
       {
-        path: '/undang-undang',
+        path: '/keterangan-ahli',
         icon: <Scale className="w-5 h-5" />,
-        text: 'Ahli Undang-Undang'
+        text: 'Keterangan Ahli'
       },
       {
         path: '/toolkit',

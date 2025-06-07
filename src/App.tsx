@@ -103,7 +103,7 @@ function AppContent() {
                   <PerkabaChat />
                 </ProtectedRoute>
               } />
-              <Route path="/undang-undang" element={
+              <Route path="/keterangan-ahli" element={
                 <ProtectedRoute>
                   <UndangUndang />
                 </ProtectedRoute>

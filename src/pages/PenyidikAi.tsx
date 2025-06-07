@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Shield, Users, Pill, User, ChevronRight, Sparkles, Target } from 'lucide-react';
+import { Search, Shield, Users, Pill, User, ChevronRight } from 'lucide-react';
 import AgentCard from '@/components/AgentCard';
 import { DotBackground } from '@/components/ui/DotBackground';
 import { penyidikAiAgent } from '@/data/agents/penyidikAiAgent';
@@ -411,38 +411,8 @@ export default function PenyidikAi() {
 
   return (
     <DotBackground className="min-h-screen">
-      {/* Sleek Clean Header */}
-      <div className="bg-gradient-to-r from-slate-800 via-slate-900 to-gray-900 relative overflow-hidden border-b border-gray-200/10">
-        {/* Subtle overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>
-        
-        <div className="container mx-auto px-6 py-6 relative">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
-                <Target className="w-5 h-5 text-white" />
-              </div>
-              <div className="flex items-center gap-2 bg-white/5 backdrop-blur-sm rounded-full px-3 py-1 border border-white/10">
-                <Sparkles className="w-3 h-3 text-white" />
-                <span className="text-white text-xs font-medium">AI Investigation Assistant</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="mt-4">
-            <h1 className="text-2xl lg:text-3xl font-bold text-white mb-2">
-              Penyidik AI
-            </h1>
-            
-            <p className="text-base text-white/90 max-w-xl">
-              AI Assistant untuk membantu proses penyidikan dengan menyediakan analisis dan insight yang mendalam
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* Search and Filter Section */}
-      <div className="container mx-auto px-6 py-6">
+      <div className="container mx-auto px-6 py-8">
         <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
           <div className="flex flex-col lg:flex-row gap-4">
             {/* Search */}
