@@ -548,7 +548,146 @@ const API_KEY = 'AIzaSyBf4_0ll5H7OMs7yAtgXO1LWVAWhOcbJmo'; // NEVER DO THIS!
   - Implement proper session management with initializeSession and clearChatHistory
   - Use consistent error handling and loading states
 
-### File Upload Implementation Patterns
+### Professional File Upload Implementation Patterns
+
+### Mobile File Upload Compatibility
+
+Untuk memastikan file upload bekerja optimal di mobile dan desktop, ikuti patterns berikut:
+
+#### 1. Comprehensive File Type Support:
+```typescript
+// Lengkap sesuai Google Gemini API documentation
+const ACCEPTED_FILE_TYPES = ".pdf,.txt,.html,.css,.md,.csv,.xml,.rtf,.js,.py,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.webp";
+
+// MIME type validation dengan fallback extension checking untuk mobile compatibility
+const SUPPORTED_MIME_TYPES = [
+  'application/pdf', 'text/plain', 'text/html', 'text/css', 'text/markdown',
+  'text/csv', 'text/xml', 'application/rtf', 'application/javascript',
+  'text/javascript', 'application/x-javascript', 'text/x-python',
+  'application/x-python', 'application/msword', 
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'image/png', 'image/jpeg', 'image/jpg', 'image/webp'
+];
+```
+
+#### 2. File Validation dengan Mobile Fallback:
+```typescript
+const validateFile = (file: File): { isValid: boolean; error?: string } => {
+  // Size validation (20MB for Gemini API)
+  if (file.size > MAX_FILE_SIZE) {
+    return { isValid: false, error: `File terlalu besar...` };
+  }
+
+  // MIME type validation dengan extension fallback untuk mobile
+  if (!SUPPORTED_MIME_TYPES.includes(file.type)) {
+    const extension = file.name.toLowerCase().split('.').pop();
+    const extensionMimeMap = { /* mapping object */ };
+    if (!extension || !extensionMimeMap[extension]) {
+      return { isValid: false, error: `Format tidak didukung...` };
+    }
+  }
+  return { isValid: true };
+};
+```
+
+#### 3. Enhanced File Change Handler:
+```typescript
+const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const files = Array.from(e.target.files || []);
+  const errors: string[] = [];
+  const validFiles: File[] = [];
+
+  // Validate setiap file
+  files.forEach((file, index) => {
+    console.log(`📄 File ${index + 1}: ${file.name} (${formatFileSize(file.size)}, ${file.type})`);
+    const validation = validateFile(file);
+    if (validation.isValid) {
+      validFiles.push(file);
+    } else {
+      errors.push(validation.error!);
+    }
+  });
+
+  // Update error state dan process valid files only
+  setFileValidationErrors(errors);
+  if (validFiles.length > 0) {
+    // Create new DataTransfer dengan valid files
+    const dataTransfer = new DataTransfer();
+    validFiles.forEach(file => dataTransfer.items.add(file));
+    // Process dengan originalHandleFileChange
+  }
+  
+  // Clear input untuk re-selection dan auto-clear errors
+  e.target.value = '';
+  if (errors.length > 0) {
+    setTimeout(() => setFileValidationErrors([]), 5000);
+  }
+};
+```
+
+#### 4. Professional File Preview UI:
+```typescript
+{selectedFiles.length > 0 && (
+  <div className="mb-3 space-y-2">
+    <div className="text-xs text-gray-600 font-medium">
+      File terpilih ({selectedFiles.length}):
+    </div>
+    <div className="flex flex-wrap gap-2">
+      {selectedFiles.map((file, index) => (
+        <div className="bg-rose-50 border border-rose-200 rounded-lg px-3 py-2 flex items-center gap-2">
+          <File className="w-4 h-4 flex-shrink-0" />
+          <div className="flex flex-col min-w-0 flex-1">
+            <span className="truncate font-medium">{file.name}</span>
+            <span className="text-xs text-rose-500">
+              {formatFileSize(file.size)} • {file.type || 'Unknown type'}
+            </span>
+          </div>
+          <button onClick={() => handleRemoveFile(index)}>
+            <XIcon className="w-4 h-4" />
+          </button>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+```
+
+#### 5. File Validation Error UI:
+```typescript
+{fileValidationErrors.length > 0 && (
+  <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-md mb-4">
+    <div className="flex">
+      <AlertCircle className="h-5 w-5 text-red-400" />
+      <div className="ml-3">
+        <h3 className="text-sm font-medium text-red-800">Error Validasi File</h3>
+        <ul className="list-disc list-inside space-y-1">
+          {fileValidationErrors.map((error, index) => (
+            <li key={index}>{error}</li>
+          ))}
+        </ul>
+        <div className="mt-3 text-xs text-red-600">
+          <p><strong>Format yang didukung:</strong> PDF, TXT, HTML, CSS, MD, CSV, XML, RTF, JS, PY, DOC, DOCX, XLS, XLSX, PNG, JPG, JPEG, WEBP</p>
+          <p><strong>Ukuran maksimal:</strong> 20MB per file</p>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+```
+
+### Best Practices untuk Mobile Compatibility:
+- **Accept Attribute**: Gunakan file extension format, bukan MIME types di accept attribute
+- **MIME Type Fallback**: Validate dengan MIME type tapi fallback ke extension untuk mobile compatibility
+- **File Size Display**: Tampilkan ukuran file dan type untuk transparency
+- **Auto-clear Errors**: Error validation auto-clear setelah 5 detik untuk UX yang bersih
+- **Detailed Logging**: Log file details untuk debugging upload issues
+- **Input Reset**: Reset input value setelah file change untuk allow re-selection
+- **Professional UI**: File preview dengan detailed information (name, size, type)
+- **Responsive Design**: File preview yang responsive dengan proper truncation
+
+## File Upload Implementation Patterns
 
 1. State Management untuk File Upload:
    ```typescript
@@ -2529,6 +2668,20 @@ User meminta untuk mengganti endpoint kuhpService.ts menjadi "ahli-hukum-pidana"
 
 ### Status:
 ✅ **COMPLETED** - KUHP AI successfully transformed menjadi "Ahli Hukum Pidana" dengan endpoint update, professional "Ahli Pidana" branding, dan comprehensive file upload functionality yang mengikuti pattern modern dari SiberChatPage.tsx. Service sekarang mendukung multiple file types, progress tracking, enhanced error handling, dan responsive design yang konsisten dengan standards aplikasi.
+
+#### **Enhanced with Streaming Support - COMPLETED ✅**:
+- **Service Upgrade**: ahliHukumPidanaService.ts upgraded to full streaming service dengan mixed mode support
+- **Real-time Events**: Support untuk RunEvent streaming (RunStarted, RunResponse, RunCompleted, RunError, ToolCall events)
+- **File Upload Integration**: Mixed mode - streaming untuk chat biasa, JSON response untuk file upload
+- **Progress Tracking**: Real-time progress tracking untuk file upload dengan status (preparing, uploading, processing, completed)
+- **Event Emitters**: onStreamEvent dan onProgress callback system untuk UI integration
+- **Buffer Parsing**: parseStreamBuffer function untuk handle real-time JSON chunks
+- **Mixed Endpoints**: 'runs' untuk streaming chat, 'runs-with-files' untuk file upload
+- **Backward Compatibility**: Maintained legacy functions untuk existing integrations
+- **Enhanced Error Handling**: Comprehensive error handling untuk streaming dan file upload
+- **Session Management**: Enhanced session management dengan streaming support
+- **Type Safety**: Full TypeScript integration dengan RunResponse dan PlaygroundChatMessage types
+- **Utility Functions**: convertStreamingEventsToMessages dan getCurrentStreamingSession helpers
 
 ---
 
