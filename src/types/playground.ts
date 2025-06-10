@@ -56,18 +56,33 @@ export interface ExtraData {
 export interface RunResponse {
   event: RunEvent;
   content?: string | any;
+  content_type?: string;
+  thinking?: string;
+  reasoning_content?: string;
   session_id?: string;
   agent_id?: string;
+  run_id?: string;
+  model?: string;
+  model_provider?: string;
   tools?: ToolCall[];
   tool_calls?: ToolCall[];
   images?: MediaContent[];
   videos?: MediaContent[];
   audio?: MediaContent[];
   response_audio?: MediaContent;
+  citations?: {
+    sources?: Reference[];
+    count?: number;
+  };
+  metrics?: {
+    tokens_used?: number;
+    processing_time?: number;
+  };
   extra_data?: ExtraData;
   created_at?: number;
   error?: string;
   message?: string;
+  reason?: string; // for RunCancelled events
 }
 
 export interface PlaygroundChatMessage {
@@ -113,6 +128,23 @@ export interface StreamingStatus {
   hasCompleted: boolean;
   isPaused?: boolean;
   isCancelled?: boolean;
+  // Enhanced status based on Agno documentation
+  currentModel?: string;
+  modelProvider?: string;
+  reasoningSteps?: ReasoningStep[];
+  isReasoningActive?: boolean;
+  currentReasoningStep?: string;
+  citationsCount?: number;
+  hasImages?: boolean;
+  hasVideos?: boolean;
+  hasAudio?: boolean;
+  contentType?: string;
+  errorMessage?: string;
+  cancelReason?: string;
+  processingMetrics?: {
+    tokensUsed?: number;
+    processingTime?: number;
+  };
 }
 
 export interface PlaygroundStore {

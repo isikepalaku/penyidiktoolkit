@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, Copy, Check, Loader2, Info, RefreshCw, Database, Trash2 } from 'lucide-react';
+import { ArrowLeft, Send, Copy, Check, Loader2, Info, RefreshCw, Database, Trash2, MessageSquare, FileText, Image, Video, Volume2, BarChart3, AlertCircle } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { Button } from './button';
 import { Textarea } from './textarea';
@@ -28,7 +28,6 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
   const [showInfo, setShowInfo] = useState(false);
   const [showStorageInfo, setShowStorageInfo] = useState(false);
   const [storageStats, setStorageStats] = useState<any>(null);
-  // File upload functionality removed
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -59,9 +58,10 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
     }
   }, []);
 
-  // Auto-focus management for better UX
+  // Enhanced auto-focus management for streaming events
   useEffect(() => {
     const isAnyStreamingActive = streamingStatus.isThinking || 
+                                streamingStatus.isReasoningActive ||
                                 streamingStatus.isCallingTool || 
                                 streamingStatus.isAccessingKnowledge || 
                                 streamingStatus.isMemoryUpdateStarted;
@@ -75,16 +75,9 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
             block: 'center',
             inline: 'nearest'
           });
-          console.log('🎯 Auto-focus: Scrolled to streaming status area -', {
-            thinking: streamingStatus.isThinking,
-            callingTool: streamingStatus.isCallingTool,
-            accessingKnowledge: streamingStatus.isAccessingKnowledge,
-            updatingMemory: streamingStatus.isMemoryUpdateStarted
-          });
-        } else {
-          console.warn('🎯 Auto-focus: StreamingStatus ref not found');
+          console.log('🎯 Auto-focus: Scrolled to streaming status area');
         }
-      }, 500); // Increased delay to ensure element is fully rendered
+      }, 500);
       
       return () => clearTimeout(timer);
     } else if (!isLoading && streamingStatus.hasCompleted) {
@@ -96,7 +89,6 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
             block: 'end',
             inline: 'nearest'
           });
-          // Additional delay before focusing to ensure scroll completes
           setTimeout(() => {
             if (textareaRef.current) {
               textareaRef.current.focus();
@@ -104,13 +96,14 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
           }, 300);
           console.log('🎯 Auto-focus: Returned focus to input area after completion');
         }
-      }, 1200); // Slightly increased delay to let user appreciate completion
+      }, 1200);
       
       return () => clearTimeout(timer);
     }
   }, [
     isLoading, 
-    streamingStatus.isThinking, 
+    streamingStatus.isThinking,
+    streamingStatus.isReasoningActive,
     streamingStatus.isCallingTool, 
     streamingStatus.isAccessingKnowledge, 
     streamingStatus.isMemoryUpdateStarted, 
@@ -125,15 +118,10 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
     }
   }, [showStorageInfo]);
 
-  // Setup progress tracking for file uploads (simplified)
-  useEffect(() => {
-    // Progress tracking akan dihandle internal oleh streaming hooks
-    // Hanya perlu setup state untuk UI feedback
-  }, []);
-
   // Auto-scroll to latest message (but don't interfere with streaming focus)
   useEffect(() => {
     const isAnyStreamingActive = streamingStatus.isThinking || 
+                                streamingStatus.isReasoningActive ||
                                 streamingStatus.isCallingTool || 
                                 streamingStatus.isAccessingKnowledge || 
                                 streamingStatus.isMemoryUpdateStarted;
@@ -144,8 +132,8 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
         chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
       }
     }
-  }, [messages, isLoading, streamingStatus.isThinking, streamingStatus.isCallingTool, 
-      streamingStatus.isAccessingKnowledge, streamingStatus.isMemoryUpdateStarted]);
+  }, [messages, isLoading, streamingStatus.isThinking, streamingStatus.isReasoningActive,
+      streamingStatus.isCallingTool, streamingStatus.isAccessingKnowledge, streamingStatus.isMemoryUpdateStarted]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputMessage(e.target.value);
@@ -155,8 +143,6 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
     textarea.style.height = `${textarea.scrollHeight}px`;
   };
 
-  // File handling functions removed
-
   const handleStorageCleanup = () => {
     if (window.confirm('Apakah Anda yakin ingin membersihkan data lama? Data yang sudah dihapus tidak bisa dikembalikan.')) {
       const newStats = forceCleanup();
@@ -164,8 +150,6 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
       alert(`Cleanup selesai! Storage yang dibebaskan: ${newStats.usage}`);
     }
   };
-
-  // Progress Bar component removed
 
   // Storage Stats Component
   const StorageStatsDisplay = () => {
@@ -303,8 +287,9 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
         console.log('Session reinitialized with fresh session_id but same user_id');
         
         // Clear messages using store
-        const { setMessages } = usePlaygroundStore.getState();
+        const { setMessages, resetStreamingStatus } = usePlaygroundStore.getState();
         setMessages([]);
+        resetStreamingStatus();
       } catch (error) {
         console.error('Error resetting chat:', error);
       }
@@ -410,7 +395,7 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
       >
         <DotBackground>
           <div className="max-w-5xl mx-auto px-4 md:px-8 space-y-6">
-            {/* Welcome Message - Bold WASSIDIK AI in center */}
+            {/* Welcome Message */}
             {messages.length === 0 && (
               <div className="flex flex-col items-center justify-center h-[50vh] text-center">
                 <div className="h-16 w-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -423,7 +408,7 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
               </div>
             )}
 
-            {/* Example Questions - only show at the beginning */}
+            {/* Example Questions */}
             {messages.length === 0 && (
               <div className="space-y-4">
                 <h3 className="text-sm font-medium text-gray-500">Contoh pertanyaan:</h3>
@@ -441,14 +426,8 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
               </div>
             )}
 
-            {/* Progress Bar removed */}
-
-            {/* Chat Messages */}
+            {/* Chat Messages with Professional Streaming Animation */}
             {messages.map((message, index) => {
-              // Check if this is an agent message that is currently streaming
-              // A message is streaming if it's the last agent message and either:
-              // 1. Content is empty/very short AND isLoading is true, OR
-              // 2. It's the last message and streaming status indicates active processing
               const isLastMessage = index === messages.length - 1;
               const hasMinimalContent = !message.content || message.content.trim().length < 50;
               const isStreamingMessage = message.role === 'agent' && 
@@ -456,11 +435,12 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
                                        isLoading &&
                                        (hasMinimalContent || 
                                         streamingStatus.isThinking || 
+                                        streamingStatus.isReasoningActive ||
                                         streamingStatus.isCallingTool || 
                                         streamingStatus.isAccessingKnowledge ||
                                         streamingStatus.isMemoryUpdateStarted);
               
-                             return (message.content || isStreamingMessage) && (
+              return (message.content || isStreamingMessage) && (
                 <div
                   key={message.id}
                   className={cn("flex", message.role === "user" ? "justify-end" : "justify-start")}
@@ -476,13 +456,13 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
                         className={cn(
                           "px-4 py-3 rounded-xl break-words",
                           message.role === 'user'
-                            ? 'bg-purple-600 text-white ml-auto'
-                            : 'bg-white border border-gray-200 text-gray-900'
+                            ? 'bg-gray-100 text-gray-900 ml-auto'
+                            : 'bg-white border border-gray-200 text-gray-800'
                         )}
                       >
                         {message.role === 'agent' ? (
                           <div className="relative group">
-                            {/* Streaming Status for this specific message */}
+                            {/* Professional Streaming Status Animation */}
                             {isStreamingMessage && (
                               <div 
                                 ref={streamingStatusRef} 
@@ -493,6 +473,36 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
                                   streamingStatus={streamingStatus}
                                   compact={true}
                                 />
+                              </div>
+                            )}
+                            
+                            {/* Enhanced Content Indicators (without model info) */}
+                            {(streamingStatus.hasImages || streamingStatus.hasVideos || streamingStatus.hasAudio || streamingStatus.citationsCount) && (
+                              <div className="flex items-center gap-2 mb-3 p-2 bg-gray-50 rounded-lg">
+                                {streamingStatus.citationsCount && streamingStatus.citationsCount > 0 && (
+                                  <div className="flex items-center gap-1 text-xs text-orange-600">
+                                    <FileText className="w-3 h-3" />
+                                    <span>{streamingStatus.citationsCount} citations</span>
+                                  </div>
+                                )}
+                                {streamingStatus.hasImages && (
+                                  <div className="flex items-center gap-1 text-xs text-pink-600">
+                                    <Image className="w-3 h-3" />
+                                    <span>Images</span>
+                                  </div>
+                                )}
+                                {streamingStatus.hasVideos && (
+                                  <div className="flex items-center gap-1 text-xs text-indigo-600">
+                                    <Video className="w-3 h-3" />
+                                    <span>Videos</span>
+                                  </div>
+                                )}
+                                {streamingStatus.hasAudio && (
+                                  <div className="flex items-center gap-1 text-xs text-green-600">
+                                    <Volume2 className="w-3 h-3" />
+                                    <span>Audio</span>
+                                  </div>
+                                )}
                               </div>
                             )}
                             
@@ -517,6 +527,22 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
                                 Sedang memproses...
                               </div>
                             )}
+                            
+                            {/* Processing Metrics Display (optional, without model info) */}
+                            {streamingStatus.processingMetrics && (
+                              <div className="mt-3 p-2 bg-gray-50 rounded-lg">
+                                <div className="flex items-center gap-4 text-xs text-gray-600">
+                                  <BarChart3 className="w-3 h-3" />
+                                  {streamingStatus.processingMetrics.tokensUsed && (
+                                    <span>{streamingStatus.processingMetrics.tokensUsed} tokens</span>
+                                  )}
+                                  {streamingStatus.processingMetrics.processingTime && (
+                                    <span>{streamingStatus.processingMetrics.processingTime}ms</span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            
                             {message.content && (
                               <div className="flex justify-end mt-2">
                                 <Button
@@ -547,8 +573,8 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
                       </div>
                     </div>
                     {message.role === 'user' && (
-                      <div className="h-8 w-8 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-                        <span className="text-white text-sm font-medium">U</span>
+                      <div className="h-8 w-8 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                        <span className="text-gray-700 text-sm font-medium">U</span>
                       </div>
                     )}
                   </div>
@@ -556,8 +582,6 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
               )
             })}
 
-
-            
             <div ref={messagesEndRef} />
           </div>
         </DotBackground>
@@ -566,8 +590,6 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
       {/* Input area fixed at bottom */}
       <div className="border-t border-gray-200 bg-white p-4 md:px-8 pb-safe">
         <div className="max-w-5xl mx-auto px-4 md:px-8">
-          {/* File Preview Area removed */}
-
           <div className="relative">
             <Textarea
               ref={textareaRef}

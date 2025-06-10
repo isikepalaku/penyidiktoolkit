@@ -566,26 +566,81 @@ export default function useAIChatStreamHandler() {
           // Route chunks berdasarkan event type
           switch (chunk.event) {
             case RunEvent.RunStarted:
+              handleRunStarted(chunk);
+              // Extract model information from RunResponseStartedEvent
+              if (chunk.model || chunk.model_provider) {
+                setStreamingStatus({
+                  currentModel: chunk.model,
+                  modelProvider: chunk.model_provider
+                });
+              }
+              break;
+              
             case RunEvent.ReasoningStarted:
               handleRunStarted(chunk);
+              setStreamingStatus({
+                isReasoningActive: true,
+                isThinking: false
+              });
               break;
               
             case RunEvent.RunResponse:
+            case RunEvent.RunResponseContent:
               console.log('🔄 RunResponse received:', typeof chunk.content, chunk.content?.length || 0, 'chars');
               handleRunResponse(chunk, lastContent);
+              
+              // Extract enhanced information from RunResponseContentEvent
+              if (chunk.event === RunEvent.RunResponseContent) {
+                setStreamingStatus({
+                  contentType: chunk.content_type,
+                  citationsCount: chunk.citations?.count || chunk.citations?.sources?.length,
+                  hasImages: !!chunk.images?.length,
+                  hasVideos: !!chunk.videos?.length, 
+                  hasAudio: !!chunk.audio?.length
+                });
+              }
               break;
               
             case RunEvent.RunCompleted:
               handleRunCompleted(chunk);
+              
+              // Extract final information from RunResponseCompletedEvent
+              setStreamingStatus({
+                hasImages: !!chunk.images?.length,
+                hasVideos: !!chunk.videos?.length,
+                hasAudio: !!chunk.audio?.length,
+                citationsCount: chunk.citations?.count || chunk.citations?.sources?.length,
+                processingMetrics: chunk.metrics ? {
+                  tokensUsed: chunk.metrics.tokens_used,
+                  processingTime: chunk.metrics.processing_time
+                } : undefined
+              });
               break;
               
             case RunEvent.ReasoningCompleted:
               console.log('Reasoning completed:', chunk.extra_data?.reasoning_steps?.length || 0, 'steps');
-              // Just log reasoning completion, don't treat as run completion
+              
+              // Extract reasoning completion information from ReasoningCompletedEvent
+              setStreamingStatus({
+                isReasoningActive: false,
+                currentReasoningStep: undefined,
+                reasoningSteps: chunk.extra_data?.reasoning_steps
+              });
               break;
               
             case RunEvent.RunError:
               handleRunError(chunk);
+              
+              // Extract error information from RunResponseErrorEvent
+              setStreamingStatus({
+                errorMessage: chunk.content || chunk.message || 'Unknown error',
+                hasCompleted: false,
+                isThinking: false,
+                isCallingTool: false,
+                isAccessingKnowledge: false,
+                isMemoryUpdateStarted: false,
+                isReasoningActive: false
+              });
               break;
               
             case RunEvent.ToolCallStarted:
@@ -598,6 +653,14 @@ export default function useAIChatStreamHandler() {
               
             case RunEvent.ReasoningStep:
               handleReasoningStep(chunk);
+              
+              // Extract reasoning step information from ReasoningStepEvent
+              if (chunk.reasoning_content) {
+                setStreamingStatus({
+                  currentReasoningStep: chunk.reasoning_content,
+                  isReasoningActive: true
+                });
+              }
               break;
               
             case RunEvent.AccessingKnowledge:
@@ -653,12 +716,16 @@ export default function useAIChatStreamHandler() {
               
             case RunEvent.RunCancelled:
               console.log('Run cancelled:', chunk.content);
+              
+              // Extract cancellation information from RunResponseCancelledEvent
               setStreamingStatus({ 
                 isCancelled: true,
+                cancelReason: chunk.reason || 'User cancelled',
                 isThinking: false,
                 isCallingTool: false,
                 isAccessingKnowledge: false,
-                isMemoryUpdateStarted: false
+                isMemoryUpdateStarted: false,
+                isReasoningActive: false
               });
               setIsStreaming(false);
               break;
