@@ -69,7 +69,7 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
     const isAnyStreamingActive = streamingStatus.isThinking || 
                                 streamingStatus.isCallingTool || 
                                 streamingStatus.isAccessingKnowledge || 
-                                streamingStatus.isUpdatingMemory;
+                                streamingStatus.isMemoryUpdateStarted;
 
     if (isLoading && isAnyStreamingActive) {
       // Focus on streaming status area when streaming is active
@@ -84,7 +84,7 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
             thinking: streamingStatus.isThinking,
             callingTool: streamingStatus.isCallingTool,
             accessingKnowledge: streamingStatus.isAccessingKnowledge,
-            updatingMemory: streamingStatus.isUpdatingMemory
+            updatingMemory: streamingStatus.isMemoryUpdateStarted
           });
         } else {
           console.warn('🎯 TIPIDKOR Auto-focus: StreamingStatus ref not found');
@@ -118,7 +118,7 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
     streamingStatus.isThinking, 
     streamingStatus.isCallingTool, 
     streamingStatus.isAccessingKnowledge, 
-    streamingStatus.isUpdatingMemory, 
+    streamingStatus.isMemoryUpdateStarted, 
     streamingStatus.hasCompleted
   ]);
 
@@ -141,7 +141,7 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
     const isAnyStreamingActive = streamingStatus.isThinking || 
                                 streamingStatus.isCallingTool || 
                                 streamingStatus.isAccessingKnowledge || 
-                                streamingStatus.isUpdatingMemory;
+                                streamingStatus.isMemoryUpdateStarted;
     
     // Only auto-scroll if not actively streaming (to avoid interfering with focus management)
     if (!isLoading || !isAnyStreamingActive) {
@@ -150,7 +150,7 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
       }
     }
   }, [messages, isLoading, streamingStatus.isThinking, streamingStatus.isCallingTool, 
-      streamingStatus.isAccessingKnowledge, streamingStatus.isUpdatingMemory]);
+      streamingStatus.isAccessingKnowledge, streamingStatus.isMemoryUpdateStarted]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputMessage(e.target.value);
@@ -459,7 +459,7 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
                                         streamingStatus.isThinking || 
                                         streamingStatus.isCallingTool || 
                                         streamingStatus.isAccessingKnowledge ||
-                                        streamingStatus.isUpdatingMemory);
+                                        streamingStatus.isMemoryUpdateStarted);
               
               return (message.content || isStreamingMessage) && (
                 <div
@@ -481,7 +481,7 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
                         className={cn(
                           "px-4 py-3 rounded-xl break-words",
                           message.role === 'user'
-                            ? 'bg-red-600 text-white ml-auto'
+                            ? 'bg-gray-100 text-gray-900 ml-auto'
                             : 'bg-white border border-gray-200 text-gray-900'
                         )}
                       >
@@ -554,8 +554,8 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
                       </div>
                     </div>
                     {message.role === 'user' && (
-                      <div className="h-8 w-8 bg-red-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-                        <span className="text-white text-sm font-medium">U</span>
+                      <div className="h-8 w-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                        <span className="text-gray-900 text-sm font-medium">U</span>
                       </div>
                     )}
                   </div>
@@ -578,7 +578,7 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
               value={inputMessage}
               onChange={handleInputChange}
               placeholder="Ketik pesan..."
-              className="resize-none pr-14 py-3 pl-4 max-h-[200px] rounded-xl border-gray-300 focus:border-red-500 focus:ring-red-500 shadow-sm overflow-y-auto"
+              className="resize-none pr-14 py-3 pl-4 max-h-[200px] rounded-xl border-gray-300 focus:border-gray-500 focus:ring-gray-500 shadow-sm overflow-y-auto"
               disabled={isLoading}
               data-chat-input="true"
             />

@@ -199,7 +199,7 @@ export default function useAIChatStreamHandler() {
       isThinking: false,
       isCallingTool: false,
       isAccessingKnowledge: false,
-      isUpdatingMemory: false
+      isMemoryUpdateStarted: false
     });
   }, [setMessages, setIsStreaming, setStreamingStatus]);
 
@@ -607,21 +607,60 @@ export default function useAIChatStreamHandler() {
                 isThinking: false,
                 isCallingTool: false,
                 isAccessingKnowledge: true,
-                isUpdatingMemory: false,
+                isMemoryUpdateStarted: false,
                 toolName: undefined
               });
               break;
               
             case RunEvent.UpdatingMemory:
-              console.log('Updating memory:', chunk.content);
+            case RunEvent.MemoryUpdateStarted:
+              console.log('Memory update started:', chunk.content);
               // Update streaming status for memory update
               setStreamingStatus({ 
                 isThinking: false,
                 isCallingTool: false,
                 isAccessingKnowledge: false,
-                isUpdatingMemory: true,
+                isMemoryUpdateStarted: true,
                 toolName: undefined
               });
+              break;
+              
+            case RunEvent.MemoryUpdateCompleted:
+              console.log('Memory update completed:', chunk.content);
+              // Reset memory update status
+              setStreamingStatus({ 
+                isMemoryUpdateStarted: false
+              });
+              break;
+              
+            case RunEvent.RunPaused:
+              console.log('Run paused:', chunk.content);
+              setStreamingStatus({ 
+                isPaused: true,
+                isThinking: false,
+                isCallingTool: false,
+                isAccessingKnowledge: false,
+                isMemoryUpdateStarted: false
+              });
+              break;
+              
+            case RunEvent.RunContinued:
+              console.log('Run continued:', chunk.content);
+              setStreamingStatus({ 
+                isPaused: false
+              });
+              break;
+              
+            case RunEvent.RunCancelled:
+              console.log('Run cancelled:', chunk.content);
+              setStreamingStatus({ 
+                isCancelled: true,
+                isThinking: false,
+                isCallingTool: false,
+                isAccessingKnowledge: false,
+                isMemoryUpdateStarted: false
+              });
+              setIsStreaming(false);
               break;
               
             default:

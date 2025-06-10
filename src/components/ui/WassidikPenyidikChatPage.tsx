@@ -64,7 +64,7 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
     const isAnyStreamingActive = streamingStatus.isThinking || 
                                 streamingStatus.isCallingTool || 
                                 streamingStatus.isAccessingKnowledge || 
-                                streamingStatus.isUpdatingMemory;
+                                streamingStatus.isMemoryUpdateStarted;
 
     if (isLoading && isAnyStreamingActive) {
       // Focus on streaming status area when streaming is active
@@ -79,7 +79,7 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
             thinking: streamingStatus.isThinking,
             callingTool: streamingStatus.isCallingTool,
             accessingKnowledge: streamingStatus.isAccessingKnowledge,
-            updatingMemory: streamingStatus.isUpdatingMemory
+            updatingMemory: streamingStatus.isMemoryUpdateStarted
           });
         } else {
           console.warn('🎯 Auto-focus: StreamingStatus ref not found');
@@ -113,7 +113,7 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
     streamingStatus.isThinking, 
     streamingStatus.isCallingTool, 
     streamingStatus.isAccessingKnowledge, 
-    streamingStatus.isUpdatingMemory, 
+    streamingStatus.isMemoryUpdateStarted, 
     streamingStatus.hasCompleted
   ]);
 
@@ -136,7 +136,7 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
     const isAnyStreamingActive = streamingStatus.isThinking || 
                                 streamingStatus.isCallingTool || 
                                 streamingStatus.isAccessingKnowledge || 
-                                streamingStatus.isUpdatingMemory;
+                                streamingStatus.isMemoryUpdateStarted;
     
     // Only auto-scroll if not actively streaming (to avoid interfering with focus management)
     if (!isLoading || !isAnyStreamingActive) {
@@ -145,7 +145,7 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
       }
     }
   }, [messages, isLoading, streamingStatus.isThinking, streamingStatus.isCallingTool, 
-      streamingStatus.isAccessingKnowledge, streamingStatus.isUpdatingMemory]);
+      streamingStatus.isAccessingKnowledge, streamingStatus.isMemoryUpdateStarted]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputMessage(e.target.value);
@@ -458,7 +458,7 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
                                         streamingStatus.isThinking || 
                                         streamingStatus.isCallingTool || 
                                         streamingStatus.isAccessingKnowledge ||
-                                        streamingStatus.isUpdatingMemory);
+                                        streamingStatus.isMemoryUpdateStarted);
               
                              return (message.content || isStreamingMessage) && (
                 <div

@@ -1,15 +1,17 @@
 import React from 'react';
-import { Brain, Wrench, Database, CheckCircle, BookOpen } from 'lucide-react';
+import { Brain, Wrench, Database, CheckCircle, BookOpen, PauseCircle, PlayCircle, XCircle } from 'lucide-react';
 
 interface StreamingStatusProps {
   isStreaming: boolean;
   streamingStatus: {
-    isThinking?: boolean;
-    isCallingTool?: boolean;
-    toolName?: string;
-    isAccessingKnowledge?: boolean;
-    isUpdatingMemory?: boolean;
-    hasCompleted?: boolean;
+    isThinking?: boolean;           // from RunStarted/ReasoningStarted
+    isCallingTool?: boolean;        // from ToolCallStarted
+    toolName?: string;              // tool name from ToolCallStarted
+    isAccessingKnowledge?: boolean; // from AccessingKnowledge (custom)
+    isMemoryUpdateStarted?: boolean; // from MemoryUpdateStarted (updated from isUpdatingMemory)
+    hasCompleted?: boolean;         // from RunCompleted
+    isPaused?: boolean;             // from RunPaused (new)
+    isCancelled?: boolean;          // from RunCancelled (new)
   };
   compact?: boolean;
 }
@@ -20,7 +22,7 @@ export default function StreamingStatus({
   compact = false 
 }: StreamingStatusProps) {
   // Only show if there's an active streaming status or completion
-  if (!isStreaming && !streamingStatus.hasCompleted) return null;
+  if (!isStreaming && !streamingStatus.hasCompleted && !streamingStatus.isPaused && !streamingStatus.isCancelled) return null;
 
   const containerClass = compact 
     ? "max-w-xs bg-gray-900 border border-gray-700 rounded-md px-2 py-1 text-xs"
@@ -29,8 +31,24 @@ export default function StreamingStatus({
   return (
     <div className={containerClass}>
       <div className="flex items-center gap-2">
+        {/* Cancelled State - from RunCancelled */}
+        {streamingStatus.isCancelled && (
+          <>
+            <XCircle className="w-3 h-3 text-red-400" />
+            <span className="text-red-300 font-mono">Cancelled</span>
+          </>
+        )}
+
+        {/* Paused State - from RunPaused */}
+        {streamingStatus.isPaused && (
+          <>
+            <PauseCircle className="w-3 h-3 text-yellow-400" />
+            <span className="text-yellow-300 font-mono">Paused</span>
+          </>
+        )}
+
         {/* Thinking Phase - from RunStarted/ReasoningStarted */}
-        {streamingStatus.isThinking && (
+        {streamingStatus.isThinking && !streamingStatus.isPaused && !streamingStatus.isCancelled && (
           <>
             <Brain className="w-3 h-3 text-green-400 animate-pulse" />
             <span className="text-green-300 font-mono">Thinking...</span>
@@ -43,7 +61,7 @@ export default function StreamingStatus({
         )}
 
         {/* Tool Call Phase - from ToolCallStarted */}
-        {streamingStatus.isCallingTool && (
+        {streamingStatus.isCallingTool && !streamingStatus.isPaused && !streamingStatus.isCancelled && (
           <>
             <Wrench className="w-3 h-3 text-yellow-400 animate-spin" style={{ animationDuration: '2s' }} />
             <span className="text-yellow-300 font-mono">
@@ -54,7 +72,7 @@ export default function StreamingStatus({
         )}
 
         {/* Knowledge Access Phase - from AccessingKnowledge */}
-        {streamingStatus.isAccessingKnowledge && (
+        {streamingStatus.isAccessingKnowledge && !streamingStatus.isPaused && !streamingStatus.isCancelled && (
           <>
             <BookOpen className="w-3 h-3 text-blue-400 animate-pulse" />
             <span className="text-blue-300 font-mono">Accessing knowledge...</span>
@@ -66,8 +84,8 @@ export default function StreamingStatus({
           </>
         )}
 
-        {/* Memory Update Phase - from UpdatingMemory */}
-        {streamingStatus.isUpdatingMemory && (
+        {/* Memory Update Phase - from MemoryUpdateStarted */}
+        {streamingStatus.isMemoryUpdateStarted && !streamingStatus.isPaused && !streamingStatus.isCancelled && (
           <>
             <Database className="w-3 h-3 text-cyan-400 animate-pulse" />
             <span className="text-cyan-300 font-mono">Updating memory...</span>
@@ -87,12 +105,14 @@ export default function StreamingStatus({
           </>
         )}
 
-        {/* Default Processing - during RunResponse */}
+        {/* Default Processing - during RunResponseContent */}
         {isStreaming && 
          !streamingStatus.isThinking && 
          !streamingStatus.isCallingTool && 
          !streamingStatus.isAccessingKnowledge && 
-         !streamingStatus.isUpdatingMemory && (
+         !streamingStatus.isMemoryUpdateStarted &&
+         !streamingStatus.isPaused &&
+         !streamingStatus.isCancelled && (
           <>
             <div className="w-3 h-3 border border-green-400 rounded-full animate-spin"></div>
             <span className="text-green-300 font-mono">Processing...</span>

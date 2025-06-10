@@ -25,8 +25,10 @@ export const usePlaygroundStore = create<PlaygroundStoreInterface>()((set, get) 
     isThinking: false,
     isCallingTool: false,
     isAccessingKnowledge: false,
-    isUpdatingMemory: false,
+    isMemoryUpdateStarted: false,
     hasCompleted: false,
+    isPaused: false,
+    isCancelled: false,
   },
 
   setMessages: (messages) => {
@@ -134,8 +136,10 @@ export const usePlaygroundStore = create<PlaygroundStoreInterface>()((set, get) 
         isThinking: false,
         isCallingTool: false,
         isAccessingKnowledge: false,
-        isUpdatingMemory: false,
+        isMemoryUpdateStarted: false,
         hasCompleted: false,
+        isPaused: false,
+        isCancelled: false,
         toolName: undefined,
       }
     });

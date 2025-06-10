@@ -1,15 +1,21 @@
 export enum RunEvent {
   RunStarted = 'RunStarted',
   RunResponse = 'RunResponse', 
+  RunResponseContent = 'RunResponseContent',
   RunCompleted = 'RunCompleted',
   RunError = 'RunError',
+  RunCancelled = 'RunCancelled',
+  RunPaused = 'RunPaused',
+  RunContinued = 'RunContinued',
   ToolCallStarted = 'ToolCallStarted',
   ToolCallCompleted = 'ToolCallCompleted',
   ReasoningStarted = 'ReasoningStarted',
   ReasoningStep = 'ReasoningStep',
   ReasoningCompleted = 'ReasoningCompleted',
   AccessingKnowledge = 'AccessingKnowledge',
-  UpdatingMemory = 'UpdatingMemory'
+  UpdatingMemory = 'UpdatingMemory',
+  MemoryUpdateStarted = 'MemoryUpdateStarted',
+  MemoryUpdateCompleted = 'MemoryUpdateCompleted'
 }
 
 export interface ToolCall {
@@ -103,8 +109,10 @@ export interface StreamingStatus {
   isCallingTool: boolean;
   toolName?: string;
   isAccessingKnowledge: boolean;
-  isUpdatingMemory: boolean;
+  isMemoryUpdateStarted: boolean;
   hasCompleted: boolean;
+  isPaused?: boolean;
+  isCancelled?: boolean;
 }
 
 export interface PlaygroundStore {

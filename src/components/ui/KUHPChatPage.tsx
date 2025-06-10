@@ -137,7 +137,7 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
     const isAnyStreamingActive = streamingStatus.isThinking || 
                                 streamingStatus.isCallingTool || 
                                 streamingStatus.isAccessingKnowledge || 
-                                streamingStatus.isUpdatingMemory;
+                                streamingStatus.isMemoryUpdateStarted;
 
     if (isLoading && isAnyStreamingActive) {
       // Focus on streaming status area when streaming is active
@@ -152,7 +152,7 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
             thinking: streamingStatus.isThinking,
             callingTool: streamingStatus.isCallingTool,
             accessingKnowledge: streamingStatus.isAccessingKnowledge,
-            updatingMemory: streamingStatus.isUpdatingMemory
+            updatingMemory: streamingStatus.isMemoryUpdateStarted
           });
         }
       }, 500);
@@ -183,7 +183,7 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
     streamingStatus.isThinking, 
     streamingStatus.isCallingTool, 
     streamingStatus.isAccessingKnowledge, 
-    streamingStatus.isUpdatingMemory, 
+    streamingStatus.isMemoryUpdateStarted, 
     streamingStatus.hasCompleted
   ]);
 
@@ -200,7 +200,7 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
     const isAnyStreamingActive = streamingStatus.isThinking || 
                                 streamingStatus.isCallingTool || 
                                 streamingStatus.isAccessingKnowledge || 
-                                streamingStatus.isUpdatingMemory;
+                                streamingStatus.isMemoryUpdateStarted;
     
     // Only auto-scroll if not actively streaming (to avoid interfering with focus management)
     if (!isLoading || !isAnyStreamingActive) {
@@ -209,7 +209,7 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
       }
     }
   }, [messages, isLoading, streamingStatus.isThinking, streamingStatus.isCallingTool, 
-      streamingStatus.isAccessingKnowledge, streamingStatus.isUpdatingMemory]);
+      streamingStatus.isAccessingKnowledge, streamingStatus.isMemoryUpdateStarted]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputMessage(e.target.value);
@@ -508,7 +508,7 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
               setStreamingStatus({ 
                 isThinking: true,
                 isCallingTool: false,
-                isUpdatingMemory: false,
+                isMemoryUpdateStarted: false,
                 hasCompleted: false
               });
               break;
@@ -533,7 +533,7 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
               setStreamingStatus({ 
                 isThinking: false, 
                 isCallingTool: true,
-                isUpdatingMemory: false
+                isMemoryUpdateStarted: false
               });
               break;
               
@@ -545,11 +545,12 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
               break;
               
             case RunEvent.UpdatingMemory:
-              console.log('💾 KUHP: Updating memory');
+            case RunEvent.MemoryUpdateStarted:
+              console.log('💾 KUHP: Memory update started');
               setStreamingStatus({ 
                 isThinking: false,
                 isCallingTool: false,
-                isUpdatingMemory: true 
+                isMemoryUpdateStarted: true 
               });
               break;
               
@@ -594,7 +595,7 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
                 hasCompleted: true,
                 isThinking: false,
                 isCallingTool: false,
-                isUpdatingMemory: false
+                isMemoryUpdateStarted: false
               });
               setIsStreaming(false);
               break;
@@ -833,7 +834,7 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
                                         streamingStatus.isThinking || 
                                         streamingStatus.isCallingTool || 
                                         streamingStatus.isAccessingKnowledge ||
-                                        streamingStatus.isUpdatingMemory);
+                                        streamingStatus.isMemoryUpdateStarted);
               
               return (message.content || isStreamingMessage) && (
                 <div

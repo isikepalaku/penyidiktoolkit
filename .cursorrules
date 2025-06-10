@@ -2686,3 +2686,85 @@ User meminta untuk mengganti endpoint kuhpService.ts menjadi "ahli-hukum-pidana"
 ---
 
 ## Previous Completed Tasks:
+
+## Task: Agno Streaming Events Documentation Update - COMPLETED ✅
+
+### Deskripsi:
+Update implementasi streaming PenyidikToolkit untuk selaras dengan dokumentasi Agno terbaru (1.6.0+) dari https://docs.agno.com/agents/run. Crawl dokumentasi dan sinkronisasi event types, interface, dan handler sesuai standar resmi.
+
+### Perubahan yang Diimplementasikan:
+
+#### 1. Updated RunEvent Enum (src/types/playground.ts):
+- **RunResponseContent**: Added untuk content chunks sesuai docs (dari RunResponse)
+- **Control Flow Events**: Added RunPaused, RunContinued, RunCancelled
+- **Memory Events**: Added MemoryUpdateStarted, MemoryUpdateCompleted
+- **Backward Compatibility**: Kept UpdatingMemory untuk compatibility
+
+#### 2. Enhanced StreamingStatus Interface:
+- **Updated Field**: isMemoryUpdateStarted (dari isUpdatingMemory) sesuai Agno docs
+- **New Control Fields**: isPaused, isCancelled untuk RunPaused/RunCancelled events
+- **Event Mapping**: Clear mapping ke official Agno streaming events
+
+#### 3. Enhanced StreamingStatus Component (src/hooks/streaming/StreamingStatus.tsx):
+- **New Icons**: Added PauseCircle, XCircle untuk pause/cancel states
+- **Enhanced Logic**: Conditional rendering untuk pause/cancel states
+- **Event Comments**: Added detailed comments mapping UI phases ke Agno events
+- **Visual Hierarchy**: Pause dan cancel states ditampilkan dengan priority tinggi
+
+#### 4. Enhanced useAIChatStreamHandler:
+- **Comprehensive Event Handling**: Support untuk semua documented Agno events
+- **Memory Events**: MemoryUpdateStarted/MemoryUpdateCompleted handlers
+- **Control Flow**: RunPaused, RunContinued, RunCancelled handlers
+- **State Management**: Proper state transitions sesuai Agno streaming lifecycle
+- **Backward Compatibility**: Support UpdatingMemory dan MemoryUpdateStarted
+
+#### 5. Updated PlaygroundStore:
+- **Initial State**: Updated dengan isMemoryUpdateStarted, isPaused, isCancelled
+- **Reset Function**: Complete reset untuk semua streaming status fields
+- **Type Safety**: Full alignment dengan updated StreamingStatus interface
+
+### Event Types Sesuai Agno Documentation:
+
+#### Core Events:
+- ✅ RunStarted - Indicates the start of a run
+- ✅ RunResponseContent - Contains the model's response text as individual chunks
+- ✅ RunCompleted - Signals successful completion of the run
+- ✅ RunError - Indicates an error occurred during the run
+- ✅ RunCancelled - Signals that the run was cancelled (NEW)
+
+#### Control Flow Events:
+- ✅ RunPaused - Indicates the run has been paused (NEW)
+- ✅ RunContinued - Signals that a paused run has been continued (NEW)
+
+#### Tool Events:
+- ✅ ToolCallStarted - Indicates the start of a tool call
+- ✅ ToolCallCompleted - Signals completion of a tool call
+
+#### Reasoning Events:
+- ✅ ReasoningStarted - Indicates the start of the agent's reasoning process
+- ✅ ReasoningStep - Contains a single step in the reasoning process
+- ✅ ReasoningCompleted - Signals completion of the reasoning process
+
+#### Memory Events:
+- ✅ MemoryUpdateStarted - Indicates that the agent is updating its memory (NEW)
+- ✅ MemoryUpdateCompleted - Signals completion of a memory update (NEW)
+
+### Benefits:
+- **Full Agno Compliance**: 100% sesuai dengan official Agno 1.6.0+ documentation
+- **Enhanced User Experience**: Real-time feedback untuk pause, continue, cancel operations
+- **Future-Proof**: Ready untuk future Agno updates dengan comprehensive event support
+- **Type Safety**: Full TypeScript integration dengan proper interfaces
+- **Visual Feedback**: Professional animations untuk semua streaming phases
+- **Backward Compatibility**: Maintained compatibility dengan existing implementations
+
+### Files Modified:
+- **src/types/playground.ts**: Updated RunEvent enum dan StreamingStatus interface
+- **src/hooks/streaming/StreamingStatus.tsx**: Enhanced component dengan new events support
+- **src/hooks/playground/useAIChatStreamHandler.ts**: Comprehensive event handling
+- **src/stores/PlaygroundStore.ts**: Updated state management untuk new fields
+- **.cursorrules**: Documentation update
+
+### Status:
+✅ **COMPLETED** - PenyidikToolkit streaming implementation sekarang fully compliant dengan Agno 1.6.0+ documentation, mendukung semua documented streaming events dengan proper visual feedback dan state management.
+
+---
