@@ -14,6 +14,13 @@ import {
   sendStreamingChatMessage
 } from '@/services/ahliHukumPidanaService';
 import { getStorageStats, forceCleanup } from '@/stores/PlaygroundStore';
+import { 
+  chatStyles, 
+  getProseClasses, 
+  getUserMessageClasses, 
+  getAgentMessageClasses, 
+  getSendButtonClasses 
+} from '@/styles/chatStyles';
 
 // Imports untuk refactoring - removed legacy imports
 
@@ -92,7 +99,7 @@ const formatFileSize = (bytes: number): string => {
 
 const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
   // Use streaming hooks and store
-  const { messages, isStreaming: isLoading, streamingStatus, addMessage, setIsStreaming, setStreamingStatus } = usePlaygroundStore();
+  const { messages, isStreaming: isLoading, streamingStatus, currentChunk, addMessage, setIsStreaming, setStreamingStatus } = usePlaygroundStore();
   
   const [inputMessage, setInputMessage] = useState('');
   const [copied, setCopied] = useState<string | null>(null);
@@ -843,17 +850,16 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
                 >
                   <div className={cn("flex gap-4", message.role === "user" ? "flex-row-reverse" : "flex-row")}>
                     {message.role === 'agent' && (
-                      <div className="h-8 w-8 bg-rose-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-                        <span className="text-rose-600 text-sm font-bold">AH</span>
+                      <div className={chatStyles.agentAvatar.shape + ' ' + chatStyles.agentAvatar.background}>
+                        <span className={chatStyles.agentAvatar.text + ' text-sm font-bold'}>AH</span>
                       </div>
                     )}
                     <div className={cn("max-w-[80%]", message.role === 'user' ? "order-first" : "")}>
                   <div
                     className={cn(
-                          "px-4 py-3 rounded-xl break-words",
                           message.role === 'user'
-                            ? 'bg-gray-100 text-gray-900 ml-auto'
-                            : 'bg-white border border-gray-200 text-gray-900'
+                            ? getUserMessageClasses()
+                            : getAgentMessageClasses()
                         )}
                       >
                         {message.role === 'agent' ? (
@@ -868,31 +874,23 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
                                   isStreaming={true} 
                                   streamingStatus={streamingStatus}
                                   compact={true}
+                                  currentChunk={currentChunk}
+                                  containerWidth="message"
                                 />
                               </div>
                             )}
                             
-                            {message.content ? (
-                          <div 
-                            className="prose prose-sm max-w-none md:prose-base lg:prose-lg overflow-x-auto
-                                      prose-headings:font-bold prose-headings:text-rose-800 prose-headings:my-4
-                                      prose-h1:text-xl prose-h2:text-lg prose-h3:text-base
-                                      prose-p:my-2 prose-p:text-gray-700
-                                      prose-ul:pl-6 prose-ul:my-2 prose-ol:pl-6 prose-ol:my-2
-                                      prose-li:my-1
-                                      prose-table:border-collapse prose-table:my-4
-                                      prose-th:bg-rose-50 prose-th:p-2 prose-th:border prose-th:border-gray-300
-                                      prose-td:p-2 prose-td:border prose-td:border-gray-300
-                                      prose-strong:font-bold prose-strong:text-gray-800
-                                      prose-a:text-rose-600 prose-a:underline hover:prose-a:text-rose-800"
-                            dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
-                          />
+                                                        {message.content ? (
+                              <div 
+                                className={getProseClasses()}
+                                dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
+                              />
                             ) : (
                               // Placeholder for empty streaming message
                               <div className="text-gray-400 text-sm italic">
                                 Sedang memproses...
                               </div>
-                        )}
+                            )}
                             {message.content && (
                         <div className="flex justify-end mt-2">
                           <Button
@@ -950,8 +948,8 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
                       </div>
                     </div>
                     {message.role === 'user' && (
-                      <div className="h-8 w-8 bg-gray-500 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-                        <span className="text-white text-sm font-medium">U</span>
+                      <div className={chatStyles.userAvatar.shape + ' ' + chatStyles.userAvatar.background}>
+                        <span className={chatStyles.userAvatar.text + ' text-sm font-medium'}>U</span>
                       </div>
                     )}
                   </div>
@@ -1007,7 +1005,7 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder="Ketik pesan Anda atau upload file (PDF, DOC, TXT, gambar, dll. maks 20MB)..."
-              className="resize-none pr-14 py-3 pl-10 max-h-[200px] rounded-xl border-gray-300 focus:border-rose-500 focus:ring-rose-500 shadow-sm overflow-y-auto"
+              className={`resize-none pr-14 py-3 pl-10 max-h-[200px] rounded-xl ${chatStyles.input.border} ${chatStyles.input.focus} shadow-sm overflow-y-auto`}
               disabled={isLoading}
               data-chat-input="true"
             />
@@ -1036,12 +1034,7 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
             <Button
               onClick={handleSendMessage}
               disabled={isLoading || (!inputMessage.trim() && selectedFiles.length === 0)}
-              className={cn(
-                "absolute right-2 bottom-3 p-2 rounded-lg",
-                isLoading || (!inputMessage.trim() && selectedFiles.length === 0)
-                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                  : "bg-rose-600 text-white hover:bg-rose-700"
-              )}
+              className={getSendButtonClasses(isLoading || (!inputMessage.trim() && selectedFiles.length === 0))}
               aria-label="Kirim pesan"
             >
               {isLoading ? (

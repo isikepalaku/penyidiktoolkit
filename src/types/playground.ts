@@ -156,6 +156,7 @@ export interface PlaygroundStore {
   hasStorage: boolean;
   selectedEndpoint: string;
   streamingStatus: StreamingStatus;
+  currentChunk: string;
   setMessages: (messages: PlaygroundChatMessage[] | ((prev: PlaygroundChatMessage[]) => PlaygroundChatMessage[])) => void;
   addMessage: (message: PlaygroundChatMessage) => void;
   setIsStreaming: (isStreaming: boolean) => void;
@@ -165,4 +166,5 @@ export interface PlaygroundStore {
   setSelectedEndpoint: (endpoint: string) => void;
   setStreamingStatus: (status: Partial<StreamingStatus>) => void;
   resetStreamingStatus: () => void;
+  setCurrentChunk: (chunk: string) => void;
 } 

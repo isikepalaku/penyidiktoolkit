@@ -24,7 +24,8 @@ export default function useAIChatStreamHandler() {
     sessionId,
     hasStorage,
     setStreamingStatus,
-    resetStreamingStatus
+    resetStreamingStatus,
+    setCurrentChunk
   } = usePlaygroundStore();
   
   const { streamResponse } = useAIResponseStream();
@@ -589,6 +590,11 @@ export default function useAIChatStreamHandler() {
               console.log('🔄 RunResponse received:', typeof chunk.content, chunk.content?.length || 0, 'chars');
               handleRunResponse(chunk, lastContent);
               
+              // Update current chunk for real-time preview
+              if (typeof chunk.content === 'string' && chunk.content.trim()) {
+                setCurrentChunk(chunk.content);
+              }
+              
               // Extract enhanced information from RunResponseContentEvent
               if (chunk.event === RunEvent.RunResponseContent) {
                 setStreamingStatus({
@@ -603,6 +609,9 @@ export default function useAIChatStreamHandler() {
               
             case RunEvent.RunCompleted:
               handleRunCompleted(chunk);
+              
+              // Clear current chunk as response is complete
+              setCurrentChunk('');
               
               // Extract final information from RunResponseCompletedEvent
               setStreamingStatus({

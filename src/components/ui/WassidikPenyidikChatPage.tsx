@@ -21,7 +21,7 @@ interface WassidikPenyidikChatPageProps {
 export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikChatPageProps) {
   // Use streaming hooks and store
   const { handleStreamResponse } = useAIChatStreamHandler();
-  const { messages, isStreaming: isLoading, streamingStatus } = usePlaygroundStore();
+  const { messages, isStreaming: isLoading, streamingStatus, currentChunk } = usePlaygroundStore();
   
   const [inputMessage, setInputMessage] = useState('');
   const [copied, setCopied] = useState<string | null>(null);
@@ -472,6 +472,8 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
                                   isStreaming={true} 
                                   streamingStatus={streamingStatus}
                                   compact={true}
+                                  currentChunk={currentChunk}
+                                  containerWidth="message"
                                 />
                               </div>
                             )}

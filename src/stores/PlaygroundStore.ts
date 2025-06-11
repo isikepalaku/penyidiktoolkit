@@ -21,6 +21,7 @@ export const usePlaygroundStore = create<PlaygroundStoreInterface>()((set, get) 
   sessionsData: null,
   hasStorage: typeof window !== 'undefined' && !!window.localStorage,
   selectedEndpoint: '',
+  currentChunk: '',
   streamingStatus: {
     isThinking: false,
     isCallingTool: false,
@@ -169,6 +170,10 @@ export const usePlaygroundStore = create<PlaygroundStoreInterface>()((set, get) 
         processingMetrics: undefined,
       }
     });
+  },
+
+  setCurrentChunk: (chunk) => {
+    set({ currentChunk: chunk });
   },
 }));
 

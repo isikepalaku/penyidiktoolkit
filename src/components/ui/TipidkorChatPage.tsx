@@ -15,6 +15,13 @@ import {
   initializeTipidkorStreamingSession
 } from '@/services/tipidkorStreamingService';
 import { getStorageStats, forceCleanup } from '@/stores/PlaygroundStore';
+import { 
+  chatStyles, 
+  getProseClasses, 
+  getUserMessageClasses, 
+  getAgentMessageClasses, 
+  getSendButtonClasses 
+} from '@/styles/chatStyles';
 
 
 
@@ -27,7 +34,7 @@ interface TipidkorChatPageProps {
 const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
   // Use streaming hooks and store
   const { handleStreamResponse } = useAIChatStreamHandler();
-  const { messages, isStreaming: isLoading, streamingStatus } = usePlaygroundStore();
+  const { messages, isStreaming: isLoading, streamingStatus, currentChunk } = usePlaygroundStore();
   
   const [inputMessage, setInputMessage] = useState('');
   const [copied, setCopied] = useState<string | null>(null);
@@ -497,6 +504,8 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
                                   isStreaming={true} 
                                   streamingStatus={streamingStatus}
                                   compact={true}
+                                  currentChunk={currentChunk}
+                                  containerWidth="message"
                                 />
                               </div>
                             )}

@@ -10,6 +10,31 @@ Also update the progress of the task in the Scratchpad when you finish a subtask
 Especially when you finished a milestone, it will help to improve your depth of task accomplishment to use the Scratchpad to reflect and plan.
 The goal is to help you maintain a big picture as well as the progress of the task. Always refer to the Scratchpad when you plan the next step.
 
+## Professional StreamingStatus Color Scheme Redesign Lessons
+
+- **Monochromatic Design Principles**: For professional applications like law enforcement tools, use sophisticated gray-based palette with minimal accent colors instead of rainbow-colored UI elements
+- **Strategic Color Assignment**:
+  * Gray-600/gray-700: Default states, thinking, memory operations (neutral activities)
+  * Blue-600/blue-500: Active tool calls, knowledge access, content processing (active operations)
+  * Green-600: Only for completion status (success state)
+  * Red-500/red-600: Only for actual errors (error state)
+  * Avoid: purple, indigo, emerald, orange, pink for professional applications
+- **Consistent Text Colors**: Use gray-700 for all status text to maintain readability and visual hierarchy
+- **Background Consistency**: Use gray-50 backgrounds with border-gray-200 for all information containers
+- **Subtle Visual Enhancement**: 
+  * Add backdrop-blur-sm for modern glass effect
+  * Use shadow-sm for subtle depth without overwhelming design
+  * Apply transparency (gray-50/80, border-gray-200/60) for sophisticated layering
+- **Animation Color Coordination**: 
+  * Use gray-400/gray-500 for neutral animations (thinking dots, memory bars)
+  * Use blue-400/blue-500 for active operation animations (tool calls, processing)
+  * Maintain consistent color language across all animated elements
+- **Professional UI Standards**:
+  * Reduced visual noise while maintaining engaging animations
+  * Better accessibility through consistent contrast ratios
+  * Cohesive design that aligns with enterprise software standards
+  * Visual hierarchy that guides user attention without overwhelming
+
 ## Instructions for Using Graphiti's MCP Tools for Agent Memory
 
 ### Before Starting Any Task
