@@ -473,7 +473,7 @@ export default function AdminPanel() {
       // PENDEKATAN 1: Gunakan fungsi Edge
       console.log("Using Edge Function for deletion");
       try {
-        const { data: edgeData, error: edgeError } = await supabase.functions.invoke('admin/delete-user', {
+        const { data: edgeData, error: edgeError } = await supabase.functions.invoke('admin-delete-user', {
           body: { userId },
           headers: {
             Authorization: `Bearer ${session?.access_token}`
