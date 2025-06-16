@@ -392,9 +392,9 @@ export const getStorageStats = () => {
  * Force cleanup for manual optimization
  */
 export const forceCleanup = () => {
-  console.log('🧹 Starting manual cleanup...');
-  cleanupExpiredSessions();
-  cleanupOldMessages();
+  console.log('🧹 Starting manual storage cleanup...');
+  // Panggil fungsi pembersihan utama untuk menghapus semua data sesi
+  clearSessionStorage();
   
   const stats = getStorageStats();
   console.log('📊 Storage stats after cleanup:', stats);

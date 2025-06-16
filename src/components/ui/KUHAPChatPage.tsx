@@ -1,343 +1,461 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, Copy, Check, Loader2, BookOpen, Info, X, ChevronDown } from 'lucide-react';
-import { cn } from '@/utils/utils';
-import { AnimatedBotIcon } from './animated-bot-icon';
-import { sendChatMessage, clearChatHistory, initializeSession } from '@/services/kuhapService';
-import { marked } from 'marked';
-import DOMPurify from 'dompurify';
-import { Textarea } from './textarea';
+import { ArrowLeft, Send, Copy, Check, Loader2, Info, RefreshCw, Paperclip, File, XIcon, AlertCircle, Database, Trash2 } from 'lucide-react';
+import { Button } from './button';
+import { DotBackground } from './DotBackground';
+import { formatMessage } from '@/utils/markdownFormatter';
+import { usePlaygroundStore } from '@/stores/PlaygroundStore';
+import StreamingStatus from '@/hooks/streaming/StreamingStatus';
+import useAIChatStreamHandler from '@/hooks/playground/useAIChatStreamHandler';
+import { 
+  clearStreamingChatHistory,
+  initializeStreamingSession
+} from '@/services/kuhapService';
+import { getStorageStats, forceCleanup } from '@/stores/PlaygroundStore';
+import { 
+  getUserMessageClasses, 
+  getAgentMessageClasses, 
+  getProseClasses 
+} from '@/styles/chatStyles';
 
-// Konfigurasi marked dan DOMPurify untuk safe link handling
-marked.setOptions({
-  breaks: true,
-  gfm: true,
-  headerIds: false,
-  mangle: false
-});
+// Constants for KUHAP
+const KUHAP_EXAMPLE_QUESTIONS = [
+  "Jelaskan tentang proses penyidikan dalam KUHAP",
+  "Apa saja hak tersangka dalam proses hukum acara pidana?",
+  "Bagaimana prosedur penangkapan menurut KUHAP?",
+  "Kapan seorang tersangka dapat mengajukan praperadilan?"
+];
 
-DOMPurify.setConfig({
-  ADD_TAGS: ['a'],
-  ADD_ATTR: ['target', 'rel', 'class'],
-  FORBID_TAGS: ['style', 'script'],
-  FORBID_ATTR: ['style', 'onerror', 'onload']
-});
+// Supported file types - limited to TXT, PDF, and Images only
+const ACCEPTED_FILE_TYPES = ".pdf,.txt,.png,.jpg,.jpeg,.webp";
 
-interface Message {
-  content: string;
-  type: 'user' | 'bot';
-  timestamp: Date;
-  sourceDocuments?: Array<{
-    pageContent: string;
-    metadata: Record<string, string>;
-  }>;
-  error?: boolean;
-  isAnimating?: boolean;
-}
+// File size limit (20MB for Gemini API)
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB in bytes
 
-// Skeleton component for loading state - improved with more realistic patterns
-const SkeletonMessage = () => (
-  <div className="flex items-start space-x-3 w-full">
-    <AnimatedBotIcon className="w-5 h-5 flex-shrink-0 mt-1" />
-    <div className="flex-1 space-y-3 py-1">
-      <p className="text-xs text-gray-500 italic mb-2">Sedang menyusun hasil...</p>
-      <div className="space-y-3 animate-pulse">
-        {/* Simulate paragraphs with varying widths */}
-        <div className="h-4 bg-gray-300 rounded w-3/4"></div>
-        <div className="h-4 bg-gray-300 rounded w-5/6"></div>
-        <div className="h-4 bg-gray-300 rounded w-2/3"></div>
-        
-        {/* Simulate gap between paragraphs */}
-        <div className="h-2"></div>
-        
-        {/* Simulate second paragraph */}
-        <div className="h-4 bg-gray-300 rounded w-4/5"></div>
-        <div className="h-4 bg-gray-300 rounded w-3/4"></div>
-        
-        {/* Simulate a list with bullets */}
-        <div className="pl-5 space-y-2 mt-1">
-          <div className="flex items-start">
-            <div className="h-3 w-3 bg-gray-300 rounded-full flex-shrink-0 mt-0.5 mr-2"></div>
-            <div className="h-4 bg-gray-300 rounded w-2/3 flex-grow"></div>
-          </div>
-          <div className="flex items-start">
-            <div className="h-3 w-3 bg-gray-300 rounded-full flex-shrink-0 mt-0.5 mr-2"></div>
-            <div className="h-4 bg-gray-300 rounded w-3/4 flex-grow"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-);
+// Supported MIME types for validation - limited to TXT, PDF, and Images only
+const SUPPORTED_MIME_TYPES = [
+  // Document formats
+  'application/pdf',
+  'text/plain',
+  // Image formats
+  'image/png',
+  'image/jpeg',
+  'image/jpg',
+  'image/webp'
+];
 
 interface KUHAPChatPageProps {
   onBack?: () => void;
 }
 
+// File validation utilities
+const validateFile = (file: File): { isValid: boolean; error?: string } => {
+  // Check file size
+  if (file.size > MAX_FILE_SIZE) {
+    const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+    return {
+      isValid: false,
+      error: `File "${file.name}" terlalu besar (${sizeMB}MB). Maksimal ukuran file adalah 20MB.`
+    };
+  }
+
+  // Check MIME type
+  if (!SUPPORTED_MIME_TYPES.includes(file.type)) {
+    // Check by file extension as fallback for mobile compatibility
+    const extension = file.name.toLowerCase().split('.').pop();
+    const extensionMimeMap: { [key: string]: string } = {
+      'pdf': 'application/pdf',
+      'txt': 'text/plain',
+      'png': 'image/png',
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'webp': 'image/webp'
+    };
+
+    if (!extension || !extensionMimeMap[extension]) {
+      return {
+        isValid: false,
+        error: `Format file "${file.name}" tidak didukung. Format yang didukung: PDF, TXT, PNG, JPG, JPEG, WEBP.`
+      };
+    }
+  }
+
+  return { isValid: true };
+};
+
+const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
 const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  // Use modern streaming hooks and store
+  const { 
+    messages, 
+    isStreaming: isLoading, 
+    streamingStatus, 
+    currentChunk, 
+    setMessages, 
+    resetStreamingStatus 
+  } = usePlaygroundStore();
+  
+  // Use modern streaming handler
+  const { handleStreamResponse } = useAIChatStreamHandler();
+  
+  // Component state with storage stats tracking
   const [inputMessage, setInputMessage] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
-  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [showStorageInfo, setShowStorageInfo] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [fileValidationErrors, setFileValidationErrors] = useState<string[]>([]);
+  const [storageStatsKey, setStorageStatsKey] = useState(0); // For forcing storage stats refresh
+  const [isCleaningStorage, setIsCleaningStorage] = useState(false); // Loading state for cleanup
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const focusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastScrollPositionRef = useRef<number>(0);
+  const streamingStatusRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const isSessionInitialized = useRef<boolean>(false);
 
-  // Reusable function to adjust textarea height
-  const adjustTextareaHeight = (textarea: HTMLTextAreaElement) => {
-    textarea.style.height = 'auto'; // Reset height
-    textarea.style.height = `${textarea.scrollHeight}px`; // Set to scroll height
+  // Effect untuk inisialisasi session sekali saat komponen di-mount
+  useEffect(() => {
+    if (isSessionInitialized.current) {
+      console.log('KUHAP session already initialized, skipping');
+      return;
+    }
+
+    try {
+      // Clear any existing messages from other agents untuk proper isolation
+      setMessages([]);
+      resetStreamingStatus();
+      console.log('🧹 KUHAP: Cleared existing messages from store');
+      
+      // Initialize KUHAP session
+      initializeStreamingSession();
+      isSessionInitialized.current = true;
+      console.log('KUHAP session initialized successfully');
+    } catch (error) {
+      console.error('Error initializing KUHAP session:', error);
+    }
+  }, [setMessages, resetStreamingStatus]);
+
+  // Auto-focus management for better UX
+  useEffect(() => {
+    const isAnyStreamingActive = streamingStatus.isThinking || 
+                                streamingStatus.isCallingTool || 
+                                streamingStatus.isAccessingKnowledge || 
+                                streamingStatus.isMemoryUpdateStarted;
+
+    if (isLoading && isAnyStreamingActive) {
+      // Focus on streaming status area when streaming is active
+      const timer = setTimeout(() => {
+        if (streamingStatusRef.current) {
+          streamingStatusRef.current.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center',
+            inline: 'nearest'
+          });
+          console.log('🎯 Auto-focus: Scrolled to streaming status area');
+        }
+      }, 800);
+      
+      return () => clearTimeout(timer);
+    } else if (!isLoading && streamingStatus.hasCompleted) {
+      // Return focus to input area when completed
+      const timer = setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'end',
+            inline: 'nearest'
+          });
+          setTimeout(() => {
+            if (textareaRef.current) {
+              textareaRef.current.focus();
+            }
+          }, 300);
+          console.log('🎯 Auto-focus: Returned focus to input area after completion');
+        }
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [
+    isLoading, 
+    streamingStatus.isThinking, 
+    streamingStatus.isCallingTool, 
+    streamingStatus.isAccessingKnowledge, 
+    streamingStatus.isMemoryUpdateStarted, 
+    streamingStatus.hasCompleted
+  ]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    setInputMessage(newValue);
+    
+    // Auto-resize textarea
+    const textarea = e.target;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
   };
 
-  // Initialize session
-  useEffect(() => {
-    initializeSession();
-    
-    // Add welcome message
-    setMessages([
-      {
-        content: '',
-        type: 'bot',
-        timestamp: new Date()
-      }
-    ]);
-    
-    // Focus the textarea with a slight delay for better UX
-    focusTimeoutRef.current = setTimeout(() => {
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-      }
-    }, 500);
-    
-    return () => {
-      // Clear chat history and timeout when component unmounts
-      clearChatHistory();
-      if (focusTimeoutRef.current) {
-        clearTimeout(focusTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    // Reset user scroll state when new message is added
-    if (messages.length > 0 && !messages[messages.length-1].isAnimating) {
-      scrollToBottom();
+  const handleOpenFileDialog = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
     }
-  }, [messages]);
+  };
 
-  // Setup scroll detection
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!chatContainerRef.current) return;
-      
-      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
-      const isScrolledToBottom = scrollHeight - scrollTop - clientHeight < 50;
-      
-      // Show the scroll button if not near bottom
-      setShowScrollButton(!isScrolledToBottom);
-      
-      // Remember the last scroll position
-      lastScrollPositionRef.current = scrollTop;
-    };
-    
-    const chatContainer = chatContainerRef.current;
-    if (chatContainer) {
-      chatContainer.addEventListener('scroll', handleScroll);
+  const handleRemoveFile = (indexToRemove: number) => {
+    setSelectedFiles(prev => prev.filter((_, index) => index !== indexToRemove));
+  };
+
+  const handleStorageCleanup = async () => {
+    // Show confirmation dialog
+    if (!window.confirm('Apakah Anda yakin ingin membersihkan data lama? Data yang sudah dihapus tidak bisa dikembalikan.')) {
+      return;
     }
-    
-    return () => {
-      if (chatContainer) {
-        chatContainer.removeEventListener('scroll', handleScroll);
-      }
-    };
-  }, []);
 
-  const scrollToBottom = () => {
-    // Use requestAnimationFrame for smoother scrolling
-    requestAnimationFrame(() => {
-      if (chatContainerRef.current) {
-        chatContainerRef.current.scrollTo({
-          top: chatContainerRef.current.scrollHeight,
-          behavior: 'smooth'
-        });
-        
-        // Fallback mechanism in case the smooth scroll doesn't work
-        setTimeout(() => {
-          if (chatContainerRef.current) {
-            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-          }
-        }, 500);
-      }
+    try {
+      console.log('🧹 Starting manual storage cleanup...');
+      
+      // Get stats before cleanup
+      const beforeStats = getStorageStats();
+      console.log('📊 Storage before cleanup:', beforeStats);
+      
+      // Perform cleanup
+      setIsCleaningStorage(true);
+      const afterStats = await forceCleanup();
+      
+      // Log results
+      console.log('📊 Storage after cleanup:', afterStats);
+      
+      // Force refresh storage stats display
+      setStorageStatsKey(prev => prev + 1);
+      
+      // Show success message with details
+      const sessionsCleaned = beforeStats.sessionCount - afterStats.sessionCount;
+      alert(`✅ Cleanup berhasil!\n\nStorage sebelum: ${beforeStats.usage}\nStorage sesudah: ${afterStats.usage}\nSesi dihapus: ${sessionsCleaned}\nPersentase storage: ${afterStats.percentage}%`);
+      
+    } catch (error) {
+      console.error('❌ Error during storage cleanup:', error);
+      alert('❌ Terjadi error saat membersihkan storage. Silakan coba lagi.');
+    } finally {
+      setIsCleaningStorage(false);
+    }
+  };
+
+  const handleCopy = (text: string, messageId: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(messageId);
+      setTimeout(() => setCopied(null), 2000);
+    }).catch((err) => {
+      console.error('Failed to copy text: ', err);
     });
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputMessage(e.target.value);
-    // Adjust height using the reusable function
-    if (e.target) {
-      adjustTextareaHeight(e.target);
-    }
-  };
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const errors: string[] = [];
+    const validFiles: File[] = [];
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Check if device is probably desktop by looking at screen size
-    const isLikelyDesktop = window.innerWidth >= 768;
-    
-    // Only enable Enter key submission on desktop devices
-    if (isLikelyDesktop && e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!inputMessage.trim() || isProcessing) return;
-
-    const userMessage: Message = {
-      content: inputMessage.trim(),
-      type: 'user',
-      timestamp: new Date()
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setInputMessage('');
-    // Reset textarea height after clearing input
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      // On mobile, blur the textarea to hide the keyboard
-      if (window.innerWidth < 768) {
-        textareaRef.current.blur();
+    // Validate each file
+    files.forEach((file, index) => {
+      console.log(`📄 File ${index + 1}: ${file.name} (${formatFileSize(file.size)}, ${file.type})`);
+      
+      const validation = validateFile(file);
+      if (validation.isValid) {
+        validFiles.push(file);
+      } else {
+        errors.push(`${file.name}: ${validation.error}`);
       }
+    });
+
+    // Update error state
+    setFileValidationErrors(errors);
+
+    // If we have valid files, process them
+    if (validFiles.length > 0) {
+      // Create new DataTransfer with only valid files
+      const dataTransfer = new DataTransfer();
+      validFiles.forEach(file => dataTransfer.items.add(file));
+      
+      // Update input with valid files only
+      if (fileInputRef.current) {
+        fileInputRef.current.files = dataTransfer.files;
+      }
+      
+      // Add valid files to state
+      setSelectedFiles(prev => [...prev, ...validFiles]);
     }
     
-    // Reset scroll state to enable auto-scrolling for the new message
-    setShowScrollButton(false);
-    setIsProcessing(true);
-
-    try {
-      // Add a placeholder bot message with animation
-      setMessages(prev => [
-        ...prev,
-        {
-          content: '', // Gunakan content kosong untuk skeleton
-          type: 'bot',
-          timestamp: new Date(),
-          isAnimating: true
-        }
-      ]);
-      
-      // Send message to API
-      const response = await sendChatMessage(userMessage.content);
-      
-      // Replace the placeholder with the actual response
-      setMessages(prev => {
-        const newMessages = [...prev];
-        newMessages.pop(); // Remove placeholder
-        
-        return [
-          ...newMessages,
-          {
-            content: response.text,
-            type: 'bot',
-            timestamp: new Date(),
-            sourceDocuments: response.sourceDocuments,
-            error: !!response.error,
-            isAnimating: false
-          }
-        ];
-      });
-    } catch (error) {
-      console.error('Error sending message:', error);
-      
-      // Remove placeholder message and add error message
-      setMessages(prev => {
-        const newMessages = [...prev];
-        newMessages.pop(); // Remove placeholder
-        
-        return [
-          ...newMessages,
-          {
-            content: 'Dengan bertumbuhnya pengguna, saat ini kami membatasi permintaan (1 permintaan dalam 2 menit) untuk menjaga kualitas layanan',
-            type: 'bot',
-            timestamp: new Date(),
-            error: true,
-            isAnimating: false
-          }
-        ];
-      });
-    } finally {
-      setIsProcessing(false);
-      
-      // Focus textarea after sending message
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-      }
+    // Clear input value to allow re-selection
+    e.target.value = '';
+    
+    // Auto-clear errors after 5 seconds
+    if (errors.length > 0) {
+      setTimeout(() => {
+        setFileValidationErrors([]);
+      }, 5000);
     }
   };
 
-  const copyToClipboard = (content: string) => {
-    navigator.clipboard.writeText(content).then(
-      () => {
-        setCopied(content);
-        setTimeout(() => {
-          setCopied(null);
-        }, 2000);
-      },
-      (err) => {
-        console.error('Could not copy text: ', err);
-      }
+  // Storage stats component
+  const StorageStatsDisplay = () => {
+    // Force re-calculation when storageStatsKey changes
+    const storageStats = getStorageStats();
+    
+    return (
+      <div className="bg-sky-50 border-l-4 border-sky-500 p-4 m-4 shadow-sm rounded-md" key={storageStatsKey}>
+        <div className="flex">
+          <Database className="h-5 w-5 text-sky-500" />
+          <div className="ml-3 flex-1">
+            <h3 className="text-sm font-medium text-sky-800">Statistik Penyimpanan</h3>
+            <div className="mt-2 text-sm text-sky-700 space-y-2">
+              <div className="flex justify-between">
+                <span>Penggunaan Storage:</span>
+                <span className="font-medium">{storageStats.usage} / {storageStats.limit}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Sesi Tersimpan:</span>
+                <span className="font-medium">{storageStats.sessionCount}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Persentase:</span>
+                <span className="font-medium">{storageStats.percentage}%</span>
+              </div>
+              
+              {/* Progress bar */}
+              <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                <div 
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    storageStats.percentage > 80 ? 'bg-red-500' : 
+                    storageStats.percentage > 60 ? 'bg-yellow-500' : 'bg-sky-500'
+                  }`}
+                  style={{ width: `${Math.min(storageStats.percentage, 100)}%` }}
+                />
+              </div>
+              
+              {storageStats.isNearLimit && (
+                <div className="text-red-600 text-xs mt-2 font-medium">
+                  ⚠️ Storage hampir penuh! Pertimbangkan untuk membersihkan data lama.
+                </div>
+              )}
+            </div>
+            
+            <button 
+              onClick={handleStorageCleanup}
+              disabled={isCleaningStorage}
+              className={`mt-3 inline-flex items-center gap-1 text-xs font-medium transition-colors ${
+                isCleaningStorage 
+                  ? 'text-gray-400 cursor-not-allowed' 
+                  : 'text-sky-600 hover:text-sky-800'
+              }`}
+              title={isCleaningStorage ? "Sedang membersihkan..." : "Hapus data lama dan sesi yang tidak digunakan"}
+            >
+              {isCleaningStorage ? (
+                <>
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Membersihkan...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-3 h-3" />
+                  Bersihkan Data Lama
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
     );
   };
 
-  const formatMessage = (content: string) => {
-    try {
-      // Pastikan content ada dan bukan string kosong
-      if (!content) return { __html: '' };
-      
-      // Parse markdown menjadi HTML
-      const rawHtml = marked.parse(content);
-      
-      // Sanitasi HTML untuk mencegah XSS
-      const sanitizedHtml = DOMPurify.sanitize(rawHtml);
-      
-      return { __html: sanitizedHtml };
-    } catch (error) {
-      console.error('Error formatting message:', error);
-      return { __html: content };
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
     }
   };
 
-  const handleBack = () => {
-    // Bersihkan riwayat chat sebelum kembali
-    clearChatHistory();
+  const handleSendMessage = async () => {
+    // Simple validation with files or text
+    const trimmedMessage = inputMessage.trim();
     
-    // Panggil fungsi onBack jika disediakan
-    if (onBack) {
-      onBack();
+    if ((selectedFiles.length === 0 && !trimmedMessage) || isLoading) return;
+    
+    // Validate message length if message provided
+    if (trimmedMessage && trimmedMessage.length < 3) {
+      alert('Pesan terlalu pendek. Minimal 3 karakter.');
+      return;
+    }
+
+    const userMessageContent = trimmedMessage || (selectedFiles.length > 0 ? "Analisis file berikut" : "");
+
+    // Clear input and reset height immediately
+    setInputMessage('');
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.blur();
+    }
+
+    try {
+      // Log file sizes jika ada
+      if (selectedFiles.length > 0) {
+        console.log('📁 KUHAP: Uploading files:');
+        selectedFiles.forEach((file, index) => {
+          console.log(`File ${index + 1}: ${file.name} - ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+        });
+      }
+
+      // Use modern streaming handler with agent ID
+      await handleStreamResponse(
+        userMessageContent,
+        selectedFiles.length > 0 ? selectedFiles : undefined,
+        'kuhap-chat' // Agent ID for KUHAP
+      );
+
+      // Reset selected files setelah berhasil mengirim
+      setSelectedFiles([]);
+      setFileValidationErrors([]);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      // Reset files on error
+      setSelectedFiles([]);
     }
   };
 
-  // Example questions for the user
-  const exampleQuestions = [
-    "Jelaskan proses penahanan dalam KUHAP",
-    "Apa saja hak tersangka dalam penyidikan?",
-    "Bagaimana prosedur penyitaan barang bukti?",
-    "Jelaskan tahapan proses peradilan pidana"
-  ];
+  const handleChatReset = () => {
+    if (!window.confirm('Apakah Anda yakin ingin mereset percakapan ini? Riwayat chat untuk sesi ini akan dihapus.')) {
+      return;
+    }
+
+    try {
+      // Panggil fungsi yang sudah diperbaiki untuk membersihkan history dan state
+      clearStreamingChatHistory();
+      
+      // Inisialisasi sesi baru untuk memulai dari awal
+      initializeStreamingSession();
+      
+      console.log('♻️ KUHAP: Chat reset completed and new session initialized.');
+    } catch (error) {
+      console.error('❌ Error resetting chat:', error);
+      alert('❌ Terjadi error saat mereset chat. Silakan coba lagi.');
+    }
+  };
 
   const handleSelectQuestion = (question: string) => {
     setInputMessage(question);
     if (textareaRef.current) {
       textareaRef.current.focus();
-      // Manually adjust the height after setting content
+      // Auto-resize for the selected question
       setTimeout(() => {
         if (textareaRef.current) {
-          adjustTextareaHeight(textareaRef.current);
+          textareaRef.current.style.height = 'auto';
+          textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
         }
       }, 0);
     }
@@ -345,11 +463,13 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
 
   return (
     <div className="fixed inset-0 z-20 bg-white lg:pl-64 flex flex-col">
+      <DotBackground />
+      
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm">
+      <header className="relative bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm z-10">
         <div className="flex items-center gap-3">
           <button
-            onClick={handleBack}
+            onClick={onBack}
             className="inline-flex items-center p-2 rounded-full hover:bg-gray-100 transition-colors"
             aria-label="Kembali"
           >
@@ -357,7 +477,11 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
           </button>
           <div className="flex items-center gap-2">
             <div className="flex items-center justify-center w-9 h-9 bg-sky-100 rounded-full">
-              <BookOpen className="w-5 h-5 text-sky-600" />
+              <img 
+                src="/img/krimsus.png"
+                alt="KUHAP"
+                className="w-7 h-7 object-contain"
+              />
             </div>
             <div>
               <h1 className="font-semibold text-gray-900">KUHAP AI</h1>
@@ -365,18 +489,43 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
             </div>
           </div>
         </div>
-        <button
-          onClick={() => setShowInfo(!showInfo)}
-          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-          aria-label={showInfo ? 'Tutup informasi' : 'Tampilkan informasi'}
-        >
-          <Info className="w-5 h-5 text-gray-700" />
-        </button>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleChatReset}
+            className="text-gray-500"
+            title="Reset Chat"
+          >
+            <RefreshCw className="h-5 w-5" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => setShowStorageInfo(!showStorageInfo)}
+            className="text-gray-500"
+            title="Storage Info"
+          >
+            <Database className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowInfo(!showInfo)}
+            className="text-gray-500"
+            title={showInfo ? 'Tutup informasi' : 'Tampilkan informasi'}
+          >
+            <Info className="w-5 h-5" />
+          </Button>
+        </div>
       </header>
+
+      {/* Storage Info Panel */}
+      {showStorageInfo && <StorageStatsDisplay />}
 
       {/* Info Panel */}
       {showInfo && (
-        <div className="p-4 bg-gray-50 border-b border-gray-200">
+        <div className="relative p-4 bg-gray-50 border-b border-gray-200 z-10">
           <div className="flex justify-between items-start">
             <h2 className="text-sm font-medium text-gray-800">Tentang KUHAP AI</h2>
             <button
@@ -384,7 +533,7 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
               className="text-gray-500 hover:text-gray-700"
               aria-label="Tutup informasi"
             >
-              <X className="w-4 h-4" />
+              <XIcon className="w-4 h-4" />
             </button>
           </div>
           <p className="mt-1 text-xs text-gray-700">
@@ -395,193 +544,274 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
         </div>
       )}
 
-      {/* Chat Container */}
-      <div 
-        ref={chatContainerRef}
-        className="flex-1 overflow-y-auto pb-32"
-      >
-        {/* Welcome Message - Bold AI NAME in center */}
-        {messages.length <= 1 && (
-          <div className="flex flex-col items-center justify-center h-[50vh] text-center">
-            <div className="w-20 h-20 bg-sky-100 rounded-full flex items-center justify-center mb-4">
-              <img 
-                src="/img/krimsus.png"
-                alt="Krimsus"
-                className="w-16 h-16 object-contain"
-              />
+      {/* File Validation Errors */}
+      {fileValidationErrors.length > 0 && (
+        <div className="relative bg-red-50 border-l-4 border-red-400 p-4 mx-4 mt-4 rounded-md z-10">
+          <div className="flex">
+            <AlertCircle className="h-5 w-5 text-red-400" />
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">Error Validasi File</h3>
+              <div className="mt-2 text-sm text-red-700 space-y-1">
+                {fileValidationErrors.map((error, index) => (
+                  <p key={index}>• {error}</p>
+                ))}
+              </div>
+              <div className="mt-3 text-xs text-red-600">
+                <p><strong>Format yang didukung:</strong> PDF, TXT, PNG, JPG, JPEG, WEBP</p>
+                <p><strong>Ukuran maksimal:</strong> 20MB per file</p>
+              </div>
             </div>
-            <h1 className="text-4xl font-bold text-sky-600 mb-4">KUHAP AI</h1>
-            <p className="text-gray-600 max-w-md">
-              Asisten untuk membantu Anda dengan pertanyaan seputar Kitab Undang-Undang Hukum Acara Pidana.
-            </p>
           </div>
-        )}
+        </div>
+      )}
 
-        <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-          {/* Example Questions */}
-          {messages.length <= 1 && (
-            <div className="mt-6">
-              <p className="text-sm text-gray-500 mb-3">Contoh pertanyaan yang dapat Anda ajukan:</p>
-              <div className="space-y-2">
-                {exampleQuestions.map((question, index) => (
-                  <div
-                    key={index}
-                    onClick={() => handleSelectQuestion(question)}
-                    className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm cursor-pointer hover:bg-gray-100 transition-colors"
-                  >
-                    {question}
+      {/* Chat Container */}
+      <div className="flex-1 overflow-hidden">
+        <div 
+          ref={chatContainerRef}
+          className="h-full overflow-y-auto pb-32"
+        >
+          {/* Welcome Message */}
+          {messages.length === 0 && (
+            <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-4">
+              <div className="w-20 h-20 bg-sky-100 rounded-full flex items-center justify-center mb-4">
+                <img 
+                  src="/img/krimsus.png"
+                  alt="KUHAP"
+                  className="w-16 h-16 object-contain"
+                />
+              </div>
+              <h1 className="text-4xl font-bold text-sky-600 mb-4">KUHAP AI</h1>
+              <p className="text-gray-600 max-w-md mb-6">
+                Asisten untuk membantu Anda dengan pertanyaan seputar Kitab Undang-Undang Hukum Acara Pidana.
+              </p>
+              
+              {/* Example Questions */}
+              <div className="w-full max-w-2xl">
+                <p className="text-sm text-gray-500 mb-3">Contoh pertanyaan yang dapat Anda ajukan:</p>
+                <div className="grid gap-2">
+                  {KUHAP_EXAMPLE_QUESTIONS.map((question, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleSelectQuestion(question)}
+                      className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-left hover:bg-gray-100 transition-colors"
+                    >
+                      {question}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Messages */}
+          <div className="max-w-2xl mx-auto px-4 py-6">
+            <div className="space-y-6">
+              {messages.map((message, index) => {
+                // Check if this is an agent message that is currently streaming
+                const isLastMessage = index === messages.length - 1;
+                const hasMinimalContent = !message.content || message.content.trim().length < 50;
+                const isStreamingMessage = message.role === 'agent' && 
+                                         isLastMessage && 
+                                         isLoading &&
+                                         (hasMinimalContent || 
+                                          streamingStatus.isThinking || 
+                                          streamingStatus.isCallingTool || 
+                                          streamingStatus.isAccessingKnowledge ||
+                                          streamingStatus.isMemoryUpdateStarted);
+                
+                return (
+                <div key={message.id || index} className="group">
+                  {message.role === 'user' ? (
+                    /* User Message */
+                    <div className="flex justify-end">
+                      <div className={getUserMessageClasses()}>
+                        <div className="whitespace-pre-wrap break-words">
+                          {message.content}
+                        </div>
+                        
+                        {/* File attachments display */}
+                        {message.attachments && message.attachments.length > 0 && (
+                          <div className="mt-2 space-y-1">
+                            {message.attachments.map((file, fileIndex) => (
+                              <div key={fileIndex} className="flex items-center gap-2 text-xs text-sky-700 bg-sky-50 rounded p-2">
+                                <File className="w-3 h-3 flex-shrink-0" />
+                                <span className="truncate">{file.name}</span>
+                                <span className="text-sky-500">({formatFileSize(file.size)})</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    /* Agent Message */
+                    <div className="flex justify-start">
+                      <div className="flex gap-3 max-w-[85%]">
+                        <div className="flex-shrink-0">
+                          <div className="rounded-full flex items-center justify-center shadow-sm w-8 h-8" style={{ backgroundColor: '#f3f4f6' }}>
+                            <img 
+                              src="/img/krimsus.png"
+                              alt="KUHAP"
+                              className="w-6 h-6 object-contain"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className={getAgentMessageClasses()}>
+                          {/* Streaming Status for current message */}
+                          {isStreamingMessage && (
+                            <div ref={streamingStatusRef} className="mb-3" data-streaming-status="active">
+                              <StreamingStatus 
+                                isStreaming={isLoading}
+                                streamingStatus={streamingStatus} 
+                                compact={true}
+                                currentChunk={currentChunk}
+                                containerWidth="message"
+                              />
+                            </div>
+                          )}
+                          
+                          {/* Message content */}
+                          {message.content ? (
+                            <div className={getProseClasses()}>
+                              <div dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }} />
+                            </div>
+                          ) : isStreamingMessage ? (
+                            <p className="text-gray-500 italic text-sm">Sedang memproses...</p>
+                          ) : null}
+                          
+                          {/* Copy button */}
+                          {message.content && (
+                            <div className="mt-2 flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => handleCopy(message.content, message.id || index.toString())}
+                                className="text-gray-400 hover:text-gray-600 p-1 rounded-md inline-flex items-center text-xs gap-1"
+                                aria-label="Salin ke clipboard"
+                              >
+                                {copied === (message.id || index.toString()) ? (
+                                  <>
+                                    <Check className="w-3 h-3" />
+                                    <span>Tersalin</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3 h-3" />
+                                    <span>Salin</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                );
+              })}
+              
+              <div ref={messagesEndRef} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Input area with modern chatbot styling */}
+      <div className="border-t border-gray-200 bg-white p-4 md:px-6 pb-safe">
+        <div className="max-w-2xl mx-auto">
+          {/* File preview area */}
+          {selectedFiles.length > 0 && (
+            <div className="mb-3 space-y-2">
+              <div className="text-xs text-gray-600 font-medium">
+                File terpilih ({selectedFiles.length}):
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {selectedFiles.map((file, index) => (
+                  <div key={index} className="bg-sky-50 border border-sky-200 rounded-lg px-3 py-2 flex items-center gap-2">
+                    <File className="w-4 h-4 text-sky-600 flex-shrink-0" />
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <span className="text-sm font-medium text-sky-900 truncate">{file.name}</span>
+                      <span className="text-xs text-sky-600">
+                        {formatFileSize(file.size)} • {file.type || 'Unknown type'}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleRemoveFile(index)}
+                      className="text-sky-400 hover:text-sky-600 flex-shrink-0"
+                      aria-label="Hapus file"
+                    >
+                      <XIcon className="w-4 h-4" />
+                    </button>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Messages */}
-          <div className="space-y-6">
-            {messages.map((message, index) => (
-              message.content || message.isAnimating ? (
-                <div 
-                  key={index} 
-                  className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`flex ${message.type === 'user' ? 'flex-row-reverse' : 'flex-row'} items-end ${message.isAnimating ? 'w-full' : 'max-w-[85%] sm:max-w-[75%]'} group`}
-                  >
-                    {message.type === 'bot' && (
-                      <div className="flex-shrink-0 mr-2 mb-1">
-                        {message.isAnimating ? (
-                          <div className="w-8 h-8 text-gray-600">
-                            <AnimatedBotIcon />
-                          </div>
-                        ) : (
-                          <div className="w-8 h-8 bg-sky-100 rounded-full flex items-center justify-center shadow-sm">
-                            <BookOpen className="w-5 h-5 text-sky-600" />
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    
-                    <div 
-                      className={cn(
-                        "rounded-2xl px-4 py-3 shadow-sm",
-                        message.type === 'user' 
-                          ? "bg-gray-100 text-gray-900 rounded-tr-none" 
-                          : message.error 
-                            ? "bg-red-50 text-red-800 rounded-tl-none border border-red-200" 
-                            : message.isAnimating
-                            ? "bg-white text-gray-800 rounded-tl-none border border-gray-200 w-full"
-                            : "bg-white text-gray-800 rounded-tl-none border border-gray-200"
-                      )}
-                    >
-                      {message.isAnimating ? (
-                        <SkeletonMessage />
-                      ) : message.type === 'bot' ? (
-                        <div className="space-y-0">
-                          <div 
-                            className="prose prose-sm max-w-none prose-headings:font-semibold prose-headings:text-gray-900 prose-p:text-gray-700 prose-pre:bg-gray-100 prose-pre:text-gray-800 prose-code:text-gray-800 prose-code:bg-gray-100 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-sm prose-code:font-mono prose-a:text-sky-600 prose-a:no-underline hover:prose-a:underline prose-li:text-gray-700 prose-li:marker:text-gray-500 prose-strong:text-gray-900 prose-em:text-gray-700 prose-p:my-0.5 prose-headings:my-0.5 prose-headings:mb-0 prose-ul:my-0.5 prose-ol:my-0.5 prose-li:my-0.5 prose-pre:my-1 leading-tight [&_p]:!my-0.5 [&_br]:leading-none [&_h1+p]:!mt-0.5 [&_h2+p]:!mt-0.5 [&_h3+p]:!mt-0.5 [&_table]:overflow-x-auto [&_table]:max-w-full"
-                            dangerouslySetInnerHTML={formatMessage(message.content)}
-                          />
-                          
-                          {/* Source documents */}
-                          {message.sourceDocuments && message.sourceDocuments.length > 0 && (
-                            <div className="mt-3 pt-3 border-t border-gray-200">
-                              <p className="text-xs text-gray-500 font-medium mb-1">Sumber:</p>
-                              <ul className="text-xs text-gray-500 space-y-1">
-                                {message.sourceDocuments.map((doc, i) => (
-                                  <li key={i} className="flex items-start">
-                                    <span className="inline-block w-4 flex-shrink-0">•</span>
-                                    <span>{doc.metadata.title || 'Untitled Document'}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                          
-                          {/* Copy button */}
-                          <div className="mt-2 flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={() => copyToClipboard(message.content)}
-                              className="text-gray-400 hover:text-gray-600 p-1 rounded-md inline-flex items-center text-xs gap-1"
-                              aria-label="Salin ke clipboard"
-                            >
-                              {copied === message.content ? (
-                                <>
-                                  <Check className="w-3 h-3" />
-                                  <span>Tersalin</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Copy className="w-3 h-3" />
-                                  <span>Salin</span>
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        // User message
-                        <div className="whitespace-pre-wrap break-words">{message.content}</div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ) : null
-            ))}
-            
-            {/* Invisible div to anchor scrolling to bottom */}
-            <div ref={messagesEndRef} />
-          </div>
-        </div>
-      </div>
-      
-      {/* Scroll to bottom button */}
-      {showScrollButton && (
-        <div className="absolute right-4 bottom-32 z-10">
-          <button
-            onClick={scrollToBottom}
-            className="bg-sky-600 text-white p-2 rounded-full shadow-md hover:bg-sky-700 transition-colors"
-            aria-label="Scroll to bottom"
-          >
-            <ChevronDown className="w-5 h-5" />
-          </button>
-        </div>
-      )}
+          {/* Modern input container with border and shadow */}
+          <div className="relative flex w-full cursor-text flex-col rounded-xl border border-gray-300 px-4 py-3 duration-150 ease-in-out shadow-sm focus-within:border-sky-500 focus-within:ring-1 focus-within:ring-sky-500 bg-white">
+            {/* File upload button inside input */}
+            <button
+              type="button"
+              onClick={handleOpenFileDialog}
+              disabled={isLoading}
+              className="absolute left-3 bottom-3 p-2 rounded-lg text-gray-400 hover:text-sky-500 hover:bg-sky-50 transition-colors z-20"
+              aria-label="Upload file"
+            >
+              <Paperclip className="w-4 h-4" />
+            </button>
 
-      {/* Input area */}
-      <div className="fixed bottom-0 left-0 right-0 lg:pl-64 bg-white border-t border-gray-200 p-4 z-10">
-        <div className="max-w-3xl mx-auto relative">
-          <Textarea
-            ref={textareaRef}
-            value={inputMessage}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            placeholder="Ketik pesan Anda..."
-            className="resize-none pr-12 py-3 min-h-[52px] max-h-[200px] rounded-xl focus:border-sky-500 focus:ring-sky-500 overflow-y-auto"
-            readOnly={false}
-            autoComplete="off"
-            rows={1}
-            disabled={isProcessing}
-          />
+            {/* Hidden file input */}
+            <input 
+              type="file" 
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+              multiple
+              accept={ACCEPTED_FILE_TYPES}
+            />
+            
+            {/* Modern textarea without borders */}
+            <textarea
+              ref={textareaRef}
+              value={inputMessage}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              placeholder="Ketik pesan Anda..."
+              className="w-full border-0 bg-transparent pl-8 pr-12 py-1 text-sm placeholder:text-gray-500 focus:outline-none resize-none min-h-[40px] max-h-[200px] text-gray-800"
+              disabled={isLoading}
+              rows={2}
+            />
+            
+            {/* Send button inside input container */}
+            <button
+              onClick={() => handleSendMessage()}
+              disabled={(!inputMessage.trim() && selectedFiles.length === 0) || isLoading}
+              className={`absolute right-3 bottom-3 p-2.5 rounded-lg flex items-center justify-center transition-colors ${
+                (!inputMessage.trim() && selectedFiles.length === 0) || isLoading
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-sky-600 text-white hover:bg-sky-700'
+              }`}
+              aria-label="Kirim pesan"
+            >
+              {isLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Send className="w-5 h-5" />
+              )}
+            </button>
+          </div>
           
-          <button
-            onClick={handleSubmit}
-            disabled={!inputMessage.trim() || isProcessing}
-            type="button"
-            className="absolute right-3 bottom-3 p-2 rounded-lg text-white bg-sky-600 hover:bg-sky-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors z-20"
-            aria-label="Kirim pesan"
-          >
-            {isProcessing ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Send className="w-5 h-5" />
-            )}
-          </button>
-        </div>
-        
-        <div className="max-w-3xl mx-auto mt-2">
-          <p className="text-xs text-center text-gray-500">
-            KUHAP AI memberikan informasi umum dan tidak bisa menggantikan nasihat hukum profesional.
-          </p>
+          {/* Help text and disclaimer */}
+          <div className="mt-2 space-y-1">
+            <p className="text-xs text-gray-500 text-center">
+              Tekan Enter untuk mengirim, Shift+Enter untuk baris baru
+            </p>
+            <p className="text-xs text-center text-gray-500">
+              KUHAP AI memberikan informasi umum dan tidak bisa menggantikan nasihat hukum profesional.
+            </p>
+          </div>
         </div>
       </div>
     </div>
