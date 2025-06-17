@@ -605,7 +605,7 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
           )}
 
           {/* Messages */}
-          <div className="max-w-2xl mx-auto px-4 py-6">
+          <div className="max-w-4xl mx-auto px-4 py-6">
             <div className="space-y-6">
               {messages.map((message, index) => {
                 // Check if this is an agent message that is currently streaming
@@ -719,7 +719,7 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
 
       {/* Input area with modern chatbot styling */}
       <div className="border-t border-gray-200 bg-white p-4 md:px-6 pb-safe">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           {/* File preview area */}
           {selectedFiles.length > 0 && (
             <div className="mb-3 space-y-2">

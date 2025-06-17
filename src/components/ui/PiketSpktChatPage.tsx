@@ -302,8 +302,11 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
       let response: string;
       
       if (activeTab === 'analysis') {
-        // Analysis tab: no file upload, only text
-        response = await sendAnalysisChatMessage(userMessage.content);
+        // Analysis tab: support file upload with text
+        response = await sendAnalysisChatMessage(
+          userMessage.content,
+          selectedFiles.length > 0 ? selectedFiles : undefined
+        );
         
         // Update document content with the latest response
         setDocumentContent(response);
@@ -802,7 +805,7 @@ const PiketSpktChatPage: React.FC<PiketSpktChatPageProps> = ({ onBack }) => {
               
               {/* Processing indicator - separate from messages */}
               {isProcessing && (
-                <div className="flex items-start space-x-3">
+                <div className="w-full">
                   <SkeletonMessage fullWidth={true} />
                 </div>
               )}

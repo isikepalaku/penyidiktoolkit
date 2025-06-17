@@ -42,6 +42,20 @@ export interface ApiError {
   details?: string;
 }
 
+// Types untuk Gemini API content parts
+export interface TextPart {
+  text: string;
+}
+
+export interface InlineDataPart {
+  inlineData: {
+    mimeType: string;
+    data: string;
+  };
+}
+
+export type ContentPart = TextPart | InlineDataPart;
+
 /**
  * Membuat session ID baru jika belum ada
  * Session ID digunakan oleh backend untuk mengelola konteks percakapan
@@ -346,7 +360,7 @@ const analyzeReportWithGemini = async (reportText: string, file?: File | null): 
   console.log('SPKT Analysis: File provided:', !!file);
 
   // Prepare content parts sesuai dokumentasi resmi
-  const contentParts: any[] = [];
+  const contentParts: ContentPart[] = [];
   
   // Tambahkan text prompt terlebih dahulu
   const promptString = PROMPT_TEMPLATE(reportText, !!file);
