@@ -54,6 +54,14 @@ interface KUHPChatPageProps {
   onBack?: () => void;
 }
 
+interface StorageStats {
+  usage: string | number;
+  limit: string | number;
+  percentage: number;
+  sessionCount: number;
+  isNearLimit?: boolean;
+}
+
 // File validation utilities
 const validateFile = (file: File): { isValid: boolean; error?: string } => {
   // Check file size
@@ -105,7 +113,7 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
   const [copied, setCopied] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
   const [showStorageInfo, setShowStorageInfo] = useState(false);
-  const [storageStats, setStorageStats] = useState<any>(null);
+  const [storageStats, setStorageStats] = useState<StorageStats | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [fileValidationErrors, setFileValidationErrors] = useState<string[]>([]);
   
@@ -405,17 +413,15 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
     );
   };
 
-  const handleKeyDown = (_e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = () => {
     // Remove Enter key submission for mobile compatibility
     // Submission is handled by the Send button
   };
 
-  const handleRetry = () => {
-    // Reinitialize session
-    try {
-      initializeStreamingSession();
-    } catch (error) {
-      console.error('Error reinitializing session:', error);
+  const handleSelectQuestion = (question: string) => {
+    setInputMessage(question);
+    if (textareaRef.current) {
+      textareaRef.current.focus();
     }
   };
 
@@ -440,12 +446,21 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
       textareaRef.current.blur();
     }
 
+    // Mobile-specific timeout handling
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const uploadTimeout = isMobile ? 60000 : 120000; // 1 min for mobile, 2 min for desktop
+    
+    let timeoutId: NodeJS.Timeout | null = null;
+    let isRequestCompleted = false;
+
     try {
       // Debug message sebelum send
       console.log('📤 Sending message from KUHP UI:', {
         message: userMessageContent.substring(0, 100) + (userMessageContent.length > 100 ? '...' : ''),
         message_length: userMessageContent.length,
-        files_count: selectedFiles.length
+        files_count: selectedFiles.length,
+        is_mobile: isMobile,
+        timeout: uploadTimeout
       });
 
       // Log file sizes jika ada
@@ -485,6 +500,35 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
       // Set streaming state
       setIsStreaming(true);
       setStreamingStatus({ isThinking: true });
+
+      // Set timeout for mobile compatibility
+      timeoutId = setTimeout(() => {
+        if (!isRequestCompleted) {
+          console.error('❌ KUHP: Request timeout on mobile device');
+          setIsStreaming(false);
+          setStreamingStatus({ 
+            hasCompleted: true,
+            isThinking: false,
+            isCallingTool: false,
+            isMemoryUpdateStarted: false
+          });
+          
+          // Update message with timeout error
+          const { setMessages } = usePlaygroundStore.getState();
+          setMessages(prev => {
+            const newMessages = [...prev];
+            const lastAgentMessage = newMessages[newMessages.length - 1];
+            if (lastAgentMessage && lastAgentMessage.role === 'agent') {
+              lastAgentMessage.content = '⏰ Timeout: Proses terlalu lama. Silakan coba lagi dengan file yang lebih kecil atau koneksi yang lebih stabil.';
+            }
+            return newMessages;
+          });
+          
+          // Reset files
+          setSelectedFiles([]);
+          setFileValidationErrors([]);
+        }
+      }, uploadTimeout);
       
       // Use KUHP streaming service
       console.log('🚀 KUHP: About to call sendStreamingChatMessage with:', {
@@ -530,8 +574,8 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
                     // Append new content to existing content
                     lastAgentMessage.content = (lastAgentMessage.content || '') + event.content;
                   }
-        return newMessages;
-      });
+                  return newMessages;
+                });
               }
               break;
               
@@ -568,6 +612,13 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
                 contentLength: typeof event.content === 'string' ? event.content.length : 0,
                 contentPreview: typeof event.content === 'string' ? event.content.substring(0, 100) + '...' : event.content
               });
+              
+              // Mark request as completed
+              isRequestCompleted = true;
+              if (timeoutId) {
+                clearTimeout(timeoutId);
+                timeoutId = null;
+              }
               
               // Update final content if provided
               if (event.content && typeof event.content === 'string' && event.content.trim()) {
@@ -609,15 +660,29 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
               
             case RunEvent.RunError:
               console.error('❌ KUHP: Run error:', event.content);
+              
+              // Mark request as completed even on error
+              isRequestCompleted = true;
+              if (timeoutId) {
+                clearTimeout(timeoutId);
+                timeoutId = null;
+              }
+              
               setMessages(prev => {
                 const newMessages = [...prev];
                 const lastAgentMessage = newMessages[newMessages.length - 1];
                 if (lastAgentMessage && lastAgentMessage.role === 'agent') {
                   lastAgentMessage.content = `❌ Error: ${event.content || 'Unknown error occurred'}`;
                 }
-        return newMessages;
-      });
+                return newMessages;
+              });
               setIsStreaming(false);
+              setStreamingStatus({ 
+                hasCompleted: true,
+                isThinking: false,
+                isCallingTool: false,
+                isMemoryUpdateStarted: false
+              });
               break;
               
             default:
@@ -629,17 +694,51 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
       
       console.log('📊 KUHP: sendStreamingChatMessage completed with result:', result);
 
+      // Mark as completed and clear timeout if still active
+      isRequestCompleted = true;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+
       // Reset selected files setelah berhasil mengirim
       setSelectedFiles([]);
       setFileValidationErrors([]);
     } catch (error) {
       console.error('Error sending message:', error);
+      
+      // Mark as completed and clear timeout
+      isRequestCompleted = true;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      
+      // Ensure loading state is cleared on error
+      setIsStreaming(false);
+      setStreamingStatus({ 
+        hasCompleted: true,
+        isThinking: false,
+        isCallingTool: false,
+        isMemoryUpdateStarted: false
+      });
+      
+      // Show error message
+      const { setMessages } = usePlaygroundStore.getState();
+      setMessages(prev => {
+        const newMessages = [...prev];
+        const lastAgentMessage = newMessages[newMessages.length - 1];
+        if (lastAgentMessage && lastAgentMessage.role === 'agent') {
+          lastAgentMessage.content = `❌ Error: ${error instanceof Error ? error.message : 'Terjadi kesalahan saat mengirim pesan'}`;
+        }
+        return newMessages;
+      });
+      
       // Reset files on error
       setSelectedFiles([]);
+      setFileValidationErrors([]);
     }
   };
-
-
 
   const handleChatReset = () => {
     try {
@@ -661,37 +760,7 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
     }
   };
 
-  const handleSelectQuestion = (question: string) => {
-    setInputMessage(question);
-    if (textareaRef.current) {
-      textareaRef.current.focus();
-    }
-  };
-
-
-
-  // Simple ErrorScreen component
-  const ErrorScreen = ({ onRetry }: { onRetry: () => void }) => (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-gray-800 mb-4">Terjadi kesalahan</h1>
-        <p className="text-gray-600 mb-6">Tidak dapat memuat halaman chat KUHP AI</p>
-        <Button onClick={onRetry} className="bg-rose-600 hover:bg-rose-700 text-white">
-          Coba Lagi
-        </Button>
-      </div>
-    </div>
-  );
-
   // Render error states
-  if (false) { // Remove error state for now since streamingStatus doesn't have hasError
-    return (
-      <ErrorScreen
-        onRetry={handleRetry}
-      />
-    );
-  }
-
   return (
     <div className="fixed inset-0 z-20 bg-white lg:pl-64 flex flex-col">
       <header className="flex items-center justify-between p-4 border-b border-gray-200 shadow-sm">

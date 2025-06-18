@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, Copy, Check, Loader2, Info, RefreshCw, Database, Trash2, MessageSquare, FileText, Image, Video, Volume2, BarChart3, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Send, Copy, Check, Loader2, Info, RefreshCw, Database, Trash2, FileText, Image, Video, Volume2, BarChart3 } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { Button } from './button';
 import { Textarea } from './textarea';
@@ -27,7 +27,13 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
   const [copied, setCopied] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
   const [showStorageInfo, setShowStorageInfo] = useState(false);
-  const [storageStats, setStorageStats] = useState<any>(null);
+  const [storageStats, setStorageStats] = useState<{
+    usage: string | number;
+    limit: string | number;
+    percentage: number;
+    sessionCount: number;
+    isNearLimit?: boolean;
+  } | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -166,7 +172,9 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
             <div className="mt-2 text-sm text-blue-700 space-y-2">
               <div className="flex justify-between">
                 <span>Penggunaan Storage:</span>
-                <span className="font-medium">{storageStats.usage} / {storageStats.limit}</span>
+                <span className="font-medium">
+                  {typeof storageStats.usage === 'string' ? `${storageStats.usage} / ${storageStats.limit}` : 'Tidak tersedia'}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span>Persentase:</span>
@@ -177,7 +185,7 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
                 </span>
               </div>
               <div className="flex justify-between">
-                <span>Session Tersimpan:</span>
+                <span>Jumlah Sesi:</span>
                 <span className="font-medium">{storageStats.sessionCount}</span>
               </div>
               <div className="flex justify-between">
