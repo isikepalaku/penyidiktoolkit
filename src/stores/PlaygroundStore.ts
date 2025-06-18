@@ -168,6 +168,14 @@ export const usePlaygroundStore = create<PlaygroundStoreInterface>()((set, get) 
         errorMessage: undefined,
         cancelReason: undefined,
         processingMetrics: undefined,
+        // Reset extra_data fields
+        references: undefined,
+        addMessages: undefined,
+        historyEntries: undefined,
+        reasoningMessages: undefined,
+        metadata: undefined,
+        // Reset citations field
+        citations: undefined
       }
     });
   },

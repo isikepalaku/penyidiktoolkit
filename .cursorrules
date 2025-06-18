@@ -1569,65 +1569,49 @@ const syncWithServer = async () => {
 
 # Scratchpad
 
-## Task: Perbaikan Fungsi Hapus Storage & Reset Chat KUHAPChatPage.tsx - COMPLETED ✅
+## Task: Agno RunResponse Extra Data & Citations Implementation - COMPLETED ✅
 
 ### Deskripsi:
-User melaporkan bahwa fungsi hapus storage tidak memberikan hasil yang diharapkan (data tidak terhapus) dan fungsi reset chat tidak bekerja sama sekali.
+User meminta implementasi fungsi citations dari Agno RunResponse extra_data untuk WassidikPenyidikChatPage.tsx, khususnya untuk menampilkan references, add_messages, history, reasoning_steps, dan reasoning_messages dalam streaming animations.
 
 ### Masalah yang Ditemukan:
-- **`forceCleanup` Tidak Efektif**: Fungsi `forceCleanup` di `PlaygroundStore.ts` hanya menghapus sesi yang kadaluarsa, bukan semua data sesi dari `localStorage`.
-- **`clearStreamingChatHistory` Kosong**: Fungsi `clearStreamingChatHistory` di `kuhapService.ts` tidak memiliki implementasi (kosong).
-- **`handleChatReset` Tidak Lengkap**: Fungsi reset di komponen hanya membersihkan state lokal, tetapi tidak benar-benar menghapus data sesi atau memulai sesi baru, sehingga UI tidak ter-refresh.
+- **No Content Accumulated**: Log menunjukkan "No content accumulated during streaming session"
+- **Missing RunResponse Events**: Tidak ada RunResponse atau RunResponseContent events yang diterima
+- **Citations Tidak Muncul**: Meskipun backend mengirim vector chunks dengan metadata, citations tidak ter-ekstrak dengan benar di frontend
 
 ### Solusi yang Diimplementasikan:
 
-#### 1. Perbaikan `forceCleanup` (di `PlaygroundStore.ts`):
-- **Implementasi Pembersihan Total**: Mengubah `forceCleanup` agar memanggil `clearSessionStorage()`.
-- **Efek**: Sekarang, `forceCleanup` akan menghapus **semua** item `wassidik_session_*` dari `localStorage`, memastikan pembersihan total.
+#### 1. Enhanced handleRunCompleted (di `useAIChatStreamHandler.ts`):
+- **Citations Extraction**: Menambahkan ekstraksi citations langsung dari `chunk.extra_data.references` saat RunCompleted event
+- **Citation Object Creation**: Transform references menjadi Citation objects dengan id, title, url, source, excerpt, metadata
+- **Comprehensive Logging**: Debug logging untuk memantau ekstraksi citations dan references
+- **Enhanced Extra Data**: Metadata diperkaya dengan citations_count dan knowledge_base_used flags
 
-```typescript
-// src/stores/PlaygroundStore.ts
-export const forceCleanup = () => {
-  console.log('🧹 Starting manual storage cleanup...');
-  // Memanggil fungsi pembersihan utama untuk menghapus semua data sesi
-  clearSessionStorage(); 
-  
-  const stats = getStorageStats();
-  console.log('📊 Storage stats after cleanup:', stats);
-  return stats;
-};
-```
+#### 2. Enhanced MemoryUpdateCompleted Handler:
+- **Memory Citations Extraction**: Ekstraksi citations dari memory update events karena knowledge base search results mungkin tersedia setelah memory operations
+- **Fallback Strategy**: Multiple fallback untuk ekstraksi citations dari berbagai source events
+- **Real-time Status Updates**: Update streaming status dengan citations saat memory operations selesai
 
-#### 2. Implementasi `clearStreamingChatHistory` (di `kuhapService.ts`):
-- **Logika Pembersihan Sesi**: Menambahkan logika untuk menghapus data sesi saat ini dari `localStorage` (`removeItem`).
-- **Reset State**: Memanggil `setMessages([])` dan `resetStreamingStatus()` dari `usePlaygroundStore` untuk membersihkan state di memori.
+#### 3. Enhanced Completion Data Saving (di `WassidikPenyidikChatPage.tsx`):
+- **Multiple Fallback Strategies**: Primary dari streaming status, fallback ke message extra_data.references
+- **Comprehensive Debugging**: Detailed logging untuk monitoring citations extraction process
+- **Persistent Citations**: Menyimpan citations dalam completionData untuk display long-term
 
-#### 3. Perbaikan `handleChatReset` (di `KUHAPChatPage.tsx`):
-- **Konfirmasi Pengguna**: Menambahkan dialog `window.confirm` sebelum mereset.
-- **Pemanggilan Fungsi yang Benar**: Sekarang hanya memanggil `clearStreamingChatHistory()` yang sudah berfungsi.
-- **Inisialisasi Ulang Sesi**: Menambahkan pemanggilan `initializeStreamingSession()` untuk membuat sesi baru dan me-refresh UI.
-
-```typescript
-// src/components/ui/KUHAPChatPage.tsx
-const handleChatReset = () => {
-  if (!window.confirm('...')) return;
-  
-  try {
-    clearStreamingChatHistory(); // Membersihkan data & state
-    initializeStreamingSession(); // Memulai sesi baru
-    console.log('♻️ Chat reset completed...');
-  } catch (error) { ... }
-};
-```
+#### 4. Enhanced Citations Display UI:
+- **Numbered Citation Badges**: Professional citation cards dengan numbered badges (blue-purple gradient)
+- **Source Information**: Hostname extraction, titles, excerpt quotes dengan truncation
+- **External Links**: "Lihat Sumber" links dengan ExternalLink icons
+- **Responsive Design**: Mobile-friendly layout dengan proper spacing dan hover effects
 
 ### Benefits:
-- **✅ Fungsi Hapus Storage Bekerja**: Tombol "Bersihkan Data Lama" sekarang benar-benar menghapus semua data sesi dari `localStorage`.
-- **✅ Fungsi Reset Chat Bekerja**: Tombol reset sekarang membersihkan percakapan saat ini dan memulai sesi baru, me-refresh UI seperti yang diharapkan.
-- **✅ Konsistensi State**: State aplikasi (Zustand) dan `localStorage` sekarang sinkron setelah operasi pembersihan dan reset.
-- **✅ Pengalaman Pengguna Lebih Baik**: Adanya dialog konfirmasi mencegah tindakan yang tidak disengaja.
+- **✅ Citations Extraction**: Citations sekarang diekstrak dari RunCompleted.extra_data.references sesuai dokumentasi Agno
+- **✅ Multiple Fallback**: Robust fallback strategy untuk berbagai pattern ekstraksi citations
+- **✅ Professional UI**: Enhanced citations display dengan numbered badges dan source information
+- **✅ Real-time Updates**: Citations muncul real-time selama streaming dan tersimpan untuk display persistent
+- **✅ Agno Compatibility**: Implementasi mengikuti pola Agno Agentic RAG documentation dengan extra_data.references
 
 ---
 
 ## Previous Completed Tasks:
-- Perbaikan Fungsi Hapus Storage KUHAPChatPage.tsx (Implementasi awal)
+- Perbaikan Fungsi Hapus Storage & Reset Chat KUHAPChatPage.tsx
 - Final Cleanup Unused Imports KUHAPChatPage.tsx

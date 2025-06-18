@@ -137,7 +137,43 @@ export default function useAIChatStreamHandler() {
     console.log('Run completed:', {
       final_content_type: typeof chunk.content,
       final_content_length: typeof chunk.content === 'string' ? chunk.content.length : 'non-string',
-      has_final_tools: chunk.tools && chunk.tools.length > 0
+      has_final_tools: chunk.tools && chunk.tools.length > 0,
+      has_extra_data: !!chunk.extra_data,
+      has_references: !!chunk.extra_data?.references,
+      references_count: chunk.extra_data?.references?.length || 0,
+      full_extra_data: chunk.extra_data
+    });
+
+    // Extract knowledge base references/citations immediately when RunCompleted
+    let extractedCitations: any[] = [];
+    let citationsCount = 0;
+    
+    // Primary: Extract from extra_data.references (Agno Agentic RAG pattern)
+    if (chunk.extra_data?.references && chunk.extra_data.references.length > 0) {
+      console.log('📚 Extracting citations from extra_data.references:', chunk.extra_data.references.length);
+      extractedCitations = chunk.extra_data.references.map((ref: any, index: number) => ({
+        id: `kb-citation-${index}`,
+        title: ref.title || `Knowledge Base Reference ${index + 1}`,
+        url: ref.url,
+        source: ref.url ? new URL(ref.url).hostname : 'Knowledge Base',
+        excerpt: ref.content || ref.text,
+        metadata: ref.metadata
+      }));
+      citationsCount = extractedCitations.length;
+      
+      // Set citations immediately to streaming status
+      setStreamingStatus({
+        citations: extractedCitations,
+        citationsCount: citationsCount,
+        references: chunk.extra_data.references
+      });
+    }
+    
+    // Log detailed citation info
+    console.log('📚 Final citations extraction result:', {
+      extracted_count: extractedCitations.length,
+      citations_preview: extractedCitations.slice(0, 2),
+      has_streaming_citations: extractedCitations.length > 0
     });
 
     setMessages((prevMessages: PlaygroundChatMessage[]) => {
@@ -168,6 +204,19 @@ export default function useAIChatStreamHandler() {
             }
           }
 
+          // Enhanced extra_data with citations
+          const enhancedExtraData = {
+            reasoning_steps: chunk.extra_data?.reasoning_steps ?? msg.extra_data?.reasoning_steps,
+            references: chunk.extra_data?.references ?? msg.extra_data?.references,
+            metadata: {
+              ...msg.extra_data?.metadata,
+              ...chunk.extra_data?.metadata,
+              // Add citation metadata
+              citations_count: citationsCount,
+              knowledge_base_used: citationsCount > 0
+            }
+          };
+
           return {
             ...msg,
             content: finalContent,
@@ -179,28 +228,25 @@ export default function useAIChatStreamHandler() {
             audio: chunk.audio ?? msg.audio,
             response_audio: chunk.response_audio ?? msg.response_audio,
             created_at: chunk.created_at ?? msg.created_at,
-            extra_data: {
-              reasoning_steps: chunk.extra_data?.reasoning_steps ?? msg.extra_data?.reasoning_steps,
-              references: chunk.extra_data?.references ?? msg.extra_data?.references,
-              metadata: {
-                ...msg.extra_data?.metadata,
-                ...chunk.extra_data?.metadata
-              }
-            }
+            extra_data: enhancedExtraData
           };
         }
         return msg;
       });
     });
 
-    // Stop streaming and mark as completed
+    // Stop streaming and mark as completed with citations
     setIsStreaming(false);
     setStreamingStatus({ 
       hasCompleted: true,
       isThinking: false,
       isCallingTool: false,
       isAccessingKnowledge: false,
-      isMemoryUpdateStarted: false
+      isMemoryUpdateStarted: false,
+      // Keep citations and references in final state
+      citations: extractedCitations,
+      citationsCount: citationsCount,
+      references: chunk.extra_data?.references
     });
   }, [setMessages, setIsStreaming, setStreamingStatus]);
 
@@ -588,6 +634,19 @@ export default function useAIChatStreamHandler() {
             case RunEvent.RunResponse:
             case RunEvent.RunResponseContent:
               console.log('🔄 RunResponse received:', typeof chunk.content, chunk.content?.length || 0, 'chars');
+              
+              // Enhanced debug logging for citations
+              console.log('🔍 Debug - Full chunk data:', {
+                event: chunk.event,
+                hasCitations: !!chunk.citations,
+                hasExtraData: !!chunk.extra_data,
+                hasReferences: !!chunk.extra_data?.references,
+                citationsType: chunk.citations ? (Array.isArray(chunk.citations) ? 'array' : 'object') : 'none',
+                citationsValue: chunk.citations,
+                extraDataReferences: chunk.extra_data?.references,
+                fullChunk: chunk // Full chunk structure for debugging
+              });
+              
               handleRunResponse(chunk, lastContent);
               
               // Update current chunk for real-time preview
@@ -599,10 +658,131 @@ export default function useAIChatStreamHandler() {
               if (chunk.event === RunEvent.RunResponseContent) {
                 setStreamingStatus({
                   contentType: chunk.content_type,
-                  citationsCount: chunk.citations?.count || chunk.citations?.sources?.length,
+                  citationsCount: Array.isArray(chunk.citations) 
+                    ? chunk.citations.length 
+                    : chunk.citations?.count || chunk.citations?.sources?.length,
                   hasImages: !!chunk.images?.length,
                   hasVideos: !!chunk.videos?.length, 
                   hasAudio: !!chunk.audio?.length
+                });
+              }
+              
+              // Extract citations information from RunResponse
+              let extractedCitations: any[] = [];
+              let citationsCount = 0;
+              
+              if (chunk.citations) {
+                console.log('📚 Citations received:', {
+                  type: Array.isArray(chunk.citations) ? 'array' : 'object',
+                  count: Array.isArray(chunk.citations) 
+                    ? chunk.citations.length 
+                    : (chunk.citations as any).count || (chunk.citations as any).sources?.length || 0,
+                  rawData: chunk.citations
+                });
+                
+                if (Array.isArray(chunk.citations)) {
+                  // Direct array of citations
+                  extractedCitations = chunk.citations;
+                  citationsCount = chunk.citations.length;
+                } else if ((chunk.citations as any).sources) {
+                  // Object with sources array
+                  const citationObj = chunk.citations as any;
+                  extractedCitations = citationObj.sources.map((source: any, index: number) => ({
+                    id: `citation-${index}`,
+                    title: source.title,
+                    url: source.url,
+                    source: source.url ? new URL(source.url).hostname : undefined,
+                    excerpt: source.content,
+                    metadata: source.metadata
+                  }));
+                  citationsCount = citationObj.sources.length;
+                } else if ((chunk.citations as any).count) {
+                  // Object with count only
+                  citationsCount = (chunk.citations as any).count;
+                }
+              }
+              
+              // Fallback: Extract citations from extra_data.references if no direct citations
+              if (extractedCitations.length === 0 && chunk.extra_data?.references) {
+                console.log('📚 Fallback: Using references as citations:', chunk.extra_data.references.length);
+                extractedCitations = chunk.extra_data.references.map((ref: any, index: number) => ({
+                  id: `ref-citation-${index}`,
+                  title: ref.title || 'Knowledge Base Reference',
+                  url: ref.url,
+                  source: ref.url ? new URL(ref.url).hostname : 'Knowledge Base',
+                  excerpt: ref.content,
+                  metadata: ref.metadata
+                }));
+                citationsCount = extractedCitations.length;
+              }
+              
+              // Additional fallback: Extract from any vector chunk data in content or metadata
+              if (extractedCitations.length === 0) {
+                // Check if chunk contains vector data or chunk metadata
+                const chunkData = chunk.content || (chunk as any).metadata || chunk;
+                
+                // Look for vector chunks in various possible formats
+                if (typeof chunkData === 'string') {
+                  try {
+                    // Try to parse if it contains JSON with vector data
+                    const parsed = JSON.parse(chunkData);
+                    if (parsed.chunks || parsed.vector_chunks || parsed.sources) {
+                      console.log('📚 Vector Fallback: Found vector chunks in content');
+                      const vectorSources = parsed.chunks || parsed.vector_chunks || parsed.sources;
+                      if (Array.isArray(vectorSources)) {
+                        extractedCitations = vectorSources.map((chunk: any, index: number) => ({
+                          id: `vector-${index}`,
+                          title: chunk.title || `Document Chunk ${index + 1}`,
+                          excerpt: chunk.content || chunk.text || chunk.chunk,
+                          source: 'Knowledge Base',
+                          metadata: chunk.meta_data || chunk.metadata
+                        }));
+                        citationsCount = extractedCitations.length;
+                      }
+                    }
+                  } catch (e) {
+                    // Not JSON, continue with other checks
+                  }
+                }
+                
+                // Check for vector data in chunk properties
+                if (extractedCitations.length === 0 && (chunk as any).vector_chunks) {
+                  console.log('📚 Vector Fallback: Found vector_chunks property');
+                  const vectorChunks = (chunk as any).vector_chunks;
+                  if (Array.isArray(vectorChunks)) {
+                    extractedCitations = vectorChunks.map((vectorChunk: any, index: number) => ({
+                      id: `vector-chunk-${index}`,
+                      title: vectorChunk.title || `Vector Chunk ${index + 1}`,
+                      excerpt: vectorChunk.content || vectorChunk.text,
+                      source: 'Vector Database',
+                      metadata: vectorChunk.metadata || vectorChunk.meta_data
+                    }));
+                    citationsCount = extractedCitations.length;
+                  }
+                }
+              }
+              
+              // Set citations if we have any
+              if (extractedCitations.length > 0 || citationsCount > 0) {
+                console.log('✅ Setting citations:', { count: citationsCount, citations: extractedCitations });
+                setStreamingStatus({
+                  citations: extractedCitations,
+                  citationsCount: citationsCount
+                });
+              }
+              
+              // Extract extra_data information from RunResponse
+              if (chunk.extra_data) {
+                console.log('📋 Extra data received:', {
+                  references: chunk.extra_data.references?.length || 0,
+                  reasoning_steps: chunk.extra_data.reasoning_steps?.length || 0,
+                  metadata: Object.keys(chunk.extra_data.metadata || {}).length || 0
+                });
+                
+                setStreamingStatus({
+                  references: chunk.extra_data.references,
+                  reasoningMessages: chunk.extra_data.reasoning_steps?.map(step => step.content || step.description) || [],
+                  metadata: chunk.extra_data.metadata
                 });
               }
               break;
@@ -613,17 +793,100 @@ export default function useAIChatStreamHandler() {
               // Clear current chunk as response is complete
               setCurrentChunk('');
               
+              // Enhanced debug logging for final citations
+              console.log('🔍 Debug - RunCompleted data:', {
+                event: chunk.event,
+                hasCitations: !!chunk.citations,
+                hasExtraData: !!chunk.extra_data,
+                hasReferences: !!chunk.extra_data?.references,
+                citationsType: chunk.citations ? (Array.isArray(chunk.citations) ? 'array' : 'object') : 'none',
+                citationsValue: chunk.citations,
+                extraDataReferences: chunk.extra_data?.references
+              });
+              
               // Extract final information from RunResponseCompletedEvent
               setStreamingStatus({
                 hasImages: !!chunk.images?.length,
                 hasVideos: !!chunk.videos?.length,
                 hasAudio: !!chunk.audio?.length,
-                citationsCount: chunk.citations?.count || chunk.citations?.sources?.length,
+                citationsCount: Array.isArray(chunk.citations) 
+                  ? chunk.citations.length 
+                  : (chunk.citations as any)?.count || (chunk.citations as any)?.sources?.length,
                 processingMetrics: chunk.metrics ? {
                   tokensUsed: chunk.metrics.tokens_used,
                   processingTime: chunk.metrics.processing_time
                 } : undefined
               });
+              
+              // Extract final citations information
+              let finalCitations: any[] = [];
+              let finalCitationsCount = 0;
+              
+              if (chunk.citations) {
+                console.log('📚 Final citations:', {
+                  type: Array.isArray(chunk.citations) ? 'array' : 'object',
+                  count: Array.isArray(chunk.citations) 
+                    ? chunk.citations.length 
+                    : (chunk.citations as any).count || (chunk.citations as any).sources?.length || 0,
+                  rawData: chunk.citations
+                });
+                
+                if (Array.isArray(chunk.citations)) {
+                  finalCitations = chunk.citations;
+                  finalCitationsCount = chunk.citations.length;
+                } else if ((chunk.citations as any).sources) {
+                  const citationObj = chunk.citations as any;
+                  finalCitations = citationObj.sources.map((source: any, index: number) => ({
+                    id: `citation-${index}`,
+                    title: source.title,
+                    url: source.url,
+                    source: source.url ? new URL(source.url).hostname : undefined,
+                    excerpt: source.content,
+                    metadata: source.metadata
+                  }));
+                  finalCitationsCount = citationObj.sources.length;
+                } else if ((chunk.citations as any).count) {
+                  finalCitationsCount = (chunk.citations as any).count;
+                }
+              }
+              
+              // Fallback: Extract citations from extra_data.references if no direct citations
+              if (finalCitations.length === 0 && chunk.extra_data?.references) {
+                console.log('📚 Final Fallback: Using references as citations:', chunk.extra_data.references.length);
+                finalCitations = chunk.extra_data.references.map((ref: any, index: number) => ({
+                  id: `final-citation-${index}`,
+                  title: ref.title || 'Knowledge Base Reference',
+                  url: ref.url,
+                  source: ref.url ? new URL(ref.url).hostname : 'Knowledge Base',
+                  excerpt: ref.content,
+                  metadata: ref.metadata
+                }));
+                finalCitationsCount = finalCitations.length;
+              }
+              
+              // Set final citations if we have any
+              if (finalCitations.length > 0 || finalCitationsCount > 0) {
+                console.log('✅ Setting final citations:', { count: finalCitationsCount, citations: finalCitations });
+                setStreamingStatus({
+                  citations: finalCitations,
+                  citationsCount: finalCitationsCount
+                });
+              }
+              
+              // Extract final extra_data information
+              if (chunk.extra_data) {
+                console.log('📋 Final extra data:', {
+                  references: chunk.extra_data.references?.length || 0,
+                  reasoning_steps: chunk.extra_data.reasoning_steps?.length || 0,
+                  metadata: Object.keys(chunk.extra_data.metadata || {}).length || 0
+                });
+                
+                setStreamingStatus({
+                  references: chunk.extra_data.references,
+                  reasoningMessages: chunk.extra_data.reasoning_steps?.map(step => step.content || step.description) || [],
+                  metadata: chunk.extra_data.metadata
+                });
+              }
               break;
               
             case RunEvent.ReasoningCompleted:
@@ -698,7 +961,38 @@ export default function useAIChatStreamHandler() {
               break;
               
             case RunEvent.MemoryUpdateCompleted:
-              console.log('Memory update completed:', chunk.content);
+              console.log('Memory update completed:', {
+                content: chunk.content,
+                has_extra_data: !!chunk.extra_data,
+                has_references: !!chunk.extra_data?.references,
+                references_count: chunk.extra_data?.references?.length || 0,
+                full_chunk: chunk
+              });
+              
+              // Extract citations from memory update completion (Agno pattern)
+              if (chunk.extra_data?.references && chunk.extra_data.references.length > 0) {
+                console.log('📚 Memory Update: Extracting citations from extra_data.references:', chunk.extra_data.references.length);
+                const memoryCitations = chunk.extra_data.references.map((ref: any, index: number) => ({
+                  id: `memory-citation-${index}`,
+                  title: ref.title || `Memory Reference ${index + 1}`,
+                  url: ref.url,
+                  source: ref.url ? new URL(ref.url).hostname : 'Knowledge Base',
+                  excerpt: ref.content || ref.text,
+                  metadata: ref.metadata
+                }));
+                
+                setStreamingStatus({
+                  citations: memoryCitations,
+                  citationsCount: memoryCitations.length,
+                  references: chunk.extra_data.references
+                });
+                
+                console.log('📚 Memory citations extracted:', {
+                  count: memoryCitations.length,
+                  citations_preview: memoryCitations.slice(0, 2)
+                });
+              }
+              
               // Reset memory update status
               setStreamingStatus({ 
                 isMemoryUpdateStarted: false

@@ -41,6 +41,17 @@ export interface Reference {
   metadata?: Record<string, any>;
 }
 
+export interface Citation {
+  id?: string;
+  title: string;
+  url?: string;
+  source?: string;
+  excerpt?: string;
+  page?: number;
+  timestamp?: string;
+  metadata?: Record<string, any>;
+}
+
 export interface MediaContent {
   type: 'image' | 'video' | 'audio';
   url: string;
@@ -73,7 +84,7 @@ export interface RunResponse {
   citations?: {
     sources?: Reference[];
     count?: number;
-  };
+  } | Citation[];
   metrics?: {
     tokens_used?: number;
     processing_time?: number;
@@ -145,6 +156,14 @@ export interface StreamingStatus {
     tokensUsed?: number;
     processingTime?: number;
   };
+  // Extra data fields from Agno RunResponse.extra_data
+  references?: Reference[];
+  addMessages?: PlaygroundChatMessage[];
+  historyEntries?: PlaygroundChatMessage[];
+  reasoningMessages?: string[];
+  metadata?: Record<string, any>;
+  // Citations from RunResponse.citations
+  citations?: Citation[];
 }
 
 export interface PlaygroundStore {

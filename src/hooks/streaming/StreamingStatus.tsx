@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Brain, Wrench, Database, CheckCircle, BookOpen, PauseCircle, PlayCircle, XCircle, Cpu, FileText, Image, Video, Volume2, BarChart3, MessageSquare } from 'lucide-react';
+import { Brain, Wrench, Database, CheckCircle, BookOpen, PauseCircle, PlayCircle, XCircle, Cpu, FileText, Image, Video, Volume2, BarChart3, MessageSquare, ExternalLink, History, MessageCircle } from 'lucide-react';
+import { Citation } from '@/types/playground';
 
 interface StreamingStatusProps {
   isStreaming: boolean;
@@ -10,25 +11,36 @@ interface StreamingStatusProps {
     isAccessingKnowledge?: boolean; // from AccessingKnowledge (custom)
     isMemoryUpdateStarted?: boolean; // from MemoryUpdateStarted (updated from isUpdatingMemory)
     hasCompleted?: boolean;         // from RunCompleted
-    isPaused?: boolean;             // from RunPaused (new)
-    isCancelled?: boolean;          // from RunCancelled (new)
-    // Enhanced properties from Agno documentation
+    isPaused?: boolean;             // from RunPaused
+    isCancelled?: boolean;          // from RunCancelled
+    // Enhanced status based on Agno documentation
     currentModel?: string;          // from RunResponseStartedEvent.model
     modelProvider?: string;         // from RunResponseStartedEvent.model_provider
-    reasoningSteps?: Array<{ step: number; description: string; content?: string; }>;
-    isReasoningActive?: boolean;    // from ReasoningStartedEvent
+    reasoningSteps?: Array<{        // from ReasoningStepEvent
+      step: number;
+      description: string;
+      content?: string;
+    }>;
+    isReasoningActive?: boolean;    // from ReasoningStarted/ReasoningCompleted
     currentReasoningStep?: string;  // from ReasoningStepEvent.reasoning_content
-    citationsCount?: number;        // from RunResponseContentEvent.citations
-    hasImages?: boolean;            // from RunResponseContentEvent.image
-    hasVideos?: boolean;            // from RunResponseCompletedEvent.videos
-    hasAudio?: boolean;             // from RunResponseCompletedEvent.audio
+    citationsCount?: number;        // from RunResponseContentEvent.citations.count
+    hasImages?: boolean;            // from RunResponseContentEvent.images
+    hasVideos?: boolean;            // from RunResponseContentEvent.videos
+    hasAudio?: boolean;             // from RunResponseContentEvent.audio
     contentType?: string;           // from RunResponseContentEvent.content_type
     errorMessage?: string;          // from RunResponseErrorEvent.content
     cancelReason?: string;          // from RunResponseCancelledEvent.reason
-    processingMetrics?: {
+    processingMetrics?: {           // from RunResponse.metrics
       tokensUsed?: number;
       processingTime?: number;
     };
+    // Extra data fields from RunResponse.extra_data
+    references?: Array<{title: string; url?: string; content?: string}>; // from extra_data.references
+    addMessages?: Array<{role: string; content: string}>; // from extra_data.add_messages
+    historyEntries?: Array<{role: string; content: string}>; // from extra_data.history
+    reasoningMessages?: string[];   // from extra_data.reasoning_messages
+    metadata?: Record<string, any>; // from extra_data.metadata
+    citations?: Citation[];
   };
   compact?: boolean;
   currentChunk?: string;           // Current content chunk from RunResponseContentEvent
@@ -300,6 +312,95 @@ export default function StreamingStatus({
                 {streamingStatus.processingMetrics.tokensUsed && `${streamingStatus.processingMetrics.tokensUsed} token`}
                 {streamingStatus.processingMetrics.processingTime && ` • ${streamingStatus.processingMetrics.processingTime}ms`}
               </span>
+            </div>
+          )}
+
+          {/* Extra Data Display - from RunResponse.extra_data */}
+          {(streamingStatus.references?.length || 
+            streamingStatus.reasoningMessages?.length || 
+            streamingStatus.historyEntries?.length ||
+            streamingStatus.addMessages?.length ||
+            streamingStatus.citations?.length ||
+            Object.keys(streamingStatus.metadata || {}).length) > 0 && (
+            <div className="mt-3 bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <div className="text-xs font-medium text-gray-700 mb-2 flex items-center gap-1">
+                <Database className="w-3 h-3" />
+                Informasi Tambahan
+              </div>
+              
+              <div className="space-y-2">
+                {/* Citations Display */}
+                {streamingStatus.citations && streamingStatus.citations.length > 0 && (
+                  <div className="text-xs text-gray-600">
+                    <div className="flex items-center gap-1 mb-1">
+                      <ExternalLink className="w-3 h-3" />
+                      <span className="font-medium">Citations ({streamingStatus.citations.length})</span>
+                    </div>
+                    <div className="space-y-1 ml-4">
+                      {streamingStatus.citations.slice(0, 3).map((citation, index) => (
+                        <div key={citation.id || index} className="bg-white border border-gray-200 rounded p-2">
+                          <div className="font-medium text-gray-800 text-xs">
+                            {citation.title}
+                          </div>
+                          {citation.source && (
+                            <div className="text-gray-500 text-xs mt-1">
+                              📍 {citation.source}
+                            </div>
+                          )}
+                          {citation.excerpt && (
+                            <div className="text-gray-600 text-xs mt-1 line-clamp-2">
+                              "{citation.excerpt.length > 100 
+                                ? citation.excerpt.substring(0, 100) + '...' 
+                                : citation.excerpt}"
+                            </div>
+                          )}
+                          {citation.url && (
+                            <a 
+                              href={citation.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 text-xs underline mt-1 inline-block hover:text-blue-800"
+                            >
+                              Lihat Sumber
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                      {streamingStatus.citations.length > 3 && (
+                        <div className="text-gray-500 text-xs">
+                          +{streamingStatus.citations.length - 3} citations lainnya
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {/* References Display */}
+                {streamingStatus.references && streamingStatus.references.length > 0 && (
+                  <div className="text-xs text-gray-600">
+                    <div className="flex items-center gap-1 mb-1">
+                      <ExternalLink className="w-3 h-3" />
+                      <span className="font-medium">References ({streamingStatus.references.length})</span>
+                    </div>
+                    <div className="space-y-1 ml-4">
+                      {streamingStatus.references.slice(0, 2).map((ref, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <span>📄</span>
+                          <span className="truncate">{ref.title}</span>
+                          {ref.url && (
+                            <a href={ref.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                              ↗
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                      {streamingStatus.references.length > 2 && (
+                        <div className="text-gray-500">+{streamingStatus.references.length - 2} lainnya</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </>

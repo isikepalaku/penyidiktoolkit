@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, Copy, Check, Loader2, Info, RefreshCw, Database, Trash2, FileText, Image, Video, Volume2, BarChart3 } from 'lucide-react';
+import { ArrowLeft, Send, Copy, Check, Loader2, Info, RefreshCw, Database, Trash2, FileText, Image, Video, Volume2, BarChart3, CheckCircle, ExternalLink, ChevronDown } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { Button } from './button';
 import { Textarea } from './textarea';
@@ -13,6 +13,7 @@ import {
   initializeStreamingSession
 } from '@/services/wassidikPenyidikStreamingService';
 import { getStorageStats, forceCleanup } from '@/stores/PlaygroundStore';
+import { Citation } from '@/types/playground';
 
 interface WassidikPenyidikChatPageProps {
   onBack: () => void;
@@ -27,6 +28,16 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
   const [copied, setCopied] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
   const [showStorageInfo, setShowStorageInfo] = useState(false);
+  const [completedMessageIds, setCompletedMessageIds] = useState<Set<string>>(new Set());
+  const [collapsedSummaries, setCollapsedSummaries] = useState<Set<string>>(new Set());
+  const [completionData, setCompletionData] = useState<Record<string, {
+    processingTime?: number;
+    reasoningMessages?: string[];
+    references?: Array<{title: string; url?: string; content?: string}>;
+    citationsCount?: number;
+    metadata?: Record<string, any>;
+    citations?: Citation[];
+  }>>({});
   const [storageStats, setStorageStats] = useState<{
     usage: string | number;
     limit: string | number;
@@ -123,6 +134,70 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
       setStorageStats(stats);
     }
   }, [showStorageInfo]);
+
+  // Track completion status for showing summary
+  useEffect(() => {
+    if (streamingStatus.hasCompleted && !isLoading && messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.role === 'agent' && lastMessage.id) {
+        setCompletedMessageIds(prev => new Set(prev).add(lastMessage.id!));
+        
+        // Debug logging for completion data
+        console.log('💾 Saving completion data:', {
+          messageId: lastMessage.id,
+          processingTime: streamingStatus.processingMetrics?.processingTime,
+          citationsCount: streamingStatus.citationsCount,
+          citations: streamingStatus.citations,
+          references: streamingStatus.references,
+          hasStreamingStatusCitations: !!streamingStatus.citations?.length,
+          hasReferences: !!streamingStatus.references?.length,
+          hasMessageExtraData: !!lastMessage.extra_data,
+          messageExtraDataReferences: lastMessage.extra_data?.references,
+          streamingStatusData: streamingStatus,
+          lastMessageExtraData: lastMessage.extra_data
+        });
+        
+        // Extract citations from multiple sources with priority
+        let finalCitations = streamingStatus.citations || [];
+        let finalReferences = streamingStatus.references || [];
+        let finalCitationsCount = streamingStatus.citationsCount || 0;
+        
+        // Fallback: Use message extra_data if streaming status doesn't have citations
+        if (finalCitations.length === 0 && lastMessage.extra_data?.references) {
+          console.log('📚 Fallback: Using message extra_data.references as citations');
+          finalCitations = lastMessage.extra_data.references.map((ref: any, index: number) => ({
+            id: `msg-citation-${index}`,
+            title: ref.title || `Reference ${index + 1}`,
+            url: ref.url,
+            source: ref.url ? new URL(ref.url).hostname : 'Knowledge Base',
+            excerpt: ref.content || ref.text,
+            metadata: ref.metadata
+          }));
+          finalReferences = lastMessage.extra_data.references;
+          finalCitationsCount = finalCitations.length;
+        }
+        
+        console.log('📚 Final citations for completion:', {
+          source: finalCitations.length > 0 ? 'streaming_status' : 'message_extra_data',
+          count: finalCitations.length,
+          citations_preview: finalCitations.slice(0, 2)
+        });
+        
+        // Save completion data for this message
+        setCompletionData(prev => ({
+          ...prev,
+          [lastMessage.id!]: {
+            processingTime: streamingStatus.processingMetrics?.processingTime,
+            reasoningMessages: streamingStatus.reasoningMessages,
+            references: finalReferences,
+            citationsCount: finalCitationsCount,
+            metadata: streamingStatus.metadata,
+            citations: finalCitations
+          }
+        }));
+      }
+    }
+  }, [streamingStatus.hasCompleted, isLoading, messages, streamingStatus.processingMetrics, streamingStatus.reasoningMessages, streamingStatus.references, streamingStatus.citationsCount, streamingStatus.metadata, streamingStatus.citations]);
 
   // Auto-scroll to latest message (but don't interfere with streaming focus)
   useEffect(() => {
@@ -322,6 +397,39 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
     }, 100);
   };
 
+  // Toggle collapse state for completion summary
+  const toggleCompletionSummary = (messageId: string) => {
+    setCollapsedSummaries(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(messageId)) {
+        newSet.delete(messageId); // Expand
+      } else {
+        newSet.add(messageId); // Collapse
+      }
+      return newSet;
+    });
+  };
+
+  // Auto-collapse completion summaries when they first appear (default collapsed)
+  useEffect(() => {
+    // Automatically collapse all completed message summaries by default
+    if (completedMessageIds.size > 0) {
+      const newCollapsedSummaries = new Set(collapsedSummaries);
+      let hasChanges = false;
+      
+      completedMessageIds.forEach(messageId => {
+        if (!newCollapsedSummaries.has(messageId)) {
+          newCollapsedSummaries.add(messageId);
+          hasChanges = true;
+        }
+      });
+      
+      if (hasChanges) {
+        setCollapsedSummaries(newCollapsedSummaries);
+      }
+    }
+  }, [completedMessageIds]);
+
   return (
     <div className="fixed inset-0 z-20 bg-white lg:pl-64 flex flex-col">
       <header className="flex items-center justify-between p-4 border-b border-gray-200 shadow-sm">
@@ -447,6 +555,13 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
                                         streamingStatus.isCallingTool || 
                                         streamingStatus.isAccessingKnowledge ||
                                         streamingStatus.isMemoryUpdateStarted);
+              
+              // Check if this message should show completion summary
+              const shouldShowCompletionSummary = message.role === 'agent' && 
+                                                 message.id && 
+                                                 completedMessageIds.has(message.id) && 
+                                                 isLastMessage &&
+                                                 !isLoading;
               
               return (message.content || isStreamingMessage) && (
                 <div
@@ -575,6 +690,191 @@ export default function WassidikPenyidikChatPage({ onBack }: WassidikPenyidikCha
                           <div className="whitespace-pre-wrap">{message.content}</div>
                         )}
                       </div>
+
+                      {/* Completion Summary - Shows for completed agent messages */}
+                      {shouldShowCompletionSummary && (
+                        <div className="mt-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                          {/* Debug logging for completion summary */}
+                          {(() => {
+                            console.log('🎯 Completion Summary Debug:', {
+                              messageId: message.id,
+                              shouldShow: shouldShowCompletionSummary,
+                              hasCompletionData: !!completionData[message.id!],
+                              completionData: completionData[message.id!],
+                              hasCitations: !!completionData[message.id!]?.citations?.length,
+                              citations: completionData[message.id!]?.citations,
+                              isCollapsed: collapsedSummaries.has(message.id!)
+                            });
+                            return null;
+                          })()}
+                          
+                          {/* Processing Summary Header - Always visible */}
+                          <div className="flex items-center gap-2 mb-3">
+                            <CheckCircle className="w-4 h-4 text-green-600" />
+                            <span className="text-sm font-medium text-gray-700">
+                              Selesai berpikir
+                              {message.id && completionData[message.id]?.processingTime && (
+                                <span className="text-gray-500">
+                                  {' '}selama {Math.round(completionData[message.id].processingTime! / 1000)} detik
+                                </span>
+                              )}
+                            </span>
+                            <button 
+                              className="ml-auto text-gray-400 hover:text-gray-600 transition-transform duration-200"
+                              onClick={() => toggleCompletionSummary(message.id!)}
+                              title={collapsedSummaries.has(message.id!) ? "Expand details" : "Collapse details"}
+                            >
+                              <ChevronDown 
+                                className={cn(
+                                  "w-4 h-4 transition-transform duration-200",
+                                  collapsedSummaries.has(message.id!) ? "rotate-0" : "rotate-180"
+                                )} 
+                              />
+                            </button>
+                          </div>
+
+                          {/* Collapsible Content */}
+                          {!collapsedSummaries.has(message.id!) && (
+                            <div className="space-y-4">
+                              {/* Reasoning Steps */}
+                              {message.id && completionData[message.id]?.reasoningMessages && completionData[message.id].reasoningMessages!.length > 0 && (
+                                <div className="space-y-2">
+                                  {completionData[message.id].reasoningMessages!.map((reasoning, idx) => (
+                                    <div key={idx} className="flex gap-2 text-sm">
+                                      <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+                                      <p className="text-gray-700 leading-relaxed">{reasoning}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Knowledge Base Sources */}
+                              {message.id && completionData[message.id]?.references && completionData[message.id].references!.length > 0 && (
+                                <div className="border-t border-gray-200 pt-3">
+                                  <div className="flex items-center gap-2 mb-3">
+                                    <Database className="w-4 h-4 text-blue-600" />
+                                    <span className="text-sm font-medium text-gray-700">
+                                      Sudah mencari di knowledge base
+                                    </span>
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                                    {completionData[message.id].references!.slice(0, 6).map((ref, idx) => (
+                                      <div 
+                                        key={idx}
+                                        className="flex items-center gap-2 p-2 bg-white border border-gray-200 rounded-md hover:border-purple-300 transition-colors"
+                                      >
+                                        <div className="w-4 h-4 bg-gradient-to-br from-purple-500 to-blue-500 rounded-sm flex-shrink-0 flex items-center justify-center">
+                                          <span className="text-white text-xs font-bold">W</span>
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                          <div className="text-xs font-medium text-gray-800 truncate">
+                                            {ref.title || 'Knowledge Base'}
+                                          </div>
+                                          {ref.url && (
+                                            <div className="text-xs text-gray-500 truncate">
+                                              {ref.url.replace(/^https?:\/\//, '').replace(/^www\./, '')}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  
+                                  {completionData[message.id].references!.length > 6 && (
+                                    <div className="mt-2 text-xs text-gray-500 text-center">
+                                      + {completionData[message.id].references!.length - 6} sumber lainnya
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Citations Count */}
+                              {message.id && completionData[message.id]?.citationsCount && completionData[message.id].citationsCount! > 0 && (
+                                <div className="border-t border-gray-200 pt-3">
+                                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                                    <FileText className="w-4 h-4" />
+                                    <span>{completionData[message.id].citationsCount} referensi digunakan dalam respons</span>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Enhanced Citations Display */}
+                              {message.id && completionData[message.id]?.citations && completionData[message.id].citations!.length > 0 && (
+                                <div className="border-t border-gray-200 pt-3">
+                                  <div className="flex items-center gap-2 mb-3">
+                                    <ExternalLink className="w-4 h-4 text-blue-600" />
+                                    <span className="text-sm font-medium text-gray-700">
+                                      Sitasi ({completionData[message.id].citations!.length})
+                                    </span>
+                                  </div>
+                                  
+                                  <div className="space-y-2">
+                                    {completionData[message.id].citations!.slice(0, 3).map((citation, idx) => (
+                                      <div key={citation.id || idx} className="p-3 bg-white border border-gray-200 rounded-md hover:border-blue-300 transition-colors">
+                                        <div className="flex items-start gap-3">
+                                          <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex-shrink-0 flex items-center justify-center">
+                                            <span className="text-white text-xs font-bold">{idx + 1}</span>
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <div className="text-sm font-medium text-gray-800 mb-1">
+                                              {citation.title}
+                                            </div>
+                                            <div className="text-xs text-gray-500 mb-2">
+                                              {citation.source || 'Knowledge Base'}
+                                            </div>
+                                            {citation.excerpt && (
+                                              <div className="text-xs text-gray-600 italic line-clamp-2 mb-2">
+                                                "{citation.excerpt.length > 120 ? citation.excerpt.substring(0, 120) + '...' : citation.excerpt}"
+                                              </div>
+                                            )}
+                                            {citation.url && (
+                                              <a 
+                                                href={citation.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                                              >
+                                                <ExternalLink className="w-3 h-3" />
+                                                Lihat Sumber
+                                              </a>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  
+                                  {completionData[message.id].citations!.length > 3 && (
+                                    <div className="mt-2 text-xs text-gray-500 text-center">
+                                      + {completionData[message.id].citations!.length - 3} sitasi lainnya
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Additional Metadata */}
+                              {message.id && completionData[message.id]?.metadata && Object.keys(completionData[message.id].metadata!).length > 0 && (
+                                <div className="border-t border-gray-200 pt-3">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <Info className="w-4 h-4 text-gray-600" />
+                                    <span className="text-sm font-medium text-gray-700">Informasi Tambahan</span>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-2 text-xs">
+                                    {Object.entries(completionData[message.id].metadata!).slice(0, 4).map(([key, value]) => (
+                                      <div key={key} className="flex gap-1">
+                                        <span className="font-medium text-gray-600">{key}:</span>
+                                        <span className="text-gray-700 truncate">{String(value)}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
                       <div className="text-xs text-gray-500 mt-2 px-1">
                         {message.created_at ? new Date(message.created_at * 1000).toLocaleTimeString('id-ID', { 
                           hour: '2-digit', 
