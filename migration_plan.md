@@ -7,7 +7,7 @@
 4. ✅ TipidkorChatPage.tsx - Migrated to utility
 5. ✅ ReskrimumChatPage.tsx - Migrated to utility
 
-## 🔄 **Remaining Files (14 files):**
+## 🔄 **Remaining Files (12 files):
 
 ### **Priority 1 - Active Chat Pages:**
 6. PpaPpoChatPage.tsx
@@ -18,16 +18,14 @@
 9. KUHAPChatPage.tsx
 10. ITEChatPage.tsx
 11. CiptaKerjaChatPage.tsx
-12. KesehatanChatPage.tsx
 
 ### **Priority 3 - Additional Chat Pages:**
 13. PerkabaChatPage.tsx
-14. PerbankanChatPage.tsx
-15. P2SKChatPage.tsx
-16. IndagsiChatPage.tsx
-17. FismondevChatPage.tsx
-18. EMPChatPage.tsx
-19. BantekChatPage.tsx
+14. P2SKChatPage.tsx
+15. IndagsiChatPage.tsx
+16. FismondevChatPage.tsx
+17. EMPChatPage.tsx
+18. BantekChatPage.tsx
 
 ## **Migration Pattern:**
 
@@ -72,7 +70,7 @@ dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
 ```
 
 ## **Benefits After Migration:**
-- ✅ Remove 15+ duplicate implementations
+- ✅ Remove 13+ duplicate implementations
 - ✅ Consistent markdown processing across all components
 - ✅ Advanced features (table handling, preprocessing, postprocessing)
 - ✅ Centralized configuration in one place
@@ -81,7 +79,7 @@ dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
 - ✅ Better type safety with utility functions
 
 ## **Next Steps:**
-1. Continue migration with remaining 12 files
+1. Continue migration with remaining 10 files
 2. Test each migrated component
 3. Remove unused dependencies from package.json
 4. Update documentation 

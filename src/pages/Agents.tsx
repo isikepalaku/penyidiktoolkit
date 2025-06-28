@@ -7,7 +7,6 @@ import type { ExtendedAgent, Agent } from '../types';
 import { agents } from '../data/agents';
 import { BaseAgentForm } from '../components/agent-forms/BaseAgentForm';
 import { ImageAgentForm } from '../components/agent-forms/ImageAgentForm';
-import { ImageProcessorForm, ImageProcessorFormProps } from '../components/agent-forms/ImageProcessorForm';
 import { useAgentForm } from '../hooks/useAgentForm';
 import { DotBackground } from '../components/ui/DotBackground';
 import { SentimentAnalysisCanvas } from '@/components/sentiment';
@@ -150,9 +149,7 @@ export default function Agents() {
       imagePreview
     };
 
-    switch (selectedAgentData.type) {
-      case 'image_processor':
-        return <ImageProcessorForm {...commonProps as ImageProcessorFormProps} />;
+        switch (selectedAgentData.type) {
       case 'medical_image':
         return <ImageAgentForm {...commonProps} />;
       case 'crime_trend_analyst':
@@ -170,7 +167,6 @@ export default function Agents() {
       case 'hoax_checker':
       case 'case_research':
       case 'spkt':
-      case 'modus_kejahatan':
       case 'sentiment_analyst':
       case 'tipikor_analyst':
       case 'encyclopedia_police':

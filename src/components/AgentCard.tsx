@@ -29,10 +29,8 @@ export default function AgentCard({ agent, bgColor = '', className = '', popular
         return <img src="/img/pdf.svg" alt="perkaba ai" className="h-12 w-12" />;
       case 'wassidik_chat':
         return <img src="/img/pdf.svg" alt="perkaba ai" className="h-12 w-12" />;
-      case 'emp_chat':
+            case 'emp_chat':
         return <img src="/img/pdf.svg" alt="perkaba ai" className="h-12 w-12" />;
-      case 'modus_kejahatan':
-        return <img src="/img/moduskejahatan.svg" alt="Modus Kejahatab" className="h-12 w-12" />;
       case 'image_processor':
         return <img src="/img/maps.svg" alt="Google Scholar" className="h-12 w-12" />;
       case 'medical_image':
@@ -53,9 +51,7 @@ export default function AgentCard({ agent, bgColor = '', className = '', popular
         return <img src="/img/bareskrim.svg" alt="Tipidkor ai" className="h-12 w-12" />;
       case 'tipikor_analyst':
         return <img src="/img/pngegg.png" alt="tipidkor analyst" className="h-12 w-12" />;
-      case 'ciptakerja_chat':
-        return <img src="/img/book.svg" alt="Google Scholar" className="h-12 w-12" />;
-      case 'kesehatan_chat':
+            case 'ciptakerja_chat':
         return <img src="/img/book.svg" alt="Google Scholar" className="h-12 w-12" />;
       case 'penyidik_chat':
         return <img src="/img/bareskrim.svg" alt="Tipidkor ai" className="h-12 w-12" />;
@@ -65,10 +61,8 @@ export default function AgentCard({ agent, bgColor = '', className = '', popular
         return <img src="/img/wassidik.svg" alt="Wassidik AI" className="h-12 w-12" />;
       case 'fismondev_chat':
         return <img src="/img/bareskrim.svg" alt="Fismondev AI" className="h-12 w-12" />;
-      case 'tipidter_chat':
+            case 'tipidter_chat':
         return <img src="/img/bareskrim.svg" alt="Tipidter AI" className="h-12 w-12" />;
-      case 'perbankan_chat':
-        return <img src="/img/book.svg" alt="Perbankan AI" className="h-12 w-12" />;
       case 'narkotika_chat':
         return <img src="/img/narkoba.svg" alt="Narkotika AI" className="h-12 w-12" />;
       case 'ppa_ppo_chat':

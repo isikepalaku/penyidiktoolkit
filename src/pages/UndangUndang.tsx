@@ -6,8 +6,6 @@ import UndangChatPage from '../components/ui/UndangChatPage';
 import P2SKChatPage from '../components/ui/P2SKChatPage';
 import ITEChatPage from '../components/ui/ITEChatPage';
 import CiptaKerjaChatPage from '../components/ui/CiptaKerjaChatPage';
-import KesehatanChatPage from '../components/ui/KesehatanChatPage';
-import PerbankanChatPage from '../components/ui/PerbankanChatPage';
 import KUHAPChatPage from '../components/ui/KUHAPChatPage';
 import type { ExtendedAgent } from '../types/index';
 
@@ -83,24 +81,8 @@ export default function UndangUndang() {
       type: 'ciptakerja_chat',
       status: 'on',
       fields: []
-    },
-    {
-      id: 'kesehatan_001',
-      name: 'Kesehatan AI',
-      description: 'Ahli hukum AI untuk memahami Undang-Undang Kesehatan',
-      type: 'kesehatan_chat',
-      status: 'on',
-      fields: []
-    },
-    {
-      id: 'perbankan_001',
-      name: 'Perbankan AI',
-      description: 'Ahli hukum AI untuk memahami Undang-Undang Perbankan',
-      type: 'perbankan_chat',
-      status: 'on',
-      fields: []
-    }
-  ];
+          }
+    ];
 
   const selectedAgentData = selectedAgentId
     ? agents.find((agent) => agent.id === selectedAgentId)
@@ -156,19 +138,7 @@ export default function UndangUndang() {
           <div className="fixed inset-0 z-20">
             <CiptaKerjaChatPage onBack={handleBack} />
           </div>
-        );
-      case 'kesehatan_chat':
-        return (
-          <div className="fixed inset-0 z-20">
-            <KesehatanChatPage onBack={handleBack} />
-          </div>
-        );
-      case 'perbankan_chat':
-        return (
-          <div className="fixed inset-0 z-20">
-            <PerbankanChatPage onBack={handleBack} />
-          </div>
-        );
+                );
       default:
         return null;
     }

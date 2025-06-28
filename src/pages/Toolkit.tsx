@@ -2,12 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { processAudioTranscript } from '../services/audioTranscriptService';
 import { submitMapsGeocoding } from '../services/mapsGeocodingService';
+import { submitImageProcessorAnalysis } from '../services/imageProcessorService';
 import { processPdfImage, sendChatMessage as sendPdfImageChatMessage, clearChatHistory, initializeSession } from '../services/pdfImageService';
 import { mapsGeocodingAgent } from '../data/agents/mapsGeocodingAgent';
 import { pdfImageAgent } from '../data/agents/pdfImageAgent';
+import { imageProcessorAgent } from '../data/agents/imageProcessorAgent';
 import { AudioAgentForm } from '@/components/agent-forms/AudioAgentForm';
 import { GeminiImageForm } from '@/components/agent-forms/GeminiImageForm';
 import { PdfImageAnalysisForm } from '@/components/agent-forms/PdfImageAnalysisForm';
+import { ImageProcessorForm, ImageProcessorFormProps } from '@/components/agent-forms/ImageProcessorForm';
 import ResultArtifact, { Citation } from '@/components/ResultArtifact';
 import type { FormDataValue, FormData } from '@/types';
 import type { AudioFormData } from '@/types/audio';
@@ -51,6 +54,12 @@ const toolTypes: ToolType[] = [
     icon: <div className="h-10 w-10"><img src="/img/fact-file-color-icon.svg" className="h-10 w-10" alt="PDF and Image Analysis" /></div>
   },
   {
+    id: 'geo-image-agent',
+    name: 'Geo Lokasi Gambar',
+    description: 'Menganalisis foto dan lokasi (Tahap pencarian fungsi api serta logika, masih dalam perkembangan dan belum memberikan hasil yang baik)',
+    icon: <div className="h-10 w-10"><img src="/img/maps.svg" className="h-10 w-10" alt="Geo Location Analysis" /></div>
+  },
+  {
     id: 'cdr-analysis',
     name: 'CDR Analisis',
     description: 'Toolkit untuk melakukan analisis data dengan visualisasi Graph dan AI',
@@ -81,6 +90,9 @@ export default function Toolkit() {
   const [citations, setCitations] = useState<Citation[] | undefined>(undefined);
   const [mapsGeocodingFormData, setMapsGeocodingFormData] = useState<FormData>({
     message: ''
+  });
+  const [imageProcessorFormData, setImageProcessorFormData] = useState({
+    image: null as File | null
   });
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isChatMode, setIsChatMode] = useState(false);
@@ -120,6 +132,9 @@ export default function Toolkit() {
         console.log('GeminiImageForm will handle the API call');
       } else if (selectedTool === 'maps-agent' && mapsGeocodingFormData.message && typeof mapsGeocodingFormData.message === 'string') {
         const text = await submitMapsGeocoding(mapsGeocodingFormData.message);
+        setResult(text);
+      } else if (selectedTool === 'geo-image-agent' && imageProcessorFormData.image) {
+        const text = await submitImageProcessorAnalysis(imageProcessorFormData.image);
         setResult(text);
       } else if (selectedTool === pdfImageAgent.id && pdfImageFormData.files && !isChatMode) {
         // Pastikan session diinisialisasi sebelum memproses file
@@ -162,6 +177,15 @@ export default function Toolkit() {
       }));
     } else if (selectedTool === 'maps-agent') {
       setMapsGeocodingFormData(prev => ({
+        ...prev,
+        [fieldId]: value
+      }));
+    } else if (selectedTool === 'geo-image-agent') {
+      if (fieldId === 'image' && value instanceof File) {
+        const previewUrl = URL.createObjectURL(value);
+        setImagePreview(previewUrl);
+      }
+      setImageProcessorFormData(prev => ({
         ...prev,
         [fieldId]: value
       }));
@@ -322,6 +346,7 @@ export default function Toolkit() {
                     setError(null);
                     setCitations(undefined);
                     setMapsGeocodingFormData({ message: '' });
+                    setImageProcessorFormData({ image: null });
                     setChatMessages([]);
                     setIsChatMode(false);
                     clearChatHistory();
@@ -372,6 +397,24 @@ export default function Toolkit() {
                   isProcessing={isProcessing}
                   isDisabled={!!result}
                 />
+              ) : selectedTool === 'geo-image-agent' ? (
+                <ImageProcessorForm
+                  agent={imageProcessorAgent}
+                  formData={{
+                    image_file: imageProcessorFormData.image
+                  }}
+                  onInputChange={(fieldId, value) => {
+                    if (fieldId === 'image_file') {
+                      handleInputChange('image', value);
+                    } else {
+                      handleInputChange(fieldId, value);
+                    }
+                  }}
+                  onSubmit={handleSubmit}
+                  error={error}
+                  isProcessing={isProcessing}
+                  imagePreview={imagePreview}
+                />
               ) : selectedTool === pdfImageAgent.id ? (
                 <PdfImageAnalysisForm
                   formData={pdfImageFormData}
@@ -396,6 +439,7 @@ export default function Toolkit() {
                 setResult(null);
                 setCitations(undefined);
                 setMapsGeocodingFormData({ message: '' });
+                setImageProcessorFormData({ image: null });
               }}
             />
           )}

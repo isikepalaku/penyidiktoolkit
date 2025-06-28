@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Shield, Users, Pill, User, ChevronRight } from 'lucide-react';
+import { Search, Shield, Users, User, ChevronRight } from 'lucide-react';
 import AgentCard from '@/components/AgentCard';
 import { DotBackground } from '@/components/ui/DotBackground';
 import { penyidikAiAgent } from '@/data/agents/penyidikAiAgent';
@@ -55,14 +55,6 @@ const categories = [
     icon: Users,
     color: 'from-blue-500 to-cyan-600',
     bgColor: 'from-blue-50 to-cyan-50'
-  },
-  {
-    id: 'narkotika',
-    name: 'Tindak Pidana Narkotika',
-    description: 'Penanganan khusus kasus narkotika dan obat-obatan terlarang',
-    icon: Pill,
-    color: 'from-amber-500 to-orange-600',
-    bgColor: 'from-amber-50 to-orange-50'
   },
   {
     id: 'internal',
@@ -244,7 +236,7 @@ export default function PenyidikAi() {
       status: narkotikaAgent.status,
       color: 'amber',
       icon: 'pill',
-      category: 'narkotika',
+      category: 'khusus',
       popularity: 87,
       lastUpdated: '2024-01-10'
     },
