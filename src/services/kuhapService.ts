@@ -1,6 +1,6 @@
 /**
- * KUHAP Streaming Service
- * Service untuk menangani streaming chat AI untuk bidang hukum acara pidana dengan support file upload
+ * Hukum Perdata Streaming Service
+ * Service untuk menangani streaming chat AI untuk bidang hukum perdata dengan support file upload
  * Menggunakan AGNO streaming API dengan real-time response dan mixed mode untuk file upload
  */
 
@@ -18,7 +18,7 @@ const API_KEY = import.meta.env.VITE_API_KEY;
 
 const FETCH_TIMEOUT = 1800000; // 30 menit untuk file besar
 const API_BASE_URL = env.apiUrl || 'https://api.reserse.id';
-const AGENT_ID = 'kuhap-chat';
+const AGENT_ID = 'ahli-hukum-perdata';
 
 // Store session ID
 let currentSessionId: string | null = null;
@@ -123,18 +123,18 @@ function parseStreamBuffer(buffer: string, onChunk: (chunk: RunResponse) => void
 
 const parseResponse = async (response: Response) => {
   const text = await response.text();
-  console.log('🔍 KUHAP: Raw response text:', text.substring(0, 200) + '...');
+  console.log('🔍 HUKUM PERDATA: Raw response text:', text.substring(0, 200) + '...');
   
   try {
     // First try to parse as JSON
     const parsed = JSON.parse(text);
-    console.log('🔍 KUHAP: Parsed JSON response:', parsed);
+    console.log('🔍 HUKUM PERDATA: Parsed JSON response:', parsed);
     
     // If response contains a 'response' field with RunResponse format, extract content
     if (parsed.response && typeof parsed.response === 'string') {
       const runResponseContent = extractContentFromRunResponse(parsed.response);
       if (runResponseContent) {
-        console.log('🔍 KUHAP: Extracted content from RunResponse:', runResponseContent.substring(0, 100) + '...');
+        console.log('🔍 HUKUM PERDATA: Extracted content from RunResponse:', runResponseContent.substring(0, 100) + '...');
         return { content: runResponseContent, ...parsed };
       }
     }
@@ -142,13 +142,13 @@ const parseResponse = async (response: Response) => {
     return parsed;
   } catch (error) {
     // If JSON parsing fails, handle text response
-    console.log('🔍 KUHAP: Response is not JSON, processing as text:', text.substring(0, 100) + '...');
+    console.log('🔍 HUKUM PERDATA: Response is not JSON, processing as text:', text.substring(0, 100) + '...');
     console.error('JSON parse error:', error);
     
     // Try to extract content from RunResponse format directly
     const runResponseContent = extractContentFromRunResponse(text);
     if (runResponseContent) {
-      console.log('🔍 KUHAP: Extracted content from text RunResponse:', runResponseContent.substring(0, 100) + '...');
+      console.log('🔍 HUKUM PERDATA: Extracted content from text RunResponse:', runResponseContent.substring(0, 100) + '...');
       return { content: runResponseContent };
     }
     
@@ -175,7 +175,7 @@ const extractContentFromRunResponse = (runResponseStr: string): string | null =>
     if (contentMatch && contentMatch[1]) {
       // Unescape any escaped quotes
       const content = contentMatch[1].replace(/\\'/g, "'");
-      console.log('🔍 KUHAP: Content extraction successful, length:', content.length);
+      console.log('🔍 HUKUM PERDATA: Content extraction successful, length:', content.length);
       return content;
     }
     
@@ -183,14 +183,14 @@ const extractContentFromRunResponse = (runResponseStr: string): string | null =>
     const doubleQuoteMatch = runResponseStr.match(/content="([^"]*(?:\\"[^"]*)*)"/);
     if (doubleQuoteMatch && doubleQuoteMatch[1]) {
       const content = doubleQuoteMatch[1].replace(/\\"/g, '"');
-      console.log('🔍 KUHAP: Content extraction (double quotes) successful, length:', content.length);
+      console.log('🔍 HUKUM PERDATA: Content extraction (double quotes) successful, length:', content.length);
       return content;
     }
     
-    console.warn('🔍 KUHAP: Could not extract content from RunResponse format');
+    console.warn('🔍 HUKUM PERDATA: Could not extract content from RunResponse format');
     return null;
   } catch (error) {
-    console.error('🔍 KUHAP: Error extracting content from RunResponse:', error);
+    console.error('🔍 HUKUM PERDATA: Error extracting content from RunResponse:', error);
     return null;
   }
 };
@@ -224,18 +224,18 @@ export const initializeStreamingSession = async () => {
   // Jika pengguna login, gunakan Supabase user ID
   if (session?.user?.id) {
     currentUserId = session.user.id;
-    console.log('KUHAP STREAMING: Using authenticated user ID:', currentUserId);
+    console.log('HUKUM PERDATA STREAMING: Using authenticated user ID:', currentUserId);
   } 
   // Jika tidak ada session Supabase, gunakan UUID
   else if (!currentUserId) {
     currentUserId = `anon_${uuidv4()}`;
-    console.log('KUHAP STREAMING: Created new anonymous user ID:', currentUserId);
+    console.log('HUKUM PERDATA STREAMING: Created new anonymous user ID:', currentUserId);
   }
   
   // Buat session ID baru untuk percakapan jika belum ada
   if (!currentSessionId) {
     currentSessionId = `session_${uuidv4()}`;
-    console.log('KUHAP STREAMING: Created new session ID:', currentSessionId);
+    console.log('HUKUM PERDATA STREAMING: Created new session ID:', currentSessionId);
   }
 };
 
@@ -255,16 +255,16 @@ export const clearStreamingChatHistory = () => {
     // 2. Clear messages for the current session from localStorage
     if (sessionId && typeof window !== 'undefined' && window.localStorage) {
       localStorage.removeItem(`wassidik_session_${sessionId}`);
-      console.log(`🗑️ KUHAP: Removed session ${sessionId} from localStorage.`);
+      console.log(`🗑️ HUKUM PERDATA: Removed session ${sessionId} from localStorage.`);
     }
 
     // 3. Clear messages and reset status in the Zustand store
     setMessages([]);
     resetStreamingStatus();
 
-    console.log('♻️ KUHAP: Chat history cleared and streaming status reset.');
+    console.log('♻️ HUKUM PERDATA: Chat history cleared and streaming status reset.');
   } catch (error) {
-    console.error('❌ KUHAP: Error clearing chat history:', error);
+    console.error('❌ HUKUM PERDATA: Error clearing chat history:', error);
   }
 };
 
@@ -453,11 +453,11 @@ export const sendStreamingChatMessage = async (
         };
 
         // Emit events with delay for smooth UX
-        console.log('🔄 KUHAP: About to emit synthetic events for file upload');
+        console.log('🔄 HUKUM PERDATA: About to emit synthetic events for file upload');
         console.log('🔄 onEvent callback provided:', typeof onEvent);
         
         setTimeout(() => {
-          console.log('📤 KUHAP: Emitting RunStarted event');
+          console.log('📤 HUKUM PERDATA: Emitting RunStarted event');
           emitStreamEvent(runStartedEvent);
           if (onEvent) {
             console.log('📤 Calling onEvent with RunStarted');
@@ -466,7 +466,7 @@ export const sendStreamingChatMessage = async (
         }, 100);
         
         setTimeout(() => {
-          console.log('📤 KUHAP: Emitting RunResponse event with content:', runResponseEvent.content?.substring(0, 50) + '...');
+          console.log('📤 HUKUM PERDATA: Emitting RunResponse event with content:', runResponseEvent.content?.substring(0, 50) + '...');
           emitStreamEvent(runResponseEvent);
           if (onEvent) {
             console.log('📤 Calling onEvent with RunResponse');
@@ -475,7 +475,7 @@ export const sendStreamingChatMessage = async (
         }, 200);
         
         setTimeout(() => {
-          console.log('📤 KUHAP: Emitting RunCompleted event');
+          console.log('📤 HUKUM PERDATA: Emitting RunCompleted event');
           emitStreamEvent(runCompletedEvent);
           if (onEvent) {
             console.log('📤 Calling onEvent with RunCompleted');
@@ -521,7 +521,7 @@ export const sendStreamingChatMessage = async (
 
             // Parse complete JSON objects from buffer
             buffer = parseStreamBuffer(buffer, (parsedChunk: RunResponse) => {
-              console.log('📡 KUHAP: Streaming chunk received:', {
+              console.log('📡 HUKUM PERDATA: Streaming chunk received:', {
                 event: parsedChunk.event,
                 content_preview: typeof parsedChunk.content === 'string' 
                   ? parsedChunk.content.substring(0, 50)

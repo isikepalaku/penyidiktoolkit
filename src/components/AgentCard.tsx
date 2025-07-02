@@ -42,7 +42,7 @@ export default function AgentCard({ agent, bgColor = '', className = '', popular
       case 'kuhp_chat':
         return <img src="/img/ahli.svg" alt="Ahli Pidana" className="h-12 w-12" />;
       case 'kuhap_chat':
-        return <img src="/img/book.svg" alt="KUHAP AI" className="h-12 w-12" />;
+        return <img src="/img/perdata.png" alt="Hukum Perdata AI" className="h-12 w-12" />;
       case 'ite_chat':
         return <img src="/img/book.svg" alt="Google Scholar" className="h-12 w-12" />;
       case 'sentiment_analyst':

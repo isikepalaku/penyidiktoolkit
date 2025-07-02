@@ -6,7 +6,7 @@ import UndangChatPage from '../components/ui/UndangChatPage';
 import P2SKChatPage from '../components/ui/P2SKChatPage';
 import ITEChatPage from '../components/ui/ITEChatPage';
 import CiptaKerjaChatPage from '../components/ui/CiptaKerjaChatPage';
-import KUHAPChatPage from '../components/ui/KUHAPChatPage';
+import HukumPerdataChatPage from '../components/ui/KUHAPChatPage';
 import type { ExtendedAgent } from '../types/index';
 
 export default function UndangUndang() {
@@ -52,8 +52,8 @@ export default function UndangUndang() {
     },
     {
       id: 'kuhap_001',
-      name: 'KUHAP AI',
-      description: 'Ahli hukum AI untuk memahami Kitab Undang-Undang Hukum Acara Pidana (KUHAP)',
+      name: 'Hukum Perdata AI',
+      description: 'Ahli hukum AI untuk memahami konsep-konsep hukum perdata dan civil law',
       type: 'kuhap_chat',
       status: 'on',
       fields: []
@@ -112,7 +112,7 @@ export default function UndangUndang() {
       case 'kuhap_chat':
         return (
           <div className="fixed inset-0 z-20">
-            <KUHAPChatPage onBack={handleBack} />
+            <HukumPerdataChatPage onBack={handleBack} />
           </div>
         );
       case 'p2sk_chat':

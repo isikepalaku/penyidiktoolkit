@@ -17,12 +17,14 @@ import {
   getProseClasses 
 } from '@/styles/chatStyles';
 
-// Constants for KUHAP
-const KUHAP_EXAMPLE_QUESTIONS = [
-  "Jelaskan tentang proses penyidikan dalam KUHAP",
-  "Apa saja hak tersangka dalam proses hukum acara pidana?",
-  "Bagaimana prosedur penangkapan menurut KUHAP?",
-  "Kapan seorang tersangka dapat mengajukan praperadilan?"
+// Constants for Hukum Perdata
+const HUKUM_PERDATA_EXAMPLE_QUESTIONS = [
+  "Bagaimana cara membuat kontrak yang sah secara hukum?",
+  "Apa yang harus dilakukan jika pihak lain tidak memenuhi perjanjian?",
+  "Bagaimana cara menuntut ganti rugi dalam sengketa perdata?",
+  "Apa perbedaan antara hak milik dan hak sewa dalam properti?",
+  "Kapan seseorang dapat dimintai pertanggungjawaban atas kerugian?",
+  "Bagaimana prosedur penyelesaian sengketa di luar pengadilan?"
 ];
 
 // Supported file types - limited to TXT, PDF, and Images only
@@ -43,7 +45,7 @@ const SUPPORTED_MIME_TYPES = [
   'image/webp'
 ];
 
-interface KUHAPChatPageProps {
+interface HukumPerdataChatPageProps {
   onBack?: () => void;
 }
 
@@ -90,7 +92,7 @@ const formatFileSize = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
-const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
+const HukumPerdataChatPage: React.FC<HukumPerdataChatPageProps> = ({ onBack }) => {
   // Use modern streaming hooks and store
   const { 
     messages, 
@@ -124,7 +126,7 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
   // Effect untuk inisialisasi session sekali saat komponen di-mount
   useEffect(() => {
     if (isSessionInitialized.current) {
-      console.log('KUHAP session already initialized, skipping');
+      console.log('Hukum Perdata session already initialized, skipping');
       return;
     }
 
@@ -132,14 +134,14 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
       // Clear any existing messages from other agents untuk proper isolation
       setMessages([]);
       resetStreamingStatus();
-      console.log('🧹 KUHAP: Cleared existing messages from store');
+      console.log('🧹 HUKUM PERDATA: Cleared existing messages from store');
       
-      // Initialize KUHAP session
+      // Initialize Hukum Perdata session
       initializeStreamingSession();
       isSessionInitialized.current = true;
-      console.log('KUHAP session initialized successfully');
+      console.log('Hukum Perdata session initialized successfully');
     } catch (error) {
-      console.error('Error initializing KUHAP session:', error);
+      console.error('Error initializing Hukum Perdata session:', error);
     }
   }, [setMessages, resetStreamingStatus]);
 
@@ -309,12 +311,12 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
     const storageStats = getStorageStats();
     
     return (
-      <div className="bg-sky-50 border-l-4 border-sky-500 p-4 m-4 shadow-sm rounded-md" key={storageStatsKey}>
+      <div className="bg-green-50 border-l-4 border-green-500 p-4 m-4 shadow-sm rounded-md" key={storageStatsKey}>
         <div className="flex">
-          <Database className="h-5 w-5 text-sky-500" />
+          <Database className="h-5 w-5 text-green-500" />
           <div className="ml-3 flex-1">
-            <h3 className="text-sm font-medium text-sky-800">Statistik Penyimpanan</h3>
-            <div className="mt-2 text-sm text-sky-700 space-y-2">
+            <h3 className="text-sm font-medium text-green-800">Statistik Penyimpanan</h3>
+            <div className="mt-2 text-sm text-green-700 space-y-2">
               <div className="flex justify-between">
                 <span>Penggunaan Storage:</span>
                 <span className="font-medium">{storageStats.usage} / {storageStats.limit}</span>
@@ -333,7 +335,7 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
                 <div 
                   className={`h-2 rounded-full transition-all duration-300 ${
                     storageStats.percentage > 80 ? 'bg-red-500' : 
-                    storageStats.percentage > 60 ? 'bg-yellow-500' : 'bg-sky-500'
+                    storageStats.percentage > 60 ? 'bg-yellow-500' : 'bg-green-500'
                   }`}
                   style={{ width: `${Math.min(storageStats.percentage, 100)}%` }}
                 />
@@ -352,7 +354,7 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
               className={`mt-3 inline-flex items-center gap-1 text-xs font-medium transition-colors ${
                 isCleaningStorage 
                   ? 'text-gray-400 cursor-not-allowed' 
-                  : 'text-sky-600 hover:text-sky-800'
+                  : 'text-green-600 hover:text-green-800'
               }`}
               title={isCleaningStorage ? "Sedang membersihkan..." : "Hapus data lama dan sesi yang tidak digunakan"}
             >
@@ -405,7 +407,7 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
     try {
       // Log file sizes jika ada
       if (selectedFiles.length > 0) {
-        console.log('📁 KUHAP: Uploading files:');
+        console.log('📁 HUKUM PERDATA: Uploading files:');
         selectedFiles.forEach((file, index) => {
           console.log(`File ${index + 1}: ${file.name} - ${(file.size / 1024 / 1024).toFixed(2)}MB`);
         });
@@ -415,7 +417,7 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
       await handleStreamResponse(
         userMessageContent,
         selectedFiles.length > 0 ? selectedFiles : undefined,
-        'kuhap-chat' // Agent ID for KUHAP
+        'ahli-hukum-perdata' // Agent ID for Hukum Perdata
       );
 
       // Reset selected files setelah berhasil mengirim
@@ -440,7 +442,7 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
       // Inisialisasi sesi baru untuk memulai dari awal
       initializeStreamingSession();
       
-      console.log('♻️ KUHAP: Chat reset completed and new session initialized.');
+      console.log('♻️ HUKUM PERDATA: Chat reset completed and new session initialized.');
     } catch (error) {
       console.error('❌ Error resetting chat:', error);
       alert('❌ Terjadi error saat mereset chat. Silakan coba lagi.');
@@ -476,16 +478,16 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
             <ArrowLeft className="w-5 h-5 text-gray-700" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center w-9 h-9 bg-sky-100 rounded-full">
+            <div className="flex items-center justify-center w-9 h-9 bg-green-100 rounded-full">
               <img 
-                src="/img/krimsus.png"
-                alt="KUHAP"
+                src="/img/perdata.png"
+                alt="Hukum Perdata"
                 className="w-7 h-7 object-contain"
               />
             </div>
             <div>
-              <h1 className="font-semibold text-gray-900">KUHAP AI</h1>
-              <p className="text-xs text-gray-500">Kitab Undang-Undang Hukum Acara Pidana</p>
+              <h1 className="font-semibold text-gray-900">Hukum Perdata AI</h1>
+              <p className="text-xs text-gray-500">Asisten Ahli Hukum Perdata</p>
             </div>
           </div>
         </div>
@@ -527,7 +529,7 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
       {showInfo && (
         <div className="relative p-4 bg-gray-50 border-b border-gray-200 z-10">
           <div className="flex justify-between items-start">
-            <h2 className="text-sm font-medium text-gray-800">Tentang KUHAP AI</h2>
+            <h2 className="text-sm font-medium text-gray-800">Tentang Hukum Perdata AI</h2>
             <button
               onClick={() => setShowInfo(false)}
               className="text-gray-500 hover:text-gray-700"
@@ -537,8 +539,8 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
             </button>
           </div>
           <p className="mt-1 text-xs text-gray-700">
-            KUHAP AI adalah asisten berbasis kecerdasan buatan untuk membantu memahami Kitab Undang-Undang Hukum Acara Pidana (KUHAP). 
-            Asisten ini dapat membantu menjawab pertanyaan umum dan memberikan informasi tentang prosedur peradilan pidana, hak-hak tersangka, proses penyidikan, dan ketentuan-ketentuan hukum acara pidana lainnya. 
+            Hukum Perdata AI adalah asisten berbasis kecerdasan buatan untuk membantu memahami konsep-konsep hukum perdata. 
+            Asisten ini dapat membantu menjawab pertanyaan umum tentang kontrak, wanprestasi, perbuatan melawan hukum, harta benda, dan berbagai aspek hukum perdata lainnya. 
             Informasi yang diberikan bersifat umum dan sebaiknya dikonfirmasi dengan sumber resmi atau konsultasi dengan ahli hukum yang berkualifikasi.
           </p>
         </div>
@@ -574,23 +576,23 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
           {/* Welcome Message */}
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-4">
-              <div className="w-20 h-20 bg-sky-100 rounded-full flex items-center justify-center mb-4">
+              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
                 <img 
-                  src="/img/krimsus.png"
-                  alt="KUHAP"
+                  src="/img/perdata.png"
+                  alt="Hukum Perdata"
                   className="w-16 h-16 object-contain"
                 />
               </div>
-              <h1 className="text-4xl font-bold text-sky-600 mb-4">KUHAP AI</h1>
+              <h1 className="text-4xl font-bold text-green-600 mb-4">Hukum Perdata AI</h1>
               <p className="text-gray-600 max-w-md mb-6">
-                Asisten untuk membantu Anda dengan pertanyaan seputar Kitab Undang-Undang Hukum Acara Pidana.
+                Asisten untuk membantu Anda dengan pertanyaan seputar hukum perdata dan konsep-konsep terkait.
               </p>
               
               {/* Example Questions */}
               <div className="w-full max-w-2xl">
                 <p className="text-sm text-gray-500 mb-3">Contoh pertanyaan yang dapat Anda ajukan:</p>
                 <div className="grid gap-2">
-                  {KUHAP_EXAMPLE_QUESTIONS.map((question, index) => (
+                  {HUKUM_PERDATA_EXAMPLE_QUESTIONS.map((question, index) => (
                     <button
                       key={index}
                       onClick={() => handleSelectQuestion(question)}
@@ -634,10 +636,10 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
                         {message.attachments && message.attachments.length > 0 && (
                           <div className="mt-2 space-y-1">
                             {message.attachments.map((file, fileIndex) => (
-                              <div key={fileIndex} className="flex items-center gap-2 text-xs text-sky-700 bg-sky-50 rounded p-2">
+                              <div key={fileIndex} className="flex items-center gap-2 text-xs text-green-700 bg-green-50 rounded p-2">
                                 <File className="w-3 h-3 flex-shrink-0" />
                                 <span className="truncate">{file.name}</span>
-                                <span className="text-sky-500">({formatFileSize(file.size)})</span>
+                                <span className="text-green-500">({formatFileSize(file.size)})</span>
                               </div>
                             ))}
                           </div>
@@ -649,10 +651,10 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
                     <div className="flex justify-start">
                       <div className="flex gap-3 max-w-[85%]">
                         <div className="flex-shrink-0">
-                          <div className="rounded-full flex items-center justify-center shadow-sm w-8 h-8" style={{ backgroundColor: '#f3f4f6' }}>
+                          <div className="rounded-full flex items-center justify-center shadow-sm w-8 h-8" style={{ backgroundColor: '#f0fdf4' }}>
                             <img 
-                              src="/img/krimsus.png"
-                              alt="KUHAP"
+                              src="/img/perdata.png"
+                              alt="Hukum Perdata"
                               className="w-6 h-6 object-contain"
                             />
                           </div>
@@ -728,17 +730,17 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
               </div>
               <div className="flex flex-wrap gap-2">
                 {selectedFiles.map((file, index) => (
-                  <div key={index} className="bg-sky-50 border border-sky-200 rounded-lg px-3 py-2 flex items-center gap-2">
-                    <File className="w-4 h-4 text-sky-600 flex-shrink-0" />
+                  <div key={index} className="bg-green-50 border border-green-200 rounded-lg px-3 py-2 flex items-center gap-2">
+                    <File className="w-4 h-4 text-green-600 flex-shrink-0" />
                     <div className="flex flex-col min-w-0 flex-1">
-                      <span className="text-sm font-medium text-sky-900 truncate">{file.name}</span>
-                      <span className="text-xs text-sky-600">
+                      <span className="text-sm font-medium text-green-900 truncate">{file.name}</span>
+                      <span className="text-xs text-green-600">
                         {formatFileSize(file.size)} • {file.type || 'Unknown type'}
                       </span>
                     </div>
                     <button
                       onClick={() => handleRemoveFile(index)}
-                      className="text-sky-400 hover:text-sky-600 flex-shrink-0"
+                      className="text-green-400 hover:text-green-600 flex-shrink-0"
                       aria-label="Hapus file"
                     >
                       <XIcon className="w-4 h-4" />
@@ -750,13 +752,13 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
           )}
 
           {/* Modern input container with border and shadow */}
-          <div className="relative flex w-full cursor-text flex-col rounded-xl border border-gray-300 px-4 py-3 duration-150 ease-in-out shadow-sm focus-within:border-sky-500 focus-within:ring-1 focus-within:ring-sky-500 bg-white">
+          <div className="relative flex w-full cursor-text flex-col rounded-xl border border-gray-300 px-4 py-3 duration-150 ease-in-out shadow-sm focus-within:border-green-500 focus-within:ring-1 focus-within:ring-green-500 bg-white">
             {/* File upload button inside input */}
             <button
               type="button"
               onClick={handleOpenFileDialog}
               disabled={isLoading}
-              className="absolute left-3 bottom-3 p-2 rounded-lg text-gray-400 hover:text-sky-500 hover:bg-sky-50 transition-colors z-20"
+              className="absolute left-3 bottom-3 p-2 rounded-lg text-gray-400 hover:text-green-500 hover:bg-green-50 transition-colors z-20"
               aria-label="Upload file"
             >
               <Paperclip className="w-4 h-4" />
@@ -791,7 +793,7 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
               className={`absolute right-3 bottom-3 p-2.5 rounded-lg flex items-center justify-center transition-colors ${
                 (!inputMessage.trim() && selectedFiles.length === 0) || isLoading
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-sky-600 text-white hover:bg-sky-700'
+                  : 'bg-green-600 text-white hover:bg-green-700'
               }`}
               aria-label="Kirim pesan"
             >
@@ -809,7 +811,7 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
               Tekan Enter untuk mengirim, Shift+Enter untuk baris baru
             </p>
             <p className="text-xs text-center text-gray-500">
-              KUHAP AI memberikan informasi umum dan tidak bisa menggantikan nasihat hukum profesional.
+              Hukum Perdata AI memberikan informasi umum dan tidak bisa menggantikan nasihat hukum profesional.
             </p>
           </div>
         </div>
@@ -818,4 +820,4 @@ const KUHAPChatPage: React.FC<KUHAPChatPageProps> = ({ onBack }) => {
   );
 };
 
-export default KUHAPChatPage; 
+export default HukumPerdataChatPage; 
