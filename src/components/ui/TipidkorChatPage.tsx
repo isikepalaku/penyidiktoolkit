@@ -7,12 +7,13 @@ import { Textarea } from './textarea';
 import { DotBackground } from './DotBackground';
 
 import { formatMessage } from '@/utils/markdownFormatter';
-import useAIChatStreamHandler from '@/hooks/playground/useAIChatStreamHandler';
+import { RunEvent } from '@/types/playground';
 import { usePlaygroundStore } from '@/stores/PlaygroundStore';
 import StreamingStatus from '@/hooks/streaming/StreamingStatus';
 import { 
   clearTipidkorStreamingChatHistory,
-  initializeTipidkorStreamingSession
+  initializeTipidkorStreamingSession,
+  sendTipidkorStreamingChatMessage
 } from '@/services/tipidkorStreamingService';
 import { getStorageStats, forceCleanup } from '@/stores/PlaygroundStore';
 import { 
@@ -23,18 +24,13 @@ import {
   getSendButtonClasses 
 } from '@/styles/chatStyles';
 
-
-
-
-
 interface TipidkorChatPageProps {
   onBack?: () => void;
 }
 
 const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
   // Use streaming hooks and store
-  const { handleStreamResponse } = useAIChatStreamHandler();
-  const { messages, isStreaming: isLoading, streamingStatus, currentChunk } = usePlaygroundStore();
+  const { messages, isStreaming: isLoading, streamingStatus, currentChunk, addMessage, setIsStreaming, setStreamingStatus } = usePlaygroundStore();
   
   const [inputMessage, setInputMessage] = useState('');
   const [copied, setCopied] = useState<string | null>(null);
@@ -136,12 +132,6 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
       setStorageStats(stats);
     }
   }, [showStorageInfo]);
-
-  // Setup progress tracking (simplified for streaming)
-  useEffect(() => {
-    // Progress tracking akan dihandle internal oleh streaming hooks
-    // Hanya perlu setup state untuk UI feedback
-  }, []);
 
   // Auto-scroll to latest message (but don't interfere with streaming focus)
   useEffect(() => {
@@ -274,10 +264,195 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
         message_length: trimmedMessage.length
       });
 
-      // Use streaming handler with tipidkor agent_id
-      await handleStreamResponse(trimmedMessage, [], 'tipidkor-chat');
+      // Add user message to store
+      const userMessage = {
+        id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        role: 'user' as const,
+        content: trimmedMessage,
+        created_at: Math.floor(Date.now() / 1000)
+      };
+      addMessage(userMessage);
+      
+      // Add initial agent message
+      const agentMessage = {
+        id: `msg_${Date.now() + 1}_${Math.random().toString(36).substr(2, 9)}`,
+        role: 'agent' as const,
+        content: '',
+        created_at: Math.floor(Date.now() / 1000)
+      };
+      addMessage(agentMessage);
+      
+      // Set streaming state
+      setIsStreaming(true);
+      setStreamingStatus({ isThinking: true });
+
+      // Use TIPIDKOR streaming service
+      console.log('🚀 TIPIDKOR: About to call sendTipidkorStreamingChatMessage');
+      
+      const result = await sendTipidkorStreamingChatMessage(
+        trimmedMessage,
+        (event) => {
+          // Handle streaming events
+          console.log('🎯 TIPIDKOR streaming event received:', {
+            event: event.event,
+            contentType: typeof event.content,
+            contentLength: typeof event.content === 'string' ? event.content.length : 'non-string',
+            contentPreview: typeof event.content === 'string' ? event.content.substring(0, 100) + '...' : event.content,
+            sessionId: event.session_id
+          });
+          
+          const { setMessages } = usePlaygroundStore.getState();
+          
+          // Handle different event types
+          switch (event.event) {
+            case RunEvent.RunStarted:
+              console.log('🚀 TIPIDKOR: Run started');
+              setStreamingStatus({ 
+                isThinking: true,
+                isCallingTool: false,
+                isMemoryUpdateStarted: false,
+                hasCompleted: false
+              });
+              break;
+              
+            case RunEvent.RunResponse:
+              // Accumulate content incrementally
+              if (event.content && typeof event.content === 'string') {
+                setMessages(prev => {
+                  const newMessages = [...prev];
+                  const lastAgentMessage = newMessages[newMessages.length - 1];
+                  if (lastAgentMessage && lastAgentMessage.role === 'agent') {
+                    // Append new content to existing content
+                    lastAgentMessage.content = (lastAgentMessage.content || '') + event.content;
+                  }
+                  return newMessages;
+                });
+              }
+              break;
+              
+            case RunEvent.ToolCallStarted:
+              console.log('🔧 TIPIDKOR: Tool call started');
+              setStreamingStatus({ 
+                isThinking: false, 
+                isCallingTool: true,
+                isMemoryUpdateStarted: false
+              });
+              break;
+              
+            case RunEvent.ToolCallCompleted:
+              console.log('✅ TIPIDKOR: Tool call completed');
+              setStreamingStatus({ 
+                isCallingTool: false 
+              });
+              break;
+              
+            case RunEvent.UpdatingMemory:
+            case RunEvent.MemoryUpdateStarted:
+              console.log('💾 TIPIDKOR: Memory update started');
+              setStreamingStatus({ 
+                isThinking: false,
+                isCallingTool: false,
+                isMemoryUpdateStarted: true 
+              });
+              break;
+              
+            case RunEvent.RunCompleted:
+              console.log('🏁 TIPIDKOR: Run completed with content:', {
+                hasContent: !!event.content,
+                contentType: typeof event.content,
+                contentLength: typeof event.content === 'string' ? event.content.length : 0,
+                contentPreview: typeof event.content === 'string' ? event.content.substring(0, 100) + '...' : event.content
+              });
+              
+              // Update final content if provided
+              if (event.content && typeof event.content === 'string' && event.content.trim()) {
+                setMessages(prev => {
+                  const newMessages = [...prev];
+                  const lastAgentMessage = newMessages[newMessages.length - 1];
+                  if (lastAgentMessage && lastAgentMessage.role === 'agent') {
+                    // Set final content or update if final content is longer/better
+                    if (!lastAgentMessage.content || lastAgentMessage.content.length < event.content.length) {
+                      lastAgentMessage.content = event.content as string;
+                      console.log('🏁 TIPIDKOR: Updated with final content from RunCompleted');
+                    }
+                  }
+                  return newMessages;
+                });
+              }
+              
+              // Final check: ensure we have some content after completion
+              setMessages(prev => {
+                const newMessages = [...prev];
+                const lastAgentMessage = newMessages[newMessages.length - 1];
+                if (lastAgentMessage && lastAgentMessage.role === 'agent') {
+                  if (!lastAgentMessage.content || lastAgentMessage.content.trim() === '') {
+                    lastAgentMessage.content = 'Tidak ada konten yang diterima. Silakan coba lagi.';
+                    console.warn('TIPIDKOR: No content found after completion, showing fallback message');
+                  }
+                }
+                return newMessages;
+              });
+              
+              setStreamingStatus({ 
+                hasCompleted: true,
+                isThinking: false,
+                isCallingTool: false,
+                isMemoryUpdateStarted: false
+              });
+              setIsStreaming(false);
+              break;
+              
+            case RunEvent.RunError:
+              console.error('❌ TIPIDKOR: Run error:', event.content);
+              
+              setMessages(prev => {
+                const newMessages = [...prev];
+                const lastAgentMessage = newMessages[newMessages.length - 1];
+                if (lastAgentMessage && lastAgentMessage.role === 'agent') {
+                  lastAgentMessage.content = `❌ Error: ${event.content || 'Unknown error occurred'}`;
+                }
+                return newMessages;
+              });
+              setIsStreaming(false);
+              setStreamingStatus({ 
+                hasCompleted: true,
+                isThinking: false,
+                isCallingTool: false,
+                isMemoryUpdateStarted: false
+              });
+              break;
+              
+            default:
+              console.log('TIPIDKOR: Unknown event type:', event.event);
+              break;
+          }
+        }
+      );
+      
+      console.log('📊 TIPIDKOR: sendTipidkorStreamingChatMessage completed with result:', result);
+      
     } catch (error) {
       console.error('Error sending TIPIDKOR message:', error);
+      
+      // Ensure loading state is cleared on error
+      setIsStreaming(false);
+      setStreamingStatus({ 
+        hasCompleted: true,
+        isThinking: false,
+        isCallingTool: false,
+        isMemoryUpdateStarted: false
+      });
+      
+      // Show error message
+      const { setMessages } = usePlaygroundStore.getState();
+      setMessages(prev => {
+        const newMessages = [...prev];
+        const lastAgentMessage = newMessages[newMessages.length - 1];
+        if (lastAgentMessage && lastAgentMessage.role === 'agent') {
+          lastAgentMessage.content = `❌ Error: ${error instanceof Error ? error.message : 'Terjadi kesalahan saat mengirim pesan'}`;
+        }
+        return newMessages;
+      });
     } finally {
       // Focus the textarea after sending (but streaming focus will take over during processing)
       setTimeout(() => {
@@ -311,8 +486,9 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
         console.log('TIPIDKOR session reinitialized with fresh session_id but same user_id');
         
         // Clear messages using store
-        const { setMessages } = usePlaygroundStore.getState();
+        const { setMessages, resetStreamingStatus } = usePlaygroundStore.getState();
         setMessages([]);
+        resetStreamingStatus();
       } catch (error) {
         console.error('Error resetting TIPIDKOR chat:', error);
       }
@@ -486,10 +662,9 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
                     <div className={cn("max-w-[80%]", message.role === 'user' ? "order-first" : "")}>
                       <div
                         className={cn(
-                          "px-4 py-3 rounded-xl break-words",
                           message.role === 'user'
-                            ? 'bg-gray-100 text-gray-900 ml-auto'
-                            : 'bg-white border border-gray-200 text-gray-900'
+                            ? getUserMessageClasses()
+                            : getAgentMessageClasses()
                         )}
                       >
                         {message.role === 'agent' ? (
@@ -512,19 +687,7 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
                             
                             {message.content ? (
                               <div 
-                                className="prose prose-sm max-w-none
-                                          prose-headings:font-semibold prose-headings:text-gray-900 prose-headings:my-3
-                                          prose-h1:text-lg prose-h2:text-base prose-h3:text-sm
-                                          prose-p:my-2 prose-p:text-gray-800 prose-p:leading-relaxed
-                                          prose-ul:my-2 prose-ol:my-2 prose-li:my-1
-                                          prose-strong:font-semibold prose-strong:text-gray-900
-                                          prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline
-                                          prose-code:bg-gray-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm
-                                          [&_table]:w-full [&_table]:my-4 [&_table]:border-collapse
-                                          [&_th]:border-b [&_th]:border-gray-200 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-semibold [&_th]:text-gray-900 [&_th]:bg-gray-50
-                                          [&_td]:border-b [&_td]:border-gray-100 [&_td]:px-3 [&_td]:py-2 [&_td]:text-gray-800 [&_td]:align-top
-                                          [&_td]:break-words [&_td]:max-w-[300px]
-                                          [&_tr:last-child_td]:border-b-0"
+                                className={getProseClasses()}
                                 dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
                               />
                             ) : (
@@ -587,7 +750,7 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
               value={inputMessage}
               onChange={handleInputChange}
               placeholder="Ketik pesan..."
-              className="resize-none pr-14 py-3 pl-4 max-h-[200px] rounded-xl border-gray-300 focus:border-gray-500 focus:ring-gray-500 shadow-sm overflow-y-auto"
+              className={`resize-none pr-14 py-3 pl-4 max-h-[200px] rounded-xl ${chatStyles.input.border} ${chatStyles.input.focus} shadow-sm overflow-y-auto`}
               disabled={isLoading}
               data-chat-input="true"
             />
@@ -595,12 +758,7 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
             <Button
               onClick={handleSendMessage}
               disabled={isLoading || !inputMessage.trim()}
-              className={cn(
-                "absolute right-2 bottom-3 p-2 rounded-lg",
-                isLoading || !inputMessage.trim()
-                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                  : "bg-red-600 text-white hover:bg-red-700"
-              )}
+              className={getSendButtonClasses(isLoading || !inputMessage.trim())}
               aria-label="Kirim pesan"
             >
               {isLoading ? (
