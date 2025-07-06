@@ -97,7 +97,7 @@ export default function AdminPanel() {
         
         // Menggunakan Supabase RPC untuk memeriksa admin
         const { data, error } = await supabase.rpc('is_admin', {
-          user_id: currentUser.id
+          p_user_id: currentUser.id
         });
         
         console.log("RPC is_admin raw response:", { data, error });
@@ -288,7 +288,7 @@ export default function AdminPanel() {
       // PENDEKATAN 1: Gunakan fungsi SQL baru
       console.log("Using SQL function for approval");
       const { data, error } = await supabase.rpc('approve_user', {
-        user_id: userId
+        p_user_id: userId
       });
       
       if (error) {
@@ -386,7 +386,7 @@ export default function AdminPanel() {
       // PENDEKATAN 1: Gunakan fungsi SQL baru
       console.log("Using SQL function for rejection");
       const { data, error } = await supabase.rpc('reject_user', {
-        user_id: userId
+        p_user_id: userId
       });
       
       if (error) {

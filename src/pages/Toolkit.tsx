@@ -61,8 +61,8 @@ const toolTypes: ToolType[] = [
   },
   {
     id: 'cdr-analysis',
-    name: 'CDR Analisis',
-    description: 'Toolkit untuk melakukan analisis data dengan visualisasi Graph dan AI',
+    name: 'Analisis Komunikasi',
+    description: 'Toolkit untuk melakukan analisis data komunikasi dengan visualisasi Graph dan AI',
     icon: <div className="h-10 w-10"><img src="/img/hp.svg" className="h-10 w-10" alt="CDR Analysis" /></div>
   }
 ];

@@ -1,0 +1,140 @@
+-- Create admin functions for user management
+-- This migration creates the RPC functions needed by AdminPanel.tsx
+
+-- 1. Create is_admin function
+CREATE OR REPLACE FUNCTION is_admin(p_user_id uuid)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  -- Check if user exists in admins table
+  RETURN EXISTS (
+    SELECT 1 FROM admins 
+    WHERE admins.user_id = p_user_id
+  );
+END;
+$$;
+
+-- 2. Create approve_user function
+CREATE OR REPLACE FUNCTION approve_user(p_user_id uuid)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  result json;
+BEGIN
+  -- Update user metadata to approved status
+  -- This uses the auth.users table update
+  UPDATE auth.users 
+  SET user_metadata = COALESCE(user_metadata, '{}'::jsonb) || '{"registration_status": "approved"}'::jsonb
+  WHERE id = p_user_id;
+  
+  -- Check if update was successful
+  IF FOUND THEN
+    result := json_build_object(
+      'success', true,
+      'message', 'User approved successfully',
+      'user_id', p_user_id
+    );
+  ELSE
+    result := json_build_object(
+      'success', false,
+      'message', 'User not found or already approved',
+      'user_id', p_user_id
+    );
+  END IF;
+  
+  RETURN result;
+END;
+$$;
+
+-- 3. Create reject_user function
+CREATE OR REPLACE FUNCTION reject_user(p_user_id uuid)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  result json;
+BEGIN
+  -- Update user metadata to rejected status
+  UPDATE auth.users 
+  SET user_metadata = COALESCE(user_metadata, '{}'::jsonb) || '{"registration_status": "rejected"}'::jsonb
+  WHERE id = p_user_id;
+  
+  -- Check if update was successful
+  IF FOUND THEN
+    result := json_build_object(
+      'success', true,
+      'message', 'User rejected successfully',
+      'user_id', p_user_id
+    );
+  ELSE
+    result := json_build_object(
+      'success', false,
+      'message', 'User not found',
+      'user_id', p_user_id
+    );
+  END IF;
+  
+  RETURN result;
+END;
+$$;
+
+-- 4. Create get_users_with_status function (safer version)
+CREATE OR REPLACE FUNCTION get_users_with_status()
+RETURNS TABLE(
+  id uuid,
+  email text,
+  created_at timestamptz,
+  registration_status text,
+  full_name text
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    u.id,
+    u.email,
+    u.created_at,
+    COALESCE(u.user_metadata->>'registration_status', 'pending') as registration_status,
+    COALESCE(u.user_metadata->>'full_name', u.user_metadata->>'name', '') as full_name
+  FROM auth.users u
+  WHERE u.user_metadata->>'registration_status' IN ('pending', 'approved', 'rejected')
+     OR u.user_metadata->>'registration_status' IS NULL;
+END;
+$$;
+
+-- 5. Create admins table if it doesn't exist
+CREATE TABLE IF NOT EXISTS admins (
+  id serial PRIMARY KEY,
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at timestamptz DEFAULT NOW(),
+  UNIQUE(user_id)
+);
+
+-- Enable RLS on admins table
+ALTER TABLE admins ENABLE ROW LEVEL SECURITY;
+
+-- Create policy for admins table (only admins can see admin records)
+CREATE POLICY "Only admins can access admin records" ON admins
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM admins 
+      WHERE admins.user_id = auth.uid()
+    )
+  );
+
+-- Grant execute permissions on functions
+GRANT EXECUTE ON FUNCTION is_admin(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION approve_user(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION reject_user(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION get_users_with_status() TO authenticated;
+
+-- Grant permissions on admins table
+GRANT SELECT, INSERT, UPDATE, DELETE ON admins TO authenticated;
+GRANT USAGE, SELECT ON SEQUENCE admins_id_seq TO authenticated; 

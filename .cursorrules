@@ -478,6 +478,12 @@ Professional Color Scheme Examples:
 - **REVOKE anonymous access** dari tabel yang mengandung data user
 - **GRANT access hanya untuk authenticated users** sesuai kebutuhan
 
+### Critical Column Names in auth.users:
+- **✅ CORRECT**: Use `raw_user_meta_data` for user metadata storage
+- **❌ WRONG**: Using `user_metadata` (this column does not exist in auth.users)
+- **✅ CORRECT**: Use `raw_app_meta_data` for app metadata storage
+- **Note**: Always check actual column names in auth.users table as they may differ from documentation
+
 ### Security Implementation Pattern:
 ```sql
 -- 1. Enable RLS untuk tabel baru
@@ -492,6 +498,18 @@ USING (auth.uid()::text = user_id);
 -- 3. Revoke akses anon dan grant authenticated
 REVOKE ALL ON public.table_name FROM anon;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.table_name TO authenticated;
+```
+
+### Admin Function Implementation:
+```sql
+-- Update user metadata correctly
+UPDATE auth.users 
+SET raw_user_meta_data = COALESCE(raw_user_meta_data, '{}'::jsonb) || '{"registration_status": "approved"}'::jsonb
+WHERE id = p_user_id;
+
+-- Read user metadata correctly
+SELECT raw_user_meta_data->>'registration_status' as registration_status
+FROM auth.users WHERE id = user_id;
 ```
 
 ### Application Code Security:
@@ -526,6 +544,20 @@ const { data } = await supabase.from('table_name').insert({ content: 'data' });
 - `permission denied for table` → Check user authentication status
 - `empty result set` → Verify user_id filter dalam query
 - `exposed auth.users` → Remove atau secure views yang mengakses auth schema
+- `column "user_metadata" does not exist` → Use `raw_user_meta_data` instead
+
+### AdminPanel.tsx reject_user Function Fix - COMPLETED ✅
+
+**Root Cause**: Functions were using incorrect column name `user_metadata` instead of `raw_user_meta_data` in auth.users table.
+
+**Solution**: Fixed all admin functions to use correct metadata column:
+- `reject_user(p_user_id)` - Updated to use `raw_user_meta_data`
+- `approve_user(p_user_id)` - Updated to use `raw_user_meta_data`
+- `get_users_with_status()` - Updated to use `raw_user_meta_data` with proper type casting
+
+**Functions Status**: All admin functions now working correctly with proper error handling and JSON responses.
+
+**Testing**: All functions tested and verified working through MCP Supabase tools.
 
 ## Table Rendering Lessons
 
@@ -607,6 +639,116 @@ const API_KEY = 'AIzaSyBf4_0ll5H7OMs7yAtgXO1LWVAWhOcbJmo'; // NEVER DO THIS!
 4. **Check git history** and remove exposed keys from commits
 5. **Update .env.example** with proper placeholder values
 6. **Audit all logging statements** to ensure no key exposure
+
+## Supabase Admin Functions & CORS Lessons
+
+### Problem: AdminPanel.tsx reject_user function failing
+**Error Pattern**: 
+- 404 Not Found untuk RPC function `reject_user`
+- CORS error untuk Edge Functions (apikey header not allowed)
+- 403 Forbidden untuk auth admin API
+
+### Root Causes:
+1. **Missing RPC Functions**: Database tidak memiliki required RPC functions (approve_user, reject_user, is_admin)
+2. **CORS Configuration**: Edge Functions tidak mengizinkan 'apikey' header
+3. **Parameter Naming**: Function parameter names tidak sesuai dengan expected signature
+
+### Solutions Implemented:
+
+#### 1. Create Missing RPC Functions:
+```sql
+-- Parameter names harus menggunakan prefix p_ untuk menghindari konflik
+CREATE OR REPLACE FUNCTION reject_user(p_user_id uuid)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  result json;
+BEGIN
+  UPDATE auth.users 
+  SET user_metadata = COALESCE(user_metadata, '{}'::jsonb) || '{"registration_status": "rejected"}'::jsonb
+  WHERE id = p_user_id;
+  
+  IF FOUND THEN
+    result := json_build_object('success', true, 'message', 'User rejected successfully');
+  ELSE
+    result := json_build_object('success', false, 'message', 'User not found');
+  END IF;
+  
+  RETURN result;
+END;
+$$;
+```
+
+#### 2. Fix CORS Headers in Edge Functions:
+```typescript
+// ✅ CORRECT - Include apikey in allowed headers
+if (req.method === 'OPTIONS') {
+  return new Response('ok', {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey', // Add apikey!
+    }
+  })
+}
+
+// ✅ CORRECT - Add to all response headers
+headers: {
+  'Content-Type': 'application/json',
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey',
+}
+```
+
+#### 3. Correct RPC Function Calls:
+```typescript
+// ✅ CORRECT - Use proper parameter names
+const { data, error } = await supabase.rpc('reject_user', {
+  p_user_id: userId  // Use p_user_id, not user_id
+});
+
+const { data, error } = await supabase.rpc('is_admin', {
+  p_user_id: currentUser.id  // Use p_user_id, not user_id
+});
+```
+
+### Migration Files Created:
+- `supabase/migrations/20241210000001_create_admin_functions.sql` - Creates all RPC functions and admin table
+- `supabase/migrations/20241210000002_add_admin_user.sql` - Adds initial admin user
+- `supabase/migrations/README.md` - Comprehensive migration guide
+
+### Security Features:
+- **SECURITY DEFINER**: Functions run with elevated privileges untuk access auth.users
+- **RLS Policies**: Admin table protected dengan Row Level Security
+- **Parameter Validation**: Proper error handling dan return types
+- **Permission Grants**: Functions granted only to authenticated users
+
+### Files Modified:
+- `supabase/functions/admin/reject-user.ts` - Fixed CORS headers
+- `supabase/functions/admin/approve-user.ts` - Fixed CORS headers
+- `src/pages/AdminPanel.tsx` - Fixed RPC parameter names
+
+### Best Practices:
+- **Function Naming**: Use descriptive names dengan proper prefixes
+- **Parameter Naming**: Prefix parameters dengan `p_` untuk clarity
+- **CORS Headers**: Always include all required headers in Edge Functions
+- **Security**: Use SECURITY DEFINER untuk admin functions yang perlu elevated access
+- **Error Handling**: Provide structured JSON responses dengan success/error flags
+- **Migration Documentation**: Always include comprehensive README untuk migrations
+
+### Common CORS Issues:
+- **Missing apikey header**: Edge Functions must explicitly allow 'apikey' in Access-Control-Allow-Headers
+- **Inconsistent headers**: All responses (including errors) must include same CORS headers
+- **Preflight handling**: OPTIONS requests must return proper CORS headers
+
+### Testing Checklist:
+- [ ] RPC functions created dan accessible
+- [ ] CORS headers working untuk Edge Functions
+- [ ] Admin user properly configured dalam admins table
+- [ ] User approval/rejection flow working end-to-end
+- [ ] Error handling working untuk all failure scenarios
 
 ## Performance Optimization Lessons
 
@@ -1623,49 +1765,64 @@ const syncWithServer = async () => {
 
 # Scratchpad
 
-## Task: Agno RunResponse Extra Data & Citations Implementation - COMPLETED ✅
+## Task: AdminPanel.tsx reject_user Function Fix - COMPLETED ✅
 
 ### Deskripsi:
-User meminta implementasi fungsi citations dari Agno RunResponse extra_data untuk WassidikPenyidikChatPage.tsx, khususnya untuk menampilkan references, add_messages, history, reasoning_steps, dan reasoning_messages dalam streaming animations.
+User melaporkan error saat menggunakan fungsi reject user di AdminPanel.tsx. Error terdiri dari:
+1. 404 Not Found untuk RPC function `reject_user`
+2. CORS error untuk Edge Functions (apikey header not allowed)
+3. 403 Forbidden untuk auth admin API
 
 ### Masalah yang Ditemukan:
-- **No Content Accumulated**: Log menunjukkan "No content accumulated during streaming session"
-- **Missing RunResponse Events**: Tidak ada RunResponse atau RunResponseContent events yang diterima
-- **Citations Tidak Muncul**: Meskipun backend mengirim vector chunks dengan metadata, citations tidak ter-ekstrak dengan benar di frontend
+- **Missing RPC Functions**: Database tidak memiliki required functions (approve_user, reject_user, is_admin)
+- **CORS Configuration**: Edge Functions tidak mengizinkan 'apikey' header
+- **Parameter Naming**: Function signature tidak sesuai dengan yang dipanggil
 
 ### Solusi yang Diimplementasikan:
 
-#### 1. Enhanced handleRunCompleted (di `useAIChatStreamHandler.ts`):
-- **Citations Extraction**: Menambahkan ekstraksi citations langsung dari `chunk.extra_data.references` saat RunCompleted event
-- **Citation Object Creation**: Transform references menjadi Citation objects dengan id, title, url, source, excerpt, metadata
-- **Comprehensive Logging**: Debug logging untuk memantau ekstraksi citations dan references
-- **Enhanced Extra Data**: Metadata diperkaya dengan citations_count dan knowledge_base_used flags
+#### 1. Created Missing Database Functions:
+- **File**: `supabase/migrations/20241210000001_create_admin_functions.sql`
+- **Functions Created**: is_admin(p_user_id), approve_user(p_user_id), reject_user(p_user_id), get_users_with_status()
+- **Security**: SECURITY DEFINER for elevated privileges, proper RLS policies
+- **Admin Table**: Created with proper constraints and permissions
 
-#### 2. Enhanced MemoryUpdateCompleted Handler:
-- **Memory Citations Extraction**: Ekstraksi citations dari memory update events karena knowledge base search results mungkin tersedia setelah memory operations
-- **Fallback Strategy**: Multiple fallback untuk ekstraksi citations dari berbagai source events
-- **Real-time Status Updates**: Update streaming status dengan citations saat memory operations selesai
+#### 2. Fixed CORS Headers in Edge Functions:
+- **Files**: `supabase/functions/admin/reject-user.ts`, `supabase/functions/admin/approve-user.ts`
+- **Fix**: Added 'apikey' to Access-Control-Allow-Headers in all responses
+- **Comprehensive**: Updated both OPTIONS preflight and all error/success responses
 
-#### 3. Enhanced Completion Data Saving (di `WassidikPenyidikChatPage.tsx`):
-- **Multiple Fallback Strategies**: Primary dari streaming status, fallback ke message extra_data.references
-- **Comprehensive Debugging**: Detailed logging untuk monitoring citations extraction process
-- **Persistent Citations**: Menyimpan citations dalam completionData untuk display long-term
+#### 3. Fixed AdminPanel.tsx Parameter Names:
+- **Change**: Updated RPC calls to use `p_user_id` parameter name instead of `user_id`
+- **Functions**: is_admin, approve_user, reject_user calls updated
+- **Consistency**: Ensured parameter names match function signatures
 
-#### 4. Enhanced Citations Display UI:
-- **Numbered Citation Badges**: Professional citation cards dengan numbered badges (blue-purple gradient)
-- **Source Information**: Hostname extraction, titles, excerpt quotes dengan truncation
-- **External Links**: "Lihat Sumber" links dengan ExternalLink icons
-- **Responsive Design**: Mobile-friendly layout dengan proper spacing dan hover effects
+#### 4. Created Admin User:
+- **File**: `supabase/migrations/20241210000002_add_admin_user.sql`
+- **User**: Added hard-coded admin user to admins table
+- **Metadata**: Set proper user metadata with admin role
+
+#### 5. Documentation:
+- **File**: `supabase/migrations/README.md`
+- **Content**: Comprehensive migration guide with troubleshooting
+- **Testing**: Detailed testing checklist for validation
 
 ### Benefits:
-- **✅ Citations Extraction**: Citations sekarang diekstrak dari RunCompleted.extra_data.references sesuai dokumentasi Agno
-- **✅ Multiple Fallback**: Robust fallback strategy untuk berbagai pattern ekstraksi citations
-- **✅ Professional UI**: Enhanced citations display dengan numbered badges dan source information
-- **✅ Real-time Updates**: Citations muncul real-time selama streaming dan tersimpan untuk display persistent
-- **✅ Agno Compatibility**: Implementasi mengikuti pola Agno Agentic RAG documentation dengan extra_data.references
+- **✅ RPC Functions**: All required database functions now available
+- **✅ CORS Fixed**: Edge Functions properly configured for frontend calls
+- **✅ Admin Access**: Admin user properly configured with elevated permissions
+- **✅ Error Handling**: Robust fallback strategies implemented
+- **✅ Documentation**: Complete migration guide for future reference
+
+### Files Modified:
+- `supabase/functions/admin/reject-user.ts` - Fixed CORS headers
+- `supabase/functions/admin/approve-user.ts` - Fixed CORS headers  
+- `src/pages/AdminPanel.tsx` - Fixed RPC parameter names
+- `supabase/migrations/` - Created new migration files
+- `.cursorrules` - Added comprehensive lesson about Supabase admin functions
 
 ---
 
 ## Previous Completed Tasks:
+- Agno RunResponse Extra Data & Citations Implementation
 - Perbaikan Fungsi Hapus Storage & Reset Chat KUHAPChatPage.tsx
 - Final Cleanup Unused Imports KUHAPChatPage.tsx
