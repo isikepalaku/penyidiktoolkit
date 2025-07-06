@@ -3,13 +3,12 @@ import { ArrowLeft, Send, Copy, Check, Loader2, Info, RefreshCw, Database, Trash
 import { cn } from '@/utils/utils';
 import { Button } from './button';
 import { Textarea } from './textarea';
-
 import { DotBackground } from './DotBackground';
-
 import { formatMessage } from '@/utils/markdownFormatter';
 import { RunEvent } from '@/types/playground';
 import { usePlaygroundStore } from '@/stores/PlaygroundStore';
 import StreamingStatus from '@/hooks/streaming/StreamingStatus';
+import CitationDisplay from './CitationDisplay';
 import { 
   clearTipidkorStreamingChatHistory,
   initializeTipidkorStreamingSession,
@@ -324,6 +323,21 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
                   if (lastAgentMessage && lastAgentMessage.role === 'agent') {
                     // Append new content to existing content
                     lastAgentMessage.content = (lastAgentMessage.content || '') + event.content;
+                    
+                    // Parse and store citations from extra_data.references
+                    if (event.extra_data?.references && event.extra_data.references.length > 0) {
+                      console.log('🔗 TIPIDKOR: Citations found in response:', {
+                        referencesCount: event.extra_data.references.length,
+                        firstGroup: event.extra_data.references[0],
+                        totalGroups: event.extra_data.references.length
+                      });
+                      
+                      // Store references in message extra_data
+                      if (!lastAgentMessage.extra_data) {
+                        lastAgentMessage.extra_data = {};
+                      }
+                      lastAgentMessage.extra_data.references = event.extra_data.references;
+                    }
                   }
                   return newMessages;
                 });
@@ -331,18 +345,46 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
               break;
               
             case RunEvent.ToolCallStarted:
-              console.log('🔧 TIPIDKOR: Tool call started');
+              console.log('🔧 TIPIDKOR: Tool call started:', {
+                toolCalls: event.tool_calls,
+                tools: event.tools,
+                hasToolCalls: !!event.tool_calls?.length,
+                hasTools: !!event.tools?.length,
+                firstToolName: event.tool_calls?.[0]?.function?.name || event.tools?.[0]?.function?.name
+              });
+              
+              // Extract tool name from tool_calls or tools
+              const toolName = event.tool_calls?.[0]?.function?.name || 
+                              event.tools?.[0]?.function?.name || 
+                              'knowledge base';
+              
               setStreamingStatus({ 
                 isThinking: false, 
                 isCallingTool: true,
+                toolName: toolName,
                 isMemoryUpdateStarted: false
               });
               break;
               
             case RunEvent.ToolCallCompleted:
-              console.log('✅ TIPIDKOR: Tool call completed');
+              console.log('✅ TIPIDKOR: Tool call completed:', {
+                toolCalls: event.tool_calls,
+                tools: event.tools,
+                completedToolName: event.tool_calls?.[0]?.function?.name || event.tools?.[0]?.function?.name
+              });
               setStreamingStatus({ 
-                isCallingTool: false 
+                isCallingTool: false,
+                toolName: undefined // Clear tool name after completion
+              });
+              break;
+              
+            case RunEvent.AccessingKnowledge:
+              console.log('📚 TIPIDKOR: Accessing knowledge started');
+              setStreamingStatus({ 
+                isThinking: false,
+                isCallingTool: false,
+                isAccessingKnowledge: true,
+                isMemoryUpdateStarted: false
               });
               break;
               
@@ -352,7 +394,15 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
               setStreamingStatus({ 
                 isThinking: false,
                 isCallingTool: false,
+                isAccessingKnowledge: false,
                 isMemoryUpdateStarted: true 
+              });
+              break;
+              
+            case RunEvent.MemoryUpdateCompleted:
+              console.log('✅ TIPIDKOR: Memory update completed');
+              setStreamingStatus({ 
+                isMemoryUpdateStarted: false
               });
               break;
               
@@ -364,7 +414,7 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
                 contentPreview: typeof event.content === 'string' ? event.content.substring(0, 100) + '...' : event.content
               });
               
-              // Update final content if provided
+              // Update final content and ensure citations are preserved
               if (event.content && typeof event.content === 'string' && event.content.trim()) {
                 setMessages(prev => {
                   const newMessages = [...prev];
@@ -374,6 +424,19 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
                     if (!lastAgentMessage.content || lastAgentMessage.content.length < event.content.length) {
                       lastAgentMessage.content = event.content as string;
                       console.log('🏁 TIPIDKOR: Updated with final content from RunCompleted');
+                    }
+                    
+                    // Ensure final citations are stored
+                    if (event.extra_data?.references && event.extra_data.references.length > 0) {
+                      if (!lastAgentMessage.extra_data) {
+                        lastAgentMessage.extra_data = {};
+                      }
+                      lastAgentMessage.extra_data.references = event.extra_data.references;
+                      
+                      console.log('🏁 TIPIDKOR: Final citations stored:', {
+                        referencesCount: event.extra_data.references.length,
+                        messageHasContent: !!lastAgentMessage.content
+                      });
                     }
                   }
                   return newMessages;
@@ -685,6 +748,7 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
                               </div>
                             )}
                             
+                            {/* Main message content */}
                             {message.content ? (
                               <div 
                                 className={getProseClasses()}
@@ -696,6 +760,18 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
                                 Sedang memproses...
                               </div>
                             )}
+                            
+                            {/* Citations Display */}
+                            {message.extra_data?.references && message.extra_data.references.length > 0 && (
+                              <div className="mt-4">
+                                <CitationDisplay 
+                                  references={message.extra_data.references as any}
+                                  compact={false}
+                                />
+                              </div>
+                            )}
+                            
+                            {/* Action buttons (conditional on content) */}
                             {message.content && (
                               <div className="flex justify-end mt-2">
                                 <Button

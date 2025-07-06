@@ -8,6 +8,7 @@ import { formatMessage } from '@/utils/markdownFormatter';
 import { RunEvent } from '@/types/playground';
 import { usePlaygroundStore } from '@/stores/PlaygroundStore';
 import StreamingStatus from '@/hooks/streaming/StreamingStatus';
+import CitationDisplay from './CitationDisplay';
 import { 
   clearStreamingChatHistory,
   initializeStreamingSession,
@@ -573,6 +574,21 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
                   if (lastAgentMessage && lastAgentMessage.role === 'agent') {
                     // Append new content to existing content
                     lastAgentMessage.content = (lastAgentMessage.content || '') + event.content;
+                    
+                    // Parse and store citations from extra_data.references
+                    if (event.extra_data?.references && event.extra_data.references.length > 0) {
+                      console.log('🔗 KUHP: Citations found in response:', {
+                        referencesCount: event.extra_data.references.length,
+                        eventDataType: typeof event.extra_data.references[0],
+                        firstRefKeys: Object.keys(event.extra_data.references[0] || {})
+                      });
+                      
+                      // Store references in message extra_data
+                      if (!lastAgentMessage.extra_data) {
+                        lastAgentMessage.extra_data = {};
+                      }
+                      lastAgentMessage.extra_data.references = event.extra_data.references;
+                    }
                   }
                   return newMessages;
                 });
@@ -580,18 +596,36 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
               break;
               
             case RunEvent.ToolCallStarted:
-              console.log('🔧 KUHP: Tool call started');
+              console.log('🔧 KUHP: Tool call started:', {
+                eventType: event.event,
+                hasContent: !!event.content
+              });
               setStreamingStatus({ 
                 isThinking: false, 
                 isCallingTool: true,
+                toolName: 'knowledge base',
                 isMemoryUpdateStarted: false
               });
               break;
               
             case RunEvent.ToolCallCompleted:
-              console.log('✅ KUHP: Tool call completed');
+              console.log('✅ KUHP: Tool call completed:', {
+                eventType: event.event,
+                hasContent: !!event.content
+              });
               setStreamingStatus({ 
-                isCallingTool: false 
+                isCallingTool: false,
+                toolName: undefined 
+              });
+              break;
+              
+            case RunEvent.AccessingKnowledge:
+              console.log('📚 KUHP: Accessing knowledge started');
+              setStreamingStatus({ 
+                isThinking: false,
+                isCallingTool: false,
+                isAccessingKnowledge: true,
+                isMemoryUpdateStarted: false
               });
               break;
               
@@ -601,7 +635,15 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
               setStreamingStatus({ 
                 isThinking: false,
                 isCallingTool: false,
+                isAccessingKnowledge: false,
                 isMemoryUpdateStarted: true 
+              });
+              break;
+              
+            case RunEvent.MemoryUpdateCompleted:
+              console.log('✅ KUHP: Memory update completed');
+              setStreamingStatus({ 
+                isMemoryUpdateStarted: false
               });
               break;
               
@@ -630,6 +672,18 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
                     if (!lastAgentMessage.content || lastAgentMessage.content.length < event.content.length) {
                       lastAgentMessage.content = event.content as string;
                       console.log('🏁 KUHP: Updated with final content from RunCompleted');
+                    }
+                    
+                    // Update final citations if provided
+                    if (event.extra_data?.references && event.extra_data.references.length > 0) {
+                      console.log('🔗 KUHP: Final citations from RunCompleted:', {
+                        referencesCount: event.extra_data.references.length
+                      });
+                      
+                      if (!lastAgentMessage.extra_data) {
+                        lastAgentMessage.extra_data = {};
+                      }
+                      lastAgentMessage.extra_data.references = event.extra_data.references;
                     }
                   }
                   return newMessages;
@@ -960,6 +1014,17 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
                                 Sedang memproses...
                               </div>
                             )}
+                            
+                            {/* Citations Display */}
+                            {message.extra_data?.references && message.extra_data.references.length > 0 && (
+                              <div className="mt-4">
+                                <CitationDisplay 
+                                  references={message.extra_data.references as any}
+                                  compact={false}
+                                />
+                              </div>
+                            )}
+                            
                             {message.content && (
                         <div className="flex justify-end mt-2">
                           <Button

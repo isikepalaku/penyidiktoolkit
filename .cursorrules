@@ -1470,6 +1470,266 @@ const hasMinimalContent = message.content && message.content.length < 50;
 - Use efficient re-render patterns
 - Minimize animation complexity untuk mobile performance
 
+## Citation Implementation Pattern from Knowledge Base Streaming
+
+### Overview
+Implementasi comprehensive untuk menampilkan citations dari knowledge base responses dalam streaming chat applications. Pattern ini mencakup parsing extra_data.references, display component dengan professional styling, dan real-time citation integration.
+
+### 1. Stream Response Citation Parsing
+
+#### RunEvent.RunResponse Handler Enhancement:
+```typescript
+case RunEvent.RunResponse:
+  // Accumulate content incrementally
+  if (event.content && typeof event.content === 'string') {
+    setMessages(prev => {
+      const newMessages = [...prev];
+      const lastAgentMessage = newMessages[newMessages.length - 1];
+      if (lastAgentMessage && lastAgentMessage.role === 'agent') {
+        // Append new content to existing content
+        lastAgentMessage.content = (lastAgentMessage.content || '') + event.content;
+        
+        // Parse and store citations from extra_data.references
+        if (event.extra_data?.references && event.extra_data.references.length > 0) {
+          console.log('🔗 Citations found in response:', {
+            referencesCount: event.extra_data.references.length,
+            hasQuery: !!event.extra_data.references[0]?.query,
+            sourceDocs: event.extra_data.references.map(ref => 
+              ref.references?.map(r => r.name).filter(Boolean) || []
+            ).flat()
+          });
+          
+          // Store references in message extra_data
+          if (!lastAgentMessage.extra_data) {
+            lastAgentMessage.extra_data = {};
+          }
+          lastAgentMessage.extra_data.references = event.extra_data.references;
+        }
+      }
+      return newMessages;
+    });
+  }
+  break;
+```
+
+#### RunEvent.RunCompleted Handler Enhancement:
+```typescript
+case RunEvent.RunCompleted:
+  // Update final content and ensure citations are preserved
+  if (event.content && typeof event.content === 'string' && event.content.trim()) {
+    setMessages(prev => {
+      const newMessages = [...prev];
+      const lastAgentMessage = newMessages[newMessages.length - 1];
+      if (lastAgentMessage && lastAgentMessage.role === 'agent') {
+        // Set final content or update if final content is longer/better
+        if (!lastAgentMessage.content || lastAgentMessage.content.length < event.content.length) {
+          lastAgentMessage.content = event.content as string;
+        }
+        
+        // Ensure final citations are stored
+        if (event.extra_data?.references && event.extra_data.references.length > 0) {
+          if (!lastAgentMessage.extra_data) {
+            lastAgentMessage.extra_data = {};
+          }
+          lastAgentMessage.extra_data.references = event.extra_data.references;
+          
+          console.log('🏁 Final citations stored:', {
+            referencesCount: event.extra_data.references.length,
+            messageHasContent: !!lastAgentMessage.content
+          });
+        }
+      }
+      return newMessages;
+    });
+  }
+  break;
+```
+
+### 2. Citation Display Component Architecture
+
+#### Component Structure (src/components/ui/CitationDisplay.tsx):
+```typescript
+interface CitationReference {
+  content: string;
+  meta_data?: {
+    chunk?: number;
+    chunk_size?: number;
+    [key: string]: any;
+  };
+  name: string;
+}
+
+interface CitationGroup {
+  query?: string;
+  references?: CitationReference[];
+  time?: number;
+}
+
+interface CitationDisplayProps {
+  references?: CitationGroup[];
+  compact?: boolean;
+  className?: string;
+}
+```
+
+#### Professional Gray-Based Color Scheme:
+- **Container**: `border-gray-200/60` + `bg-gray-50/80` dengan `backdrop-blur-sm`
+- **Headers**: `bg-gray-100/50` untuk header backgrounds
+- **Text Colors**: `text-gray-700` (primary) / `text-gray-600` (secondary)
+- **Accent Colors**: Subtle blue (`text-blue-600`) untuk interactive elements
+- **Icons**: `text-gray-500` untuk neutral, `text-blue-500` untuk active
+- **Borders**: `border-gray-200` untuk subtle separation
+- **Hover States**: `hover:bg-gray-50` untuk gentle interactions
+
+### 3. Citation UI Integration Pattern
+
+#### Chat Message Integration:
+```typescript
+{/* Main message content */}
+{message.content ? (
+  <div 
+    className={getProseClasses()}
+    dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
+  />
+) : (
+  <div className="text-gray-400 text-sm italic">
+    Sedang memproses...
+  </div>
+)}
+
+{/* Citations Display */}
+{message.extra_data?.references && message.extra_data.references.length > 0 && (
+  <div className="mt-4">
+    <CitationDisplay 
+      references={message.extra_data.references as any}
+      compact={false}
+    />
+  </div>
+)}
+
+{/* Action buttons (conditional on content) */}
+{message.content && (
+  <div className="flex justify-end mt-2">
+    <Button variant="ghost" size="sm" onClick={() => copyToClipboard(message.content)}>
+      {copiedMessage === message.id ? (
+        <Check className="w-4 h-4 text-green-600" />
+      ) : (
+        <Copy className="w-4 h-4" />
+      )}
+    </Button>
+  </div>
+)}
+```
+
+### 4. Citation Component Features
+
+#### Expandable Content Structure:
+- **Header Summary**: Shows total references and document count
+- **Query Display**: Shows search queries used with time stamps
+- **Reference Cards**: Individual source documents with metadata
+- **Content Preview**: Truncated content with expand option for long texts
+- **Document Metadata**: Chunk information and source file names
+
+#### Interactive Elements:
+- **Expandable Groups**: Click to expand/collapse reference groups
+- **Content Truncation**: Smart truncation at 1000 characters with indicator
+- **Professional Hover Effects**: Subtle gray hover states
+- **Backdrop Blur**: Modern glass effect with `backdrop-blur-sm`
+- **Responsive Design**: Proper spacing and sizing for all screen sizes
+
+### 5. Styling Guidelines
+
+#### Professional Color Implementation:
+```typescript
+// Container styling
+className="border border-gray-200/60 rounded-lg bg-gray-50/80 backdrop-blur-sm"
+
+// Header styling  
+className="px-4 py-3 border-b border-gray-200/60 bg-gray-100/50"
+
+// Interactive buttons
+className="flex items-center gap-2 w-full text-left hover:bg-gray-50 rounded-md p-2 transition-colors"
+
+// Text hierarchy
+className="font-medium text-gray-700"  // Primary headers
+className="text-gray-600"              // Secondary text
+className="text-xs text-gray-500"      // Metadata text
+
+// Accent colors (minimal usage)
+className="text-blue-600"              // Links and active states
+className="bg-blue-50 text-blue-700"   // Subtle highlights
+```
+
+#### Visual Enhancement Principles:
+- **Transparency Layering**: Use `/50`, `/60`, `/80` opacity modifiers
+- **Subtle Depth**: `shadow-sm` for gentle elevation without overwhelming
+- **Glass Effects**: `backdrop-blur-sm` for modern sophisticated appearance
+- **Consistent Spacing**: `gap-2`, `px-4 py-3`, `mt-4` for rhythm
+- **Professional Contrast**: Gray-based palette maintains readability
+
+### 6. Required Dependencies
+
+#### Component Dependencies:
+```typescript
+import React, { useState } from 'react';
+import { ChevronDown, ChevronRight, FileText, Search, Clock, Database } from 'lucide-react';
+import { cn } from '@/utils/utils';
+```
+
+#### Integration Requirements:
+- **Message Interface**: Extend `PlaygroundChatMessage` to include `extra_data.references`
+- **Stream Handler**: Enhanced event handlers for `RunResponse` and `RunCompleted`
+- **Import Path**: Add `CitationDisplay` import to chat components
+
+### 7. Implementation Best Practices
+
+#### Citation Data Handling:
+- **Type Safety**: Proper TypeScript interfaces for citation structure
+- **Conditional Rendering**: Only show citations when references exist
+- **Content Validation**: Validate citation data before rendering
+- **Error Boundaries**: Graceful handling of malformed citation data
+
+#### Performance Considerations:
+- **Lazy Rendering**: Only render expanded content when needed
+- **Memoization**: Use React.memo for citation components if needed
+- **Content Limits**: Truncate very long citation content for performance
+- **State Management**: Efficient expand/collapse state handling
+
+### 8. Professional UI Standards
+
+#### Design Principles for Law Enforcement Applications:
+- **Monochromatic Elegance**: Gray-based palette for professional appearance
+- **Subtle Interactions**: Gentle hover effects without overwhelming users
+- **Information Hierarchy**: Clear visual distinction between headers and content
+- **Accessibility**: Proper contrast ratios and semantic markup
+- **Consistency**: Unified styling across all citation components
+
+#### Mobile Responsiveness:
+- **Touch Targets**: Adequate button sizes for mobile interaction
+- **Content Scaling**: Responsive text sizes and spacing
+- **Scroll Areas**: Proper scroll behavior for long citation lists
+- **Compact Mode**: Optional compact display for space-constrained layouts
+
+### 9. Extension Guidelines
+
+#### For New Chat Components:
+- Import `CitationDisplay` component
+- Add citation integration in message rendering
+- Enhance stream event handlers for citation parsing
+- Follow established color scheme and styling patterns
+
+#### For Custom Citation Types:
+- Extend citation interfaces for new data structures
+- Implement custom rendering for specialized citation formats
+- Maintain consistency with professional styling guidelines
+- Add appropriate metadata display for domain-specific sources
+
+#### Testing & Validation:
+- Test citation display with various reference counts
+- Validate expandable content behavior
+- Ensure proper mobile responsiveness
+- Test citation parsing with different stream response formats
+
 ## History Management & Storage Optimization Implementation Pattern
 
 ### Overview
@@ -1764,6 +2024,56 @@ const syncWithServer = async () => {
 ```
 
 # Scratchpad
+
+## Task: Citation Implementation for TipidkorChatPage.tsx - COMPLETED ✅
+
+### Deskripsi:
+Implementasi citation functionality pada TipidkorChatPage.tsx berdasarkan pattern di .cursorrules documentation.
+
+### Implementasi yang Diselesaikan:
+
+#### 1. Enhanced Import Statement:
+- **Import CitationDisplay**: Added `import CitationDisplay from './CitationDisplay';`
+
+#### 2. Enhanced RunEvent.RunResponse Handler:
+- **Citation Parsing**: Added parsing untuk `extra_data.references` dari streaming response
+- **Storage in Message**: Store references dalam `message.extra_data.references`
+- **Logging**: Added comprehensive logging untuk debugging citation data
+
+#### 3. Enhanced RunEvent.RunCompleted Handler:
+- **Final Citations**: Ensure citations tersimpan dalam final message
+- **Preservation**: Maintain citations consistency antara streaming dan final state
+- **Validation**: Proper checking untuk citation data availability
+
+#### 4. UI Integration:
+- **CitationDisplay Component**: Added dalam agent message rendering
+- **Conditional Rendering**: Only show citations when references exist
+- **Professional Layout**: Following gray-based professional color scheme
+- **Proper Spacing**: Added `mt-4` spacing untuk clean layout
+
+### Benefits:
+- **✅ Stream Response Citations**: Real-time citation parsing dari knowledge base responses
+- **✅ Professional Display**: Clean expandable citation UI dengan professional styling
+- **✅ Consistent Implementation**: Follows established pattern dari .cursorrules documentation
+- **✅ Type Safety**: Proper TypeScript integration dengan existing interfaces
+- **✅ Performance**: Efficient rendering dengan conditional display
+
+### Pattern Followed:
+- Stream event enhancement untuk `RunEvent.RunResponse` dan `RunEvent.RunCompleted`
+- Enhanced tool event handling dengan proper tool name extraction
+- Professional gray-based color scheme untuk citations
+- Proper spacing dan layout integration
+- Comprehensive logging untuk debugging
+- Clean separation antara content dan citations
+
+### Enhanced Tool Event Handling Added:
+- **ToolCallStarted**: Extract tool name dari `event.tool_calls[0].function.name` atau `event.tools[0].function.name`
+- **ToolCallCompleted**: Clear tool name setelah completion dengan proper logging
+- **AccessingKnowledge**: Added missing event handler untuk knowledge access phase
+- **MemoryUpdateCompleted**: Added completion handler untuk memory update
+- **Detailed Logging**: Added comprehensive logging untuk debug tool events
+
+---
 
 ## Task: AdminPanel.tsx reject_user Function Fix - COMPLETED ✅
 
