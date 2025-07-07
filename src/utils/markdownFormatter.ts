@@ -235,7 +235,7 @@ export const formatMessage = (content: string): string => {
  * CSS classes untuk styling prose content dengan table support
  */
 export const getProseClasses = (theme: 'default' | 'amber' | 'red' | 'blue' | 'purple' = 'default') => {
-  const baseClasses = `prose prose-sm max-w-none break-words 
+  const baseClasses = `prose prose-sm max-w-none word-wrap-break-word 
     font-sans font-normal
     prose-headings:font-semibold prose-headings:my-3 prose-headings:leading-tight prose-headings:font-sans
     prose-p:text-gray-700 prose-p:my-2 prose-p:leading-relaxed prose-p:font-sans
@@ -266,7 +266,7 @@ export const getProseClasses = (theme: 'default' | 'amber' | 'red' | 'blue' | 'p
     [&_table]:border-collapse [&_table]:my-4 [&_table]:w-full [&_table]:text-sm [&_table]:bg-white [&_table]:rounded-lg [&_table]:overflow-hidden [&_table]:shadow-sm [&_table]:font-sans
     [&_table]:overflow-x-auto [&_table]:max-w-full [&_table]:block
     [&_th]:bg-gray-50 [&_th]:p-3 [&_th]:border [&_th]:border-gray-200 [&_th]:font-semibold [&_th]:text-left [&_th]:text-gray-800 [&_th]:whitespace-nowrap [&_th]:max-w-[200px] [&_th]:font-sans
-    [&_td]:p-3 [&_td]:border [&_td]:border-gray-100 [&_td]:align-top [&_td]:leading-relaxed [&_td]:break-words [&_td]:hyphens-auto [&_td]:font-sans [&_td]:max-w-[350px] [&_td]:overflow-hidden
+    [&_td]:p-3 [&_td]:border [&_td]:border-gray-100 [&_td]:align-top [&_td]:leading-relaxed [&_td]:word-wrap-break-word [&_td]:font-sans [&_td]:max-w-[350px] [&_td]:overflow-hidden
     [&_td.truncated-cell]:relative [&_td.truncated-cell]:max-w-[350px] [&_td.truncated-cell]:truncate [&_td.truncated-cell]:cursor-help
     [&_td:first-child]:font-medium [&_td:first-child]:bg-gray-50/50 [&_td:first-child]:whitespace-nowrap [&_td:first-child]:min-w-[120px] [&_td:first-child]:max-w-[180px]
     [&_td:last-child]:w-auto

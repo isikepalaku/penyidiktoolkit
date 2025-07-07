@@ -3,7 +3,7 @@ import { ArrowLeft, Send, Copy, Check, Loader2, Info, RefreshCw, Paperclip, File
 import { cn } from '@/utils/utils';
 import { Button } from './button';
 import { Textarea } from './textarea';
-import { DotBackground } from './DotBackground';
+
 import { formatMessage } from '@/utils/markdownFormatter';
 import { RunEvent } from '@/types/playground';
 import { usePlaygroundStore } from '@/stores/PlaygroundStore';
@@ -15,13 +15,6 @@ import {
   sendStreamingChatMessage
 } from '@/services/ahliHukumPidanaService';
 import { getStorageStats, forceCleanup } from '@/stores/PlaygroundStore';
-import { 
-  chatStyles, 
-  getProseClasses, 
-  getUserMessageClasses, 
-  getAgentMessageClasses, 
-  getSendButtonClasses 
-} from '@/styles/chatStyles';
 
 // Imports untuk refactoring - removed legacy imports
 
@@ -891,11 +884,10 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
 
       <div 
         ref={chatContainerRef}
-        className="flex-1 overflow-y-auto overscroll-contain pb-32 pt-4"
+        className="flex-1 overflow-y-auto overscroll-contain pb-32 pt-4 bg-white"
         data-chat-container="true"
       >
-        <DotBackground>
-          <div className="max-w-5xl mx-auto px-4 md:px-8 space-y-6">
+        <div className="max-w-3xl mx-auto px-4 md:px-6 space-y-6">
             {/* Welcome Message - Bold Ahli Pidana in center */}
             {messages.length === 0 && (
               <div className="flex flex-col items-center justify-center h-[50vh] text-center">
@@ -969,20 +961,21 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
               return (message.content || isStreamingMessage) && (
                 <div
                   key={message.id}
-                  className={cn("flex", message.role === "user" ? "justify-end" : "justify-start")}
+                  className={cn("flex w-full", message.role === "user" ? "justify-end" : "justify-start")}
                 >
-                  <div className={cn("flex gap-4", message.role === "user" ? "flex-row-reverse" : "flex-row")}>
+                  <div className={cn("flex gap-3 w-full max-w-full", message.role === "user" ? "flex-row-reverse max-w-[85%] sm:max-w-[80%]" : "flex-row")}>
                     {message.role === 'agent' && (
-                      <div className={chatStyles.agentAvatar.shape + ' ' + chatStyles.agentAvatar.background}>
-                        <span className={chatStyles.agentAvatar.text + ' text-sm font-bold'}>AH</span>
+                      <div className="w-7 h-7 rounded-full bg-rose-500 flex items-center justify-center flex-shrink-0 mt-1">
+                        <span className="text-white text-xs font-medium">AH</span>
                       </div>
                     )}
-                    <div className={cn("max-w-[80%]", message.role === 'user' ? "order-first" : "")}>
-                  <div
-                    className={cn(
+                    <div className={cn("min-w-0 flex-1", message.role === 'user' ? "order-first max-w-full" : "max-w-full")}>
+                                        <div
+                        className={cn(
+                          "max-w-full min-w-0 break-words overflow-wrap-anywhere",
                           message.role === 'user'
-                            ? getUserMessageClasses()
-                            : getAgentMessageClasses()
+                            ? "bg-gray-200 text-gray-800 rounded-3xl px-4 py-2.5 ml-auto"
+                            : "bg-transparent"
                         )}
                       >
                         {message.role === 'agent' ? (
@@ -1004,10 +997,27 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
                             )}
                             
                                                         {message.content ? (
-                              <div 
-                                className={getProseClasses()}
-                                dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
-                              />
+                              <div className="overflow-x-auto">
+                                <div 
+                                  className="prose prose-gray prose-sm max-w-none
+                                           [&_p]:mb-3 [&_p]:leading-relaxed [&_p]:text-gray-800 [&_p]:word-wrap-break-word
+                                           [&_a]:text-blue-600 [&_a]:no-underline hover:[&_a]:underline [&_a]:word-wrap-break-word
+                                           [&_ul]:mb-4 [&_ul]:space-y-1 [&_li]:text-gray-800 [&_li]:word-wrap-break-word
+                                           [&_ol]:mb-4 [&_ol]:space-y-1 [&_ol_li]:text-gray-800 [&_ol_li]:word-wrap-break-word
+                                           [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:pl-4 [&_blockquote]:my-4 [&_blockquote]:italic [&_blockquote]:text-gray-600
+                                           [&_pre]:bg-gray-100 [&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:text-sm [&_pre]:max-w-full [&_pre]:whitespace-pre-wrap [&_pre]:border
+                                           [&_code]:bg-gray-100 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-sm [&_code]:font-mono
+                                           [&_h1]:text-xl [&_h1]:font-semibold [&_h1]:mb-4 [&_h1]:text-gray-900
+                                           [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:mb-3 [&_h2]:text-gray-900
+                                           [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mb-2 [&_h3]:text-gray-900
+                                           [&_table]:border-collapse [&_table]:my-4 [&_table]:w-full [&_table]:min-w-[600px] [&_table]:text-sm [&_table]:border [&_table]:border-gray-200
+                                           [&_th]:bg-gray-50 [&_th]:p-3 [&_th]:border [&_th]:border-gray-200 [&_th]:font-semibold [&_th]:text-left [&_th]:text-gray-900 [&_th]:whitespace-nowrap
+                                           [&_td]:p-3 [&_td]:border [&_td]:border-gray-200 [&_td]:align-top [&_td]:leading-relaxed [&_td]:text-gray-800 [&_td]:word-wrap-break-word
+                                           [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:my-2
+                                           text-gray-800 leading-relaxed word-wrap-break-word overflow-wrap-break-word"
+                                  dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
+                                />
+                              </div>
                             ) : (
                               // Placeholder for empty streaming message
                               <div className="text-gray-400 text-sm italic">
@@ -1026,26 +1036,25 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
                             )}
                             
                             {message.content && (
-                        <div className="flex justify-end mt-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-3"
+                              <div className="flex justify-start mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
                                   onClick={() => handleCopy(message.content, message.id || '')}
-                          >
+                                >
                                   {copied === message.id ? (
-                              <Check className="h-3.5 w-3.5 text-green-500" />
-                            ) : (
-                              <Copy className="h-3.5 w-3.5" />
-                            )}
-                                  <span className="ml-2 text-xs">{copied === message.id ? "Disalin" : "Salin"}</span>
-                          </Button>
-                        </div>
+                                    <Check className="h-3 w-3 text-green-600" />
+                                  ) : (
+                                    <Copy className="h-3 w-3" />
+                                  )}
+                                </Button>
+                              </div>
                             )}
                           </div>
                         ) : (
                           <div>
-                            <div className="whitespace-pre-wrap">{message.content}</div>
+                            <div className="whitespace-pre-wrap word-wrap-break-word leading-relaxed">{message.content}</div>
                             
                             {/* File attachments for user messages */}
                             {message.role === 'user' && message.attachments && message.attachments.length > 0 && (
@@ -1074,16 +1083,11 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
                           </div>
                         )}
                       </div>
-                      <div className="text-xs text-gray-500 mt-2 px-1">
-                        {message.created_at ? new Date(message.created_at * 1000).toLocaleTimeString('id-ID', { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        }) : ''}
-                      </div>
+
                     </div>
                     {message.role === 'user' && (
-                      <div className={chatStyles.userAvatar.shape + ' ' + chatStyles.userAvatar.background}>
-                        <span className={chatStyles.userAvatar.text + ' text-sm font-medium'}>U</span>
+                      <div className="w-7 h-7 rounded-full bg-gray-400 flex items-center justify-center flex-shrink-0 mt-1">
+                        <span className="text-white text-xs font-medium">U</span>
                       </div>
                     )}
                   </div>
@@ -1093,12 +1097,11 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
 
             <div ref={messagesEndRef} />
           </div>
-        </DotBackground>
       </div>
 
       {/* Input area fixed at bottom */}
-      <div className="border-t border-gray-200 bg-white p-4 md:px-8 pb-safe">
-        <div className="max-w-5xl mx-auto px-4 md:px-8">
+      <div className="border-t border-gray-200 bg-white p-4">
+        <div className="max-w-3xl mx-auto px-4 md:px-6">
           {/* File Preview Area */}
           {selectedFiles.length > 0 && (
             <div className="mb-3 space-y-2">
@@ -1138,8 +1141,8 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
               value={inputMessage}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
-              placeholder="Ketik pesan Anda atau upload file (PDF, DOC, TXT, gambar, dll. maks 20MB)..."
-              className={`resize-none pr-14 py-3 pl-10 max-h-[200px] rounded-xl ${chatStyles.input.border} ${chatStyles.input.focus} shadow-sm overflow-y-auto`}
+              placeholder="Message Ahli Pidana..."
+              className="resize-none pr-14 py-3 pl-10 max-h-[200px] rounded-2xl border border-gray-300 shadow-sm focus:border-gray-400 focus:ring-0 focus:outline-none overflow-y-auto bg-white"
               disabled={isLoading}
               data-chat-input="true"
             />
@@ -1149,10 +1152,10 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
               type="button"
               onClick={handleOpenFileDialog}
               disabled={isLoading}
-              className="absolute left-2 bottom-3 p-2 rounded-lg text-gray-500 hover:text-rose-500 hover:bg-rose-50 transition-colors"
+              className="absolute left-2 bottom-2.5 w-8 h-8 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors flex items-center justify-center"
               aria-label="Upload file"
             >
-              <Paperclip className="w-5 h-5" />
+              <Paperclip className="w-4 h-4" />
             </button>
             
             {/* Hidden file input */}
@@ -1165,21 +1168,21 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
               accept={ACCEPTED_FILE_TYPES}
             />
             
-            <Button
+            <button
               onClick={handleSendMessage}
               disabled={isLoading || (!inputMessage.trim() && selectedFiles.length === 0)}
-              className={getSendButtonClasses(isLoading || (!inputMessage.trim() && selectedFiles.length === 0))}
+              className="absolute right-2 bottom-2.5 w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:opacity-50 flex items-center justify-center transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
               aria-label="Kirim pesan"
             >
               {isLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
               ) : (
-                <Send className="w-5 h-5" />
+                <Send className="w-4 h-4 text-white" />
               )}
-            </Button>
+            </button>
           </div>
-          <p className="text-xs text-gray-500 mt-2 text-center">
-            Ahli Pidana memberikan informasi umum tentang hukum pidana Indonesia. Untuk masalah hukum yang kompleks, disarankan berkonsultasi dengan pengacara.
+          <p className="text-xs text-gray-400 mt-3 text-center">
+            Ahli Pidana dapat membuat kesalahan. Pertimbangkan untuk memverifikasi informasi penting.
           </p>
         </div>
       </div>

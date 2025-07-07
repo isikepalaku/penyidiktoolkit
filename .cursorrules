@@ -855,6 +855,109 @@ const { data, error } = await supabase.rpc('is_admin', {
   - Implement proper session management with initializeSession and clearChatHistory
   - Use consistent error handling and loading states
 
+### Mobile Responsiveness & URL Handling Best Practices
+
+- **Responsive Message Container Layout**:
+  ```typescript
+  // Optimal mobile-responsive message container structure
+  <div className={cn("flex w-full", message.role === "user" ? "justify-end" : "justify-start")}>
+    <div className={cn("flex gap-3 w-full max-w-full", 
+      message.role === "user" ? "flex-row-reverse max-w-[85%] sm:max-w-[80%]" : "flex-row")}>
+      <div className={cn("min-w-0 flex-1", 
+        message.role === 'user' ? "order-first max-w-full" : "max-w-full")}>
+  ```
+
+- **Long URL and Text Breaking**:
+  ```typescript
+  // Comprehensive text breaking for URLs and long content
+  className="prose prose-sm max-w-none
+    [&_a]:text-rose-600 [&_a]:underline [&_a]:break-all [&_a]:hyphens-auto [&_a]:word-break-break-all
+    [&_p]:mb-4 [&_p]:leading-relaxed [&_p]:break-words [&_p]:hyphens-auto
+    text-gray-800 leading-relaxed break-words hyphens-auto word-wrap-break-word overflow-wrap-anywhere"
+  ```
+
+- **Mobile Container Optimization**:
+  - Use `min-w-0 flex-1` instead of fixed `max-w-[80%]` for message containers
+  - Add `overflow-x-auto -mx-2 sm:-mx-4` wrapper for horizontal scrollable content
+  - Implement responsive padding: `px-3 sm:px-4 md:px-8` for consistent spacing
+  - Use responsive max-width: `max-w-full sm:max-w-4xl xl:max-w-5xl`
+
+- **Avatar and Layout Fixes**:
+  - Add `flex-shrink-0` to avatars to prevent compression
+  - Use smaller gap on mobile: `gap-3` instead of `gap-4`
+  - Implement responsive margins: `max-w-[85%] sm:max-w-[80%]` for user messages
+
+- **Table Responsiveness** (following established pattern):
+  ```typescript
+  [&_table]:min-w-[600px] [&_table]:overflow-hidden
+  [&_td]:break-words [&_td]:hyphens-auto
+  [&_th]:whitespace-nowrap [&_th]:max-w-[200px]
+  [&_td:last-child]:max-w-[400px]
+  ```
+
+- **Input Area Mobile Optimization**:
+  - Responsive padding: `p-3 sm:p-4 md:px-8`
+  - Consistent container sizing with chat area
+  - Proper spacing for file preview areas on mobile
+
+- **Content Breaking Strategy**:
+  - `word-wrap-break-word` for natural text flow (ChatGPT-like)
+  - `overflow-wrap-break-word` as fallback for extreme cases
+  - **AVOID**: `break-all`, `word-break-break-all`, `hyphens-auto` (too aggressive)
+  - `whitespace-pre-wrap` for user messages with natural breaking
+  - **Best Practice**: Use CSS that mimics ChatGPT's natural text flow without forced hyphenation
+
+### ChatGPT-Style UI Implementation
+
+- **Modern Clean Design Pattern**:
+  ```typescript
+  // User messages: Soft light bubble with rounded corners
+  className="bg-gray-200 text-gray-800 rounded-3xl px-4 py-2.5 ml-auto"
+  
+  // Agent messages: No background, plain text with avatar
+  className="bg-transparent"
+  
+  // Container: Clean white background without distracting patterns
+  className="bg-white max-w-3xl mx-auto"
+  ```
+
+- **Avatar Design**:
+  - Small circular avatars: `w-7 h-7 rounded-full`
+  - User: `bg-gray-400` with white text (soft tone)
+  - Agent: theme color (e.g., `bg-rose-500` for KUHP)
+  - Positioned with `mt-1` for alignment with text
+  - Use `flex-shrink-0` to prevent compression
+
+- **Typography & Content**:
+  - Clean prose styling with `prose-gray` for neutral appearance
+  - Links: `text-blue-600 no-underline hover:underline` 
+  - Headers: `font-semibold text-gray-900` instead of themed colors
+  - Reduced spacing: `mb-3` for paragraphs, `space-y-1` for lists
+  - Code blocks: subtle `bg-gray-100 border` with proper `font-mono`
+
+- **Interactive Elements**:
+  - Copy button: `opacity-0 group-hover:opacity-100` for subtle appearance
+  - Small icons: `h-3 w-3` for copy buttons
+  - Positioned at `justify-start` instead of `justify-end`
+  - Minimal padding: `h-6 px-2` for compact appearance
+
+  - **Input Area**:
+  - ChatGPT-style placeholder: "Message [Agent Name]..."
+  - Rounded input: `rounded-2xl border-gray-300`
+  - Subtle focus: `focus:border-gray-400 focus:ring-0`
+  - Small action buttons: `w-8 h-8` with `rounded-lg`
+  - Send button: Use native `<button>` instead of `<Button>` component to avoid CSS conflicts
+  - Send button styling: `bg-blue-600 hover:bg-blue-700` with white icons for visibility
+  - File upload button: `text-gray-500 hover:bg-gray-100` for subtle appearance
+  - **Important**: For small icon buttons, native elements often work better than component library elements
+
+- **Layout Improvements**:
+  - Remove decorative backgrounds (DotBackground)
+  - Consistent max-width: `max-w-3xl` for ChatGPT-like reading width
+  - Clean spacing: `space-y-6` for message separation
+  - Remove timestamps unless on hover
+  - Minimize visual clutter while maintaining functionality
+
 ### Professional File Upload Implementation Patterns
 
 ### Mobile File Upload Compatibility
@@ -2025,6 +2128,131 @@ const syncWithServer = async () => {
 
 # Scratchpad
 
+## Task: Send Button Visibility Fix untuk KUHPChatPage.tsx - COMPLETED ✅
+
+### Deskripsi:
+User melaporkan tombol kirim tidak terlihat di KUHPChatPage.tsx. Masalah terjadi karena styling tombol menggunakan warna yang terlalu light.
+
+### Root Cause:
+- Button component memiliki default styling (`text-primary-foreground`, `px-4 py-2`) yang override custom classes
+- Icon Send menggunakan `text-gray-600` yang tidak memiliki kontras cukup
+- CSS conflicts antara Button component styling dan custom styling
+- Default Button component mengacaukan ukuran `w-8 h-8` dengan padding default
+
+### Solution Implemented:
+```typescript
+// ❌ BEFORE: Button component dengan styling conflicts
+<Button className="bg-gray-200 hover:bg-gray-300 text-gray-600">
+  <Send className="w-4 h-4 text-gray-600" />
+</Button>
+
+// ✅ AFTER: Native button element dengan full control
+<button className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 shadow-sm focus:ring-2">
+  <Send className="w-4 h-4 text-white" />
+</button>
+```
+
+### Benefits:
+- ✅ **Icon Visibility**: White icon pada blue background sangat jelas terlihat
+- ✅ **No CSS Conflicts**: Native button element memberikan full control terhadap styling
+- ✅ **Correct Sizing**: `w-8 h-8` bekerja sempurna tanpa interference dari default padding
+- ✅ **Professional Appearance**: Blue styling dengan proper focus states
+- ✅ **Clear Disabled State**: Gray styling saat disabled tetap jelas terlihat
+- ✅ **Accessibility**: Proper focus ring dan keyboard navigation
+
+---
+
+## Task: Soft Background User Chat Implementation - COMPLETED ✅
+
+### Deskripsi:
+User meminta untuk menggunakan warna background user chat yang lebih soft daripada `bg-gray-700` yang terlalu gelap.
+
+### Changes Implemented:
+
+#### 1. User Message Background:
+```typescript
+// ❌ BEFORE: Dark background
+"bg-gray-700 text-white rounded-3xl px-4 py-2.5 ml-auto"
+
+// ✅ AFTER: Soft light background
+"bg-gray-200 text-gray-800 rounded-3xl px-4 py-2.5 ml-auto"
+```
+
+#### 2. User Avatar Color:
+```typescript
+// ❌ BEFORE: Dark avatar
+"bg-gray-600"
+
+// ✅ AFTER: Soft avatar to match
+"bg-gray-400"
+```
+
+### Benefits:
+- ✅ **Softer Appearance**: Background tidak terlalu kontras dan lebih lembut di mata
+- ✅ **Better Readability**: Text dark `text-gray-800` pada background light `bg-gray-200`
+- ✅ **Consistent Design**: Avatar `bg-gray-400` selaras dengan bubble color
+- ✅ **Modern Feel**: Light bubble design sesuai dengan trend UI modern
+
+### .cursorrules Updated:
+- Updated **Modern Clean Design Pattern** dengan soft background colors
+- Updated **Avatar Design** dengan soft tone colors
+
+---
+
+## Task: Natural Text Flow Fix untuk ChatGPT-like Word Breaking - COMPLETED ✅
+
+### Deskripsi:
+User mengeluh text breaking yang tidak natural seperti di ChatGPT. Masalah terletak pada CSS yang terlalu agresif dalam word breaking di KUHPChatPage.tsx dan markdownFormatter.ts.
+
+### Root Cause:
+- Penggunaan `break-all`, `word-break-break-all`, dan `hyphens-auto` yang memaksa kata-kata break secara tidak natural
+- CSS properties `break-words` dan `overflow-wrap-anywhere` yang terlalu agresif
+- Styling yang berbeda jauh dari natural text flow ChatGPT
+
+### Solutions Implemented:
+
+#### 1. Fixed KUHPChatPage.tsx Prose Classes:
+```typescript
+// ❌ BEFORE: Aggressive breaking
+[&_p]:break-words [&_p]:hyphens-auto
+[&_a]:break-all [&_a]:word-break-break-all [&_a]:hyphens-auto
+overflow-wrap-anywhere
+
+// ✅ AFTER: Natural flow
+[&_p]:word-wrap-break-word
+[&_a]:word-wrap-break-word
+overflow-wrap-break-word
+```
+
+#### 2. Fixed User Message Styling:
+```typescript
+// ❌ BEFORE: Multiple aggressive properties
+"break-words hyphens-auto overflow-wrap-anywhere word-wrap-break-word"
+
+// ✅ AFTER: Clean natural breaking
+"word-wrap-break-word"
+```
+
+#### 3. Updated markdownFormatter.ts:
+- Changed `break-words` to `word-wrap-break-word` in getProseClasses
+- Removed `hyphens-auto` from table cells
+- More natural text flow for all prose elements
+
+### Benefits:
+- ✅ **Natural Text Flow**: Text sekarang mengalir seperti ChatGPT tanpa forced breaking
+- ✅ **Better Readability**: Kata-kata tidak dipotong secara tidak natural
+- ✅ **Consistent Experience**: Sama dengan UI pattern ChatGPT yang familiar
+- ✅ **Mobile Friendly**: Tetap responsive tapi dengan breaking yang natural
+- ✅ **URL Handling**: Link panjang tetap break dengan baik tanpa terlalu agresif
+
+### .cursorrules Updated:
+- Added new **Content Breaking Strategy** guidelines
+- **AVOID**: `break-all`, `word-break-break-all`, `hyphens-auto`
+- **USE**: `word-wrap-break-word`, `overflow-wrap-break-word`
+- **Best Practice**: Mimic ChatGPT's natural text flow
+
+---
+
 ## Task: Citation Implementation for TipidkorChatPage.tsx - COMPLETED ✅
 
 ### Deskripsi:
@@ -2136,3 +2364,6 @@ User melaporkan error saat menggunakan fungsi reject user di AdminPanel.tsx. Err
 - Agno RunResponse Extra Data & Citations Implementation
 - Perbaikan Fungsi Hapus Storage & Reset Chat KUHAPChatPage.tsx
 - Final Cleanup Unused Imports KUHAPChatPage.tsx
+- Natural Text Flow Fix untuk ChatGPT-like Word Breaking
+- Soft Background User Chat Implementation
+- Send Button Visibility Fix untuk KUHPChatPage.tsx
