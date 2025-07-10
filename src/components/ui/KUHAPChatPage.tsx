@@ -736,8 +736,8 @@ const HukumPerdataChatPage: React.FC<HukumPerdataChatPageProps> = ({ onBack }) =
               <span className="text-white text-sm font-semibold">HP</span>
             </div>
             <div>
-              <h1 className="font-semibold">Hukum Perdata AI</h1>
-              <p className="text-sm text-gray-600 hidden sm:block">Konsultasi terkait hukum perdata</p>
+              <h1 className="font-semibold">Ahli Hukum Perdata AI</h1>
+              <p className="text-sm text-gray-600 hidden sm:block">Konsultasi dan analisis hukum perdata Indonesia</p>
             </div>
           </div>
         </div>
@@ -781,14 +781,15 @@ const HukumPerdataChatPage: React.FC<HukumPerdataChatPageProps> = ({ onBack }) =
               <Info className="h-5 w-5 text-orange-500" />
             </div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-orange-800">Tentang Hukum Perdata AI</h3>
+              <h3 className="text-sm font-medium text-orange-800">Tentang Ahli Hukum Perdata AI</h3>
               <div className="mt-2 text-sm text-orange-700">
-                <p>AI Assistant yang membantu Anda dalam konsultasi terkait hukum perdata Indonesia, termasuk kontrak, properti, dan perselisihan sipil.</p>
+                <p>Asisten AI yang dirancang khusus untuk membantu penegak hukum dalam konsultasi dan analisis hukum perdata Indonesia, termasuk kontrak, properti, dan perselisihan sipil.</p>
                 <ul className="list-disc list-inside mt-2 space-y-1">
-                  <li>Analisis dokumen legal dan kontrak</li>
-                  <li>Interpretasi UU Hukum Perdata</li>
-                  <li>Panduan prosedur hukum</li>
-                  <li>Konsultasi kasus perdata</li>
+                  <li>Analisis mendalam dokumen legal dan kontrak</li>
+                  <li>Interpretasi KUH Perdata dan undang-undang terkait</li>
+                  <li>Panduan prosedur hukum perdata</li>
+                  <li>Konsultasi kasus dan sengketa perdata</li>
+                  <li>Analisis yuridis berdasarkan hukum positif Indonesia</li>
                 </ul>
                 <p className="mt-2 text-xs">
                   💡 Tip: Gunakan tombol database untuk melihat penggunaan storage dan membersihkan data lama.
@@ -808,9 +809,9 @@ const HukumPerdataChatPage: React.FC<HukumPerdataChatPageProps> = ({ onBack }) =
       {/* Chat Messages Container - Fixed the layout structure */}
       <div 
         ref={chatContainerRef}
-        className="flex-1 overflow-y-auto p-4 space-y-6"
+        className="flex-1 overflow-y-auto p-4 pb-6"
       >
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-3xl mx-auto space-y-4">
           {/* File Validation Errors */}
           {fileValidationErrors.length > 0 && (
             <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-md mb-4">
@@ -834,25 +835,51 @@ const HukumPerdataChatPage: React.FC<HukumPerdataChatPageProps> = ({ onBack }) =
             </div>
           )}
 
-          {/* Example Questions - Only show if no messages */}
+          {/* Welcome Message and Example Questions - Only show if no messages */}
           {messages.length === 0 && (
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-gray-500">Contoh pertanyaan:</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {[
-                  "Bagaimana cara membuat kontrak jual beli yang sah?",
-                  "Apa saja syarat sahnya perjanjian menurut KUH Perdata?",
-                  "Bagaimana prosedur gugatan wanprestasi?",
-                  "Apa yang dimaksud dengan force majeure dalam kontrak?"
-                ].map((question, idx) => (
-                  <button
-                    key={idx}
-                    className="text-left p-3 border border-gray-200 rounded-lg text-gray-700 hover:bg-orange-50 transition-colors shadow-sm"
-                    onClick={() => handleSelectQuestion(question)}
-                  >
-                    {question}
-                  </button>
-                ))}
+            <div className="space-y-6 mb-8">
+              {/* Welcome Message */}
+              <div className="text-center space-y-4 py-8">
+                <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mx-auto">
+                  <span className="text-white text-2xl font-bold">HP</span>
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Selamat Datang di Ahli Hukum Perdata AI</h2>
+                  <p className="text-gray-600 max-w-2xl mx-auto">
+                    Saya adalah asisten AI yang akan membantu Anda dalam konsultasi hukum perdata Indonesia. 
+                    Saya dapat membantu analisis kontrak, perjanjian, sengketa perdata, dan permasalahan hukum perdata lainnya.
+                  </p>
+                </div>
+              </div>
+              
+              {/* Example Questions */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-gray-700 text-center">Contoh pertanyaan yang bisa Anda ajukan:</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {[
+                    "Bagaimana cara membuat kontrak jual beli yang sah?",
+                    "Apa saja syarat sahnya perjanjian menurut KUH Perdata?",
+                    "Bagaimana prosedur gugatan wanprestasi?",
+                    "Apa yang dimaksud dengan force majeure dalam kontrak?",
+                    "Bagaimana cara mengajukan gugatan perdata?",
+                    "Apa yang harus dilakukan jika kontrak dilanggar?"
+                  ].map((question, idx) => (
+                    <button
+                      key={idx}
+                      className="text-left p-4 border border-gray-200 rounded-lg text-gray-700 hover:bg-orange-50 hover:border-orange-300 transition-all duration-200 shadow-sm hover:shadow-md"
+                      onClick={() => handleSelectQuestion(question)}
+                    >
+                      <span className="text-sm font-medium">{question}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Tips */}
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 text-center">
+                <p className="text-sm text-orange-800">
+                  💡 <strong>Tips:</strong> Anda dapat mengunggah dokumen (PDF, TXT, gambar) untuk analisis lebih mendalam
+                </p>
               </div>
             </div>
           )}
@@ -874,7 +901,7 @@ const HukumPerdataChatPage: React.FC<HukumPerdataChatPageProps> = ({ onBack }) =
             return (message.content || isStreamingMessage) && (
               <div
                 key={message.id}
-                className={cn("flex w-full", message.role === "user" ? "justify-end" : "justify-start")}
+                className={cn("flex w-full mb-6", message.role === "user" ? "justify-end" : "justify-start")}
               >
                 <div className={cn("flex gap-3 w-full max-w-full", message.role === "user" ? "flex-row-reverse max-w-[85%] sm:max-w-[80%]" : "flex-row")}>
                   {message.role === 'agent' && (
@@ -892,12 +919,12 @@ const HukumPerdataChatPage: React.FC<HukumPerdataChatPageProps> = ({ onBack }) =
                       )}
                     >
                       {message.role === 'agent' ? (
-                        <div className="relative group">
+                        <div className="relative group space-y-3">
                           {/* Streaming Status for this specific message */}
                           {isStreamingMessage && (
                             <div 
                               ref={streamingStatusRef} 
-                              className="mb-3 scroll-mt-4 transition-all duration-300"
+                              className="bg-orange-50 border border-orange-200 rounded-lg p-3 scroll-mt-4 transition-all duration-300"
                             >
                               <StreamingStatus 
                                 isStreaming={true} 
@@ -931,7 +958,7 @@ const HukumPerdataChatPage: React.FC<HukumPerdataChatPageProps> = ({ onBack }) =
                             </div>
                           ) : (
                             // Placeholder for empty streaming message
-                            <div className="text-gray-400 text-sm italic">
+                            <div className="text-gray-400 text-sm italic py-2">
                               Sedang memproses...
                             </div>
                           )}
@@ -948,7 +975,7 @@ const HukumPerdataChatPage: React.FC<HukumPerdataChatPageProps> = ({ onBack }) =
                           )}
                           
                           {message.content && (
-                            <div className="flex justify-start mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex justify-start mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -965,12 +992,12 @@ const HukumPerdataChatPage: React.FC<HukumPerdataChatPageProps> = ({ onBack }) =
                           )}
                         </div>
                       ) : (
-                        <div>
+                        <div className="space-y-3">
                           <div className="whitespace-pre-wrap word-wrap-break-word leading-relaxed">{message.content}</div>
                           
                           {/* File attachments for user messages */}
                           {message.role === 'user' && message.attachments && message.attachments.length > 0 && (
-                            <div className="mt-3 space-y-2">
+                            <div className="space-y-2 pt-2 border-t border-gray-300">
                               <div className="text-xs text-gray-600 font-medium">
                                 File terlampir ({message.attachments.length}):
                               </div>
@@ -978,12 +1005,12 @@ const HukumPerdataChatPage: React.FC<HukumPerdataChatPageProps> = ({ onBack }) =
                                 {message.attachments.map((attachment, index) => (
                                   <div 
                                     key={index}
-                                    className="bg-gray-200 border border-gray-300 rounded-md px-2 py-1 flex items-center gap-2 text-xs"
+                                    className="bg-white/80 border border-gray-400 rounded-md px-2 py-1 flex items-center gap-2 text-xs shadow-sm"
                                   >
-                                    <File className="w-3 h-3 flex-shrink-0 text-gray-500" />
+                                    <File className="w-3 h-3 flex-shrink-0 text-gray-600" />
                                     <div className="flex flex-col min-w-0 flex-1">
-                                      <span className="truncate font-medium text-gray-700">{attachment.name}</span>
-                                      <span className="text-xs text-gray-500">
+                                      <span className="truncate font-medium text-gray-800">{attachment.name}</span>
+                                      <span className="text-xs text-gray-600">
                                         {formatFileSize(attachment.size)}
                                       </span>
                                     </div>
@@ -1053,7 +1080,7 @@ const HukumPerdataChatPage: React.FC<HukumPerdataChatPageProps> = ({ onBack }) =
               value={inputMessage}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
-              placeholder="Message Hukum Perdata AI..."
+              placeholder="Konsultasikan masalah hukum perdata Anda..."
               className="resize-none pr-14 py-3 pl-10 max-h-[200px] rounded-2xl border border-gray-300 shadow-sm focus:border-gray-400 focus:ring-0 focus:outline-none overflow-y-auto bg-white"
               disabled={isLoading}
               data-chat-input="true"
@@ -1094,7 +1121,7 @@ const HukumPerdataChatPage: React.FC<HukumPerdataChatPageProps> = ({ onBack }) =
             </button>
           </div>
           <p className="text-xs text-gray-400 mt-3 text-center">
-            Hukum Perdata AI dapat membuat kesalahan. Pertimbangkan untuk memverifikasi informasi penting.
+            Ahli Hukum Perdata AI dapat membuat kesalahan. Selalu verifikasi informasi hukum dengan peraturan terbaru dan konsultasi ahli.
           </p>
         </div>
       </div>

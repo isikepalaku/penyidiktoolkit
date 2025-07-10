@@ -217,6 +217,30 @@ export default defineConfig(({ mode }) => {
               proxyRes.headers['access-control-allow-credentials'] = 'true';
             });
           }
+        },
+        '/paperless': {
+          target: 'https://dokumen.reserse.id',
+          changeOrigin: true,
+          secure: true,
+          rewrite: (path: string) => path.replace(/^\/paperless/, ''),
+          configure: (proxy, _options) => {
+            proxy.on('proxyReq', (proxyReq, req, _res) => {
+              console.log('Proxying Paperless request:', req.method, req.url);
+              
+              const origin = req.headers.origin || 'http://localhost:3000';
+              proxyReq.setHeader('Origin', origin);
+            });
+            
+            proxy.on('proxyRes', (proxyRes, req, _res) => {
+              console.log('Paperless proxy response status:', proxyRes.statusCode, 'for', req.url);
+              
+              proxyRes.headers['access-control-allow-origin'] = req.headers.origin || '*';
+              proxyRes.headers['access-control-allow-methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+              proxyRes.headers['access-control-allow-headers'] = 'Content-Type, Authorization, X-API-Key';
+              proxyRes.headers['access-control-allow-credentials'] = 'true';
+              proxyRes.headers['access-control-max-age'] = '86400';
+            });
+          }
         }
       },
       allowedHosts: [
@@ -224,6 +248,7 @@ export default defineConfig(({ mode }) => {
         'api.reserse.id',
         'flow.reserse.id',
         'app.reserse.id',
+        'dokumen.reserse.id',
         '.reserse.id'
       ]
     },
@@ -236,6 +261,7 @@ export default defineConfig(({ mode }) => {
         'api.reserse.id',
         'flow.reserse.id',
         'app.reserse.id',
+        'dokumen.reserse.id',
         '.reserse.id'
       ]
     },

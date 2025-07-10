@@ -2191,6 +2191,78 @@ case RunEvent.RunCompleted:
 - Natural Text Flow Fix untuk ChatGPT-like Word Breaking
 - Soft Background User Chat Implementation
 - Send Button Visibility Fix untuk KUHPChatPage.tsx
+- KUHAPChatPage Layout and Branding Fix - COMPLETED ✅
+- KUHAPChatPage Citations Fix - COMPLETED ✅
+
+### 12. KUHAPChatPage Layout and Branding Fix - COMPLETED ✅
+
+**Problem**: KUHAPChatPage.tsx mengalami masalah tampilan dimana pesan user dan animasi event berdempetan, welcome message hilang, dan branding tidak konsisten untuk "Ahli Hukum Perdata".
+
+**Solution Applied**:
+- **Enhanced Welcome Message**: Professional welcome screen dengan avatar, description, dan 6 example questions
+- **Fixed Spacing Issues**: Added `mb-6` untuk message separation, `space-y-3` untuk agent messages
+- **Streaming Status Container**: Visual container dengan orange background untuk streaming animations
+- **Consistent Branding**: Updated semua references ke "Ahli Hukum Perdata AI"
+- **File Attachment Styling**: Enhanced dengan borders, shadows, dan proper separation
+- **Layout Optimization**: Fixed container hierarchy dan spacing untuk prevent overlapping
+
+**Benefits**: 
+- ✅ Professional welcome message muncul dengan benar
+- ✅ No more overlapping antara user messages dan streaming animations  
+- ✅ Consistent branding untuk law enforcement application
+- ✅ Enhanced UX dengan visual containers dan proper spacing
+- ✅ Mobile responsive layout dengan optimized spacing
+
+### 13. KUHAPChatPage Citations Fix - COMPLETED ✅
+
+**Problem**: Citations dari knowledge base tidak muncul di KUHAPChatPage.tsx karena `extra_data.references` hilang dalam file upload mode.
+
+**Root Cause Analysis**:
+- **File Upload Mode**: Service menggunakan non-streaming JSON response yang dikonversi ke synthetic events
+- **Missing Citations**: Synthetic events tidak menyertakan `extra_data.references` dari backend response  
+- **Streaming Mode**: Chat biasa (tanpa file) bekerja karena events langsung di-forward dari backend
+- **Service Layer Gap**: `kuhapService.ts` tidak memetakan citations dari JSON response ke synthetic events
+
+**Solution Applied**:
+```typescript
+// ✅ AFTER: Enhanced synthetic events dengan citations
+const extra_data = data.extra_data || data.references ? {
+  ...(data.extra_data || {}),
+  ...(data.references ? { references: data.references } : {})
+} : undefined;
+
+const runResponseEvent: RunResponse = {
+  event: RunEvent.RunResponse,
+  content: data.content || data.message || 'No response received',
+  session_id: data.session_id || currentSessionId,
+  created_at: Math.floor(Date.now() / 1000),
+  extra_data: extra_data // Citations now included
+};
+```
+
+**Enhanced Debugging**:
+- **Response Analysis**: Added comprehensive logging untuk backend response structure
+- **Citations Tracking**: Debug logging untuk citations count dan presence
+- **Synthetic Events Validation**: Verify citations tersertakan dalam synthetic events
+- **Event Flow Monitoring**: Track citations dari backend → service → frontend
+
+**Benefits**:
+- ✅ **Citations Working**: Knowledge base references sekarang muncul untuk file uploads
+- ✅ **Consistent Behavior**: File upload dan chat streaming mode sama-sama support citations
+- ✅ **Enhanced Debugging**: Comprehensive logging untuk troubleshoot citation issues
+- ✅ **Backward Compatibility**: Tidak merusak existing functionality
+- ✅ **Data Preservation**: Citations dari multiple sources (extra_data, references) ter-preserve
+
+**Files Modified**:
+- `src/services/kuhapService.ts` - Enhanced synthetic events dengan citations support
+- `.cursorrules` - Added comprehensive Citations Fix Implementation Pattern
+
+**Pattern untuk Service Layer Citations**:
+- **Always preserve extra_data**: Map semua extra_data dari backend response
+- **Multiple citation sources**: Handle citations dari `data.extra_data.references` dan `data.references`
+- **Synthetic event parity**: Ensure synthetic events sama lengkapnya dengan real streaming events  
+- **Debug logging**: Always log citations flow untuk troubleshooting
+- **Backward compatibility**: Support legacy dan new citation formats
 
 ## Instructions for Using Graphiti's MCP Tools for Agent Memory
 
@@ -2282,6 +2354,158 @@ className="gap-2 sm:gap-3"
 - **Touch-Friendly**: Adequate button sizes untuk mobile touch
 - **Content Protection**: `min-w-0` dan `truncate` untuk text overflow
 - **Flexible Layouts**: Responsive spacing dan sizing
+
+### 9. Desktop Scrolling Fix for Chat Layout Structure - COMPLETED ✅
+
+### 10. Pencarian Dokumen Hukum Page Creation - COMPLETED ✅
+
+### 11. Paperless NGX Backend Integration & CORS Fix - COMPLETED ✅
+
+**Task**: Mengintegrasikan Paperless NGX sebagai backend untuk pencarian dokumen hukum dengan mengatasi masalah CORS.
+
+**Implementation**:
+- **Service Layer**: `src/services/paperlessService.ts` - Comprehensive service untuk interaksi dengan Paperless NGX REST API
+- **Environment Config**: `src/config/env.ts` - Menambahkan konfigurasi paperlessUrl dan paperlessApiToken
+- **API Integration**: `src/pages/PencarianDokumen.tsx` - Mengganti mock data dengan real API calls
+- **Documentation**: `paperlessapi.md` - Dokumentasi lengkap untuk setup dan penggunaan
+
+**Features Implemented**:
+- **Core Search Functions**:
+  * `searchLegalDocuments()` - Pencarian dokumen hukum dengan filtering
+  * `searchFullText()` - Full-text search dengan pagination
+  * `searchSimilar()` - Pencarian dokumen yang mirip
+  * `autocomplete()` - Autocomplete untuk search terms
+- **Document Management**:
+  * `getDocument()` - Mendapatkan detail dokumen
+  * `downloadDocument()` - Download dokumen PDF
+  * `getThumbnail()` - Mendapatkan thumbnail preview
+- **Metadata Operations**:
+  * `getTags()` - Mendapatkan daftar tags untuk filtering
+  * `getDocumentTypes()` - Mendapatkan jenis dokumen
+  * `getCorrespondents()` - Mendapatkan daftar correspondent
+- **Health Check**: `ping()` - Verifikasi koneksi dan status API
+- **Data Conversion**: Helper methods untuk convert Paperless document ke format UI
+
+**Technical Details**:
+- **API Version**: Menggunakan Paperless NGX API v9 dengan header versioning
+- **Authentication**: Token-based authentication dengan Bearer token
+- **Error Handling**: Comprehensive error handling dengan specific error messages
+- **Content Extraction**: Smart parsing untuk extract metadata dari document content
+- **Search Highlights**: Support untuk search result highlighting
+- **Pagination**: Built-in pagination support untuk large result sets
+
+**Configuration Required**:
+```bash
+# Environment Variables (.env)
+VITE_PAPERLESS_URL=http://localhost:8000
+VITE_PAPERLESS_API_TOKEN=your-api-token-here
+```
+
+**Search Parameters Supported**:
+- **Query**: Full-text search query
+- **Filtering**: Status, tahun, bidang hukum
+- **Sorting**: Created date, title, relevance
+- **Pagination**: Page size, current page
+- **Advanced**: Custom field queries, tag filtering
+
+**CORS Fix Implementation**:
+- **Vite Proxy Configuration**: Added `/paperless` proxy yang redirect ke `https://dokumen.reserse.id`
+- **Environment Configuration**: Auto-detect development mode untuk menggunakan proxy (`/paperless`) vs production URL
+- **Environment Override Fix**: Development mode selalu gunakan proxy, override .env VITE_PAPERLESS_URL
+- **Service Layer Enhancement**: Added logging untuk development proxy usage dengan debugging info
+- **Header Management**: Comprehensive CORS headers di proxy configuration
+- **Security**: Proper origin handling dan credential management
+- **Debug Logging**: Enhanced console logging untuk track proxy usage dan API requests
+
+**Document Links & Score Fix Implementation**:
+- **URL Generation Enhancement**: Manual URL construction based on document ID untuk download dan thumbnail
+- **Smart Score Calculation**: Multi-strategy scoring dengan fallback (search hit → rank → date-based)
+- **Debug Integration**: Comprehensive logging untuk track URL generation dan score calculation
+- **UI Enhancement**: Separate buttons untuk Preview (thumbnail) dan Download PDF dengan debug info
+- **Interface Updates**: Extended DocumentResult interface untuk support thumbnail_url dan debug metadata
+- **Error Handling**: Visual indicators untuk missing URLs dengan debug information
+
+**Benefits**:
+- ✅ **Real API Integration**: Menggantikan mock data dengan actual backend
+- ✅ **Full-text Search**: Powerful search capabilities dengan ranking
+- ✅ **Document Management**: Complete document lifecycle support dengan download/preview links
+- ✅ **Metadata Extraction**: Smart parsing dari document content
+- ✅ **Error Handling**: Robust error handling dengan user-friendly messages
+- ✅ **Performance**: Efficient API calls dengan pagination dan caching
+- ✅ **Scalability**: Ready untuk production deployment
+- ✅ **Documentation**: Comprehensive setup dan usage guide
+- ✅ **CORS Resolution**: Development proxy eliminates CORS issues tanpa modifikasi server
+- ✅ **Document Links Working**: Download PDF dan Preview thumbnail buttons functional
+- ✅ **Score Synchronization**: Accurate relevance scoring dengan multiple fallback strategies
+- ✅ **Reset Function Enhanced**: Clear previous results immediately pada search baru untuk prevent confusion
+- ✅ **Authentication Fix**: Proper authenticated download/preview dengan fetch+blob pattern, eliminates browser auth prompts
+- ✅ **Enhanced Debugging**: Comprehensive logging untuk track download/preview operations dan error diagnosis
+- ✅ **Paperless API Compliance**: Fixed implementation sesuai dokumentasi resmi Paperless NGX API
+- ✅ **Search Hit Integration**: Proper usage dari search_hit data (score, rank, highlights)
+- ✅ **Enhanced Query Building**: Smart query enhancement dengan filter terms untuk better search results
+- ✅ **Highlights Processing**: Clean HTML highlights dari API untuk readable text display
+- ✅ **Paperless API Field Compliance**: Fixed `__search_hit__` to `search_hit` sesuai dokumentasi resmi Paperless NGX
+- ✅ **Documentation Alignment**: Implementasi field names sekarang 100% sesuai dengan dokumentasi PyPaperless dan Paperless NGX API
+- ✅ **Tags-Based Status System**: Implemented status display based on `tags` field from API instead of hardcoded status
+  * Tag ID 1 = "Berlaku" (green badge)
+  * Tag ID 2 = "Dicabut / Diubah" (red badge)
+  * Default = "Status Tidak Diketahui" (gray badge)
+- ✅ **Dynamic Status Filtering**: Client-side filtering menggunakan tag IDs dengan proper mapping dan fallback handling
+
+**Task**: Membuat halaman baru untuk pencarian dokumen hukum yang interaktif.
+
+**Implementation**:
+- **File Created**: `src/pages/PencarianDokumen.tsx` - Halaman pencarian dokumen hukum dengan UI yang modern
+- **Sidebar Updated**: `src/components/Sidebar.tsx` - Menambahkan menu item "Pencarian Dokumen" 
+- **Routing Added**: `src/App.tsx` - Menambahkan import dan route untuk halaman baru
+
+**Features Implemented**:
+- **Advanced Search Interface**: 
+  * Multi-line search input dengan AutosizeTextarea
+  * Filter berdasarkan jenis dokumen (UU, PP, Keppres, Permen)
+  * Filter berdasarkan status (Berlaku, Dicabut, Direvisi)
+  * Filter berdasarkan tahun dan bidang hukum
+  * Reset dan search functionality
+- **Professional Document Display**:
+  * Document cards dengan metadata lengkap (nomor, tahun, instansi, tanggal)
+  * Status indicators dengan color coding
+  * Bidang hukum tags 
+  * Document summary dan relevansi score
+  * Action buttons (Lihat, Download, Link Eksternal)
+- **Responsive Design**:
+  * Mobile-first approach dengan responsive grid
+  * Professional color scheme dengan blue gradient
+  * Loading states dengan spinner animations
+  * Error handling dan empty state messages
+- **Mock Data Integration**:
+  * Sample legal documents untuk demonstrasi
+  * Backend integration ready (placeholder untuk API calls)
+
+**Technical Details**:
+- **TypeScript Interfaces**: Complete DocumentResult interface dengan semua field yang diperlukan
+- **State Management**: Comprehensive state untuk search, filters, results, dan UI states
+- **UI Components**: Menggunakan existing components (DotBackground, Button, AutosizeTextarea)
+- **Icon Integration**: Professional icons dari Lucide React untuk semua actions
+- **Styling**: Consistent dengan design system yang ada menggunakan Tailwind CSS
+
+**Navigation**:
+- **Sidebar Menu**: Added "Pencarian Dokumen" dengan FileText icon
+- **Route Path**: `/pencarian-dokumen` sebagai protected route
+- **Breadcrumb**: Back button untuk navigate ke home
+
+**Next Steps**:
+- Backend API integration untuk actual document search
+- Database schema untuk legal documents
+- Advanced filtering dan sorting options
+- Document preview functionality
+- Export dan sharing features
+
+**Pattern Guidelines**:
+- Follow existing page structure pattern dari project
+- Use consistent error handling dan loading states
+- Implement proper TypeScript interfaces untuk type safety
+- Use responsive design principles untuk mobile compatibility
+- Maintain professional appearance sesuai dengan law enforcement application standards
 
 ### 9. Desktop Scrolling Fix for Chat Layout Structure - COMPLETED ✅
 

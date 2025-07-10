@@ -5,6 +5,7 @@ import Home from './pages/Home';
 import Agents from './pages/Agents';
 import Toolkit from './pages/Toolkit';
 import PencarianPutusan from './pages/PencarianPutusan';
+import PencarianDokumen from './pages/PencarianDokumen';
 import PerkabaChat from './pages/PerkabaChat';
 import UndangUndang from './pages/UndangUndang';
 import PenyidikAi from './pages/PenyidikAi';
@@ -121,6 +122,11 @@ function AppContent() {
               <Route path="/pencarian-putusan" element={
                 <ProtectedRoute>
                   <PencarianPutusan />
+                </ProtectedRoute>
+              } />
+              <Route path="/pencarian-dokumen" element={
+                <ProtectedRoute>
+                  <PencarianDokumen />
                 </ProtectedRoute>
               } />
               <Route path="/piket-spkt" element={

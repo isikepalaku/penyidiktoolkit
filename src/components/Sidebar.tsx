@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Users, FileText, PanelLeft, PanelRightClose, Search, MessageSquare, Home, Scale, ShieldAlert, ClipboardList } from 'lucide-react';
+import { Users, FileText, PanelLeft, PanelRightClose, Search, MessageSquare, Home, Scale, ShieldAlert, Wrench, Shield } from 'lucide-react';
 import logo from '../static/logoreserse.png';
 import ProfileMenu from './ProfileMenu';
 import { useAuth } from '../auth/AuthContext';
@@ -78,7 +78,7 @@ const Sidebar = () => {
       },
       {
         path: '/toolkit',
-        icon: <FileText className="w-5 h-5" />,
+        icon: <Wrench className="w-5 h-5" />,
         text: 'Toolkit'
       },
       {
@@ -87,8 +87,13 @@ const Sidebar = () => {
         text: 'Pencarian Putusan'
       },
       {
+        path: '/pencarian-dokumen',
+        icon: <FileText className="w-5 h-5" />,
+        text: 'Cari Peraturan'
+      },
+      {
         path: '/piket-spkt',
-        icon: <ClipboardList className="w-5 h-5" />,
+        icon: <Shield className="w-5 h-5" />,
         text: 'Piket SPKT'
       }
   ];

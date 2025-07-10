@@ -428,7 +428,14 @@ export const sendStreamingChatMessage = async (
         emitProgress({ status: 'processing', percent: 70 });
         
         const data = await parseResponse(response);
-        console.log('File upload response:', data);
+        console.log('🔍 HUKUM PERDATA: File upload response received:', {
+          hasContent: !!data.content,
+          contentLength: data.content?.length || 0,
+          hasExtraData: !!data.extra_data,
+          hasReferences: !!(data.references || data.extra_data?.references),
+          referencesCount: (data.references || data.extra_data?.references)?.length || 0,
+          sessionId: data.session_id
+        });
         
         // Convert JSON response to streaming events for consistency
         const runStartedEvent: RunResponse = {
@@ -438,23 +445,38 @@ export const sendStreamingChatMessage = async (
           created_at: Math.floor(Date.now() / 1000)
         };
         
+        // Preserve extra_data (including citations) from backend response
+        const extra_data = data.extra_data || data.references ? {
+          ...(data.extra_data || {}),
+          ...(data.references ? { references: data.references } : {})
+        } : undefined;
+        
         const runResponseEvent: RunResponse = {
           event: RunEvent.RunResponse,
           content: data.content || data.message || 'No response received',
           session_id: data.session_id || currentSessionId,
-          created_at: Math.floor(Date.now() / 1000)
+          created_at: Math.floor(Date.now() / 1000),
+          extra_data: extra_data
         };
         
         const runCompletedEvent: RunResponse = {
           event: RunEvent.RunCompleted,
           content: data.content || data.message || 'No response received',
           session_id: data.session_id || currentSessionId,
-          created_at: Math.floor(Date.now() / 1000)
+          created_at: Math.floor(Date.now() / 1000),
+          extra_data: extra_data
         };
 
         // Emit events with delay for smooth UX
         console.log('🔄 HUKUM PERDATA: About to emit synthetic events for file upload');
         console.log('🔄 onEvent callback provided:', typeof onEvent);
+        
+        // Debug synthetic events data
+        console.log('🔄 Synthetic events citations debug:', {
+          runResponseHasCitations: !!(runResponseEvent.extra_data?.references),
+          runCompletedHasCitations: !!(runCompletedEvent.extra_data?.references),
+          citationsCount: runResponseEvent.extra_data?.references?.length || 0
+        });
         
         setTimeout(() => {
           console.log('📤 HUKUM PERDATA: Emitting RunStarted event');

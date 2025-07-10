@@ -22,6 +22,14 @@ const envSchema = z.object({
   geminiApiKey: z.string().optional(),
   projectId: z.string().default('reserseapp'),
   googleModelName: z.string().default('gemini-2.0-flash-exp'),
+
+  // Paperless NGX settings - development akan menggunakan proxy
+  paperlessUrl: z.string().default(
+    import.meta.env.DEV 
+      ? '/paperless'  // Proxy untuk development
+      : 'https://dokumen.reserse.id'  // Direct URL untuk production
+  ),
+  paperlessApiToken: z.string().optional(),
 });
 
 const processEnv = {
@@ -36,6 +44,11 @@ const processEnv = {
   geminiApiKey: import.meta.env.VITE_GEMINI_API_KEY,
   projectId: import.meta.env.VITE_GCP_PROJECT_ID,
   googleModelName: import.meta.env.VITE_GOOGLE_MODEL_NAME,
+  // Override paperlessUrl untuk development mode agar selalu gunakan proxy
+  paperlessUrl: import.meta.env.DEV 
+    ? '/paperless' 
+    : (import.meta.env.VITE_PAPERLESS_URL || 'https://dokumen.reserse.id'),
+  paperlessApiToken: import.meta.env.VITE_PAPERLESS_API_TOKEN,
 };
 
 // Parse and validate environment variables
@@ -55,12 +68,15 @@ export const env = parsed.success ? parsed.data : envSchema.parse({
   perkabaApiKey: 'kzeL0g3LzjRzG9a0-jgbay441zTkAaGgC1mu0jVs330',
   supabaseUrl: 'https://cckuzygknaeqsnmnzfku.supabase.co',
   projectId: 'reserseapp',
-  googleModelName: 'gemini-2.0-flash-exp'
+  googleModelName: 'gemini-2.0-flash-exp',
+  paperlessUrl: import.meta.env.DEV ? '/paperless' : 'https://dokumen.reserse.id'
 });
 
 // Logging untuk debug
 console.log('Environment config:', {
   apiKey: '[REDACTED]',
   apiUrl: env.apiUrl,
-  perkabaApiUrl: env.perkabaApiUrl
+  perkabaApiUrl: env.perkabaApiUrl,
+  paperlessUrl: env.paperlessUrl,
+  isDev: import.meta.env.DEV
 });
