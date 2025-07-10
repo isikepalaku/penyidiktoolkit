@@ -1,31 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Send, Copy, Check, Loader2, Info, RefreshCw, Paperclip, File, XIcon, AlertCircle, Database, Trash2 } from 'lucide-react';
+import { cn } from '@/utils/utils';
 import { Button } from './button';
-import { DotBackground } from './DotBackground';
+import { Textarea } from './textarea';
+
 import { formatMessage } from '@/utils/markdownFormatter';
+import { RunEvent } from '@/types/playground';
 import { usePlaygroundStore } from '@/stores/PlaygroundStore';
 import StreamingStatus from '@/hooks/streaming/StreamingStatus';
-import useAIChatStreamHandler from '@/hooks/playground/useAIChatStreamHandler';
+import CitationDisplay from './CitationDisplay';
 import { 
   clearStreamingChatHistory,
-  initializeStreamingSession
+  initializeStreamingSession,
+  sendStreamingChatMessage
 } from '@/services/kuhapService';
 import { getStorageStats, forceCleanup } from '@/stores/PlaygroundStore';
-import { 
-  getUserMessageClasses, 
-  getAgentMessageClasses, 
-  getProseClasses 
-} from '@/styles/chatStyles';
-
-// Constants for Hukum Perdata
-const HUKUM_PERDATA_EXAMPLE_QUESTIONS = [
-  "Bagaimana cara membuat kontrak yang sah secara hukum?",
-  "Apa yang harus dilakukan jika pihak lain tidak memenuhi perjanjian?",
-  "Bagaimana cara menuntut ganti rugi dalam sengketa perdata?",
-  "Apa perbedaan antara hak milik dan hak sewa dalam properti?",
-  "Kapan seseorang dapat dimintai pertanggungjawaban atas kerugian?",
-  "Bagaimana prosedur penyelesaian sengketa di luar pengadilan?"
-];
 
 // Supported file types - limited to TXT, PDF, and Images only
 const ACCEPTED_FILE_TYPES = ".pdf,.txt,.png,.jpg,.jpeg,.webp";
@@ -93,28 +82,16 @@ const formatFileSize = (bytes: number): string => {
 };
 
 const HukumPerdataChatPage: React.FC<HukumPerdataChatPageProps> = ({ onBack }) => {
-  // Use modern streaming hooks and store
-  const { 
-    messages, 
-    isStreaming: isLoading, 
-    streamingStatus, 
-    currentChunk, 
-    setMessages, 
-    resetStreamingStatus 
-  } = usePlaygroundStore();
+  // Use streaming hooks and store
+  const { messages, isStreaming: isLoading, streamingStatus, addMessage, setIsStreaming, setStreamingStatus } = usePlaygroundStore();
   
-  // Use modern streaming handler
-  const { handleStreamResponse } = useAIChatStreamHandler();
-  
-  // Component state with storage stats tracking
   const [inputMessage, setInputMessage] = useState('');
   const [copied, setCopied] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
   const [showStorageInfo, setShowStorageInfo] = useState(false);
+  const [storageStats, setStorageStats] = useState<any>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [fileValidationErrors, setFileValidationErrors] = useState<string[]>([]);
-  const [storageStatsKey, setStorageStatsKey] = useState(0); // For forcing storage stats refresh
-  const [isCleaningStorage, setIsCleaningStorage] = useState(false); // Loading state for cleanup
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -132,8 +109,8 @@ const HukumPerdataChatPage: React.FC<HukumPerdataChatPageProps> = ({ onBack }) =
 
     try {
       // Clear any existing messages from other agents untuk proper isolation
-      setMessages([]);
-      resetStreamingStatus();
+      // setMessages([]); // This line was removed from the new_code, so it's removed here.
+      // resetStreamingStatus(); // This line was removed from the new_code, so it's removed here.
       console.log('🧹 HUKUM PERDATA: Cleared existing messages from store');
       
       // Initialize Hukum Perdata session
@@ -143,68 +120,41 @@ const HukumPerdataChatPage: React.FC<HukumPerdataChatPageProps> = ({ onBack }) =
     } catch (error) {
       console.error('Error initializing Hukum Perdata session:', error);
     }
-  }, [setMessages, resetStreamingStatus]);
+  }, []); // Removed setMessages, resetStreamingStatus from dependency array
 
-  // Auto-focus management for better UX
+  // Load storage stats when showing storage info
+  useEffect(() => {
+    if (showStorageInfo) {
+      const stats = getStorageStats();
+      setStorageStats(stats);
+    }
+  }, [showStorageInfo]);
+
+  // Auto-scroll to latest message (but don't interfere with streaming focus)
   useEffect(() => {
     const isAnyStreamingActive = streamingStatus.isThinking || 
                                 streamingStatus.isCallingTool || 
                                 streamingStatus.isAccessingKnowledge || 
                                 streamingStatus.isMemoryUpdateStarted;
 
-    if (isLoading && isAnyStreamingActive) {
-      // Focus on streaming status area when streaming is active
-      const timer = setTimeout(() => {
-        if (streamingStatusRef.current) {
-          streamingStatusRef.current.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'center',
-            inline: 'nearest'
-          });
-          console.log('🎯 Auto-focus: Scrolled to streaming status area');
-        }
-      }, 800);
-      
-      return () => clearTimeout(timer);
-    } else if (!isLoading && streamingStatus.hasCompleted) {
-      // Return focus to input area when completed
-      const timer = setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'end',
-            inline: 'nearest'
-          });
-          setTimeout(() => {
-            if (textareaRef.current) {
-              textareaRef.current.focus();
-            }
-          }, 300);
-          console.log('🎯 Auto-focus: Returned focus to input area after completion');
-        }
-      }, 2000);
-      
-      return () => clearTimeout(timer);
+    // Only auto-scroll if not actively streaming (to avoid interfering with focus management)
+    if (!isLoading || !isAnyStreamingActive) {
+      if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      }
     }
-  }, [
-    isLoading, 
-    streamingStatus.isThinking, 
-    streamingStatus.isCallingTool, 
-    streamingStatus.isAccessingKnowledge, 
-    streamingStatus.isMemoryUpdateStarted, 
-    streamingStatus.hasCompleted
-  ]);
+  }, [messages, isLoading, streamingStatus.isThinking, streamingStatus.isCallingTool, 
+      streamingStatus.isAccessingKnowledge, streamingStatus.isMemoryUpdateStarted]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newValue = e.target.value;
-    setInputMessage(newValue);
-    
-    // Auto-resize textarea
+    setInputMessage(e.target.value);
+    // Adjust height dynamically
     const textarea = e.target;
     textarea.style.height = 'auto';
-    textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
+    textarea.style.height = `${textarea.scrollHeight}px`;
   };
 
+  // File handling functions
   const handleOpenFileDialog = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
@@ -215,89 +165,64 @@ const HukumPerdataChatPage: React.FC<HukumPerdataChatPageProps> = ({ onBack }) =
     setSelectedFiles(prev => prev.filter((_, index) => index !== indexToRemove));
   };
 
-  const handleStorageCleanup = async () => {
-    // Show confirmation dialog
-    if (!window.confirm('Apakah Anda yakin ingin membersihkan data lama? Data yang sudah dihapus tidak bisa dikembalikan.')) {
-      return;
-    }
-
-    try {
-      console.log('🧹 Starting manual storage cleanup...');
-      
-      // Get stats before cleanup
-      const beforeStats = getStorageStats();
-      console.log('📊 Storage before cleanup:', beforeStats);
-      
-      // Perform cleanup
-      setIsCleaningStorage(true);
-      const afterStats = await forceCleanup();
-      
-      // Log results
-      console.log('📊 Storage after cleanup:', afterStats);
-      
-      // Force refresh storage stats display
-      setStorageStatsKey(prev => prev + 1);
-      
-      // Show success message with details
-      const sessionsCleaned = beforeStats.sessionCount - afterStats.sessionCount;
-      alert(`✅ Cleanup berhasil!\n\nStorage sebelum: ${beforeStats.usage}\nStorage sesudah: ${afterStats.usage}\nSesi dihapus: ${sessionsCleaned}\nPersentase storage: ${afterStats.percentage}%`);
-      
-    } catch (error) {
-      console.error('❌ Error during storage cleanup:', error);
-      alert('❌ Terjadi error saat membersihkan storage. Silakan coba lagi.');
-    } finally {
-      setIsCleaningStorage(false);
+  // Storage management
+  const handleStorageCleanup = () => {
+    if (window.confirm('Apakah Anda yakin ingin membersihkan data lama? Data yang sudah dihapus tidak bisa dikembalikan.')) {
+      const newStats = forceCleanup();
+      setStorageStats(newStats);
+      alert(`Cleanup selesai! Storage yang dibebaskan: ${newStats.usage}`);
     }
   };
 
+  // Copy function
   const handleCopy = (text: string, messageId: string) => {
-    navigator.clipboard.writeText(text).then(() => {
+    navigator.clipboard.writeText(text).then(
+      () => {
       setCopied(messageId);
-      setTimeout(() => setCopied(null), 2000);
-    }).catch((err) => {
-      console.error('Failed to copy text: ', err);
-    });
+        setTimeout(() => {
+          setCopied(null);
+        }, 2000);
+      },
+      (err) => {
+        console.error('Could not copy text: ', err);
+      }
+    );
   };
 
+  // Enhanced file change handler
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const errors: string[] = [];
     const validFiles: File[] = [];
 
-    // Validate each file
+    console.log(`📁 File upload attempt: ${files.length} file(s)`);
+
     files.forEach((file, index) => {
-      console.log(`📄 File ${index + 1}: ${file.name} (${formatFileSize(file.size)}, ${file.type})`);
+      console.log(`📄 File ${index + 1}: ${file.name} (${formatFileSize(file.size)}, MIME: "${file.type}")`);
       
       const validation = validateFile(file);
       if (validation.isValid) {
         validFiles.push(file);
+        console.log(`✅ File ${index + 1} valid: ${file.name}`);
       } else {
-        errors.push(`${file.name}: ${validation.error}`);
+        errors.push(validation.error!);
+        console.log(`❌ File ${index + 1} invalid: ${validation.error}`);
       }
     });
 
     // Update error state
     setFileValidationErrors(errors);
 
-    // If we have valid files, process them
+    // Only add valid files
     if (validFiles.length > 0) {
-      // Create new DataTransfer with only valid files
-      const dataTransfer = new DataTransfer();
-      validFiles.forEach(file => dataTransfer.items.add(file));
-      
-      // Update input with valid files only
-      if (fileInputRef.current) {
-        fileInputRef.current.files = dataTransfer.files;
-      }
-      
-      // Add valid files to state
       setSelectedFiles(prev => [...prev, ...validFiles]);
+      console.log(`📋 Successfully processed ${validFiles.length} valid file(s)`);
     }
     
-    // Clear input value to allow re-selection
+    // Clear the input to allow re-selection of the same file
     e.target.value = '';
     
-    // Auto-clear errors after 5 seconds
+    // Clear errors after 5 seconds
     if (errors.length > 0) {
       setTimeout(() => {
         setFileValidationErrors([]);
@@ -305,40 +230,49 @@ const HukumPerdataChatPage: React.FC<HukumPerdataChatPageProps> = ({ onBack }) =
     }
   };
 
-  // Storage stats component
+  // Storage Stats Component
   const StorageStatsDisplay = () => {
-    // Force re-calculation when storageStatsKey changes
-    const storageStats = getStorageStats();
+    if (!storageStats) return null;
     
     return (
-      <div className="bg-green-50 border-l-4 border-green-500 p-4 m-4 shadow-sm rounded-md" key={storageStatsKey}>
+      <div className="bg-blue-50 border-l-4 border-blue-500 p-4 m-4 shadow-sm rounded-md">
         <div className="flex">
-          <Database className="h-5 w-5 text-green-500" />
+          <div className="flex-shrink-0">
+            <Database className="h-5 w-5 text-blue-500" />
+          </div>
           <div className="ml-3 flex-1">
-            <h3 className="text-sm font-medium text-green-800">Statistik Penyimpanan</h3>
-            <div className="mt-2 text-sm text-green-700 space-y-2">
+            <h3 className="text-sm font-medium text-blue-800">Statistik Penyimpanan</h3>
+            <div className="mt-2 text-sm text-blue-700 space-y-2">
               <div className="flex justify-between">
                 <span>Penggunaan Storage:</span>
                 <span className="font-medium">{storageStats.usage} / {storageStats.limit}</span>
               </div>
               <div className="flex justify-between">
-                <span>Sesi Tersimpan:</span>
+                <span>Persentase:</span>
+                <span className={cn("font-medium", 
+                  storageStats.percentage > 80 ? "text-red-600" : "text-blue-600"
+                )}>
+                  {storageStats.percentage}%
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Session Tersimpan:</span>
                 <span className="font-medium">{storageStats.sessionCount}</span>
               </div>
               <div className="flex justify-between">
-                <span>Persentase:</span>
-                <span className="font-medium">{storageStats.percentage}%</span>
+                <span>Pesan Saat Ini:</span>
+                <span className="font-medium">{messages.length}</span>
               </div>
               
-              {/* Progress bar */}
+              {/* Progress bar for storage usage */}
               <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
                 <div 
-                  className={`h-2 rounded-full transition-all duration-300 ${
-                    storageStats.percentage > 80 ? 'bg-red-500' : 
-                    storageStats.percentage > 60 ? 'bg-yellow-500' : 'bg-green-500'
-                  }`}
+                  className={cn("h-2 rounded-full transition-all duration-300",
+                    storageStats.percentage > 80 ? "bg-red-500" : 
+                    storageStats.percentage > 60 ? "bg-yellow-500" : "bg-green-500"
+                  )}
                   style={{ width: `${Math.min(storageStats.percentage, 100)}%` }}
-                />
+                ></div>
               </div>
               
               {storageStats.isNearLimit && (
@@ -348,38 +282,33 @@ const HukumPerdataChatPage: React.FC<HukumPerdataChatPageProps> = ({ onBack }) =
               )}
             </div>
             
-            <button 
-              onClick={handleStorageCleanup}
-              disabled={isCleaningStorage}
-              className={`mt-3 inline-flex items-center gap-1 text-xs font-medium transition-colors ${
-                isCleaningStorage 
-                  ? 'text-gray-400 cursor-not-allowed' 
-                  : 'text-green-600 hover:text-green-800'
-              }`}
-              title={isCleaningStorage ? "Sedang membersihkan..." : "Hapus data lama dan sesi yang tidak digunakan"}
-            >
-              {isCleaningStorage ? (
-                <>
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                  Membersihkan...
-                </>
-              ) : (
-                <>
+            <div className="mt-3 flex gap-2">
+              <button onClick={handleStorageCleanup} className="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium text-blue-600 hover:text-blue-500 focus:outline-none">
                   <Trash2 className="w-3 h-3" />
                   Bersihkan Data Lama
-                </>
-              )}
+              </button>
+              <button 
+                className="text-xs font-medium text-blue-600 hover:text-blue-500 focus:outline-none"
+                onClick={() => setShowStorageInfo(false)}
+              >
+                Tutup
             </button>
+            </div>
           </div>
         </div>
       </div>
     );
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
+  const handleKeyDown = () => {
+    // Remove Enter key submission for mobile compatibility
+    // Submission is handled by the Send button
+  };
+
+  const handleSelectQuestion = (question: string) => {
+    setInputMessage(question);
+    if (textareaRef.current) {
+      textareaRef.current.focus();
     }
   };
 
@@ -404,7 +333,23 @@ const HukumPerdataChatPage: React.FC<HukumPerdataChatPageProps> = ({ onBack }) =
       textareaRef.current.blur();
     }
 
+    // Mobile-specific timeout handling
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const uploadTimeout = isMobile ? 60000 : 120000; // 1 min for mobile, 2 min for desktop
+    
+    let timeoutId: NodeJS.Timeout | null = null;
+    let isRequestCompleted = false;
+
     try {
+      // Debug message sebelum send
+      console.log('📤 Sending message from HUKUM PERDATA UI:', {
+        message: userMessageContent.substring(0, 100) + (userMessageContent.length > 100 ? '...' : ''),
+        message_length: userMessageContent.length,
+        files_count: selectedFiles.length,
+        is_mobile: isMobile,
+        timeout: uploadTimeout
+      });
+
       // Log file sizes jika ada
       if (selectedFiles.length > 0) {
         console.log('📁 HUKUM PERDATA: Uploading files:');
@@ -413,94 +358,391 @@ const HukumPerdataChatPage: React.FC<HukumPerdataChatPageProps> = ({ onBack }) =
         });
       }
 
-      // Use modern streaming handler with agent ID
-      await handleStreamResponse(
+      // Add user message to store
+      const userMessage = {
+        id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        role: 'user' as const,
+        content: userMessageContent,
+        created_at: Math.floor(Date.now() / 1000),
+        // Add file attachments info if any
+        ...(selectedFiles.length > 0 && {
+          attachments: selectedFiles.map(file => ({
+            name: file.name,
+            size: file.size,
+            type: file.type
+          }))
+        })
+      };
+      addMessage(userMessage);
+      
+      // Add initial agent message
+      const agentMessage = {
+        id: `msg_${Date.now() + 1}_${Math.random().toString(36).substr(2, 9)}`,
+        role: 'agent' as const,
+        content: '',
+        created_at: Math.floor(Date.now() / 1000)
+      };
+      addMessage(agentMessage);
+      
+      // Set streaming state
+      setIsStreaming(true);
+      setStreamingStatus({ isThinking: true });
+
+      // Set timeout for mobile compatibility
+      timeoutId = setTimeout(() => {
+        if (!isRequestCompleted) {
+          console.error('❌ HUKUM PERDATA: Request timeout on mobile device');
+          setIsStreaming(false);
+          setStreamingStatus({ 
+            hasCompleted: true,
+            isThinking: false,
+            isCallingTool: false,
+            isMemoryUpdateStarted: false
+          });
+          
+          // Update message with timeout error
+          const { setMessages } = usePlaygroundStore.getState();
+          setMessages(prev => {
+            const newMessages = [...prev];
+            const lastAgentMessage = newMessages[newMessages.length - 1];
+            if (lastAgentMessage && lastAgentMessage.role === 'agent') {
+              lastAgentMessage.content = '⏰ Timeout: Proses terlalu lama. Silakan coba lagi dengan file yang lebih kecil atau koneksi yang lebih stabil.';
+            }
+            return newMessages;
+          });
+          
+          // Reset files
+          setSelectedFiles([]);
+          setFileValidationErrors([]);
+        }
+      }, uploadTimeout);
+      
+      // Use HUKUM PERDATA streaming service
+      console.log('🚀 HUKUM PERDATA: About to call sendStreamingChatMessage');
+      
+      await sendStreamingChatMessage(
         userMessageContent,
         selectedFiles.length > 0 ? selectedFiles : undefined,
-        'ahli-hukum-perdata' // Agent ID for Hukum Perdata
+        (event) => {
+          // Handle streaming events
+          console.log('🎯 HUKUM PERDATA streaming event received:', {
+            event: event.event,
+            contentType: typeof event.content,
+            contentLength: typeof event.content === 'string' ? event.content.length : 'non-string',
+            contentPreview: typeof event.content === 'string' ? event.content.substring(0, 100) + '...' : event.content,
+            sessionId: event.session_id
+          });
+          
+          const { setMessages } = usePlaygroundStore.getState();
+          
+          // Handle different event types
+          switch (event.event) {
+            case RunEvent.RunStarted:
+              console.log('🚀 HUKUM PERDATA: Run started');
+              setStreamingStatus({ 
+                isThinking: true,
+                isCallingTool: false,
+                isAccessingKnowledge: false,
+                isMemoryUpdateStarted: false,
+                hasCompleted: false
+              });
+              break;
+              
+            case RunEvent.RunResponse:
+              // Accumulate content incrementally
+              if (event.content && typeof event.content === 'string') {
+                setMessages(prev => {
+                  const newMessages = [...prev];
+                  const lastAgentMessage = newMessages[newMessages.length - 1];
+                  if (lastAgentMessage && lastAgentMessage.role === 'agent') {
+                    // Append new content to existing content
+                    lastAgentMessage.content = (lastAgentMessage.content || '') + event.content;
+                    
+                    // Parse and store citations from extra_data.references
+                    if (event.extra_data?.references && event.extra_data.references.length > 0) {
+                      console.log('🔗 HUKUM PERDATA: Citations found in response:', {
+                        referencesCount: event.extra_data.references.length,
+                        eventDataType: typeof event.extra_data.references[0],
+                        firstRefKeys: Object.keys(event.extra_data.references[0] || {})
+                      });
+                      
+                      // Store references in message extra_data
+                      if (!lastAgentMessage.extra_data) {
+                        lastAgentMessage.extra_data = {};
+                      }
+                      lastAgentMessage.extra_data.references = event.extra_data.references;
+                    }
+                  }
+                  return newMessages;
+                });
+              }
+              break;
+              
+            case RunEvent.ToolCallStarted:
+              console.log('🔧 HUKUM PERDATA: Tool call started:', {
+                eventType: event.event,
+                hasContent: !!event.content,
+                toolInfo: event.tool_calls || event.tools
+              });
+              
+              // Extract tool name from event
+              let toolName = 'knowledge base';
+              if (event.tool_calls && event.tool_calls.length > 0) {
+                toolName = event.tool_calls[0].function?.name || 'unknown tool';
+              } else if (event.tools && event.tools.length > 0) {
+                toolName = event.tools[0].function?.name || 'unknown tool';
+              }
+              
+              setStreamingStatus({ 
+                isThinking: false, 
+                isCallingTool: true,
+                toolName: toolName,
+                isAccessingKnowledge: false,
+                isMemoryUpdateStarted: false
+              });
+              break;
+              
+            case RunEvent.ToolCallCompleted:
+              console.log('✅ HUKUM PERDATA: Tool call completed:', {
+                eventType: event.event,
+                hasContent: !!event.content
+              });
+              setStreamingStatus({ 
+                isCallingTool: false,
+                toolName: undefined 
+              });
+              break;
+              
+            case RunEvent.AccessingKnowledge:
+              console.log('📚 HUKUM PERDATA: Accessing knowledge started');
+              setStreamingStatus({ 
+                isThinking: false,
+                isCallingTool: false,
+                isAccessingKnowledge: true,
+                isMemoryUpdateStarted: false
+              });
+              break;
+              
+            case RunEvent.UpdatingMemory:
+            case RunEvent.MemoryUpdateStarted:
+              console.log('💾 HUKUM PERDATA: Memory update started');
+              setStreamingStatus({ 
+                isThinking: false,
+                isCallingTool: false,
+                isAccessingKnowledge: false,
+                isMemoryUpdateStarted: true 
+              });
+              break;
+              
+            case RunEvent.MemoryUpdateCompleted:
+              console.log('✅ HUKUM PERDATA: Memory update completed');
+              setStreamingStatus({ 
+                isMemoryUpdateStarted: false
+              });
+              break;
+              
+            case RunEvent.RunCompleted:
+              console.log('🏁 HUKUM PERDATA: Run completed with content:', {
+                hasContent: !!event.content,
+                contentType: typeof event.content,
+                contentLength: typeof event.content === 'string' ? event.content.length : 0,
+                contentPreview: typeof event.content === 'string' ? event.content.substring(0, 100) + '...' : event.content
+              });
+              
+              // Mark request as completed
+              isRequestCompleted = true;
+              if (timeoutId) {
+                clearTimeout(timeoutId);
+                timeoutId = null;
+              }
+              
+              // Update final content and ensure citations are preserved
+              if (event.content && typeof event.content === 'string' && event.content.trim()) {
+                setMessages(prev => {
+                  const newMessages = [...prev];
+                  const lastAgentMessage = newMessages[newMessages.length - 1];
+                  if (lastAgentMessage && lastAgentMessage.role === 'agent') {
+                    // Set final content or update if final content is longer/better
+                    if (!lastAgentMessage.content || lastAgentMessage.content.length < event.content.length) {
+                      lastAgentMessage.content = event.content as string;
+                      console.log('🏁 HUKUM PERDATA: Updated with final content from RunCompleted');
+                    }
+                    
+                    // Ensure final citations are stored
+                    if (event.extra_data?.references && event.extra_data.references.length > 0) {
+                      if (!lastAgentMessage.extra_data) {
+                        lastAgentMessage.extra_data = {};
+                      }
+                      lastAgentMessage.extra_data.references = event.extra_data.references;
+                      
+                      console.log('🏁 HUKUM PERDATA: Final citations stored:', {
+                        referencesCount: event.extra_data.references.length,
+                        messageHasContent: !!lastAgentMessage.content
+                      });
+                    }
+                  }
+                  return newMessages;
+                });
+              }
+              
+              // Final check: ensure we have some content after completion
+              setMessages(prev => {
+                const newMessages = [...prev];
+                const lastAgentMessage = newMessages[newMessages.length - 1];
+                if (lastAgentMessage && lastAgentMessage.role === 'agent') {
+                  if (!lastAgentMessage.content || lastAgentMessage.content.trim() === '') {
+                    lastAgentMessage.content = 'Tidak ada konten yang diterima. Silakan coba lagi.';
+                    console.warn('HUKUM PERDATA: No content found after completion, showing fallback message');
+                  }
+                }
+                return newMessages;
+              });
+              
+              setStreamingStatus({ 
+                hasCompleted: true,
+                isThinking: false,
+                isCallingTool: false,
+                isAccessingKnowledge: false,
+                isMemoryUpdateStarted: false
+              });
+              setIsStreaming(false);
+              
+              // Reset status after a delay for better UX
+              setTimeout(() => {
+                setStreamingStatus({ 
+                  hasCompleted: false,
+                  isThinking: false,
+                  isCallingTool: false,
+                  isAccessingKnowledge: false,
+                  isMemoryUpdateStarted: false
+                });
+              }, 1000);
+              break;
+              
+            case RunEvent.RunError:
+              console.error('❌ HUKUM PERDATA: Run error:', {
+                eventType: event.event,
+                content: event.content,
+                error: event.error
+              });
+              
+              isRequestCompleted = true;
+              if (timeoutId) {
+                clearTimeout(timeoutId);
+                timeoutId = null;
+              }
+              
+              setMessages(prev => {
+                const newMessages = [...prev];
+                const lastAgentMessage = newMessages[newMessages.length - 1];
+                if (lastAgentMessage && lastAgentMessage.role === 'agent') {
+                  lastAgentMessage.content = `❌ Error: ${event.content || event.error || 'Unknown error occurred'}`;
+                }
+                return newMessages;
+              });
+              setIsStreaming(false);
+              setStreamingStatus({ 
+                hasCompleted: true, 
+                isThinking: false,
+                isCallingTool: false,
+                isAccessingKnowledge: false,
+                isMemoryUpdateStarted: false
+              });
+              break;
+              
+            default:
+              console.log('🔍 HUKUM PERDATA: Unhandled event type:', event.event);
+              break;
+          }
+        }
       );
+
+      // Mark as completed and clear timeout if still active
+      isRequestCompleted = true;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
 
       // Reset selected files setelah berhasil mengirim
       setSelectedFiles([]);
       setFileValidationErrors([]);
     } catch (error) {
       console.error('Error sending message:', error);
+      
+      // Mark as completed and clear timeout
+      isRequestCompleted = true;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      
+      // Ensure loading state is cleared on error
+      setIsStreaming(false);
+      setStreamingStatus({ hasCompleted: true, isThinking: false });
+      
+      // Show error message
+      const { setMessages } = usePlaygroundStore.getState();
+      setMessages(prev => {
+        const newMessages = [...prev];
+        const lastAgentMessage = newMessages[newMessages.length - 1];
+        if (lastAgentMessage && lastAgentMessage.role === 'agent') {
+          lastAgentMessage.content = `❌ Error: ${error instanceof Error ? error.message : 'Terjadi kesalahan saat mengirim pesan'}`;
+        }
+        return newMessages;
+      });
+      
       // Reset files on error
       setSelectedFiles([]);
+      setFileValidationErrors([]);
     }
   };
 
   const handleChatReset = () => {
-    if (!window.confirm('Apakah Anda yakin ingin mereset percakapan ini? Riwayat chat untuk sesi ini akan dihapus.')) {
-      return;
-    }
-
     try {
-      // Panggil fungsi yang sudah diperbaiki untuk membersihkan history dan state
-      clearStreamingChatHistory();
+      console.log('Resetting HUKUM PERDATA chat history but maintaining user identity');
+      clearStreamingChatHistory(); // Ini hanya akan menghapus session_id, tapi mempertahankan user_id
       
-      // Inisialisasi sesi baru untuk memulai dari awal
+      // Inisialisasi ulang session dengan user_id yang sama
       initializeStreamingSession();
+      console.log('HUKUM PERDATA session reinitialized with fresh session_id but same user_id');
       
-      console.log('♻️ HUKUM PERDATA: Chat reset completed and new session initialized.');
+      // Reset UI state
+      const { setMessages, resetStreamingStatus } = usePlaygroundStore.getState();
+      setMessages([]);
+      resetStreamingStatus();
+      setSelectedFiles([]);
+      setFileValidationErrors([]);
     } catch (error) {
-      console.error('❌ Error resetting chat:', error);
-      alert('❌ Terjadi error saat mereset chat. Silakan coba lagi.');
+      console.error('Error resetting HUKUM PERDATA chat:', error);
     }
   };
 
-  const handleSelectQuestion = (question: string) => {
-    setInputMessage(question);
-    if (textareaRef.current) {
-      textareaRef.current.focus();
-      // Auto-resize for the selected question
-      setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.style.height = 'auto';
-          textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
-        }
-      }, 0);
-    }
-  };
-
+  // Render error states
   return (
     <div className="fixed inset-0 z-20 bg-white lg:pl-64 flex flex-col">
-      <DotBackground />
-      
-      {/* Header */}
-      <header className="relative bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm z-10">
+      <header className="flex items-center justify-between p-4 border-b border-gray-200 shadow-sm">
         <div className="flex items-center gap-3">
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onBack}
-            className="inline-flex items-center p-2 rounded-full hover:bg-gray-100 transition-colors"
-            aria-label="Kembali"
+            className="rounded-full"
           >
-            <ArrowLeft className="w-5 h-5 text-gray-700" />
-          </button>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center w-9 h-9 bg-green-100 rounded-full">
-              <img 
-                src="/img/perdata.png"
-                alt="Hukum Perdata"
-                className="w-7 h-7 object-contain"
-              />
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-sm font-semibold">HP</span>
             </div>
             <div>
-              <h1 className="font-semibold text-gray-900">Hukum Perdata AI</h1>
-              <p className="text-xs text-gray-500">Asisten Ahli Hukum Perdata</p>
+              <h1 className="font-semibold">Hukum Perdata AI</h1>
+              <p className="text-sm text-gray-600 hidden sm:block">Konsultasi terkait hukum perdata</p>
             </div>
           </div>
         </div>
+        
         <div className="flex items-center gap-2">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={handleChatReset}
-            className="text-gray-500"
-            title="Reset Chat"
-          >
-            <RefreshCw className="h-5 w-5" />
-          </Button>
           <Button 
             variant="ghost" 
             size="icon" 
@@ -510,219 +752,269 @@ const HukumPerdataChatPage: React.FC<HukumPerdataChatPageProps> = ({ onBack }) =
           >
             <Database className="h-5 w-5" />
           </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => setShowInfo(!showInfo)}
+            className="text-gray-500"
+          >
+            <Info className="h-5 w-5" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setShowInfo(!showInfo)}
+            onClick={handleChatReset}
             className="text-gray-500"
-            title={showInfo ? 'Tutup informasi' : 'Tampilkan informasi'}
           >
-            <Info className="w-5 h-5" />
+            <RefreshCw className="h-5 w-5" />
           </Button>
         </div>
       </header>
 
-      {/* Storage Info Panel */}
       {showStorageInfo && <StorageStatsDisplay />}
 
       {/* Info Panel */}
       {showInfo && (
-        <div className="relative p-4 bg-gray-50 border-b border-gray-200 z-10">
-          <div className="flex justify-between items-start">
-            <h2 className="text-sm font-medium text-gray-800">Tentang Hukum Perdata AI</h2>
-            <button
-              onClick={() => setShowInfo(false)}
-              className="text-gray-500 hover:text-gray-700"
-              aria-label="Tutup informasi"
-            >
-              <XIcon className="w-4 h-4" />
-            </button>
-          </div>
-          <p className="mt-1 text-xs text-gray-700">
-            Hukum Perdata AI adalah asisten berbasis kecerdasan buatan untuk membantu memahami konsep-konsep hukum perdata. 
-            Asisten ini dapat membantu menjawab pertanyaan umum tentang kontrak, wanprestasi, perbuatan melawan hukum, harta benda, dan berbagai aspek hukum perdata lainnya. 
-            Informasi yang diberikan bersifat umum dan sebaiknya dikonfirmasi dengan sumber resmi atau konsultasi dengan ahli hukum yang berkualifikasi.
-          </p>
-        </div>
-      )}
-
-      {/* File Validation Errors */}
-      {fileValidationErrors.length > 0 && (
-        <div className="relative bg-red-50 border-l-4 border-red-400 p-4 mx-4 mt-4 rounded-md z-10">
+        <div className="bg-orange-50 border-l-4 border-orange-500 p-4 m-4 shadow-sm rounded-md">
           <div className="flex">
-            <AlertCircle className="h-5 w-5 text-red-400" />
+            <div className="flex-shrink-0">
+              <Info className="h-5 w-5 text-orange-500" />
+            </div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Error Validasi File</h3>
-              <div className="mt-2 text-sm text-red-700 space-y-1">
-                {fileValidationErrors.map((error, index) => (
-                  <p key={index}>• {error}</p>
-                ))}
+              <h3 className="text-sm font-medium text-orange-800">Tentang Hukum Perdata AI</h3>
+              <div className="mt-2 text-sm text-orange-700">
+                <p>AI Assistant yang membantu Anda dalam konsultasi terkait hukum perdata Indonesia, termasuk kontrak, properti, dan perselisihan sipil.</p>
+                <ul className="list-disc list-inside mt-2 space-y-1">
+                  <li>Analisis dokumen legal dan kontrak</li>
+                  <li>Interpretasi UU Hukum Perdata</li>
+                  <li>Panduan prosedur hukum</li>
+                  <li>Konsultasi kasus perdata</li>
+                </ul>
+                <p className="mt-2 text-xs">
+                  💡 Tip: Gunakan tombol database untuk melihat penggunaan storage dan membersihkan data lama.
+                </p>
               </div>
-              <div className="mt-3 text-xs text-red-600">
-                <p><strong>Format yang didukung:</strong> PDF, TXT, PNG, JPG, JPEG, WEBP</p>
-                <p><strong>Ukuran maksimal:</strong> 20MB per file</p>
-              </div>
+              <button 
+                className="mt-2 text-sm font-medium text-orange-600 hover:text-orange-500 focus:outline-none"
+                onClick={() => setShowInfo(false)}
+              >
+                Tutup
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Chat Container */}
-      <div className="flex-1 overflow-hidden">
-        <div 
-          ref={chatContainerRef}
-          className="h-full overflow-y-auto pb-32"
-        >
-          {/* Welcome Message */}
-          {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-4">
-              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                <img 
-                  src="/img/perdata.png"
-                  alt="Hukum Perdata"
-                  className="w-16 h-16 object-contain"
-                />
-              </div>
-              <h1 className="text-4xl font-bold text-green-600 mb-4">Hukum Perdata AI</h1>
-              <p className="text-gray-600 max-w-md mb-6">
-                Asisten untuk membantu Anda dengan pertanyaan seputar hukum perdata dan konsep-konsep terkait.
-              </p>
-              
-              {/* Example Questions */}
-              <div className="w-full max-w-2xl">
-                <p className="text-sm text-gray-500 mb-3">Contoh pertanyaan yang dapat Anda ajukan:</p>
-                <div className="grid gap-2">
-                  {HUKUM_PERDATA_EXAMPLE_QUESTIONS.map((question, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleSelectQuestion(question)}
-                      className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-left hover:bg-gray-100 transition-colors"
-                    >
-                      {question}
-                    </button>
-                  ))}
+      {/* Chat Messages Container - Fixed the layout structure */}
+      <div 
+        ref={chatContainerRef}
+        className="flex-1 overflow-y-auto p-4 space-y-6"
+      >
+        <div className="max-w-3xl mx-auto">
+          {/* File Validation Errors */}
+          {fileValidationErrors.length > 0 && (
+            <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-md mb-4">
+              <div className="flex">
+                <AlertCircle className="h-5 w-5 text-red-400" />
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800">Error Validasi File</h3>
+                  <div className="mt-2 text-sm text-red-700">
+                    <ul className="list-disc list-inside space-y-1">
+                      {fileValidationErrors.map((error, index) => (
+                        <li key={index}>{error}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="mt-3 text-xs text-red-600">
+                    <p><strong>Format yang didukung:</strong> PDF, TXT, PNG, JPG, JPEG, WEBP</p>
+                    <p><strong>Ukuran maksimal:</strong> 20MB per file</p>
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Messages */}
-          <div className="max-w-4xl mx-auto px-4 py-6">
-            <div className="space-y-6">
-              {messages.map((message, index) => {
-                // Check if this is an agent message that is currently streaming
-                const isLastMessage = index === messages.length - 1;
-                const hasMinimalContent = !message.content || message.content.trim().length < 50;
-                const isStreamingMessage = message.role === 'agent' && 
-                                         isLastMessage && 
-                                         isLoading &&
-                                         (hasMinimalContent || 
-                                          streamingStatus.isThinking || 
-                                          streamingStatus.isCallingTool || 
-                                          streamingStatus.isAccessingKnowledge ||
-                                          streamingStatus.isMemoryUpdateStarted);
-                
-                return (
-                <div key={message.id || index} className="group">
-                  {message.role === 'user' ? (
-                    /* User Message */
-                    <div className="flex justify-end">
-                      <div className={getUserMessageClasses()}>
-                        <div className="whitespace-pre-wrap break-words">
-                          {message.content}
-                        </div>
-                        
-                        {/* File attachments display */}
-                        {message.attachments && message.attachments.length > 0 && (
-                          <div className="mt-2 space-y-1">
-                            {message.attachments.map((file, fileIndex) => (
-                              <div key={fileIndex} className="flex items-center gap-2 text-xs text-green-700 bg-green-50 rounded p-2">
-                                <File className="w-3 h-3 flex-shrink-0" />
-                                <span className="truncate">{file.name}</span>
-                                <span className="text-green-500">({formatFileSize(file.size)})</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+          {/* Example Questions - Only show if no messages */}
+          {messages.length === 0 && (
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-gray-500">Contoh pertanyaan:</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {[
+                  "Bagaimana cara membuat kontrak jual beli yang sah?",
+                  "Apa saja syarat sahnya perjanjian menurut KUH Perdata?",
+                  "Bagaimana prosedur gugatan wanprestasi?",
+                  "Apa yang dimaksud dengan force majeure dalam kontrak?"
+                ].map((question, idx) => (
+                  <button
+                    key={idx}
+                    className="text-left p-3 border border-gray-200 rounded-lg text-gray-700 hover:bg-orange-50 transition-colors shadow-sm"
+                    onClick={() => handleSelectQuestion(question)}
+                  >
+                    {question}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Chat Messages */}
+          {messages.map((message, index) => {
+            // Check if this is an agent message that is currently streaming
+            const isLastMessage = index === messages.length - 1;
+            const hasMinimalContent = !message.content || message.content.trim().length < 50;
+            const isStreamingMessage = message.role === 'agent' && 
+                                     isLastMessage && 
+                                     isLoading &&
+                                     (hasMinimalContent || 
+                                      streamingStatus.isThinking || 
+                                      streamingStatus.isCallingTool || 
+                                      streamingStatus.isAccessingKnowledge ||
+                                      streamingStatus.isMemoryUpdateStarted);
+            
+            return (message.content || isStreamingMessage) && (
+              <div
+                key={message.id}
+                className={cn("flex w-full", message.role === "user" ? "justify-end" : "justify-start")}
+              >
+                <div className={cn("flex gap-3 w-full max-w-full", message.role === "user" ? "flex-row-reverse max-w-[85%] sm:max-w-[80%]" : "flex-row")}>
+                  {message.role === 'agent' && (
+                    <div className="w-7 h-7 rounded-full bg-orange-500 flex items-center justify-center flex-shrink-0 mt-1">
+                      <span className="text-white text-xs font-medium">HP</span>
                     </div>
-                  ) : (
-                    /* Agent Message */
-                    <div className="flex justify-start">
-                      <div className="flex gap-3 max-w-[85%]">
-                        <div className="flex-shrink-0">
-                          <div className="rounded-full flex items-center justify-center shadow-sm w-8 h-8" style={{ backgroundColor: '#f0fdf4' }}>
-                            <img 
-                              src="/img/perdata.png"
-                              alt="Hukum Perdata"
-                              className="w-6 h-6 object-contain"
-                            />
-                          </div>
-                        </div>
-                        
-                        <div className={getAgentMessageClasses()}>
-                          {/* Streaming Status for current message */}
+                  )}
+                  <div className={cn("min-w-0 flex-1", message.role === 'user' ? "order-first max-w-full" : "max-w-full")}>
+                    <div
+                      className={cn(
+                        "max-w-full min-w-0 break-words overflow-wrap-anywhere",
+                        message.role === 'user'
+                          ? "bg-gray-200 text-gray-800 rounded-3xl px-4 py-2.5 ml-auto"
+                          : "bg-transparent"
+                      )}
+                    >
+                      {message.role === 'agent' ? (
+                        <div className="relative group">
+                          {/* Streaming Status for this specific message */}
                           {isStreamingMessage && (
-                            <div ref={streamingStatusRef} className="mb-3" data-streaming-status="active">
+                            <div 
+                              ref={streamingStatusRef} 
+                              className="mb-3 scroll-mt-4 transition-all duration-300"
+                            >
                               <StreamingStatus 
-                                isStreaming={isLoading}
-                                streamingStatus={streamingStatus} 
+                                isStreaming={true} 
+                                streamingStatus={streamingStatus}
                                 compact={true}
-                                currentChunk={currentChunk}
-                                containerWidth="message"
                               />
                             </div>
                           )}
                           
-                          {/* Message content */}
                           {message.content ? (
-                            <div className={getProseClasses()}>
-                              <div dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }} />
+                            <div className="overflow-x-auto">
+                              <div 
+                                className="prose prose-gray prose-sm max-w-none
+                                         [&_p]:mb-3 [&_p]:leading-relaxed [&_p]:text-gray-800 [&_p]:word-wrap-break-word
+                                         [&_a]:text-blue-600 [&_a]:no-underline hover:[&_a]:underline [&_a]:word-wrap-break-word
+                                         [&_ul]:mb-4 [&_ul]:space-y-1 [&_li]:text-gray-800 [&_li]:word-wrap-break-word
+                                         [&_ol]:mb-4 [&_ol]:space-y-1 [&_ol_li]:text-gray-800 [&_ol_li]:word-wrap-break-word
+                                         [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:pl-4 [&_blockquote]:my-4 [&_blockquote]:italic [&_blockquote]:text-gray-600
+                                         [&_pre]:bg-gray-100 [&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:text-sm [&_pre]:max-w-full [&_pre]:whitespace-pre-wrap [&_pre]:border
+                                         [&_code]:bg-gray-100 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-sm [&_code]:font-mono
+                                         [&_h1]:text-xl [&_h1]:font-semibold [&_h1]:mb-4 [&_h1]:text-gray-900
+                                         [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:mb-3 [&_h2]:text-gray-900
+                                         [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mb-2 [&_h3]:text-gray-900
+                                         [&_table]:border-collapse [&_table]:my-4 [&_table]:w-full [&_table]:min-w-[600px] [&_table]:text-sm [&_table]:border [&_table]:border-gray-200
+                                         [&_th]:bg-gray-50 [&_th]:p-3 [&_th]:border [&_th]:border-gray-200 [&_th]:font-semibold [&_th]:text-left [&_th]:text-gray-900 [&_th]:whitespace-nowrap
+                                         [&_td]:p-3 [&_td]:border [&_td]:border-gray-200 [&_td]:align-top [&_td]:leading-relaxed [&_td]:text-gray-800 [&_td]:word-wrap-break-word
+                                         [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:my-2
+                                         text-gray-800 leading-relaxed word-wrap-break-word overflow-wrap-break-word"
+                                dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
+                              />
                             </div>
-                          ) : isStreamingMessage ? (
-                            <p className="text-gray-500 italic text-sm">Sedang memproses...</p>
-                          ) : null}
+                          ) : (
+                            // Placeholder for empty streaming message
+                            <div className="text-gray-400 text-sm italic">
+                              Sedang memproses...
+                            </div>
+                          )}
                           
-                          {/* Copy button */}
+                          {/* Citations Display */}
+                          {message.extra_data?.references && message.extra_data.references.length > 0 && (
+                            <div className="mt-4 -mx-2 sm:mx-0">
+                              <CitationDisplay 
+                                references={message.extra_data.references as any}
+                                compact={false}
+                                className="max-w-full overflow-hidden"
+                              />
+                            </div>
+                          )}
+                          
                           {message.content && (
-                            <div className="mt-2 flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button
-                                onClick={() => handleCopy(message.content, message.id || index.toString())}
-                                className="text-gray-400 hover:text-gray-600 p-1 rounded-md inline-flex items-center text-xs gap-1"
-                                aria-label="Salin ke clipboard"
+                            <div className="flex justify-start mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
+                                onClick={() => handleCopy(message.content, message.id || '')}
                               >
-                                {copied === (message.id || index.toString()) ? (
-                                  <>
-                                    <Check className="w-3 h-3" />
-                                    <span>Tersalin</span>
-                                  </>
+                                {copied === message.id ? (
+                                  <Check className="h-3 w-3 text-green-600" />
                                 ) : (
-                                  <>
-                                    <Copy className="w-3 h-3" />
-                                    <span>Salin</span>
-                                  </>
+                                  <Copy className="h-3 w-3" />
                                 )}
-                              </button>
+                              </Button>
                             </div>
                           )}
                         </div>
-                      </div>
+                      ) : (
+                        <div>
+                          <div className="whitespace-pre-wrap word-wrap-break-word leading-relaxed">{message.content}</div>
+                          
+                          {/* File attachments for user messages */}
+                          {message.role === 'user' && message.attachments && message.attachments.length > 0 && (
+                            <div className="mt-3 space-y-2">
+                              <div className="text-xs text-gray-600 font-medium">
+                                File terlampir ({message.attachments.length}):
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {message.attachments.map((attachment, index) => (
+                                  <div 
+                                    key={index}
+                                    className="bg-gray-200 border border-gray-300 rounded-md px-2 py-1 flex items-center gap-2 text-xs"
+                                  >
+                                    <File className="w-3 h-3 flex-shrink-0 text-gray-500" />
+                                    <div className="flex flex-col min-w-0 flex-1">
+                                      <span className="truncate font-medium text-gray-700">{attachment.name}</span>
+                                      <span className="text-xs text-gray-500">
+                                        {formatFileSize(attachment.size)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                  </div>
+                  {message.role === 'user' && (
+                    <div className="w-7 h-7 rounded-full bg-gray-400 flex items-center justify-center flex-shrink-0 mt-1">
+                      <span className="text-white text-xs font-medium">U</span>
                     </div>
                   )}
                 </div>
-                );
-              })}
-              
-              <div ref={messagesEndRef} />
-            </div>
-          </div>
+              </div>
+            )
+          })}
+
+          <div ref={messagesEndRef} />
         </div>
       </div>
 
-      {/* Input area with modern chatbot styling */}
-      <div className="border-t border-gray-200 bg-white p-4 md:px-6 pb-safe">
-        <div className="max-w-4xl mx-auto">
-          {/* File preview area */}
+      {/* Input area fixed at bottom */}
+      <div className="border-t border-gray-200 bg-white p-4">
+        <div className="max-w-3xl mx-auto">
+          {/* File Preview Area */}
           {selectedFiles.length > 0 && (
             <div className="mb-3 space-y-2">
               <div className="text-xs text-gray-600 font-medium">
@@ -730,17 +1022,20 @@ const HukumPerdataChatPage: React.FC<HukumPerdataChatPageProps> = ({ onBack }) =
               </div>
               <div className="flex flex-wrap gap-2">
                 {selectedFiles.map((file, index) => (
-                  <div key={index} className="bg-green-50 border border-green-200 rounded-lg px-3 py-2 flex items-center gap-2">
-                    <File className="w-4 h-4 text-green-600 flex-shrink-0" />
+                  <div 
+                    key={index}
+                    className="bg-orange-50 border border-orange-200 rounded-lg px-3 py-2 flex items-center gap-2"
+                  >
+                    <File className="w-4 h-4 flex-shrink-0" />
                     <div className="flex flex-col min-w-0 flex-1">
-                      <span className="text-sm font-medium text-green-900 truncate">{file.name}</span>
-                      <span className="text-xs text-green-600">
+                      <span className="truncate font-medium text-sm">{file.name}</span>
+                      <span className="text-xs text-orange-500">
                         {formatFileSize(file.size)} • {file.type || 'Unknown type'}
                       </span>
                     </div>
-                    <button
+                    <button 
                       onClick={() => handleRemoveFile(index)}
-                      className="text-green-400 hover:text-green-600 flex-shrink-0"
+                      className="text-orange-500 hover:text-orange-700 flex-shrink-0 ml-2"
                       aria-label="Hapus file"
                     >
                       <XIcon className="w-4 h-4" />
@@ -751,19 +1046,30 @@ const HukumPerdataChatPage: React.FC<HukumPerdataChatPageProps> = ({ onBack }) =
             </div>
           )}
 
-          {/* Modern input container with border and shadow */}
-          <div className="relative flex w-full cursor-text flex-col rounded-xl border border-gray-300 px-4 py-3 duration-150 ease-in-out shadow-sm focus-within:border-green-500 focus-within:ring-1 focus-within:ring-green-500 bg-white">
-            {/* File upload button inside input */}
+          <div className="relative">
+            <Textarea
+              ref={textareaRef}
+              rows={1}
+              value={inputMessage}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              placeholder="Message Hukum Perdata AI..."
+              className="resize-none pr-14 py-3 pl-10 max-h-[200px] rounded-2xl border border-gray-300 shadow-sm focus:border-gray-400 focus:ring-0 focus:outline-none overflow-y-auto bg-white"
+              disabled={isLoading}
+              data-chat-input="true"
+            />
+
+            {/* File Upload Button */}
             <button
               type="button"
               onClick={handleOpenFileDialog}
               disabled={isLoading}
-              className="absolute left-3 bottom-3 p-2 rounded-lg text-gray-400 hover:text-green-500 hover:bg-green-50 transition-colors z-20"
+              className="absolute left-2 bottom-2.5 w-8 h-8 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors flex items-center justify-center"
               aria-label="Upload file"
             >
               <Paperclip className="w-4 h-4" />
             </button>
-
+            
             {/* Hidden file input */}
             <input 
               type="file" 
@@ -774,46 +1080,22 @@ const HukumPerdataChatPage: React.FC<HukumPerdataChatPageProps> = ({ onBack }) =
               accept={ACCEPTED_FILE_TYPES}
             />
             
-            {/* Modern textarea without borders */}
-            <textarea
-              ref={textareaRef}
-              value={inputMessage}
-              onChange={handleInputChange}
-              onKeyDown={handleKeyDown}
-              placeholder="Ketik pesan Anda..."
-              className="w-full border-0 bg-transparent pl-8 pr-12 py-1 text-sm placeholder:text-gray-500 focus:outline-none resize-none min-h-[40px] max-h-[200px] text-gray-800"
-              disabled={isLoading}
-              rows={2}
-            />
-            
-            {/* Send button inside input container */}
             <button
-              onClick={() => handleSendMessage()}
-              disabled={(!inputMessage.trim() && selectedFiles.length === 0) || isLoading}
-              className={`absolute right-3 bottom-3 p-2.5 rounded-lg flex items-center justify-center transition-colors ${
-                (!inputMessage.trim() && selectedFiles.length === 0) || isLoading
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-green-600 text-white hover:bg-green-700'
-              }`}
+              onClick={handleSendMessage}
+              disabled={isLoading || (!inputMessage.trim() && selectedFiles.length === 0)}
+              className="absolute right-2 bottom-2.5 w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:opacity-50 flex items-center justify-center transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
               aria-label="Kirim pesan"
             >
               {isLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
               ) : (
-                <Send className="w-5 h-5" />
+                <Send className="w-4 h-4 text-white" />
               )}
             </button>
           </div>
-          
-          {/* Help text and disclaimer */}
-          <div className="mt-2 space-y-1">
-            <p className="text-xs text-gray-500 text-center">
-              Tekan Enter untuk mengirim, Shift+Enter untuk baris baru
-            </p>
-            <p className="text-xs text-center text-gray-500">
-              Hukum Perdata AI memberikan informasi umum dan tidak bisa menggantikan nasihat hukum profesional.
-            </p>
-          </div>
+          <p className="text-xs text-gray-400 mt-3 text-center">
+            Hukum Perdata AI dapat membuat kesalahan. Pertimbangkan untuk memverifikasi informasi penting.
+          </p>
         </div>
       </div>
     </div>

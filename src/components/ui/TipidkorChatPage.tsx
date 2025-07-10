@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, Copy, Check, Loader2, Info, RefreshCw, Database, Trash2 } from 'lucide-react';
+import { ArrowLeft, Send, Copy, Check, Loader2, Info, RefreshCw, Paperclip, File, XIcon, AlertCircle, Database, Trash2 } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { Button } from './button';
 import { Textarea } from './textarea';
-import { DotBackground } from './DotBackground';
+
 import { formatMessage } from '@/utils/markdownFormatter';
 import { RunEvent } from '@/types/playground';
 import { usePlaygroundStore } from '@/stores/PlaygroundStore';
@@ -15,17 +15,81 @@ import {
   sendTipidkorStreamingChatMessage
 } from '@/services/tipidkorStreamingService';
 import { getStorageStats, forceCleanup } from '@/stores/PlaygroundStore';
-import { 
-  chatStyles, 
-  getProseClasses, 
-  getUserMessageClasses, 
-  getAgentMessageClasses, 
-  getSendButtonClasses 
-} from '@/styles/chatStyles';
+
+// Supported file types - limited to TXT, PDF, and Images only
+const ACCEPTED_FILE_TYPES = ".pdf,.txt,.png,.jpg,.jpeg,.webp";
+
+// File size limit (20MB for Gemini API)
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB in bytes
+
+// Supported MIME types for validation - limited to TXT, PDF, and Images only
+const SUPPORTED_MIME_TYPES = [
+  // Document formats
+  'application/pdf',
+  'text/plain',
+  // Image formats
+  'image/png',
+  'image/jpeg',
+  'image/jpg',
+  'image/webp'
+];
 
 interface TipidkorChatPageProps {
   onBack?: () => void;
 }
+
+// File validation utilities
+const validateFile = (file: File): { isValid: boolean; error?: string } => {
+  // Check file size
+  if (file.size > MAX_FILE_SIZE) {
+    const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+    return {
+      isValid: false,
+      error: `File "${file.name}" terlalu besar (${sizeMB}MB). Maksimal ukuran file adalah 20MB.`
+    };
+  }
+
+  // Check MIME type
+  if (!SUPPORTED_MIME_TYPES.includes(file.type)) {
+    // Check by file extension as fallback for mobile compatibility
+    const extension = file.name.toLowerCase().split('.').pop();
+    const extensionMimeMap: { [key: string]: string } = {
+      'pdf': 'application/pdf',
+      'txt': 'text/plain',
+      'png': 'image/png',
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'webp': 'image/webp'
+    };
+
+    if (!extension || !extensionMimeMap[extension]) {
+      return {
+        isValid: false,
+        error: `Format file "${file.name}" tidak didukung. Format yang didukung: PDF, TXT, PNG, JPG, JPEG, WEBP.`
+      };
+    }
+  }
+
+  return { isValid: true };
+};
+
+const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+// Example questions for TIPIDKOR
+const exampleQuestions = [
+  "Apa saja unsur-unsur tindak pidana korupsi?",
+  "Bagaimana cara melaporkan dugaan korupsi?",
+  "Apa perbedaan antara gratifikasi dan suap?",
+  "Berapa sanksi pidana untuk tindak pidana korupsi?",
+  "Apa yang dimaksud dengan kerugian keuangan negara?",
+  "Bagaimana proses penyidikan kasus korupsi?"
+];
 
 const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
   // Use streaming hooks and store
@@ -36,11 +100,14 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
   const [showInfo, setShowInfo] = useState(false);
   const [showStorageInfo, setShowStorageInfo] = useState(false);
   const [storageStats, setStorageStats] = useState<any>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [fileValidationErrors, setFileValidationErrors] = useState<string[]>([]);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const streamingStatusRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const isSessionInitialized = useRef<boolean>(false);
 
   // Effect untuk inisialisasi session dan clear store saat komponen di-mount
@@ -156,6 +223,58 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
     textarea.style.height = `${textarea.scrollHeight}px`;
   };
 
+  // File handling functions
+  const handleOpenFileDialog = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleRemoveFile = (indexToRemove: number) => {
+    setSelectedFiles(prev => prev.filter((_, index) => index !== indexToRemove));
+  };
+
+  // Enhanced file change handler
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const errors: string[] = [];
+    const validFiles: File[] = [];
+
+    console.log(`📁 File upload attempt: ${files.length} file(s)`);
+
+    files.forEach((file, index) => {
+      console.log(`📄 File ${index + 1}: ${file.name} (${formatFileSize(file.size)}, MIME: "${file.type}")`);
+      
+      const validation = validateFile(file);
+      if (validation.isValid) {
+        validFiles.push(file);
+        console.log(`✅ File ${index + 1} valid: ${file.name}`);
+      } else {
+        errors.push(validation.error!);
+        console.log(`❌ File ${index + 1} invalid: ${validation.error}`);
+      }
+    });
+
+    // Update error state
+    setFileValidationErrors(errors);
+
+    // Only add valid files
+    if (validFiles.length > 0) {
+      setSelectedFiles(prev => [...prev, ...validFiles]);
+      console.log(`📋 Successfully processed ${validFiles.length} valid file(s)`);
+    }
+    
+    // Clear the input to allow re-selection of the same file
+    e.target.value = '';
+    
+    // Clear errors after 5 seconds
+    if (errors.length > 0) {
+      setTimeout(() => {
+        setFileValidationErrors([]);
+      }, 5000);
+    }
+  };
+
   const handleStorageCleanup = () => {
     if (window.confirm('Apakah Anda yakin ingin membersihkan data lama? Data yang sudah dihapus tidak bisa dikembalikan.')) {
       const newStats = forceCleanup();
@@ -238,16 +357,18 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
   };
 
   const handleSendMessage = async () => {
-    // Simple validation - only text messages now
+    // Simple validation with files or text
     const trimmedMessage = inputMessage.trim();
     
-    if (!trimmedMessage || isLoading) return;
+    if ((selectedFiles.length === 0 && !trimmedMessage) || isLoading) return;
     
-    // Validate message length
-    if (trimmedMessage.length < 3) {
+    // Validate message length if message provided
+    if (trimmedMessage && trimmedMessage.length < 3) {
       alert('Pesan terlalu pendek. Minimal 3 karakter.');
       return;
     }
+
+    const userMessageContent = trimmedMessage || (selectedFiles.length > 0 ? "Analisis file berikut" : "");
 
     // Clear input and reset height immediately
     setInputMessage('');
@@ -259,16 +380,33 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
     try {
       // Debug message sebelum send
       console.log('📤 Sending TIPIDKOR message from UI:', {
-        message: trimmedMessage.substring(0, 100) + (trimmedMessage.length > 100 ? '...' : ''),
-        message_length: trimmedMessage.length
+        message: userMessageContent.substring(0, 100) + (userMessageContent.length > 100 ? '...' : ''),
+        message_length: userMessageContent.length,
+        files_count: selectedFiles.length
       });
+
+      // Log file sizes jika ada
+      if (selectedFiles.length > 0) {
+        console.log('📁 TIPIDKOR: Uploading files:');
+        selectedFiles.forEach((file, index) => {
+          console.log(`File ${index + 1}: ${file.name} - ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+        });
+      }
 
       // Add user message to store
       const userMessage = {
         id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         role: 'user' as const,
-        content: trimmedMessage,
-        created_at: Math.floor(Date.now() / 1000)
+        content: userMessageContent,
+        created_at: Math.floor(Date.now() / 1000),
+        // Add file attachments info if any
+        ...(selectedFiles.length > 0 && {
+          attachments: selectedFiles.map(file => ({
+            name: file.name,
+            size: file.size,
+            type: file.type
+          }))
+        })
       };
       addMessage(userMessage);
       
@@ -288,9 +426,17 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
       // Use TIPIDKOR streaming service
       console.log('🚀 TIPIDKOR: About to call sendTipidkorStreamingChatMessage');
       
+      // Note: Current TIPIDKOR service doesn't support file upload yet
+      // Files will be mentioned in the message content
+      let finalMessage = userMessageContent;
+      if (selectedFiles.length > 0) {
+        const fileInfo = selectedFiles.map(f => `${f.name} (${formatFileSize(f.size)})`).join(', ');
+        finalMessage = `${userMessageContent}\n\n📎 File yang akan dianalisis: ${fileInfo}`;
+      }
+
       const result = await sendTipidkorStreamingChatMessage(
-        trimmedMessage,
-        (event) => {
+        finalMessage,
+        (event: any) => {
           // Handle streaming events
           console.log('🎯 TIPIDKOR streaming event received:', {
             event: event.event,
@@ -494,6 +640,9 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
       
       console.log('📊 TIPIDKOR: sendTipidkorStreamingChatMessage completed with result:', result);
       
+      // Reset selected files setelah berhasil mengirim
+      setSelectedFiles([]);
+      setFileValidationErrors([]);
     } catch (error) {
       console.error('Error sending TIPIDKOR message:', error);
       
@@ -516,6 +665,10 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
         }
         return newMessages;
       });
+      
+      // Reset files on error
+      setSelectedFiles([]);
+      setFileValidationErrors([]);
     } finally {
       // Focus the textarea after sending (but streaming focus will take over during processing)
       setTimeout(() => {
@@ -552,6 +705,8 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
         const { setMessages, resetStreamingStatus } = usePlaygroundStore.getState();
         setMessages([]);
         resetStreamingStatus();
+        setSelectedFiles([]);
+        setFileValidationErrors([]);
       } catch (error) {
         console.error('Error resetting TIPIDKOR chat:', error);
       }
@@ -589,9 +744,14 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div>
-            <h1 className="font-semibold">TIPIDKOR AI</h1>
-            <p className="text-sm text-gray-600 hidden sm:block">Asisten untuk Tindak Pidana Korupsi</p>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-sm font-semibold">TK</span>
+            </div>
+            <div>
+              <h1 className="font-semibold">TIPIDKOR AI</h1>
+              <p className="text-sm text-gray-600 hidden sm:block">Asisten untuk Tindak Pidana Korupsi</p>
+            </div>
           </div>
         </div>
         
@@ -653,11 +813,9 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
 
       <div 
         ref={chatContainerRef}
-        className="flex-1 overflow-y-auto overscroll-contain pb-32 pt-4"
-        data-chat-container="true"
+        className="flex-1 overflow-y-auto p-4 space-y-6"
       >
-        <DotBackground>
-          <div className="max-w-5xl mx-auto px-4 md:px-8 space-y-6">
+        <div className="max-w-3xl mx-auto">
             {/* Welcome Message - Bold TIPIDKOR AI in center */}
             {messages.length === 0 && (
               <div className="flex flex-col items-center justify-center h-[50vh] text-center">
@@ -710,24 +868,21 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
               return (message.content || isStreamingMessage) && (
                 <div
                   key={message.id}
-                  className={cn("flex", message.role === "user" ? "justify-end" : "justify-start")}
+                  className={cn("flex w-full", message.role === "user" ? "justify-end" : "justify-start")}
                 >
-                  <div className={cn("flex gap-4", message.role === "user" ? "flex-row-reverse" : "flex-row")}>
+                  <div className={cn("flex gap-3 w-full max-w-full", message.role === "user" ? "flex-row-reverse max-w-[85%] sm:max-w-[80%]" : "flex-row")}>
                     {message.role === 'agent' && (
-                      <div className="h-8 w-8 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-                        <img 
-                          src="/img/krimsus.png"
-                          alt="TIPIDKOR AI"
-                          className="h-5 w-5 object-contain"
-                        />
+                      <div className="w-7 h-7 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0 mt-1">
+                        <span className="text-white text-xs font-medium">TK</span>
                       </div>
                     )}
-                    <div className={cn("max-w-[80%]", message.role === 'user' ? "order-first" : "")}>
+                    <div className={cn("min-w-0 flex-1", message.role === 'user' ? "order-first max-w-full" : "max-w-full")}>
                       <div
                         className={cn(
+                          "max-w-full min-w-0 break-words overflow-wrap-anywhere",
                           message.role === 'user'
-                            ? getUserMessageClasses()
-                            : getAgentMessageClasses()
+                            ? "bg-gray-200 text-gray-800 rounded-3xl px-4 py-2.5 ml-auto"
+                            : "bg-transparent"
                         )}
                       >
                         {message.role === 'agent' ? (
@@ -750,10 +905,27 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
                             
                             {/* Main message content */}
                             {message.content ? (
-                              <div 
-                                className={getProseClasses()}
-                                dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
-                              />
+                              <div className="overflow-x-auto">
+                                <div 
+                                  className="prose prose-gray prose-sm max-w-none
+                                           [&_p]:mb-3 [&_p]:leading-relaxed [&_p]:text-gray-800 [&_p]:word-wrap-break-word
+                                           [&_a]:text-blue-600 [&_a]:no-underline hover:[&_a]:underline [&_a]:word-wrap-break-word
+                                           [&_ul]:mb-4 [&_ul]:space-y-1 [&_li]:text-gray-800 [&_li]:word-wrap-break-word
+                                           [&_ol]:mb-4 [&_ol]:space-y-1 [&_ol_li]:text-gray-800 [&_ol_li]:word-wrap-break-word
+                                           [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:pl-4 [&_blockquote]:my-4 [&_blockquote]:italic [&_blockquote]:text-gray-600
+                                           [&_pre]:bg-gray-100 [&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:text-sm [&_pre]:max-w-full [&_pre]:whitespace-pre-wrap [&_pre]:border
+                                           [&_code]:bg-gray-100 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-sm [&_code]:font-mono
+                                           [&_h1]:text-xl [&_h1]:font-semibold [&_h1]:mb-4 [&_h1]:text-gray-900
+                                           [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:mb-3 [&_h2]:text-gray-900
+                                           [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mb-2 [&_h3]:text-gray-900
+                                           [&_table]:border-collapse [&_table]:my-4 [&_table]:w-full [&_table]:min-w-[600px] [&_table]:text-sm [&_table]:border [&_table]:border-gray-200
+                                           [&_th]:bg-gray-50 [&_th]:p-3 [&_th]:border [&_th]:border-gray-200 [&_th]:font-semibold [&_th]:text-left [&_th]:text-gray-900 [&_th]:whitespace-nowrap
+                                           [&_td]:p-3 [&_td]:border [&_td]:border-gray-200 [&_td]:align-top [&_td]:leading-relaxed [&_td]:text-gray-800 [&_td]:word-wrap-break-word
+                                           [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:my-2
+                                           text-gray-800 leading-relaxed word-wrap-break-word overflow-wrap-break-word"
+                                  dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
+                                />
+                              </div>
                             ) : (
                               // Placeholder for empty streaming message
                               <div className="text-gray-400 text-sm italic">
@@ -813,39 +985,114 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
 
             <div ref={messagesEndRef} />
           </div>
-        </DotBackground>
       </div>
 
       {/* Input area fixed at bottom */}
-      <div className="border-t border-gray-200 bg-white p-4 md:px-8 pb-safe">
-        <div className="max-w-5xl mx-auto px-4 md:px-8">
+      <div className="border-t border-gray-200 bg-white p-4">
+        <div className="max-w-3xl mx-auto">
+          {/* File Validation Errors */}
+          {fileValidationErrors.length > 0 && (
+            <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-md mb-4">
+              <div className="flex">
+                <AlertCircle className="h-5 w-5 text-red-400" />
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800">Error Validasi File</h3>
+                  <div className="mt-2 text-sm text-red-700">
+                    <ul className="list-disc list-inside space-y-1">
+                      {fileValidationErrors.map((error, index) => (
+                        <li key={index}>{error}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="mt-3 text-xs text-red-600">
+                    <p><strong>Format yang didukung:</strong> PDF, TXT, PNG, JPG, JPEG, WEBP</p>
+                    <p><strong>Ukuran maksimal:</strong> 20MB per file</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* File Preview Area */}
+          {selectedFiles.length > 0 && (
+            <div className="mb-3 space-y-2">
+              <div className="text-xs text-gray-600 font-medium">
+                File terpilih ({selectedFiles.length}):
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {selectedFiles.map((file, index) => (
+                  <div 
+                    key={index}
+                    className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 flex items-center gap-2"
+                  >
+                    <File className="w-4 h-4 flex-shrink-0" />
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <span className="truncate font-medium text-sm">{file.name}</span>
+                      <span className="text-xs text-red-500">
+                        {formatFileSize(file.size)} • {file.type || 'Unknown type'}
+                      </span>
+                    </div>
+                    <button 
+                      onClick={() => handleRemoveFile(index)}
+                      className="text-red-500 hover:text-red-700 flex-shrink-0 ml-2"
+                      aria-label="Hapus file"
+                    >
+                      <XIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="relative">
             <Textarea
               ref={textareaRef}
               rows={1}
               value={inputMessage}
               onChange={handleInputChange}
-              placeholder="Ketik pesan..."
-              className={`resize-none pr-14 py-3 pl-4 max-h-[200px] rounded-xl ${chatStyles.input.border} ${chatStyles.input.focus} shadow-sm overflow-y-auto`}
+              placeholder="Message TIPIDKOR AI..."
+              className="resize-none pr-14 py-3 pl-10 max-h-[200px] rounded-2xl border border-gray-300 shadow-sm focus:border-gray-400 focus:ring-0 focus:outline-none overflow-y-auto bg-white"
               disabled={isLoading}
               data-chat-input="true"
             />
+
+            {/* File Upload Button */}
+            <button
+              type="button"
+              onClick={handleOpenFileDialog}
+              disabled={isLoading}
+              className="absolute left-2 bottom-2.5 w-8 h-8 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors flex items-center justify-center"
+              aria-label="Upload file"
+            >
+              <Paperclip className="w-4 h-4" />
+            </button>
             
-            <Button
+            {/* Hidden file input */}
+            <input 
+              type="file" 
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+              multiple
+              accept={ACCEPTED_FILE_TYPES}
+            />
+            
+            <button
               onClick={handleSendMessage}
-              disabled={isLoading || !inputMessage.trim()}
-              className={getSendButtonClasses(isLoading || !inputMessage.trim())}
+              disabled={isLoading || (!inputMessage.trim() && selectedFiles.length === 0)}
+              className="absolute right-2 bottom-2.5 w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:opacity-50 flex items-center justify-center transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
               aria-label="Kirim pesan"
             >
               {isLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
               ) : (
-                <Send className="w-5 h-5" />
+                <Send className="w-4 h-4 text-white" />
               )}
-            </Button>
+            </button>
           </div>
-          <p className="text-xs text-gray-500 mt-2 text-center">
-            TIPIDKOR AI dapat memberikan informasi yang tidak akurat. Verifikasi fakta penting dengan dokumen resmi.
+          <p className="text-xs text-gray-400 mt-3 text-center">
+            TIPIDKOR AI dapat membuat kesalahan. Pertimbangkan untuk memverifikasi informasi penting.
           </p>
         </div>
       </div>

@@ -1027,10 +1027,11 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
                             
                             {/* Citations Display */}
                             {message.extra_data?.references && message.extra_data.references.length > 0 && (
-                              <div className="mt-4">
+                              <div className="mt-4 -mx-2 sm:mx-0">
                                 <CitationDisplay 
                                   references={message.extra_data.references as any}
-                                  compact={false}
+                                  compact={false} // Let component auto-detect mobile
+                                  className="max-w-full overflow-hidden"
                                 />
                               </div>
                             )}

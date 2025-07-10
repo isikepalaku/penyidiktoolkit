@@ -2128,242 +2128,260 @@ const syncWithServer = async () => {
 
 # Scratchpad
 
-## Task: Send Button Visibility Fix untuk KUHPChatPage.tsx - COMPLETED ✅
+## Task: Streaming Events Fix untuk KUHAPChatPage.tsx - COMPLETED ✅
 
 ### Deskripsi:
-User melaporkan tombol kirim tidak terlihat di KUHPChatPage.tsx. Masalah terjadi karena styling tombol menggunakan warna yang terlalu light.
+User melaporkan masalah dengan KUHAPChatPage.tsx bahwa event-event streaming tidak muncul, tool calls tidak muncul, dan final response tidak ada.
 
 ### Root Cause:
-- Button component memiliki default styling (`text-primary-foreground`, `px-4 py-2`) yang override custom classes
-- Icon Send menggunakan `text-gray-600` yang tidak memiliki kontras cukup
-- CSS conflicts antara Button component styling dan custom styling
-- Default Button component mengacaukan ukuran `w-8 h-8` dengan padding default
+- **Oversimplified Event Handling**: handleSendMessage hanya menggunakan basic event cases (RunStarted, RunResponse, RunCompleted, RunError)
+- **Missing Tool Events**: Tidak ada handling untuk ToolCallStarted, ToolCallCompleted, AccessingKnowledge, UpdatingMemory
+- **Incomplete Citation Handling**: Citations tidak di-parse dan store dengan benar di RunResponse dan RunCompleted
+- **No Content Validation**: Tidak ada fallback untuk empty responses
+- **Incomplete Status Management**: StreamingStatus tidak di-manage dengan comprehensive
 
 ### Solution Implemented:
 ```typescript
-// ❌ BEFORE: Button component dengan styling conflicts
-<Button className="bg-gray-200 hover:bg-gray-300 text-gray-600">
-  <Send className="w-4 h-4 text-gray-600" />
-</Button>
-
-// ✅ AFTER: Native button element dengan full control
-<button className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 shadow-sm focus:ring-2">
-  <Send className="w-4 h-4 text-white" />
-</button>
+// ✅ AFTER: Comprehensive event handling dengan semua event types
+case RunEvent.ToolCallStarted:
+  // Extract tool name dan set proper streaming status
+case RunEvent.ToolCallCompleted:
+  // Clear tool state
+case RunEvent.AccessingKnowledge:
+  // Set knowledge access state  
+case RunEvent.UpdatingMemory:
+case RunEvent.MemoryUpdateStarted:
+  // Set memory update state
+case RunEvent.MemoryUpdateCompleted:
+  // Clear memory update state
+case RunEvent.RunResponse:
+  // Enhanced dengan citation parsing dan incremental content
+case RunEvent.RunCompleted:
+  // Enhanced dengan final content validation dan citation preservation
 ```
 
 ### Benefits:
-- ✅ **Icon Visibility**: White icon pada blue background sangat jelas terlihat
-- ✅ **No CSS Conflicts**: Native button element memberikan full control terhadap styling
-- ✅ **Correct Sizing**: `w-8 h-8` bekerja sempurna tanpa interference dari default padding
-- ✅ **Professional Appearance**: Blue styling dengan proper focus states
-- ✅ **Clear Disabled State**: Gray styling saat disabled tetap jelas terlihat
-- ✅ **Accessibility**: Proper focus ring dan keyboard navigation
+- **✅ Tool Call Animations**: Sekarang muncul dengan benar saat AI menggunakan tools
+- **✅ Memory Update Indicators**: Memory operations ter-display dengan proper animations
+- **✅ Citations Display**: References dari knowledge base ter-parse dan ditampilkan
+- **✅ Final Response Guarantee**: Selalu ada content final, dengan fallback message jika kosong
+- **✅ Enhanced Logging**: Comprehensive logging untuk debugging streaming issues
+- **✅ Smart Content Merging**: Final content tidak menimpa incremental content
+- **✅ Proper Status Reset**: Streaming status ter-reset dengan benar setelah completion
 
----
-
-## Task: Soft Background User Chat Implementation - COMPLETED ✅
-
-### Deskripsi:
-User meminta untuk menggunakan warna background user chat yang lebih soft daripada `bg-gray-700` yang terlalu gelap.
-
-### Changes Implemented:
-
-#### 1. User Message Background:
-```typescript
-// ❌ BEFORE: Dark background
-"bg-gray-700 text-white rounded-3xl px-4 py-2.5 ml-auto"
-
-// ✅ AFTER: Soft light background
-"bg-gray-200 text-gray-800 rounded-3xl px-4 py-2.5 ml-auto"
-```
-
-#### 2. User Avatar Color:
-```typescript
-// ❌ BEFORE: Dark avatar
-"bg-gray-600"
-
-// ✅ AFTER: Soft avatar to match
-"bg-gray-400"
-```
-
-### Benefits:
-- ✅ **Softer Appearance**: Background tidak terlalu kontras dan lebih lembut di mata
-- ✅ **Better Readability**: Text dark `text-gray-800` pada background light `bg-gray-200`
-- ✅ **Consistent Design**: Avatar `bg-gray-400` selaras dengan bubble color
-- ✅ **Modern Feel**: Light bubble design sesuai dengan trend UI modern
-
-### .cursorrules Updated:
-- Updated **Modern Clean Design Pattern** dengan soft background colors
-- Updated **Avatar Design** dengan soft tone colors
-
----
-
-## Task: Natural Text Flow Fix untuk ChatGPT-like Word Breaking - COMPLETED ✅
-
-### Deskripsi:
-User mengeluh text breaking yang tidak natural seperti di ChatGPT. Masalah terletak pada CSS yang terlalu agresif dalam word breaking di KUHPChatPage.tsx dan markdownFormatter.ts.
-
-### Root Cause:
-- Penggunaan `break-all`, `word-break-break-all`, dan `hyphens-auto` yang memaksa kata-kata break secara tidak natural
-- CSS properties `break-words` dan `overflow-wrap-anywhere` yang terlalu agresif
-- Styling yang berbeda jauh dari natural text flow ChatGPT
-
-### Solutions Implemented:
-
-#### 1. Fixed KUHPChatPage.tsx Prose Classes:
-```typescript
-// ❌ BEFORE: Aggressive breaking
-[&_p]:break-words [&_p]:hyphens-auto
-[&_a]:break-all [&_a]:word-break-break-all [&_a]:hyphens-auto
-overflow-wrap-anywhere
-
-// ✅ AFTER: Natural flow
-[&_p]:word-wrap-break-word
-[&_a]:word-wrap-break-word
-overflow-wrap-break-word
-```
-
-#### 2. Fixed User Message Styling:
-```typescript
-// ❌ BEFORE: Multiple aggressive properties
-"break-words hyphens-auto overflow-wrap-anywhere word-wrap-break-word"
-
-// ✅ AFTER: Clean natural breaking
-"word-wrap-break-word"
-```
-
-#### 3. Updated markdownFormatter.ts:
-- Changed `break-words` to `word-wrap-break-word` in getProseClasses
-- Removed `hyphens-auto` from table cells
-- More natural text flow for all prose elements
-
-### Benefits:
-- ✅ **Natural Text Flow**: Text sekarang mengalir seperti ChatGPT tanpa forced breaking
-- ✅ **Better Readability**: Kata-kata tidak dipotong secara tidak natural
-- ✅ **Consistent Experience**: Sama dengan UI pattern ChatGPT yang familiar
-- ✅ **Mobile Friendly**: Tetap responsive tapi dengan breaking yang natural
-- ✅ **URL Handling**: Link panjang tetap break dengan baik tanpa terlalu agresif
-
-### .cursorrules Updated:
-- Added new **Content Breaking Strategy** guidelines
-- **AVOID**: `break-all`, `word-break-break-all`, `hyphens-auto`
-- **USE**: `word-wrap-break-word`, `overflow-wrap-break-word`
-- **Best Practice**: Mimic ChatGPT's natural text flow
-
----
-
-## Task: Citation Implementation for TipidkorChatPage.tsx - COMPLETED ✅
-
-### Deskripsi:
-Implementasi citation functionality pada TipidkorChatPage.tsx berdasarkan pattern di .cursorrules documentation.
-
-### Implementasi yang Diselesaikan:
-
-#### 1. Enhanced Import Statement:
-- **Import CitationDisplay**: Added `import CitationDisplay from './CitationDisplay';`
-
-#### 2. Enhanced RunEvent.RunResponse Handler:
-- **Citation Parsing**: Added parsing untuk `extra_data.references` dari streaming response
-- **Storage in Message**: Store references dalam `message.extra_data.references`
-- **Logging**: Added comprehensive logging untuk debugging citation data
-
-#### 3. Enhanced RunEvent.RunCompleted Handler:
-- **Final Citations**: Ensure citations tersimpan dalam final message
-- **Preservation**: Maintain citations consistency antara streaming dan final state
-- **Validation**: Proper checking untuk citation data availability
-
-#### 4. UI Integration:
-- **CitationDisplay Component**: Added dalam agent message rendering
-- **Conditional Rendering**: Only show citations when references exist
-- **Professional Layout**: Following gray-based professional color scheme
-- **Proper Spacing**: Added `mt-4` spacing untuk clean layout
-
-### Benefits:
-- **✅ Stream Response Citations**: Real-time citation parsing dari knowledge base responses
-- **✅ Professional Display**: Clean expandable citation UI dengan professional styling
-- **✅ Consistent Implementation**: Follows established pattern dari .cursorrules documentation
-- **✅ Type Safety**: Proper TypeScript integration dengan existing interfaces
-- **✅ Performance**: Efficient rendering dengan conditional display
-
-### Pattern Followed:
-- Stream event enhancement untuk `RunEvent.RunResponse` dan `RunEvent.RunCompleted`
-- Enhanced tool event handling dengan proper tool name extraction
-- Professional gray-based color scheme untuk citations
-- Proper spacing dan layout integration
-- Comprehensive logging untuk debugging
-- Clean separation antara content dan citations
-
-### Enhanced Tool Event Handling Added:
-- **ToolCallStarted**: Extract tool name dari `event.tool_calls[0].function.name` atau `event.tools[0].function.name`
-- **ToolCallCompleted**: Clear tool name setelah completion dengan proper logging
-- **AccessingKnowledge**: Added missing event handler untuk knowledge access phase
-- **MemoryUpdateCompleted**: Added completion handler untuk memory update
-- **Detailed Logging**: Added comprehensive logging untuk debug tool events
-
----
-
-## Task: AdminPanel.tsx reject_user Function Fix - COMPLETED ✅
-
-### Deskripsi:
-User melaporkan error saat menggunakan fungsi reject user di AdminPanel.tsx. Error terdiri dari:
-1. 404 Not Found untuk RPC function `reject_user`
-2. CORS error untuk Edge Functions (apikey header not allowed)
-3. 403 Forbidden untuk auth admin API
-
-### Masalah yang Ditemukan:
-- **Missing RPC Functions**: Database tidak memiliki required functions (approve_user, reject_user, is_admin)
-- **CORS Configuration**: Edge Functions tidak mengizinkan 'apikey' header
-- **Parameter Naming**: Function signature tidak sesuai dengan yang dipanggil
-
-### Solusi yang Diimplementasikan:
-
-#### 1. Created Missing Database Functions:
-- **File**: `supabase/migrations/20241210000001_create_admin_functions.sql`
-- **Functions Created**: is_admin(p_user_id), approve_user(p_user_id), reject_user(p_user_id), get_users_with_status()
-- **Security**: SECURITY DEFINER for elevated privileges, proper RLS policies
-- **Admin Table**: Created with proper constraints and permissions
-
-#### 2. Fixed CORS Headers in Edge Functions:
-- **Files**: `supabase/functions/admin/reject-user.ts`, `supabase/functions/admin/approve-user.ts`
-- **Fix**: Added 'apikey' to Access-Control-Allow-Headers in all responses
-- **Comprehensive**: Updated both OPTIONS preflight and all error/success responses
-
-#### 3. Fixed AdminPanel.tsx Parameter Names:
-- **Change**: Updated RPC calls to use `p_user_id` parameter name instead of `user_id`
-- **Functions**: is_admin, approve_user, reject_user calls updated
-- **Consistency**: Ensured parameter names match function signatures
-
-#### 4. Created Admin User:
-- **File**: `supabase/migrations/20241210000002_add_admin_user.sql`
-- **User**: Added hard-coded admin user to admins table
-- **Metadata**: Set proper user metadata with admin role
-
-#### 5. Documentation:
-- **File**: `supabase/migrations/README.md`
-- **Content**: Comprehensive migration guide with troubleshooting
-- **Testing**: Detailed testing checklist for validation
-
-### Benefits:
-- **✅ RPC Functions**: All required database functions now available
-- **✅ CORS Fixed**: Edge Functions properly configured for frontend calls
-- **✅ Admin Access**: Admin user properly configured with elevated permissions
-- **✅ Error Handling**: Robust fallback strategies implemented
-- **✅ Documentation**: Complete migration guide for future reference
+### Pattern Applied:
+- **Complete Event Coverage**: Semua RunEvent types ter-handle dengan proper actions
+- **Citation Preservation**: References tersimpan di both RunResponse dan RunCompleted events
+- **Tool Name Extraction**: Extract tool names dari event.tool_calls atau event.tools
+- **Content Validation**: Final check untuk memastikan ada content setelah completion
+- **Status Lifecycle Management**: Proper initialization, updates, dan reset untuk streaming status
+- **Enhanced Error Handling**: Comprehensive error logging dan fallback messaging
 
 ### Files Modified:
-- `supabase/functions/admin/reject-user.ts` - Fixed CORS headers
-- `supabase/functions/admin/approve-user.ts` - Fixed CORS headers  
-- `src/pages/AdminPanel.tsx` - Fixed RPC parameter names
-- `supabase/migrations/` - Created new migration files
-- `.cursorrules` - Added comprehensive lesson about Supabase admin functions
+- `src/components/ui/KUHAPChatPage.tsx` - Enhanced event handling dalam handleSendMessage
+- `.cursorrules` - Added comprehensive Streaming Events Fix Implementation Pattern
 
 ---
 
 ## Previous Completed Tasks:
-- Agno RunResponse Extra Data & Citations Implementation
-- Perbaikan Fungsi Hapus Storage & Reset Chat KUHAPChatPage.tsx
-- Final Cleanup Unused Imports KUHAPChatPage.tsx
+- Streaming Events Fix untuk KUHAPChatPage.tsx
+- HukumPerdataChatPage tampilan fix mengikuti KUHPChatPage.tsx pattern
+- Citation mobile responsiveness fix untuk KUHPChatPage.tsx
+- AdminPanel.tsx reject_user Function Fix
 - Natural Text Flow Fix untuk ChatGPT-like Word Breaking
 - Soft Background User Chat Implementation
 - Send Button Visibility Fix untuk KUHPChatPage.tsx
+
+## Instructions for Using Graphiti's MCP Tools for Agent Memory
+
+### 7. KUHAPChatPage.tsx Fix Summary - COMPLETED ✅
+
+**Problem**: Event streaming tidak berfungsi - tidak ada tool calls, memory updates, atau final response.
+
+**Root Cause**: Oversimplified event handling yang hanya cover basic events.
+
+**Solution Applied**: 
+- Enhanced event handling dengan complete event coverage
+- Proper citation parsing dan preservation
+- Smart content merging strategy
+- Comprehensive logging untuk debugging
+- Graceful fallback untuk edge cases
+
+**Results**:
+- ✅ Tool call animations bekerja
+- ✅ Memory update indicators berfungsi  
+- ✅ Citations ter-display dengan benar
+- ✅ Final responses selalu ada
+- ✅ Error handling yang robust
+
+### 8. Mobile Responsiveness Fix for Header Elements - COMPLETED ✅
+
+**Problem**: Header avatars, buttons, dan layout tidak responsive di mobile dengan ukuran yang tidak tepat.
+
+**Root Cause**: Fixed sizes dan spacing yang tidak adaptive untuk different screen sizes.
+
+**Solution Applied**:
+
+#### Header Avatar Enhancement:
+```typescript
+// ✅ AFTER: Responsive avatar dengan mobile-first approach
+<div className="w-7 h-7 sm:w-8 sm:h-8 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+  <span className="text-white text-xs sm:text-sm font-semibold">HP</span>
+</div>
+
+// ✅ Header layout dengan responsive spacing
+<div className="flex items-center gap-2 sm:gap-3">
+<div className="border-b border-gray-200 bg-white px-3 sm:px-4 py-2.5 sm:py-3">
+
+// ✅ Action buttons dengan proper mobile sizing
+<Button className="text-gray-500 w-7 h-7 sm:w-10 sm:h-10">
+  <Info className="h-4 w-4 sm:h-5 sm:w-5" />
+</Button>
+```
+
+#### Header Layout Enhancement:
+```typescript
+// ✅ Responsive gaps dan padding
+<div className="flex items-center gap-2 sm:gap-3">
+<div className="border-b border-gray-200 bg-white px-3 sm:px-4 py-2.5 sm:py-3">
+
+// ✅ Title truncation untuk prevent overflow
+<div className="min-w-0">
+  <h1 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
+  <p className="text-xs sm:text-sm text-gray-600 truncate">
+</div>
+```
+
+#### Action Buttons Enhancement:
+```typescript
+// ✅ Smaller buttons dan icons pada mobile
+<Button className="text-gray-500 w-7 h-7 sm:w-10 sm:h-10">
+  <Info className="h-4 w-4 sm:h-5 sm:w-5" />
+</Button>
+```
+
+#### Container Spacing Enhancement:
+```typescript
+// ✅ Responsive padding dan spacing
+className="p-3 sm:p-4 m-2 sm:m-4"
+className="space-y-4 sm:space-y-6"
+className="gap-2 sm:gap-3"
+```
+
+**Benefits**:
+- ✅ **Mobile-First Design**: Smaller elements pada mobile, larger pada desktop
+- ✅ **Better Touch Targets**: Proper sizing untuk mobile interaction
+- ✅ **No Overflow**: Truncation prevents text overflow issues
+- ✅ **Consistent Spacing**: Responsive gaps dan padding
+- ✅ **Professional Appearance**: Clean layout across all devices
+- ✅ **Flex-Shrink Protection**: Avatars maintain size consistency
+
+**Mobile Responsiveness Best Practices Applied**:
+- **Progressive Enhancement**: Start mobile-first, enhance untuk desktop
+- **Responsive Utilities**: `sm:` prefixes untuk desktop enhancements
+- **Touch-Friendly**: Adequate button sizes untuk mobile touch
+- **Content Protection**: `min-w-0` dan `truncate` untuk text overflow
+- **Flexible Layouts**: Responsive spacing dan sizing
+
+### 9. Desktop Scrolling Fix for Chat Layout Structure - COMPLETED ✅
+
+**Problem**: KUHAPChatPage.tsx mengalami unwanted scrolling di desktop view karena layout structure yang tidak optimal.
+
+**Root Cause**: 
+- **Improper Container Nesting**: Chat container menggunakan `max-w-3xl mx-auto w-full` yang menyebabkan horizontal scroll
+- **Complex Header Structure**: Header layout yang berlebihan dengan responsive spacing
+- **Wrong Layout Hierarchy**: Tidak mengikuti pattern yang benar dari KUHPChatPage yang working
+
+**Solution Applied**:
+
+#### Layout Structure Fix:
+```typescript
+// ❌ BEFORE: Problematic layout dengan scroll issues
+<div className="fixed inset-0 z-20 bg-white lg:pl-64 flex flex-col">
+  <div className="border-b border-gray-200 bg-white px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between shadow-sm">
+    {/* Complex responsive header */}
+  </div>
+  <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 sm:space-y-6 max-w-3xl mx-auto w-full">
+    {/* Chat content with max-width causing scroll */}
+  </div>
+</div>
+
+// ✅ AFTER: Clean layout structure without scroll
+<div className="fixed inset-0 z-20 bg-white lg:pl-64 flex flex-col">
+  <header className="flex items-center justify-between p-4 border-b border-gray-200 shadow-sm">
+    {/* Simple header structure */}
+  </header>
+  <div className="flex-1 overflow-y-auto p-4 space-y-6">
+    <div className="max-w-3xl mx-auto">
+      {/* Chat content properly constrained */}
+    </div>
+  </div>
+</div>
+```
+
+#### Header Simplification:
+```typescript
+// ✅ Clean header structure
+<header className="flex items-center justify-between p-4 border-b border-gray-200 shadow-sm">
+  <div className="flex items-center gap-3">
+    <Button variant="ghost" size="icon" className="rounded-full">
+      <ArrowLeft className="h-5 w-5" />
+    </Button>
+    <div className="flex items-center gap-3">
+      <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+        <span className="text-white text-sm font-semibold">HP</span>
+      </div>
+      <div>
+        <h1 className="font-semibold">Hukum Perdata AI</h1>
+        <p className="text-sm text-gray-600 hidden sm:block">Konsultasi terkait hukum perdata</p>
+      </div>
+    </div>
+  </div>
+  <div className="flex items-center gap-2">
+    {/* Action buttons */}
+  </div>
+</header>
+```
+
+#### Container Positioning Fix:
+```typescript
+// ✅ Proper container hierarchy untuk prevent scroll
+<div className="flex-1 overflow-y-auto p-4 space-y-6">
+  <div className="max-w-3xl mx-auto">
+    {/* All content properly wrapped */}
+    {/* File validation, example questions, messages */}
+  </div>
+</div>
+
+// ✅ Input area dengan proper constraint
+<div className="border-t border-gray-200 bg-white p-4">
+  <div className="max-w-3xl mx-auto">
+    {/* Input controls */}
+  </div>
+</div>
+```
+
+**Key Layout Principles Applied**:
+- **Proper Container Nesting**: `max-w-3xl mx-auto` hanya di inner content, bukan main container
+- **Simple Header Structure**: Menggunakan `<header>` semantic element dengan clean layout
+- **Flex Layout Optimization**: Proper flex hierarchy untuk prevent overflow
+- **Container Responsibility**: Each container has single responsibility
+- **Content Constraint**: Max-width hanya applied di content level, not container level
+
+**Benefits**:
+- ✅ **No Desktop Scroll**: Eliminates unwanted horizontal scrolling di desktop
+- ✅ **Clean Layout**: Professional structure yang consistent
+- ✅ **Better Performance**: Optimized rendering dengan proper container hierarchy
+- ✅ **Mobile Compatibility**: Layout remains responsive untuk all screen sizes
+- ✅ **Pattern Consistency**: Follows established working patterns dari KUHPChatPage
+- ✅ **Linter Errors Fixed**: Removed unused imports dan variables untuk clean code
+
+**Pattern Guidelines untuk Chat Components**:
+- **Never use `max-w-3xl mx-auto` di main chat container**: Apply hanya di inner content wrapper
+- **Use semantic header element**: `<header>` untuk proper structure
+- **Keep container hierarchy simple**: Avoid unnecessary nesting
+- **Follow working patterns**: Reference KUHPChatPage structure untuk consistency
+- **Test desktop scrolling**: Always verify no unwanted scroll di desktop view
+- **Clean unused imports**: Remove unused imports untuk prevent linter errors
+
+## Lessons
