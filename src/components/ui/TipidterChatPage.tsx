@@ -90,6 +90,7 @@ const validateFile = (file: File): { isValid: boolean; error?: string } => {
   return { isValid: true };
 };
 
+// Helper function for file size formatting
 const formatFileSize = (bytes: number): string => {
   if (bytes === 0) return '0 Bytes';
   const k = 1024;
@@ -237,30 +238,6 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
     setSelectedFiles(prev => prev.filter((_, index) => index !== indexToRemove));
   };
 
-  // Storage management
-  const handleStorageCleanup = () => {
-    if (window.confirm('Apakah Anda yakin ingin membersihkan data lama? Data yang sudah dihapus tidak bisa dikembalikan.')) {
-      const newStats = forceCleanup();
-      setStorageStats(newStats);
-      alert(`Cleanup selesai! Storage yang dibebaskan: ${newStats.usage}`);
-    }
-  };
-
-  // Copy function
-  const handleCopy = (text: string, messageId: string) => {
-    navigator.clipboard.writeText(text).then(
-      () => {
-        setCopied(messageId);
-        setTimeout(() => {
-          setCopied(null);
-        }, 2000);
-      },
-      (err) => {
-        console.error('Could not copy text: ', err);
-      }
-    );
-  };
-
   // Enhanced file change handler
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -272,10 +249,38 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
     files.forEach((file, index) => {
       console.log(`📄 File ${index + 1}: ${file.name} (${formatFileSize(file.size)}, MIME: "${file.type}")`);
       
+      // Check MIME type dan provide additional info untuk backend debugging
+      const extension = file.name.toLowerCase().split('.').pop();
+      
+      // Log detailed MIME type information untuk backend debugging
+      if (!file.type || file.type === 'application/octet-stream') {
+        const extensionMimeMap: { [key: string]: string } = {
+          'pdf': 'application/pdf',
+          'txt': 'text/plain',
+          'png': 'image/png',
+          'jpg': 'image/jpeg',
+          'jpeg': 'image/jpeg',
+          'webp': 'image/webp'
+        };
+
+        if (extension && extensionMimeMap[extension]) {
+          const expectedMimeType = extensionMimeMap[extension];
+          console.log(`⚠️ MIME type issue for ${file.name}:`);
+          console.log(`   Browser detected: "${file.type}"`);
+          console.log(`   Expected for .${extension}: "${expectedMimeType}"`);
+          console.log(`   Backend should use: "${expectedMimeType}" for Google GenAI`);
+        }
+      }
+      
       const validation = validateFile(file);
       if (validation.isValid) {
         validFiles.push(file);
         console.log(`✅ File ${index + 1} valid: ${file.name} (MIME: "${file.type}")`);
+        
+        // Additional info untuk backend debugging
+        if (extension === 'docx' && (!file.type || file.type === 'application/octet-stream')) {
+          console.log(`📋 Backend Note: ${file.name} should use MIME type "application/vnd.openxmlformats-officedocument.wordprocessingml.document" for Google GenAI`);
+        }
       } else {
         errors.push(validation.error!);
         console.log(`❌ File ${index + 1} invalid: ${validation.error}`);
@@ -300,6 +305,30 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
         setFileValidationErrors([]);
       }, 5000);
     }
+  };
+
+  // Storage management
+  const handleStorageCleanup = () => {
+    if (window.confirm('Apakah Anda yakin ingin membersihkan data lama? Data yang sudah dihapus tidak bisa dikembalikan.')) {
+      const newStats = forceCleanup();
+      setStorageStats(newStats);
+      alert(`Cleanup selesai! Storage yang dibebaskan: ${newStats.usage}`);
+    }
+  };
+
+  // Copy function
+  const handleCopy = (text: string, messageId: string) => {
+    navigator.clipboard.writeText(text).then(
+      () => {
+        setCopied(messageId);
+        setTimeout(() => {
+          setCopied(null);
+        }, 2000);
+      },
+      (err) => {
+        console.error('Could not copy text: ', err);
+      }
+    );
   };
 
   // Storage Stats Component
@@ -993,9 +1022,10 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
                                            [&_h1]:text-xl [&_h1]:font-semibold [&_h1]:mb-4 [&_h1]:text-gray-900
                                            [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:mb-3 [&_h2]:text-gray-900
                                            [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mb-2 [&_h3]:text-gray-900
-                                           [&_table]:border-collapse [&_table]:my-4 [&_table]:w-full [&_table]:min-w-[600px] [&_table]:text-sm [&_table]:border [&_table]:border-gray-200
+                                           [&_table]:border-collapse [&_table]:my-4 [&_table]:w-full [&_table]:min-w-[600px] [&_table]:text-sm [&_table]:bg-white [&_table]:rounded-lg [&_table]:overflow-hidden [&_table]:shadow-sm
                                            [&_th]:bg-gray-50 [&_th]:p-3 [&_th]:border [&_th]:border-gray-200 [&_th]:font-semibold [&_th]:text-left [&_th]:text-gray-900 [&_th]:whitespace-nowrap
-                                           [&_td]:p-3 [&_td]:border [&_td]:border-gray-200 [&_td]:align-top [&_td]:leading-relaxed [&_td]:text-gray-800 [&_td]:word-wrap-break-word
+                                           [&_td]:p-3 [&_td]:border [&_td]:border-gray-200 [&_td]:align-top [&_td]:leading-relaxed [&_td]:text-gray-800 [&_td]:break-words [&_td]:hyphens-auto
+                                           [&_tr:nth-child(even)]:bg-gray-50/50 [&_tr:hover]:bg-gray-100/50
                                            [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:my-2
                                            text-gray-800 leading-relaxed word-wrap-break-word overflow-wrap-break-word"
                                   dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
@@ -1089,12 +1119,13 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
         </DotBackground>
       </div>
 
-      {/* Input area fixed at bottom */}
-      <div className="border-t border-gray-200 bg-white p-4 md:px-8 pb-safe">
-        <div className="max-w-5xl mx-auto px-4 md:px-8">
+      {/* Input area sticky at bottom */}
+      <div className="sticky bottom-0 w-full bg-gradient-to-t from-white via-white/90 to-transparent pt-2 pb-4">
+        <div className="mx-auto max-w-3xl px-4 space-y-2">
+
           {/* File Preview Area */}
           {selectedFiles.length > 0 && (
-            <div className="mb-3 space-y-2">
+            <div className="space-y-2">
               <div className="text-xs text-gray-600 font-medium">
                 File terpilih ({selectedFiles.length}):
               </div>
@@ -1124,54 +1155,55 @@ const TipidterChatPage: React.FC<TipidterChatPageProps> = ({ onBack }) => {
             </div>
           )}
 
-          <div className="relative">
+          <div className="rounded-2xl shadow-md bg-white">
+            <div className="relative rounded-2xl bg-slate-100 p-2 sm:p-3">
             <Textarea
               ref={textareaRef}
-              rows={1}
+                rows={3}
               value={inputMessage}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
-              placeholder="Ketik pesan Anda atau upload file (PDF, TXT, gambar, maks 20MB)..."
-              className="resize-none pr-14 py-3 pl-10 max-h-[200px] rounded-2xl border border-gray-300 shadow-sm focus:border-gray-400 focus:ring-0 focus:outline-none overflow-y-auto bg-white"
+                placeholder="Ketik pesan Anda..."
+                className="w-full resize-none rounded-lg border-none bg-transparent p-3 pr-20 pb-12 text-sm placeholder:text-muted-foreground shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[80px]"
+                style={{ maxHeight: '50vh' }}
               disabled={isLoading}
-              data-chat-input="true"
             />
-
-            {/* File Upload Button */}
+              <div className="absolute bottom-3 right-3 flex items-center gap-2">
             <button
               type="button"
               onClick={handleOpenFileDialog}
               disabled={isLoading}
-              className="absolute left-2 bottom-3 p-2 rounded-lg text-gray-500 hover:text-orange-500 hover:bg-orange-50 transition-colors"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-200"
               aria-label="Upload file"
             >
-              <Paperclip className="w-5 h-5" />
+                  <Paperclip className="h-4 w-4" />
             </button>
-            
-            {/* Hidden file input */}
-            <input 
-              type="file" 
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              className="hidden"
-              multiple
-              accept={ACCEPTED_FILE_TYPES}
-            />
-            
             <button
               onClick={handleSendMessage}
               disabled={isLoading || (!inputMessage.trim() && selectedFiles.length === 0)}
-              className="absolute right-2 bottom-2.5 w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:opacity-50 flex items-center justify-center transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-sky-700 text-white shadow transition-colors hover:bg-sky-700/80 disabled:pointer-events-none disabled:opacity-50"
               aria-label="Kirim pesan"
             >
               {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Send className="w-4 h-4 text-white" />
+                    <Send className="h-4 w-4" />
               )}
             </button>
           </div>
-          <p className="text-xs text-gray-500 mt-2 text-center">
+            </div>
+          </div>
+          
+          <input 
+            type="file" 
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            className="hidden"
+            multiple
+            accept={ACCEPTED_FILE_TYPES}
+          />
+
+          <p className="text-center text-xs text-gray-500">
             TIPIDTER AI dapat memberikan informasi yang tidak akurat. Verifikasi fakta penting dengan dokumen resmi.
           </p>
         </div>

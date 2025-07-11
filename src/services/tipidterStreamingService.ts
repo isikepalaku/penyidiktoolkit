@@ -317,24 +317,44 @@ export const sendStreamingChatMessage = async (
       // Mode 1: File upload dengan JSON response
       console.log('📁 TIPIDTER: Using file upload mode (JSON response)');
       
+      // Log file details
+      console.log('📁 TIPIDTER: Uploading files:');
+      files.forEach((file, index) => {
+        console.log(`📄 File ${index + 1}: ${file.name} - ${(file.size / 1024 / 1024).toFixed(2)}MB - ${file.type}`);
+      });
+      
+      // Emit progress untuk file upload preparation
+      emitProgress({ status: 'preparing', percent: 10 });
+      
+      // Check if any file is large (> 5MB)
+      const hasLargeFile = files.some(file => file.size > 5 * 1024 * 1024);
+      if (hasLargeFile) {
+        console.log('📁 TIPIDTER: Large file detected, progress tracking enabled');
+      }
+      
       // Use runs-with-files endpoint
       requestUrl = `${API_BASE_URL}/v1/playground/agents/${AGENT_ID}/runs-with-files`;
       
       const formData = new FormData();
       
+      // Pastikan selalu ada pesan yang dikirim (atau default untuk file upload)
+      const messageToSend = message.trim() || (files.length > 0 ? "Tolong analisis file yang saya kirimkan." : "");
+      if (!messageToSend) {
+        throw new Error('Pesan tidak boleh kosong');
+      }
+      
       // Add required fields
-      formData.append('message', message.trim());
+      formData.append('message', messageToSend);
       formData.append('agent_id', AGENT_ID);
       formData.append('stream', 'false'); // JSON response for file upload
       formData.append('monitor', 'false');
       formData.append('session_id', currentSessionId || '');
       formData.append('user_id', currentUserId || '');
 
-      console.log('📁 TIPIDTER: Attaching files to FormData:');
-      for (const file of files) {
-        console.log(`📎 File: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB, ${file.type})`);
+      // Append files
+      files.forEach((file) => {
         formData.append('files', file);
-      }
+      });
 
       requestBody = formData;
       
@@ -415,6 +435,15 @@ export const sendStreamingChatMessage = async (
           statusText: response.statusText,
           error: errorText
         });
+        
+        if (response.status === 429) {
+          throw new Error('Terlalu banyak permintaan. Silakan tunggu beberapa saat sebelum mencoba lagi.');
+        }
+        
+        if (response.status === 413) {
+          throw new Error('File terlalu besar. Harap gunakan file dengan ukuran lebih kecil.');
+        }
+        
         throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
@@ -424,7 +453,7 @@ export const sendStreamingChatMessage = async (
         emitProgress({ status: 'processing', percent: 70 });
         
         const data = await parseResponse(response);
-        console.log('📁 TIPIDTER: File upload response:', data);
+        console.log('📁 TIPIDTER: File upload response (full data object):', JSON.stringify(data, null, 2));
         
         // Convert JSON response to streaming events for consistency
         const runStartedEvent: RunResponse = {
@@ -434,12 +463,18 @@ export const sendStreamingChatMessage = async (
           created_at: Math.floor(Date.now() / 1000)
         };
         
+        // Enhanced data mapping untuk citations
+        const extra_data = data.extra_data || data.references ? {
+          ...(data.extra_data || {}),
+          ...(data.references ? { references: data.references } : {})
+        } : undefined;
+
         const runResponseEvent: RunResponse = {
           event: RunEvent.RunResponse,
           content: data.content || data.message || 'No response received',
           session_id: data.session_id || currentSessionId,
           created_at: Math.floor(Date.now() / 1000),
-          extra_data: data.extra_data || undefined
+          extra_data: extra_data
         };
         
         const runCompletedEvent: RunResponse = {
@@ -447,7 +482,7 @@ export const sendStreamingChatMessage = async (
           content: data.content || data.message || 'No response received',
           session_id: data.session_id || currentSessionId,
           created_at: Math.floor(Date.now() / 1000),
-          extra_data: data.extra_data || undefined
+          extra_data: extra_data
         };
 
         // Emit events with delay for smooth UX
