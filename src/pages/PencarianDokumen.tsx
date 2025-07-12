@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, FileText, ArrowLeft, Filter, Calendar, Tag, ExternalLink, Eye, Download, AlertCircle, Loader2, Database, UploadCloud, Building } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AutosizeTextarea from '../components/AutosizeTextarea';
@@ -6,6 +6,19 @@ import { DotBackground } from '../components/ui/DotBackground';
 import { Button } from '../components/ui/button';
 import { searchLegalDocuments, paperlessService } from '../services/paperlessService';
 import { env } from '../config/env';
+
+function debounce<F extends (...args: any[]) => any>(func: F, waitFor: number) {
+  let timeout: NodeJS.Timeout;
+
+  return (...args: Parameters<F>): Promise<ReturnType<F>> =>
+    new Promise(resolve => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+
+      timeout = setTimeout(() => resolve(func(...args)), waitFor);
+    });
+}
 
 interface DocumentResult {
   id: string;
@@ -47,6 +60,9 @@ const PencarianDokumen = () => {
   const [searchResults, setSearchResults] = useState<DocumentResult[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+  const [autocompleteSuggestions, setAutocompleteSuggestions] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
   const [selectedFilters, setSelectedFilters] = useState({
     tagId: 'all',
     documentTypeId: 'all',
@@ -106,33 +122,63 @@ const PencarianDokumen = () => {
     loadPaperlessMetadata();
   }, []);
 
-  const handleSearch = async () => {
+  const fetchAutocompleteSuggestions = useCallback(
+    debounce(async (term: string) => {
+      if (term.length > 2) {
+        try {
+          const result = await paperlessService.autocomplete(term, 8);
+          setAutocompleteSuggestions(result);
+        } catch (error) {
+          console.error("Autocomplete fetch failed:", error);
+          setAutocompleteSuggestions([]);
+        }
+      } else {
+        setAutocompleteSuggestions([]);
+      }
+    }, 300),
+    []
+  );
+
+  const handleQueryChange = (value: string) => {
+    setQuery(value);
+    fetchAutocompleteSuggestions(value);
+  };
+
+  const handleSearch = async (loadMore = false) => {
     if (!query.trim()) return;
 
-    try {
-      // Clear previous results immediately
+    // If it's a new search, reset everything
+    if (!loadMore) {
       setSearchResults([]);
+      setCurrentPage(1);
+      setHasMore(false);
       setHasSearched(true);
+    }
+
+    try {
       setError(null);
       setIsSearching(true);
 
-      // Check Paperless service health first
-      console.log('🔍 Checking Paperless NGX service status...');
-      const healthCheck = await paperlessService.ping();
-      console.log('📊 Health check result:', healthCheck);
-      
-      if (healthCheck.status === 'error') {
-        throw new Error('Paperless NGX service tidak tersedia. Pastikan server berjalan di ' + (env.paperlessUrl || 'http://localhost:8000'));
+      // Check Paperless service health only on new search
+      if (!loadMore) {
+        console.log('🔍 Checking Paperless NGX service status...');
+        const healthCheck = await paperlessService.ping();
+        console.log('📊 Health check result:', healthCheck);
+        
+        if (healthCheck.status === 'error') {
+          throw new Error('Paperless NGX service tidak tersedia. Pastikan server berjalan di ' + (env.paperlessUrl || 'http://localhost:8000'));
+        }
       }
 
       // Search using Paperless NGX API
-      console.log('🔍 Searching documents with query:', query.trim());
+      const pageToFetch = loadMore ? currentPage + 1 : 1;
+      console.log(`🔍 Searching documents with query: "${query.trim()}", page: ${pageToFetch}`);
       console.log('📋 Applied filters:', selectedFilters);
       
       const paperlessResponse = await searchLegalDocuments(query.trim(), {
         tagId: selectedFilters.tagId,
         documentTypeId: selectedFilters.documentTypeId,
-        page: 1,
+        page: pageToFetch,
         page_size: 20
       });
 
@@ -143,37 +189,17 @@ const PencarianDokumen = () => {
       });
 
       // Convert Paperless documents to our DocumentResult format
-      const results: DocumentResult[] = paperlessResponse.results.map(paperlessDoc => 
+      const newResults: DocumentResult[] = paperlessResponse.results.map(paperlessDoc => 
         paperlessService.convertToDocumentResult(paperlessDoc)
       );
 
-      console.log('✅ Converted results:', results.length);
+      console.log('✅ Converted new results:', newResults.length);
       
-      // Debug first few results untuk melihat structure
-      if (results.length > 0) {
-        console.log('🔍 Sample result structure:', {
-          id: results[0].id,
-          title: results[0].title.substring(0, 30) + '...',
-          file_url: results[0].file_url,
-          thumbnail_url: results[0].thumbnail_url,
-          relevansi_score: results[0].relevansi_score,
-          debug: results[0]._debug
-        });
+      setSearchResults(prev => loadMore ? [...prev, ...newResults] : newResults);
+      setHasMore(!!paperlessResponse.next);
+      if (loadMore) {
+        setCurrentPage(pageToFetch);
       }
-
-      // Apply additional client-side filtering if needed
-      let filteredResults = results;
-      
-      setSearchResults(filteredResults);
-
-      // Log final results
-      console.log('🎯 Final search results:', {
-        query: query.trim(),
-        filters: selectedFilters,
-        totalFromAPI: paperlessResponse.count,
-        convertedResults: results.length,
-        finalResults: filteredResults.length
-      });
       
     } catch (error: any) {
       console.error('❌ Search error:', error);
@@ -432,7 +458,7 @@ const PencarianDokumen = () => {
                 <div className="relative">
                   <AutosizeTextarea
                     value={query}
-                    onChange={setQuery}
+                    onChange={handleQueryChange}
                     placeholder="Contoh: undang-undang tentang pidana, peraturan pemerintah keamanan data, keppres ekonomi digital..."
                     className="w-full p-4 pr-12 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm transition-all duration-200 bg-gray-50/50 focus:bg-white"
                     minRows={3}
@@ -440,6 +466,25 @@ const PencarianDokumen = () => {
                   />
                   <Search className="absolute right-4 top-4 w-5 h-5 text-gray-400" />
                 </div>
+                {autocompleteSuggestions.length > 0 && (
+                  <div className="relative">
+                    <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg mt-1 shadow-lg max-h-60 overflow-auto">
+                      {autocompleteSuggestions.map((suggestion, index) => (
+                        <li
+                          key={index}
+                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                          onClick={() => {
+                            setQuery(suggestion);
+                            setAutocompleteSuggestions([]);
+                            handleSearch(false);
+                          }}
+                        >
+                          {suggestion}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
 
               {/* Filters */}
@@ -501,7 +546,7 @@ const PencarianDokumen = () => {
                   Reset Filter
                 </Button>
                 <Button
-                  onClick={handleSearch}
+                  onClick={() => handleSearch(false)}
                   disabled={isSearching || !query.trim()}
                   className="flex items-center justify-center gap-2 px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
                 >
@@ -637,10 +682,15 @@ const PencarianDokumen = () => {
                         <div className="mt-4 flex flex-col sm:flex-row items-start gap-4">
                           <DocumentThumbnail docId={doc.id} />
                           <div className="flex-1 bg-gray-50/50 border border-gray-200/60 rounded-lg p-3 sm:p-4 self-stretch w-full">
-                            <h4 className="font-medium text-gray-900 mb-2">Ringkasan:</h4>
-                            <p className="text-sm text-gray-700 leading-relaxed break-words">
-                              {doc.ringkasan}
-                            </p>
+                            <h4 className="font-medium text-gray-900 mb-2">Ringkasan & Highlight:</h4>
+                            <div
+                              className="text-sm text-gray-700 leading-relaxed break-words prose prose-sm max-w-none"
+                              dangerouslySetInnerHTML={{
+                                __html: doc._debug?.searchHit?.highlights
+                                  ? paperlessService.cleanHighlights(doc._debug.searchHit.highlights)
+                                  : doc.ringkasan,
+                              }}
+                            />
                           </div>
                         </div>
 
@@ -690,7 +740,7 @@ const PencarianDokumen = () => {
                             <div className="mt-2 space-y-1">
                               <p><span className="font-medium">Document ID:</span> {doc._debug.documentId}</p>
                               <p><span className="font-medium">Score:</span> {doc.relevansi_score}%</p>
-                              <p><span className="font-medium">Has Highlights:</span> {doc._debug.hasHighlights ? 'Yes' : 'No'}</p>
+                              <p><span className="font-medium">Has Highlights:</span> {doc._debug.searchHit?.highlights ? 'Yes' : 'No'}</p>
                               {doc._debug.searchHit && (
                                 <p><span className="font-medium">API Score:</span> {doc._debug.searchHit.score}</p>
                               )}
@@ -702,6 +752,21 @@ const PencarianDokumen = () => {
                   </div>
                 ))}
               </div>
+
+              {/* Load More Button */}
+              {hasMore && !isSearching && (
+                <div className="text-center pt-6">
+                  <Button
+                    variant="outline"
+                    onClick={() => handleSearch(true)}
+                    disabled={isSearching}
+                    className="flex items-center justify-center gap-2 px-8 py-3 text-gray-700 border-gray-300 hover:bg-gray-50"
+                  >
+                    <Loader2 className="w-4 h-4" />
+                    Muat Lebih Banyak
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 

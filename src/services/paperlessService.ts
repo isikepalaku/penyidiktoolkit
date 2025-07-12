@@ -519,14 +519,14 @@ class PaperlessService {
   }
 
   // Clean highlights HTML dari Paperless API untuk display
-  private cleanHighlights(highlights: string): string {
+  public cleanHighlights(highlights: string): string {
     if (!highlights) return '';
     
-    // Remove HTML tags tapi keep content dan match indicators
+    // Convert match spans to <b> tags and remove other HTML tags
     let cleaned = highlights
-      .replace(/<span class="match">/g, '**') // Convert match spans to markdown bold
-      .replace(/<\/span>/g, '**')
-      .replace(/<[^>]*>/g, '') // Remove other HTML tags
+      .replace(/<span class="match">/g, '<b>')
+      .replace(/<\/span>/g, '</b>')
+      .replace(/<(?!\/?b\b)[^>]*>/g, '') // Remove all tags except <b> and </b>
       .replace(/\s+/g, ' ') // Normalize whitespace
       .trim();
     
