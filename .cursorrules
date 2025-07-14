@@ -2128,6 +2128,455 @@ const syncWithServer = async () => {
 
 # Scratchpad
 
+## Task: User File Management dengan S3 Contabo Implementation - COMPLETED ✅
+
+### Final Status: ALL MAJOR COMPONENTS IMPLEMENTED AND WORKING
+
+### Current Progress:
+- [X] Setup Contabo S3 Infrastructure
+- [X] Configure Environment Variables (.env dengan S3 credentials) 
+- [X] Create S3 Configuration Service (src/config/s3.ts)
+- [X] Create Database Schema dengan RLS Policies 
+- [X] Develop User File Management Service
+- [X] Create Enhanced File Upload Service
+- [X] Update Chat Services Integration
+- [X] Build File Manager UI Component
+- [X] **RESOLVE CRITICAL ISSUES**: Environment variables access fix, RLS infinite recursion fix, constraint validation fix
+
+### 18. Critical Issues Resolution - COMPLETED ✅
+
+**Task**: Menyelesaikan serangkaian masalah kritis yang mencegah sistem file management berfungsi dengan baik.
+
+#### Issues Resolved:
+
+**1. Environment Variables Access Error - FIXED ✅**
+- **Problem**: ZodError untuk `s3AccessKeyId` dan `s3SecretAccessKey` undefined
+- **Root Cause**: Aplikasi dikonfigurasi untuk membaca env vars dengan prefix `VITE_` tapi `src/config/env.ts` membaca tanpa prefix
+- **Solution**: Updated `src/config/env.ts` untuk correctly map `import.meta.env.VITE_S3_ACCESS_KEY_ID` etc.
+- **Result**: S3 credentials now properly accessible by application
+
+**2. Database 500 Error - Infinite Recursion in RLS - FIXED ✅**
+- **Problem**: Error 500 saat mengakses user_files table: "infinite recursion detected in policy for relation 'admins'"
+- **Root Cause**: RLS policy pada `admins` table menciptakan infinite loop:
+  ```sql
+  -- Policy yang bermasalah
+  "Admins can see other admins": (auth.uid() IN (SELECT user_id FROM admins))
+  ```
+- **Solution Applied**:
+  * Temporarily disable RLS pada `admins` table
+  * Create `check_admin_status()` function dengan `SECURITY DEFINER` untuk bypass RLS
+  * Update policies untuk menggunakan safe function tanpa recursion
+  * Re-enable RLS dengan policy yang aman: `auth.uid() = user_id`
+- **Migration Created**: `fix_rls_infinite_recursion` - Comprehensive RLS policy fix
+- **Result**: Database queries berhasil, no more 500 errors
+
+**3. File Upload Errors - S3 Key Generation - FIXED ✅**
+- **Problem**: Error `Cannot read properties of undefined (reading 'replace')` dalam `generateS3Key`
+- **Root Cause**: Mismatch category names dan placeholder replacement issues
+- **Solution**: Fixed category mapping dan proper placeholder replacement dalam `userFileManagementService.ts`
+- **Result**: File upload S3 key generation working properly
+
+**4. Database Constraint Error - FIXED ✅**
+- **Problem**: `new row violates check constraint "valid_folder_path"`
+- **Root Cause**: Constraint terlalu restrictive, tidak accept `'/'` sebagai root folder
+- **Solution**: Updated constraint untuk allow `'/'` while maintaining format validation
+- **Result**: Root folder uploads working correctly
+
+#### Final Implementation Status:
+
+**✅ Core Infrastructure**:
+- S3 Contabo integration fully working
+- Environment variables properly configured
+- Database schema dengan secure RLS policies
+- All constraints working correctly
+
+**✅ Services Layer**:
+- `userFileManagementService.ts` - Complete CRUD operations
+- `enhancedUploadService.ts` - Advanced upload dengan progress tracking
+- Chat service integration dengan file references
+
+**✅ Database Security**:
+- RLS policies properly isolate user data
+- Admin functions working without recursion
+- No infinite loops in security policies
+
+**✅ File Operations**:
+- Upload: Direct S3 upload dengan presigned URLs ✅
+- Download: Secure presigned download URLs ✅
+- Delete: Proper S3 cleanup dan database updates ✅
+- Share: Token-based sharing system ✅
+- Search: Advanced filtering dan pagination ✅
+
+**✅ Error Handling**:
+- Comprehensive error messages
+- Graceful fallbacks untuk network issues
+- User-friendly error display
+- Proper logging untuk debugging
+
+### Final Architecture:
+```
+Frontend (React/TypeScript)
+├── File Manager UI (src/pages/FileManager/)
+├── Enhanced Upload Service (presigned URLs)
+├── User File Management Service (CRUD)
+└── Chat Integration (file references)
+
+Backend (Supabase + S3)
+├── Database Tables (user_files, file_shares, quotas, sessions)
+├── RLS Policies (secure user isolation)
+├── S3 Contabo (direct upload/download)
+└── Admin Functions (user management)
+```
+
+### Production Ready Features:
+- **Security**: Row-level security dengan proper user isolation
+- **Performance**: Direct S3 upload/download, presigned URLs
+- **Scalability**: Quota management, session tracking
+- **Reliability**: Comprehensive error handling, retry logic
+- **User Experience**: Real-time progress, professional UI
+- **Analytics**: Download tracking, usage statistics
+- **Sharing**: Secure token-based file sharing
+- **Administration**: Admin controls untuk user management
+
+**TASK STATUS: COMPLETE - Ready for production deployment** 🎉
+
+### 16. Enhanced File Upload Service Implementation - COMPLETED ✅
+
+**Task**: Membuat Enhanced Upload Service yang mengintegrasikan dengan existing chat services, memberikan progress tracking real-time, menggunakan presigned URLs untuk direct S3 upload, dan comprehensive error handling.
+
+**Implementation**: `src/services/enhancedUploadService.ts` (789 lines)
+
+#### Features Implemented:
+
+**1. Advanced Upload Management**:
+- `uploadFiles()` - Multi-file upload dengan progress tracking
+- `uploadSingleFile()` - Single file upload wrapper
+- `uploadForChat()` - Specialized upload untuk chat context
+- `generatePresignedUrls()` - Generate presigned URLs untuk direct S3 upload
+- `uploadFileToS3()` - Direct S3 upload dengan XMLHttpRequest progress tracking
+
+**2. Session & Progress Tracking**:
+- `createUploadSession()` - Create database session untuk tracking
+- `updateUploadSession()` - Real-time session updates
+- `getUploadSession()` - Query upload session status
+- Real-time progress callbacks dengan speed dan ETA calculation
+- Progress events: preparing, uploading, processing, completed, failed, cancelled
+
+**3. Upload Control & Management**:
+- `cancelUpload()` - Cancel ongoing uploads dengan proper cleanup
+- AbortController integration untuk reliable cancellation
+- Upload session management dengan database persistence
+- Retry logic dan error recovery
+- Comprehensive error handling dengan user-friendly messages
+
+**4. Chat Integration Features**:
+- Chat context tracking (sessionId, agentType, messageId)
+- Automatic file categorization dan tagging
+- File metadata extraction dan thumbnail generation
+- Integration callbacks (onProgress, onFileComplete, onAllComplete, onError)
+
+**5. Performance & Reliability**:
+- Presigned URL workflow untuk better performance
+- Direct client-to-S3 upload (bypassing server)
+- XMLHttpRequest dengan detailed progress tracking
+- Speed calculation dan ETA estimation
+- Memory-efficient file handling
+
+#### Technical Implementation:
+
+**TypeScript Interfaces**:
+- `UploadProgress` - Comprehensive progress tracking
+- `UploadSession` - Database session management
+- `EnhancedUploadOptions` - Flexible upload configuration
+- `PresignedUploadData` - Presigned URL metadata
+
+**Advanced Features**:
+- Real-time speed calculation (bytes/second)
+- ETA estimation based on current speed
+- Multi-file upload dengan individual file tracking
+- Session persistence untuk recovery
+- Comprehensive error categorization
+
+**Integration Patterns**:
+- Event-driven architecture dengan callbacks
+- Backward compatibility dengan legacy progress API
+- Chat service integration pattern
+- Database transaction safety
+
+#### Configuration:
+- **Upload Mode**: Presigned URLs (default) atau direct upload
+- **Progress Tracking**: Real-time dengan speed dan ETA
+- **File Processing**: Thumbnail generation, metadata extraction
+- **Error Handling**: Comprehensive dengan retry logic
+- **Session Management**: Database-backed dengan cleanup
+
+### 17. Chat Services Integration Update - COMPLETED ✅
+
+**Task**: Mengintegrasikan Enhanced Upload Service dengan existing chat services untuk better file upload experience.
+
+**Implementation**: Updated `src/services/ahliHukumPidanaService.ts`
+
+#### Integration Features:
+
+**1. Enhanced File Upload Flow**:
+- Replaced raw FormData upload dengan Enhanced Upload Service
+- Presigned URL workflow untuk direct S3 upload
+- Real-time progress tracking dengan detailed information
+- File references instead of raw file data ke chat API
+
+**2. Progress Enhancement**:
+- `onEnhancedProgress()` - Advanced progress callbacks
+- Speed tracking (MB/s) dan ETA calculation
+- File-by-file completion tracking
+- Backward compatibility dengan existing progress API
+
+**3. Chat Context Integration**:
+- Automatic tagging dengan agent type ('ahli-hukum-pidana')
+- Chat session correlation untuk better organization
+- File metadata enhanced dengan chat context
+- Message correlation untuk audit trails
+
+**4. Error Handling Improvements**:
+- Comprehensive error categorization
+- User-friendly error messages
+- Upload failure recovery mechanisms
+- Error event emission untuk UI handling
+
+**5. API Integration Pattern**:
+- File references sent instead of raw files
+- Enhanced mode flag untuk backend processing
+- Synthetic streaming events untuk consistency
+- Enhanced metadata dalam extra_data
+
+#### Technical Enhancements:
+
+**Request Flow**:
+```typescript
+// OLD: Direct file upload dengan FormData
+formData.append('files', file);
+
+// NEW: Enhanced upload dengan file references
+const uploadResult = await enhancedUploadService.uploadFiles(files, userId, options);
+const fileReferences = uploadedFiles.map(file => ({
+  file_id: file.id,
+  s3_key: file.s3_key,
+  s3_url: file.s3_url,
+  // ... metadata
+}));
+formData.append('file_references', JSON.stringify(fileReferences));
+```
+
+**Progress Tracking**:
+```typescript
+onProgress: (progress: UploadProgress) => {
+  console.log(`📊 Upload Progress: ${progress.percent}% - ${progress.status}`, {
+    currentFile: progress.currentFile,
+    speed: `${(progress.speed / 1024 / 1024).toFixed(2)} MB/s`,
+    eta: `${Math.round(progress.eta)}s remaining`
+  });
+}
+```
+
+**Benefits**:
+- ✅ **Direct S3 Upload**: Files uploaded directly ke S3, reducing server load
+- ✅ **Real-time Progress**: Detailed progress dengan speed dan ETA
+- ✅ **Better Performance**: Presigned URLs eliminate server bottleneck
+- ✅ **Enhanced Metadata**: Rich file information dalam chat context
+- ✅ **Improved UX**: Better error handling dan user feedback
+- ✅ **Scalability**: Ready untuk handle large files dan concurrent uploads
+- ✅ **Backward Compatibility**: Legacy progress API tetap supported
+
+**Pattern untuk Other Services**:
+- Import Enhanced Upload Service dan types
+- Replace FormData file upload dengan enhancedUploadService.uploadFiles()
+- Add enhanced progress callbacks
+- Send file references instead of raw files
+- Maintain synthetic events untuk streaming consistency
+
+**Next Steps**:
+- Apply same pattern ke services lain (kuhpService, tipidkorService, dll)
+- Build File Manager UI Component
+- Implement file sharing system
+- Add thumbnail generation untuk images/videos
+
+---
+
+### 15. User File Management Service Implementation - COMPLETED ✅
+
+**Task**: Membuat comprehensive service untuk mengelola semua operasi file management dengan S3 Contabo integration.
+
+**Implementation**: `src/services/userFileManagementService.ts` (793 lines)
+
+#### Features Implemented:
+
+**1. Core File Operations**:
+- `uploadFile()` - Upload file ke S3 dengan metadata tracking dan database record
+- `generatePresignedUploadUrl()` - Generate presigned URL untuk direct S3 upload  
+- `generateDownloadUrl()` - Generate secure presigned download URL
+- `deleteFile()` - Delete file dari S3 dan database dengan storage quota update
+- `getFileById()` - Get file by ID dengan access control dan analytics tracking
+- `getUserFiles()` - List user files dengan advanced filtering dan pagination
+
+**2. Search & Filtering System**:
+- Query search pada filename dan description
+- Filter berdasarkan category (document, image, video, audio, other)
+- Filter berdasarkan folder_path, tags, access_level, file_type
+- Date range filtering (date_from, date_to)
+- Sorting options (created_at, updated_at, file_size, download_count)
+- Pagination dengan limit dan offset
+
+**3. Storage Quota Management**:
+- `getUserQuota()` - Get detailed user storage quota information
+- `checkQuota()` - Validate apakah user memiliki cukup quota untuk upload
+- `updateStorageUsage()` - Update storage usage menggunakan database function
+- `getStorageStats()` - Comprehensive storage statistics dengan formatting
+
+**4. Security & Validation**:
+- File validation (size, type, quota) sebelum upload
+- S3 key generation dengan UUID untuk uniqueness
+- Password hashing untuk protected files
+- Access control enforcement
+- File sanitization dan safe filename generation
+
+**5. Analytics & Tracking**:
+- Download count tracking
+- View count tracking
+- Last accessed timestamp
+- Access log recording
+- File processing status monitoring
+
+#### Technical Implementation:
+
+**TypeScript Interfaces**:
+- `UserFile` - Complete file metadata structure
+- `FileUploadOptions` - Upload configuration options
+- `FileSearchOptions` - Advanced search parameters
+- `StorageQuota` - User quota management
+- `FileShareOptions` - File sharing configuration
+
+**S3 Integration**:
+- Direct S3 upload dengan proper metadata
+- Presigned URL generation untuk security
+- ETag verification untuk file integrity
+- Proper error handling untuk S3 operations
+- S3 key structure: `users/{user_id}/{category}/{uuid}-{filename}`
+
+**Database Integration**:
+- Supabase integration dengan RLS compliance
+- Transaction-safe operations
+- Real-time storage quota updates
+- Comprehensive error handling
+- Optimized queries dengan proper indexing
+
+**Utility Functions**:
+- `getFileCategory()` - Auto-detect file category dari MIME type
+- `generateS3Key()` - Generate unique S3 object keys
+- `formatFileSize()` - Human-readable file size formatting
+- `sanitizeFilename()` - Safe filename sanitization
+- `hashPassword()` - Secure password hashing
+
+#### Configuration:
+- **Max File Size**: 50MB (configurable via env)
+- **Allowed Types**: PDF, Office docs, images, videos, audio, text files
+- **S3 Structure**: Organized folder structure per user dan category
+- **Security**: Row-level security dengan user isolation
+- **Performance**: Optimized queries dengan proper indexes
+
+#### Dependencies Added:
+- `uuid` - For generating unique identifiers
+- `@types/uuid` - TypeScript types for uuid
+
+**Benefits**:
+- ✅ **Complete File Management**: All CRUD operations dengan comprehensive feature set
+- ✅ **S3 Integration**: Direct S3 operations dengan presigned URLs untuk security
+- ✅ **Quota Management**: Flexible quota system dengan real-time tracking
+- ✅ **Search & Filter**: Advanced search capabilities dengan multiple criteria
+- ✅ **Security**: Proper access control dan file validation
+- ✅ **Analytics**: Comprehensive tracking dan reporting
+- ✅ **Performance**: Optimized database queries dan efficient S3 operations
+- ✅ **Scalability**: Ready untuk handle large file volumes
+- ✅ **Type Safety**: Full TypeScript support dengan comprehensive interfaces
+
+**Next Steps**:
+- Create Enhanced File Upload Service dengan progress tracking
+- Build File Manager UI Component
+- Implement file sharing system
+- Add thumbnail generation untuk images/videos
+
+---
+
+### 14. Database Schema Implementation - COMPLETED ✅
+
+**Task**: Membuat database schema lengkap untuk sistem file management dengan S3 integration menggunakan MCP Supabase tools.
+
+**Implementation Details**:
+
+#### Tables Created:
+1. **user_files** - Primary table untuk metadata file
+   - File information (original_filename, stored_filename, file_path, file_size, file_type)
+   - S3 integration (s3_bucket, s3_key, s3_url, etag)
+   - Classification (category, folder_path, tags, description)
+   - Processing status (upload_status, processing_status, thumbnail_url)
+   - Access control (is_public, access_level, password_protected)
+   - Sharing (share_token, share_expires_at, download_count, view_count)
+   - Metadata & analytics (metadata, processing_metadata, access_log)
+
+2. **file_shares** - Sistem sharing file antar user
+   - Sharing configuration (share_type, share_token, share_password_hash)
+   - Access control (permissions, max_downloads, download_count)
+   - Expiry & limits (expires_at, is_active)
+   - Tracking (access_log, last_accessed_at)
+
+3. **user_storage_quotas** - Management quota per user
+   - Quota limits (total_quota, used_storage, available_storage)
+   - File count limits (max_files, current_file_count)
+   - Quota tiers (quota_type: basic, premium, enterprise, unlimited)
+   - Bandwidth limits (monthly_bandwidth_limit, current_monthly_bandwidth)
+   - Warning & enforcement (quota_warning_sent, quota_exceeded, auto_cleanup_enabled)
+
+4. **upload_sessions** - Track upload sessions dengan progress monitoring
+   - Upload information (total_files, completed_files, failed_files, total_size, uploaded_size)
+   - Session status (status, progress_percentage)
+   - Error handling (error_message, retry_count, max_retries)
+   - Metadata (upload_metadata, client_info)
+
+#### Security Implementation:
+- **Row Level Security (RLS)** enabled pada semua tabel
+- **User Isolation**: Users hanya bisa akses file mereka sendiri
+- **File Sharing**: Proper access control untuk shared files
+- **Admin Access**: Admin dapat view semua files untuk moderation
+- **Anonymous Revoked**: Tidak ada akses untuk anonymous users
+- **Authenticated Granted**: Proper permissions untuk authenticated users
+
+#### Database Functions:
+1. **create_user_quota()** - Auto-create quota saat user register
+2. **update_storage_usage()** - Update usage dan enforce quota limits
+3. **generate_share_token()** - Generate secure sharing tokens
+
+#### Indexes Created:
+- Performance indexes untuk user_id, category, upload_status, created_at
+- Search indexes untuk folder_path, tags, share_token
+- Compound indexes untuk optimal query performance
+
+**Database Project**: n8n (Supabase) - Project ID: cckuzygknaeqsnmnzfku
+
+**Benefits**:
+- ✅ **Complete Schema**: All tables untuk comprehensive file management
+- ✅ **S3 Integration**: Full metadata tracking untuk S3 objects
+- ✅ **Security**: RLS policies ensure data isolation
+- ✅ **Quota Management**: Flexible quota system dengan multiple tiers
+- ✅ **File Sharing**: Secure sharing dengan access control
+- ✅ **Progress Tracking**: Upload sessions untuk real-time monitoring
+- ✅ **Scalability**: Optimized indexes untuk performance
+- ✅ **Admin Control**: Admin functions untuk user management
+
+**Next Steps**:
+- Implement User File Management Service (Core CRUD operations)
+- Create Enhanced Upload Service dengan S3 presigned URLs
+- Build File Manager UI Component
+
+---
+
 ## Task: Streaming Events Fix untuk KUHAPChatPage.tsx - COMPLETED ✅
 
 ### Deskripsi:
@@ -2607,5 +3056,144 @@ VITE_PAPERLESS_API_TOKEN=your-api-token-here
 - **Follow working patterns**: Reference KUHPChatPage structure untuk consistency
 - **Test desktop scrolling**: Always verify no unwanted scroll di desktop view
 - **Clean unused imports**: Remove unused imports untuk prevent linter errors
+
+## S3 Object Storage & File Management Implementation Lessons
+
+### Environment Variables Configuration for Vite Applications
+
+- **Critical Issue**: ZodError untuk S3 credentials undefined karena mismatch dalam environment variable access
+- **Root Cause**: Vite applications require `VITE_` prefix untuk client-side environment variables, tapi `src/config/env.ts` membaca tanpa prefix
+- **Correct Implementation**:
+  ```typescript
+  // ✅ CORRECT - Vite environment variable access
+  const envVars = {
+    s3AccessKeyId: import.meta.env.VITE_S3_ACCESS_KEY_ID,
+    s3SecretAccessKey: import.meta.env.VITE_S3_SECRET_ACCESS_KEY,
+    s3Endpoint: import.meta.env.VITE_S3_ENDPOINT,
+    // ... other vars
+  };
+  
+  // ❌ WRONG - Direct access without VITE_ prefix
+  const envVars = {
+    s3AccessKeyId: import.meta.env.S3_ACCESS_KEY_ID, // undefined!
+    s3SecretAccessKey: import.meta.env.S3_SECRET_ACCESS_KEY, // undefined!
+  };
+  ```
+- **Environment File Requirements**:
+  * File `.env` harus berisi variables dengan `VITE_` prefix
+  * Contoh: `VITE_S3_ACCESS_KEY_ID=your-key-here`
+  * Variables tanpa `VITE_` prefix tidak accessible di client-side Vite apps
+
+### Supabase RLS Infinite Recursion Prevention
+
+- **Critical Issue**: Error 500 "infinite recursion detected in policy for relation 'admins'"
+- **Root Cause**: RLS policy yang mengecek tabel yang sama dengan policy itu sendiri:
+  ```sql
+  -- ❌ PROBLEMATIC POLICY - Causes infinite recursion
+  CREATE POLICY "Admins can see other admins" ON admins
+    FOR SELECT USING (auth.uid() IN (SELECT user_id FROM admins));
+  ```
+- **Solution Pattern**:
+  ```sql
+  -- ✅ SAFE APPROACH - Use SECURITY DEFINER function
+  CREATE OR REPLACE FUNCTION check_admin_status(user_uuid UUID DEFAULT auth.uid())
+  RETURNS BOOLEAN AS $$
+  BEGIN
+      RETURN EXISTS (SELECT 1 FROM admins WHERE user_id = user_uuid);
+  END;
+  $$ LANGUAGE plpgsql SECURITY DEFINER;
+  
+  -- ✅ SAFE POLICY - Uses function that bypasses RLS
+  CREATE POLICY "Admins can view all files" ON user_files
+    FOR SELECT USING (check_admin_status(auth.uid()));
+  
+  -- ✅ SIMPLE SELF-ACCESS POLICY - No recursion risk
+  CREATE POLICY "Admin self access" ON admins
+    FOR ALL USING (auth.uid() = user_id);
+  ```
+- **Prevention Guidelines**:
+  * Never create policies yang query the same table they're protecting
+  * Use `SECURITY DEFINER` functions untuk admin checks
+  * Keep admin policies simple (self-access only)
+  * Test policies thoroughly dalam development environment
+
+### S3 Key Generation & Category Mapping
+
+- **Issue**: Error `Cannot read properties of undefined (reading 'replace')` dalam S3 key generation
+- **Root Cause**: Mismatch antara application categories dan S3 folder structure:
+  ```typescript
+  // ❌ WRONG - Category mismatch
+  Application categories: ['document', 'image', 'video', 'audio', 'other']
+  S3 folders: ['documents', 'images', 'analysis', 'shared', 'temp']
+  ```
+- **Correct Implementation**:
+  ```typescript
+  // ✅ CORRECT - Proper category mapping
+  const generateS3Key = (userId: string, category: string, filename: string): string => {
+    const categoryFolderMap: Record<string, string> = {
+      'document': 'documents',
+      'image': 'images', 
+      'video': 'videos',
+      'audio': 'audio',
+      'other': 'other'
+    };
+    
+    const folder = categoryFolderMap[category] || 'other';
+    const uuid = uuidv4();
+    const sanitizedFilename = sanitizeFilename(filename);
+    
+    return `users/${userId}/${folder}/${uuid}-${sanitizedFilename}`;
+  };
+  ```
+- **Best Practices**:
+  * Always validate category mapping exists
+  * Use fallback values untuk unknown categories
+  * Sanitize filenames untuk S3 compatibility
+  * Include UUID dalam key untuk uniqueness
+
+### Database Constraint Validation
+
+- **Issue**: `new row violates check constraint "valid_folder_path"`
+- **Root Cause**: Overly restrictive regex constraint yang tidak allow root folder '/':
+  ```sql
+  -- ❌ TOO RESTRICTIVE - Doesn't allow root folder
+  CHECK (folder_path ~ '^/.*/$')  -- Requires at least one char between slashes
+  ```
+- **Correct Implementation**:
+  ```sql
+  -- ✅ PROPER CONSTRAINT - Allows root folder
+  CHECK (folder_path ~ '^/.*$' AND folder_path LIKE '%/')
+  ```
+- **Constraint Design Guidelines**:
+  * Test constraints dengan all valid edge cases (root folder, nested paths)
+  * Use logical AND untuk multiple validation criteria
+  * Provide clear error messages untuk constraint violations
+  * Document expected formats dalam table comments
+
+### File Management Production Deployment Checklist
+
+- **Infrastructure Requirements**:
+  * S3 bucket properly configured dengan CORS settings
+  * Database tables dengan proper indexes dan RLS policies
+  * Environment variables configured untuk all environments
+  * CDN setup untuk better file delivery performance
+
+- **Security Validation**:
+  * RLS policies tested untuk user isolation
+  * Admin functions working tanpa security vulnerabilities
+  * File access controls properly enforced
+  * Presigned URLs dengan appropriate expiry times
+
+- **Performance Optimization**:
+  * Direct S3 upload/download (bypass server)
+  * Proper file size limits dan validation
+  * Quota management untuk prevent abuse
+  * Efficient database queries dengan pagination
+
+- **Error Handling & Monitoring**:
+  * Comprehensive error messages untuk user guidance
+  * Logging untuk debugging production issues
+  * Graceful fallbacks untuk network failures
+  * User-friendly error displays
 
 ## Lessons

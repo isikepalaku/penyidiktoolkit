@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Users, FileText, PanelLeft, PanelRightClose, Search, MessageSquare, Home, Scale, ShieldAlert, Wrench, Shield } from 'lucide-react';
+import { Users, FileText, PanelLeft, PanelRightClose, Search, MessageSquare, Home, Scale, ShieldAlert, Wrench, Shield, FolderKanban } from 'lucide-react';
 import logo from '../static/logoreserse.png';
 import ProfileMenu from './ProfileMenu';
 import { useAuth } from '../auth/AuthContext';
@@ -90,6 +90,11 @@ const Sidebar = () => {
         path: '/pencarian-dokumen',
         icon: <FileText className="w-5 h-5" />,
         text: 'Cari Peraturan'
+      },
+      {
+        path: '/file-manager',
+        icon: <FolderKanban className="w-5 h-5" />,
+        text: 'File Manager'
       },
       {
         path: '/piket-spkt',

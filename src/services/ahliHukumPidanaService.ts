@@ -1,10 +1,10 @@
 /**
  * Ahli Hukum Pidana Streaming Service
  * Service untuk menangani streaming chat AI untuk ahli hukum pidana dengan support file upload
- * Menggunakan AGNO streaming API dengan real-time response dan mixed mode untuk file upload
+ * Menggunakan AGNO streaming API dengan real-time response dan Enhanced Upload Service
  */
 
-import { env } from '@/config/env';
+import { env, formatFileSize } from '@/config/env';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../supabaseClient';
 import {
@@ -12,6 +12,12 @@ import {
   RunResponse,
   PlaygroundChatMessage
 } from '@/types/playground';
+import { 
+  enhancedUploadService, 
+  UploadProgress, 
+  EnhancedUploadOptions 
+} from './enhancedUploadService';
+import { UserFile, UserFileManagementService } from './userFileManagementService';
 
 const API_KEY = import.meta.env.VITE_API_KEY;
 
@@ -24,11 +30,18 @@ let currentSessionId: string | null = null;
 // Store user ID yang persisten
 let currentUserId: string | null = null;
 
+// Create instance of UserFileManagementService
+const userFileManagementService = new UserFileManagementService();
+
 // Event emitter untuk streaming events
 type StreamEventCallback = (event: RunResponse) => void;
 let streamEventCallbacks: StreamEventCallback[] = [];
 
-// Progress tracking untuk file upload
+// Enhanced progress tracking untuk file upload
+type EnhancedProgressCallback = (progress: UploadProgress) => void;
+let enhancedProgressCallbacks: EnhancedProgressCallback[] = [];
+
+// Legacy progress callback untuk backward compatibility
 type ProgressCallback = (progress: { status: string; percent: number }) => void;
 let progressCallbacks: ProgressCallback[] = [];
 
@@ -41,6 +54,13 @@ export const onStreamEvent = (callback: StreamEventCallback) => {
   };
 };
 
+export const onEnhancedProgress = (callback: EnhancedProgressCallback) => {
+  enhancedProgressCallbacks.push(callback);
+  return () => {
+    enhancedProgressCallbacks = enhancedProgressCallbacks.filter(cb => cb !== callback);
+  };
+};
+
 export const onProgress = (callback: ProgressCallback) => {
   progressCallbacks.push(callback);
   return () => {
@@ -50,13 +70,39 @@ export const onProgress = (callback: ProgressCallback) => {
 
 const emitStreamEvent = (event: RunResponse) => {
   streamEventCallbacks.forEach(callback => {
-    callback(event);
+    try {
+      callback(event);
+    } catch (error) {
+      console.error('Error in stream event callback:', error);
+    }
+  });
+};
+
+const emitEnhancedProgress = (progress: UploadProgress) => {
+  enhancedProgressCallbacks.forEach(callback => {
+    try {
+      callback(progress);
+    } catch (error) {
+      console.error('Error in enhanced progress callback:', error);
+    }
   });
 };
 
 const emitProgress = (progress: { status: string; percent: number }) => {
   progressCallbacks.forEach(callback => {
-    callback(progress);
+    try {
+      callback(progress);
+    } catch (error) {
+      console.error('Error in progress callback:', error);
+    }
+  });
+  
+  // Also emit to enhanced progress for backward compatibility
+  emitEnhancedProgress({
+    status: progress.status as any,
+    percent: progress.percent,
+    uploadedBytes: 0,
+    totalBytes: 100
   });
 };
 
@@ -289,53 +335,194 @@ export const sendStreamingChatMessage = async (
     }
     
     const hasFiles = files && files.length > 0;
-    console.log('Starting request with files:', hasFiles ? files.length : 0);
+    console.log('🚀 Starting enhanced chat request:', { 
+      messageLength: message.length,
+      fileCount: hasFiles ? files!.length : 0,
+      sessionId: currentSessionId,
+      userId: currentUserId
+    });
     
-    // Log file details if any
+    let uploadedFiles: UserFile[] = [];
+    
+    // Enhanced File Upload Process
     if (hasFiles) {
-      console.log('Uploading files:');
+      console.log('📁 Processing files with Enhanced Upload Service:');
       files!.forEach((file, index) => {
-        console.log(`📄 File ${index + 1}: ${file.name} - ${(file.size / 1024 / 1024).toFixed(2)}MB - ${file.type}`);
+        console.log(`File ${index + 1}: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB, ${file.type})`);
       });
       
-      // Emit progress untuk file upload preparation
-      emitProgress({ status: 'preparing', percent: 10 });
+      // Setup enhanced upload options
+      const uploadOptions: EnhancedUploadOptions = {
+        category: 'document',
+        tags: ['chat-upload', 'ahli-hukum-pidana'],
+        description: `Uploaded via Ahli Hukum Pidana chat - ${new Date().toISOString()}`,
+        usePresignedUrl: true,
+        generateThumbnails: true,
+        extractMetadata: true,
+        chatContext: {
+          sessionId: currentSessionId || 'new-session',
+          agentType: 'ahli-hukum-pidana',
+          messageId: uuidv4()
+        },
+        onProgress: (progress: UploadProgress) => {
+          // Emit enhanced progress
+          emitEnhancedProgress(progress);
+          
+          // Emit legacy progress for backward compatibility
+          emitProgress({
+            status: progress.status,
+            percent: progress.percent
+          });
+          
+          console.log(`📊 Upload Progress: ${progress.percent}% - ${progress.status}`, {
+            currentFile: progress.currentFile,
+            fileIndex: progress.fileIndex,
+            totalFiles: progress.totalFiles,
+            speed: progress.speed ? `${(progress.speed / 1024 / 1024).toFixed(2)} MB/s` : undefined,
+            eta: progress.eta ? `${Math.round(progress.eta)}s remaining` : undefined
+          });
+        },
+        onFileComplete: (file: UserFile, index: number) => {
+          console.log(`✅ File ${index + 1} uploaded successfully:`, {
+            filename: file.original_filename,
+            fileId: file.id,
+            s3Url: file.s3_url
+          });
+        },
+        onAllComplete: (files: UserFile[]) => {
+          console.log(`🎉 All ${files.length} files uploaded successfully`);
+        },
+        onError: (error: string, fileIndex?: number) => {
+          console.error(`❌ Upload error ${fileIndex !== undefined ? `for file ${fileIndex + 1}` : ''}:`, error);
+        }
+      };
       
-      // Check if any file is large (> 5MB)
-      const hasLargeFile = files!.some(file => file.size > 5 * 1024 * 1024);
-      if (hasLargeFile) {
-        console.log('Large file detected, progress tracking enabled');
+      // Upload files using Enhanced Upload Service
+      const uploadResult = await enhancedUploadService.uploadFiles(
+        files!,
+        currentUserId,
+        uploadOptions
+      );
+      
+      if (!uploadResult.success) {
+        throw new Error(`File upload failed: ${uploadResult.error}`);
       }
+      
+      if (!uploadResult.files || uploadResult.files.length === 0) {
+        throw new Error('No files were uploaded successfully');
+      }
+      
+      uploadedFiles = uploadResult.files;
+      
+      console.log('📤 Enhanced upload completed:', {
+        successful: uploadedFiles.length,
+        failed: uploadResult.failedFiles?.length || 0,
+        sessionToken: uploadResult.session?.session_token
+      });
+      
+      // Emit processing status
+      emitProgress({ status: 'processing', percent: 90 });
     }
     
-    const formData = new FormData();
-    
-    // Pastikan selalu ada pesan yang dikirim (atau default untuk file upload)
+    // Prepare chat message
     const messageToSend = message.trim() || (hasFiles ? "Tolong analisis file yang saya kirimkan." : "");
     if (!messageToSend) {
       throw new Error('Pesan tidak boleh kosong');
     }
     
-    // Append FormData parameters
+    const formData = new FormData();
+    
+    // Append basic parameters
     formData.append('message', messageToSend);
     formData.append('agent_id', AGENT_ID);
     formData.append('session_id', currentSessionId || '');
     formData.append('user_id', currentUserId);
     formData.append('monitor', 'false');
     
-    // Append files if any
-    if (hasFiles) {
-      files!.forEach((file) => {
-        formData.append(`files`, file);
+    // Handle file upload based on mode
+    if (uploadedFiles.length > 0) {
+      // Optimized S3-to-API approach: Download and send files efficiently
+      console.log('📁 Converting S3 files for API endpoint compatibility');
+      
+      // Use Promise.all for parallel downloads (faster)
+      const filePromises = uploadedFiles.map(async (uploadedFile) => {
+        try {
+          console.log(`⬇️ Generating fresh download URL for ${uploadedFile.original_filename}...`);
+          
+          // Generate fresh presigned URL instead of using stored URL
+          if (!currentUserId) {
+            throw new Error('User ID not available for download URL generation');
+          }
+          
+          const downloadResult = await userFileManagementService.generateDownloadUrl(
+            uploadedFile.id, 
+            currentUserId
+          );
+          
+          if (!downloadResult.success || !downloadResult.downloadUrl) {
+            throw new Error(`Failed to generate download URL: ${downloadResult.error}`);
+          }
+          
+          console.log(`🔗 Fresh presigned URL generated for ${uploadedFile.original_filename}`);
+          
+          // Download file with fresh presigned URL
+          const fileResponse = await fetch(downloadResult.downloadUrl, {
+            method: 'GET',
+            signal: AbortSignal.timeout(30000) // 30 second timeout per file
+          });
+          
+          if (!fileResponse.ok) {
+            throw new Error(`S3 download failed: ${fileResponse.status} ${fileResponse.statusText}`);
+          }
+          
+          const fileBlob = await fileResponse.blob();
+          
+          // Verify file size matches
+          if (fileBlob.size !== uploadedFile.file_size) {
+            console.warn(`⚠️ Size mismatch for ${uploadedFile.original_filename}: expected ${uploadedFile.file_size}, got ${fileBlob.size}`);
+          }
+          
+          // Create File object with correct metadata
+          const file = new File([fileBlob], uploadedFile.original_filename, {
+            type: uploadedFile.file_type,
+            lastModified: new Date(uploadedFile.created_at).getTime()
+          });
+          
+          console.log(`✅ Downloaded ${uploadedFile.original_filename}: ${formatFileSize(fileBlob.size)}`);
+          return file;
+          
+        } catch (error) {
+          console.error(`❌ Failed to download ${uploadedFile.original_filename}:`, error);
+          throw new Error(`File download failed: ${uploadedFile.original_filename} - ${error}`);
+        }
       });
       
-      // File upload mode: JSON response  
+      // Wait for all downloads to complete
+      emitProgress({ status: 'processing', percent: 85 });
+      const downloadedFiles = await Promise.all(filePromises);
+      emitProgress({ status: 'processing', percent: 90 });
+      
+      // Append all files to FormData
+      downloadedFiles.forEach((file, index) => {
+        formData.append('files', file);
+        console.log(`📎 File ${index + 1} ready for API: ${file.name} (${formatFileSize(file.size)})`);
+      });
+      
+      // Set parameters matching successful Swagger call
+      formData.append('upload_mode', 'traditional');
+      formData.append('file_references', ''); // Backend expects this field
       formData.append('stream', 'false');
       
-      emitProgress({ status: 'uploading', percent: 30 });
+      console.log('📋 Ready to send to runs-with-files endpoint:', {
+        fileCount: downloadedFiles.length,
+        totalSize: downloadedFiles.reduce((sum, file) => sum + file.size, 0),
+        endpoint: 'runs-with-files'
+      });
     } else {
       // Chat mode: streaming response
       formData.append('stream', 'true');
+      
+      console.log('💬 Text-only chat mode - using streaming endpoint');
     }
 
     // Set headers
@@ -343,242 +530,230 @@ export const sendStreamingChatMessage = async (
       'X-User-ID': currentUserId,
     };
     
-    if (hasFiles) {
+    if (uploadedFiles.length > 0) {
       headers['Accept'] = 'application/json';
+      headers['X-Upload-Mode'] = 'enhanced';
     } else {
       headers['Accept'] = 'text/event-stream';
       headers['Cache-Control'] = 'no-cache';
     }
-    
-    // Menambahkan informasi autentikasi
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.access_token) {
-      headers['Authorization'] = `Bearer ${session.access_token}`;
-    }
-    
+
+    // Add API key for authenticated requests
     if (API_KEY) {
       headers['X-API-Key'] = API_KEY;
-      console.log('Using API key for authentication');
-    } else {
-      console.warn('No API key provided, request may fail');
     }
 
-    // Use appropriate endpoint
-    const endpoint = hasFiles ? 'runs-with-files' : 'runs';
-    const url = `${API_BASE_URL}/v1/playground/agents/${AGENT_ID}/${endpoint}`;
-    
-    console.log('Sending request to:', url);
-    
-    // Debug request info
-    console.log('Request summary:', {
-      message_length: messageToSend.length,
-      file_count: hasFiles ? files!.length : 0,
-      session_id: currentSessionId || '[EMPTY]',
-      user_id: currentUserId,
-      is_authenticated: currentUserId.startsWith('anon_') ? false : true,
-      mode: hasFiles ? 'file_upload_json' : 'chat_streaming'
+    // Determine endpoint based on upload mode
+    const endpoint = uploadedFiles.length > 0 
+      ? `${API_BASE_URL}/v1/playground/agents/ahli-hukum-pidana/runs-with-files`
+      : `${API_BASE_URL}/v1/playground/agents/ahli-hukum-pidana/runs`;
+
+    console.log('🌐 Making API request:', {
+      url: endpoint,
+      hasFiles: uploadedFiles.length > 0,
+      streamMode: uploadedFiles.length === 0,
+      enhancedMode: uploadedFiles.length > 0
     });
 
-    // Setup AbortController untuk timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      controller.abort();
-    }, FETCH_TIMEOUT);
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+      body: formData,
+      signal: AbortSignal.timeout(FETCH_TIMEOUT)
+    });
 
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers,
-        body: formData,
-        signal: controller.signal
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API request failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    // Handle response based on upload mode
+    if (uploadedFiles.length > 0) {
+      // Enhanced upload mode: Handle JSON response
+      emitProgress({ status: 'processing', percent: 95 });
+      
+      // Use the same parseResponse function as kuhapService for consistency
+      const data = await parseResponse(response);
+      console.log('📨 Enhanced upload response received:', {
+        hasContent: !!data.content,
+        contentLength: data.content?.length || 0,
+        hasExtraData: !!data.extra_data,
+        hasReferences: !!(data.references || data.extra_data?.references),
+        referencesCount: (data.references || data.extra_data?.references)?.length || 0,
+        sessionId: data.session_id
       });
 
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response:', response.status, errorText);
-        
-        if (response.status === 429) {
-          throw new Error('Terlalu banyak permintaan. Silakan tunggu beberapa saat sebelum mencoba lagi.');
-        }
-        
-        if (response.status === 413) {
-          throw new Error('File terlalu besar. Harap gunakan file dengan ukuran lebih kecil.');
-        }
-        
-        throw new Error(`Request failed: ${response.status} ${response.statusText}. ${errorText}`);
+      // Update session ID if provided
+      if (data.session_id) {
+        currentSessionId = data.session_id;
       }
 
-      if (hasFiles) {
-        // Handle JSON response for file uploads
-        emitProgress({ status: 'processing', percent: 70 });
-        
-        const data = await parseResponse(response);
-        console.log('File upload response:', data);
-        
-        // Convert JSON response to streaming events for consistency
-        const runStartedEvent: RunResponse = {
-          event: RunEvent.RunStarted,
-          content: '',
-          session_id: data.session_id || currentSessionId,
-          created_at: Math.floor(Date.now() / 1000)
-        };
-        
-        const runResponseEvent: RunResponse = {
-          event: RunEvent.RunResponse,
-          content: data.content || data.message || 'No response received',
-          session_id: data.session_id || currentSessionId,
-          created_at: Math.floor(Date.now() / 1000)
-        };
-        
-        const runCompletedEvent: RunResponse = {
-          event: RunEvent.RunCompleted,
-          content: data.content || data.message || 'No response received',
-          session_id: data.session_id || currentSessionId,
-          created_at: Math.floor(Date.now() / 1000)
-        };
+      // Create synthetic streaming events for consistency
+      const events: RunResponse[] = [];
 
-        // Emit events with delay for smooth UX
-        console.log('🔄 AHLI_HUKUM_PIDANA: About to emit synthetic events for file upload');
-        console.log('🔄 onEvent callback provided:', typeof onEvent);
-        
-        setTimeout(() => {
-          console.log('📤 AHLI_HUKUM_PIDANA: Emitting RunStarted event');
-          emitStreamEvent(runStartedEvent);
-          if (onEvent) {
-            console.log('📤 Calling onEvent with RunStarted');
-            onEvent(runStartedEvent);
-          }
-        }, 100);
-        
-        setTimeout(() => {
-          console.log('📤 AHLI_HUKUM_PIDANA: Emitting RunResponse event with content:', runResponseEvent.content?.substring(0, 50) + '...');
-          emitStreamEvent(runResponseEvent);
-          if (onEvent) {
-            console.log('📤 Calling onEvent with RunResponse');
-            onEvent(runResponseEvent);
-          }
-        }, 200);
-        
-        setTimeout(() => {
-          console.log('📤 AHLI_HUKUM_PIDANA: Emitting RunCompleted event');
-          emitStreamEvent(runCompletedEvent);
-          if (onEvent) {
-            console.log('📤 Calling onEvent with RunCompleted');
-            onEvent(runCompletedEvent);
-          }
-          emitProgress({ status: 'completed', percent: 100 });
-        }, 300);
+      // RunStarted event
+      events.push({
+        event: RunEvent.RunStarted,
+        session_id: data.session_id || currentSessionId!,
+        created_at: Math.floor(Date.now() / 1000)
+      });
 
-        // Update session ID if provided
-        if (data.session_id && data.session_id !== currentSessionId) {
-          currentSessionId = data.session_id;
+      // Preserve extra_data (including citations) from backend response
+      const extra_data = data.extra_data || data.references ? {
+        ...(data.extra_data || {}),
+        ...(data.references ? { references: data.references } : {}),
+        enhanced_upload: {
+          file_count: uploadedFiles.length,
+          uploaded_files: uploadedFiles.map(f => ({
+            id: f.id,
+            filename: f.original_filename,
+            size: f.file_size,
+            type: f.file_type
+          }))
         }
+      } : undefined;
 
-        return {
-          success: true,
-          sessionId: currentSessionId || undefined
-        };
-        
-      } else {
-        // Handle streaming response for chat
-        if (!response.body) {
-          throw new Error('Response body is null - streaming not supported');
+      // Use parsed content from parseResponse function
+      const responseContent = data.content || data.message || 'No response received';
+
+      console.log('🔍 AHLI_HUKUM_PIDANA: Content parsing result:', {
+        contentLength: responseContent?.length || 0,
+        hasExtraData: !!extra_data,
+        citationsCount: extra_data?.references?.length || 0
+      });
+
+      if (!responseContent || responseContent === 'No response received') {
+        console.warn('⚠️ No content found in response, available fields:', Object.keys(data));
+      }
+
+      const runResponseEvent: RunResponse = {
+        event: RunEvent.RunResponse,
+        content: responseContent,
+        session_id: data.session_id || currentSessionId!,
+        created_at: Math.floor(Date.now() / 1000),
+        extra_data: extra_data
+      };
+
+      events.push(runResponseEvent);
+
+      // RunCompleted event
+      events.push({
+        event: RunEvent.RunCompleted,
+        content: responseContent,
+        session_id: data.session_id || currentSessionId!,
+        created_at: Math.floor(Date.now() / 1000),
+        extra_data: extra_data
+      });
+
+      // Emit events with delay for smooth UX
+      console.log('🔄 AHLI_HUKUM_PIDANA: About to emit synthetic events for file upload');
+      console.log('🔄 onEvent callback provided:', typeof onEvent);
+      
+      // Debug synthetic events data
+      console.log('🔄 Synthetic events citations debug:', {
+        runResponseHasCitations: !!(runResponseEvent.extra_data?.references),
+        runCompletedHasCitations: !!(events[2]?.extra_data?.references),
+        citationsCount: runResponseEvent.extra_data?.references?.length || 0
+      });
+      
+      setTimeout(() => {
+        console.log('📤 AHLI_HUKUM_PIDANA: Emitting RunStarted event');
+        emitStreamEvent(events[0]);
+        if (onEvent) {
+          console.log('📤 Calling onEvent with RunStarted');
+          onEvent(events[0]);
         }
+      }, 100);
+      
+      setTimeout(() => {
+        console.log('📤 AHLI_HUKUM_PIDANA: Emitting RunResponse event with content:', runResponseEvent.content?.substring(0, 50) + '...');
+        emitStreamEvent(runResponseEvent);
+        if (onEvent) {
+          console.log('📤 Calling onEvent with RunResponse');
+          onEvent(runResponseEvent);
+        }
+      }, 200);
+      
+      setTimeout(() => {
+        console.log('📤 AHLI_HUKUM_PIDANA: Emitting RunCompleted event');
+        emitStreamEvent(events[2]);
+        if (onEvent) {
+          console.log('📤 Calling onEvent with RunCompleted');
+          onEvent(events[2]);
+        }
+        emitProgress({ status: 'completed', percent: 100 });
+             }, 300);
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
+      return {
+        success: true,
+        sessionId: data.session_id || currentSessionId!
+      };
 
-        console.log('Stream connection established, starting to read chunks...');
+    } else {
+      // Regular streaming mode
+      console.log('📡 Processing streaming response...');
+      
+      if (!response.body) {
+        throw new Error('Response body tidak tersedia untuk streaming');
+      }
 
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
 
-            if (done) {
-              console.log('Stream completed normally');
-              break;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          
+          if (done) {
+            console.log('✅ Streaming completed');
+            break;
+          }
+
+          const chunk = decoder.decode(value, { stream: true });
+          buffer = parseStreamBuffer(buffer + chunk, (event) => {
+            // Update session ID from events
+            if (event.session_id) {
+              currentSessionId = event.session_id;
             }
-
-            // Decode chunk and add to buffer
-            const chunk = decoder.decode(value, { stream: true });
-            buffer += chunk;
-
-            // Parse complete JSON objects from buffer
-            buffer = parseStreamBuffer(buffer, (parsedChunk: RunResponse) => {
-              console.log('📡 AHLI_HUKUM_PIDANA: Streaming chunk received:', {
-                event: parsedChunk.event,
-                content_preview: typeof parsedChunk.content === 'string' 
-                  ? parsedChunk.content.substring(0, 50)
-                  : typeof parsedChunk.content,
-                session_id: parsedChunk.session_id
-              });
-
-              // Emit to internal handlers
-              emitStreamEvent(parsedChunk);
-
-              // Call external handler if provided
-              if (onEvent) {
-                console.log('📡 Calling onEvent with streaming chunk:', parsedChunk.event);
-                onEvent(parsedChunk);
-              } else {
-                console.warn('📡 No onEvent callback provided for streaming chunk');
-              }
-
-              // Update session ID if provided
-              if (parsedChunk.session_id && parsedChunk.session_id !== currentSessionId) {
-                currentSessionId = parsedChunk.session_id;
-              }
-            });
-          }
-        } finally {
-          reader.releaseLock();
-        }
-
-        // Process any remaining buffer content
-        if (buffer.trim()) {
-          parseStreamBuffer(buffer, (parsedChunk: RunResponse) => {
-            emitStreamEvent(parsedChunk);
-            if (onEvent) {
-              onEvent(parsedChunk);
-            }
+            
+            emitStreamEvent(event);
+            if (onEvent) onEvent(event);
           });
         }
-
-        return {
-          success: true,
-          sessionId: currentSessionId || undefined
-        };
+      } finally {
+        reader.releaseLock();
       }
 
-    } catch (fetchError) {
-      clearTimeout(timeoutId);
-      console.error('Fetch error:', fetchError);
-      
-      // Mark progress as completed even on error
-      if (hasFiles) {
-        emitProgress({ status: 'completed', percent: 100 });
-      }
-      
-      if (controller.signal.aborted) {
-        throw new Error('Request timed out. File mungkin terlalu besar atau koneksi terlalu lambat.');
-      }
-      
-      throw fetchError;
+      return {
+        success: true,
+        sessionId: currentSessionId!
+      };
     }
 
   } catch (error) {
-    console.error('Error in sendStreamingChatMessage:', error);
+    console.error('❌ Enhanced chat error:', error);
     
-    // Mark progress as completed even on error
-    emitProgress({ status: 'completed', percent: 100 });
+    // Emit error progress
+    emitProgress({ status: 'failed', percent: 0 });
     
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : String(error)
+    // Emit error event
+    const errorEvent: RunResponse = {
+      event: RunEvent.RunError,
+      content: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      session_id: currentSessionId || 'unknown',
+      created_at: Math.floor(Date.now() / 1000)
     };
+    
+    emitStreamEvent(errorEvent);
+    if (onEvent) onEvent(errorEvent);
+    
+    throw error;
   }
 };
 

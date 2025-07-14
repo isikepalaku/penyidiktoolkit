@@ -23,6 +23,7 @@ import { useAuth } from './auth/AuthContext';
 import { NotificationHandler } from './components/NotificationHandler';
 import { PWAInstallButton } from './components/PWAInstallButton';
 import ErrorBoundary from './components/ErrorBoundary';
+import { FileManager } from './pages/FileManager';
 
 // Deteksi apakah ini perangkat mobile
 const isMobile = () => {
@@ -127,6 +128,11 @@ function AppContent() {
               <Route path="/pencarian-dokumen" element={
                 <ProtectedRoute>
                   <PencarianDokumen />
+                </ProtectedRoute>
+              } />
+              <Route path="/file-manager" element={
+                <ProtectedRoute>
+                  <FileManager />
                 </ProtectedRoute>
               } />
               <Route path="/piket-spkt" element={
