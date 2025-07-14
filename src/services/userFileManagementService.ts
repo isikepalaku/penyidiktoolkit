@@ -22,6 +22,7 @@ export interface UserFile {
   s3_key: string;
   s3_url: string;
   etag?: string;
+  file_hash?: string; // SHA256 hash for deduplication
   category: 'document' | 'image' | 'video' | 'audio' | 'other';
   folder_path: string;
   tags: string[];
@@ -37,6 +38,9 @@ export interface UserFile {
   share_expires_at?: string;
   download_count: number;
   view_count: number;
+  reference_count: number; // Number of users referencing this file
+  is_original_owner: boolean; // True if this user uploaded the original file
+  original_file_id?: string; // Reference to original file if this is a duplicate
   metadata: Record<string, any>;
   processing_metadata: Record<string, any>;
   access_log: any[];
@@ -122,9 +126,9 @@ const ALLOWED_FILE_TYPES = [
   'audio/mp3', 'audio/wav', 'audio/ogg'
 ];
 
-// ================================
-// UTILITY FUNCTIONS
-// ================================
+  // ================================
+  // UTILITY FUNCTIONS
+  // ================================
 
 function getFileCategory(mimeType: string): 'document' | 'image' | 'video' | 'audio' | 'other' {
   if (mimeType.startsWith('image/')) return 'image';
@@ -853,6 +857,208 @@ export class UserFileManagementService {
     } catch (error) {
       console.error('Get storage stats error:', error);
       return { success: false, error: 'Failed to get statistics' };
+    }
+  }
+
+  // ================================
+  // DEDUPLICATION OPERATIONS
+  // ================================
+
+  /**
+   * Find duplicate file berdasarkan hash dan size
+   */
+  async findDuplicateFile(
+    hash: string, 
+    fileSize: number, 
+    excludeUserId?: string
+  ): Promise<{ success: boolean; duplicate?: UserFile; error?: string }> {
+    try {
+      const { data: duplicates, error } = await supabase.rpc('find_duplicate_file', {
+        p_file_hash: hash,
+        p_file_size: fileSize,
+        p_exclude_user_id: excludeUserId || null
+      });
+
+      if (error) {
+        console.error('Error finding duplicate file:', error);
+        return { success: false, error: 'Failed to find duplicate file' };
+      }
+
+      if (duplicates && duplicates.length > 0) {
+        const duplicate = duplicates[0];
+        
+        // Get full file record
+        const { data: fileRecord, error: fileError } = await supabase
+          .from('user_files')
+          .select('*')
+          .eq('id', duplicate.file_id)
+          .single();
+
+        if (fileError) {
+          console.error('Error getting duplicate file record:', fileError);
+          return { success: false, error: 'Failed to get duplicate file record' };
+        }
+
+        console.log('🔄 Duplicate file found:', {
+          originalFile: duplicate.original_filename,
+          hash: hash.substring(0, 16) + '...',
+          size: formatFileSize(fileSize),
+          originalOwner: duplicate.user_id
+        });
+
+        return { success: true, duplicate: fileRecord };
+      }
+
+      return { success: true, duplicate: undefined };
+
+    } catch (error) {
+      console.error('Error in findDuplicateFile:', error);
+      return { success: false, error: `Duplicate search failed: ${error}` };
+    }
+  }
+
+  /**
+   * Create file reference untuk duplicate file
+   */
+  async createFileReference(
+    originalFileId: string,
+    userId: string,
+    newFilename: string,
+    options: Partial<FileUploadOptions> = {}
+  ): Promise<{ success: boolean; file?: UserFile; error?: string }> {
+    try {
+      console.log('📎 Creating file reference:', {
+        originalFileId,
+        userId,
+        newFilename,
+        options
+      });
+
+      const { data: referenceFileId, error } = await supabase.rpc('create_file_reference', {
+        p_original_file_id: originalFileId,
+        p_new_user_id: userId,
+        p_new_filename: newFilename,
+        p_folder_path: options.folder_path || '/',
+        p_tags: options.tags || [],
+        p_description: options.description || `Reference to duplicate file - ${new Date().toISOString()}`
+      });
+
+      if (error) {
+        console.error('Error creating file reference:', error);
+        return { success: false, error: 'Failed to create file reference' };
+      }
+
+      // Get created reference file
+      const { data: referenceFile, error: getError } = await supabase
+        .from('user_files')
+        .select('*')
+        .eq('id', referenceFileId)
+        .single();
+
+      if (getError) {
+        console.error('Error getting reference file:', getError);
+        return { success: false, error: 'Failed to get reference file record' };
+      }
+
+      console.log('✅ File reference created successfully:', {
+        referenceFileId: referenceFileId,
+        originalFileId: originalFileId,
+        filename: newFilename
+      });
+
+      return { success: true, file: referenceFile };
+
+    } catch (error) {
+      console.error('Error in createFileReference:', error);
+      return { success: false, error: `Reference creation failed: ${error}` };
+    }
+  }
+
+  /**
+   * Get deduplication summary untuk user
+   */
+  async getDeduplicationSummary(userId: string): Promise<{
+    success: boolean;
+    summary?: {
+      totalFiles: number;
+      uniqueFiles: number;
+      referencedFiles: number;
+      totalSize: number;
+      actualSize: number;
+      spaceSaved: number;
+      spaceSavedPercent: number;
+    };
+    error?: string;
+  }> {
+    try {
+      const { data: files, error } = await supabase
+        .from('user_files')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('upload_status', 'completed');
+
+      if (error) {
+        console.error('Error getting user files:', error);
+        return { success: false, error: 'Failed to get user files' };
+      }
+
+      if (!files || files.length === 0) {
+        return {
+          success: true,
+          summary: {
+            totalFiles: 0,
+            uniqueFiles: 0,
+            referencedFiles: 0,
+            totalSize: 0,
+            actualSize: 0,
+            spaceSaved: 0,
+            spaceSavedPercent: 0
+          }
+        };
+      }
+
+      const totalFiles = files.length;
+      const uniqueFiles = files.filter(f => f.is_original_owner).length;
+      const referencedFiles = files.filter(f => !f.is_original_owner).length;
+      
+      let totalSize = 0;
+      let actualSize = 0;
+
+      files.forEach(file => {
+        totalSize += file.file_size;
+        if (file.is_original_owner) {
+          actualSize += file.file_size;
+        }
+        // References don't count toward actual storage
+      });
+
+      const spaceSaved = totalSize - actualSize;
+      const spaceSavedPercent = totalSize > 0 ? (spaceSaved / totalSize) * 100 : 0;
+
+      const summary = {
+        totalFiles,
+        uniqueFiles,
+        referencedFiles,
+        totalSize,
+        actualSize,
+        spaceSaved,
+        spaceSavedPercent
+      };
+
+      console.log('📈 Deduplication summary for user:', {
+        userId,
+        ...summary,
+        formattedTotalSize: formatFileSize(totalSize),
+        formattedActualSize: formatFileSize(actualSize),
+        formattedSpaceSaved: formatFileSize(spaceSaved),
+        spaceSavedPercent: `${spaceSavedPercent.toFixed(1)}%`
+      });
+
+      return { success: true, summary };
+
+    } catch (error) {
+      console.error('Error in getDeduplicationSummary:', error);
+      return { success: false, error: `Summary calculation failed: ${error}` };
     }
   }
 }

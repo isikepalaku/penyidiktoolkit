@@ -3,13 +3,23 @@ import { s3Client, bucketConfig } from '@/config/s3';
 import { env } from '@/config/env';
 import { supabase } from '@/supabaseClient';
 import { v4 as uuidv4 } from 'uuid';
+import { 
+  computeFileHash, 
+  getOptimalHashAlgorithm, 
+  validateHashFormat,
+  createDeduplicationKey,
+  formatFileSize,
+  estimateHashTime,
+  type HashAlgorithm,
+  type HashProgress 
+} from '@/utils/fileHashUtils';
 
 // ================================
 // TYPES & INTERFACES
 // ================================
 
 export interface UploadProgress {
-  status: 'preparing' | 'uploading' | 'processing' | 'completed' | 'failed' | 'cancelled';
+  status: 'preparing' | 'hashing' | 'checking_duplicates' | 'uploading' | 'processing' | 'completed' | 'failed' | 'cancelled';
   percent: number;
   uploadedBytes: number;
   totalBytes: number;
@@ -19,6 +29,9 @@ export interface UploadProgress {
   error?: string;
   eta?: number; // Estimated time remaining in seconds
   speed?: number; // Upload speed in bytes/second
+  hashProgress?: HashProgress; // Progress for hash computation
+  duplicateDetected?: boolean; // If file is duplicate
+  isDuplicate?: boolean; // If file was found to be duplicate
 }
 
 export interface UploadSession {
@@ -43,18 +56,42 @@ export interface UploadSession {
   completed_at?: string;
 }
 
+export interface DuplicateFileInfo {
+  file_id: string;
+  user_id: string;
+  original_filename: string;
+  s3_key: string;
+  s3_url: string;
+  created_at: string;
+  reference_count: number;
+}
+
+export interface DeduplicationResult {
+  isDuplicate: boolean;
+  hash: string;
+  algorithm: HashAlgorithm;
+  duplicateFile?: DuplicateFileInfo;
+  referenceFileId?: string; // ID of the new reference file created
+}
+
 export interface EnhancedUploadOptions extends FileUploadOptions {
   // Progress tracking
   onProgress?: (progress: UploadProgress) => void;
   onFileComplete?: (file: UserFile, index: number) => void;
   onAllComplete?: (files: UserFile[]) => void;
   onError?: (error: string, fileIndex?: number) => void;
+  onDuplicateDetected?: (file: File, duplicateInfo: DuplicateFileInfo) => void;
   
   // Upload behavior
   usePresignedUrl?: boolean; // Default: true for better performance
   chunkSize?: number; // For large file uploads (future feature)
   maxRetries?: number; // Default: 3
   timeout?: number; // Upload timeout in milliseconds
+  
+  // Deduplication settings
+  enableDeduplication?: boolean; // Default: true for storage efficiency
+  hashAlgorithm?: HashAlgorithm; // Default: auto-select based on file size
+  skipDuplicateUpload?: boolean; // Default: true - create reference instead of upload
   
   // File processing
   generateThumbnails?: boolean; // Auto-generate thumbnails for images/videos
@@ -421,6 +458,307 @@ export class EnhancedUploadService {
   }
 
   // ================================
+  // DEDUPLICATION OPERATIONS
+  // ================================
+
+  /**
+   * Compute file hash untuk deduplication check
+   */
+  private async computeFileHashWithProgress(
+    file: File,
+    algorithm?: HashAlgorithm,
+    fileIndex: number = 0,
+    totalFiles: number = 1,
+    onProgress?: (progress: UploadProgress) => void
+  ): Promise<{ success: boolean; hash?: string; algorithm?: HashAlgorithm; error?: string }> {
+    try {
+      const selectedAlgorithm = algorithm || getOptimalHashAlgorithm(file.size, 'deduplication');
+      const estimatedTime = estimateHashTime(file.size, selectedAlgorithm);
+      
+      console.log(`🔐 Computing ${selectedAlgorithm.toUpperCase()} hash for file:`, {
+        fileName: file.name,
+        fileSize: formatFileSize(file.size),
+        estimatedTime: `${estimatedTime}ms`,
+        fileIndex: fileIndex + 1,
+        totalFiles
+      });
+
+      // Emit initial hash progress
+      onProgress?.({
+        status: 'hashing',
+        percent: 0,
+        uploadedBytes: 0,
+        totalBytes: file.size,
+        currentFile: file.name,
+        fileIndex: fileIndex,
+        totalFiles: totalFiles,
+        hashProgress: {
+          percent: 0,
+          bytesProcessed: 0,
+          totalBytes: file.size,
+          speed: 0,
+          estimatedTimeRemaining: estimatedTime / 1000
+        }
+      });
+
+      const hash = await computeFileHash(file, selectedAlgorithm, (hashProgress) => {
+        // Update progress dengan hash computation details
+        onProgress?.({
+          status: 'hashing',
+          percent: Math.round((hashProgress.percent * 0.3)), // Hash is 30% of total process
+          uploadedBytes: 0,
+          totalBytes: file.size,
+          currentFile: file.name,
+          fileIndex: fileIndex,
+          totalFiles: totalFiles,
+          hashProgress: hashProgress
+        });
+      });
+
+      console.log(`✅ Hash computed successfully:`, {
+        fileName: file.name,
+        algorithm: selectedAlgorithm,
+        hash: hash,
+        hashLength: hash.length
+      });
+
+      return { success: true, hash, algorithm: selectedAlgorithm };
+
+    } catch (error) {
+      console.error('Error computing file hash:', error);
+      return { success: false, error: `Hash computation failed: ${error}` };
+    }
+  }
+
+  /**
+   * Check if file is duplicate dan return duplicate info
+   */
+  private async checkForDuplicate(
+    hash: string,
+    fileSize: number,
+    userId: string,
+    fileIndex: number = 0,
+    totalFiles: number = 1,
+    onProgress?: (progress: UploadProgress) => void
+  ): Promise<{ success: boolean; isDuplicate?: boolean; duplicateFile?: DuplicateFileInfo; error?: string }> {
+    try {
+      // Emit duplicate check progress
+      onProgress?.({
+        status: 'checking_duplicates',
+        percent: Math.round(30 + (fileIndex / totalFiles) * 10), // 30-40% range
+        uploadedBytes: 0,
+        totalBytes: fileSize,
+        fileIndex: fileIndex,
+        totalFiles: totalFiles
+      });
+
+      // Query database untuk find duplicate
+      const { data: duplicates, error } = await supabase.rpc('find_duplicate_file', {
+        p_file_hash: hash,
+        p_file_size: fileSize,
+        p_exclude_user_id: userId
+      });
+
+      if (error) {
+        console.error('Error checking for duplicates:', error);
+        return { success: false, error: 'Failed to check for duplicates' };
+      }
+
+      if (duplicates && duplicates.length > 0) {
+        const duplicateFile = duplicates[0] as DuplicateFileInfo;
+        console.log('🔄 Duplicate file detected:', {
+          originalFile: duplicateFile.original_filename,
+          originalOwner: duplicateFile.user_id,
+          s3Key: duplicateFile.s3_key,
+          referenceCount: duplicateFile.reference_count
+        });
+
+        return { 
+          success: true, 
+          isDuplicate: true, 
+          duplicateFile: duplicateFile 
+        };
+      }
+
+      console.log('✨ No duplicate found, file is unique');
+      return { success: true, isDuplicate: false };
+
+    } catch (error) {
+      console.error('Error in duplicate check:', error);
+      return { success: false, error: `Duplicate check failed: ${error}` };
+    }
+  }
+
+  /**
+   * Create file reference untuk duplicate file
+   */
+  private async createFileReference(
+    originalFileId: string,
+    userId: string,
+    newFilename: string,
+    options: EnhancedUploadOptions = {},
+    fileIndex: number = 0,
+    totalFiles: number = 1,
+    onProgress?: (progress: UploadProgress) => void
+  ): Promise<{ success: boolean; fileId?: string; error?: string }> {
+    try {
+      console.log('📎 Creating file reference:', {
+        originalFileId,
+        newFilename,
+        userId,
+        folderPath: options.folder_path || '/',
+        tags: options.tags || []
+      });
+
+      // Emit reference creation progress
+      onProgress?.({
+        status: 'processing',
+        percent: Math.round(40 + (fileIndex / totalFiles) * 50), // 40-90% range
+        uploadedBytes: 0,
+        totalBytes: 0,
+        currentFile: newFilename,
+        fileIndex: fileIndex,
+        totalFiles: totalFiles,
+        isDuplicate: true
+      });
+
+      // Call database function to create reference
+      const { data: referenceFileId, error } = await supabase.rpc('create_file_reference', {
+        p_original_file_id: originalFileId,
+        p_new_user_id: userId,
+        p_new_filename: newFilename,
+        p_folder_path: options.folder_path || '/',
+        p_tags: options.tags || [],
+        p_description: options.description || `Reference to duplicate file - ${new Date().toISOString()}`
+      });
+
+      if (error) {
+        console.error('Error creating file reference:', error);
+        return { success: false, error: 'Failed to create file reference' };
+      }
+
+      console.log('✅ File reference created successfully:', {
+        referenceFileId: referenceFileId,
+        originalFileId: originalFileId
+      });
+
+      // Emit completion progress
+      onProgress?.({
+        status: 'completed',
+        percent: Math.round(90 + (fileIndex / totalFiles) * 10), // 90-100%
+        uploadedBytes: 0,
+        totalBytes: 0,
+        currentFile: newFilename,
+        fileIndex: fileIndex,
+        totalFiles: totalFiles,
+        isDuplicate: true
+      });
+
+      return { success: true, fileId: referenceFileId };
+
+    } catch (error) {
+      console.error('Error creating file reference:', error);
+      return { success: false, error: `Reference creation failed: ${error}` };
+    }
+  }
+
+  /**
+   * Process file dengan deduplication check
+   */
+  private async processFileWithDeduplication(
+    file: File,
+    userId: string,
+    options: EnhancedUploadOptions = {},
+    fileIndex: number = 0,
+    totalFiles: number = 1
+  ): Promise<{ success: boolean; result?: DeduplicationResult; error?: string }> {
+    try {
+      const enableDeduplication = options.enableDeduplication !== false; // Default: true
+      
+      if (!enableDeduplication) {
+        return { 
+          success: true, 
+          result: { 
+            isDuplicate: false, 
+            hash: '', 
+            algorithm: 'sha256' as HashAlgorithm 
+          } 
+        };
+      }
+
+      // Step 1: Compute file hash
+      const hashResult = await this.computeFileHashWithProgress(
+        file, 
+        options.hashAlgorithm, 
+        fileIndex, 
+        totalFiles, 
+        options.onProgress
+      );
+
+      if (!hashResult.success || !hashResult.hash || !hashResult.algorithm) {
+        return { success: false, error: hashResult.error || 'Hash computation failed' };
+      }
+
+      // Step 2: Check for duplicates
+      const duplicateCheck = await this.checkForDuplicate(
+        hashResult.hash,
+        file.size,
+        userId,
+        fileIndex,
+        totalFiles,
+        options.onProgress
+      );
+
+      if (!duplicateCheck.success) {
+        return { success: false, error: duplicateCheck.error || 'Duplicate check failed' };
+      }
+
+      const result: DeduplicationResult = {
+        isDuplicate: duplicateCheck.isDuplicate || false,
+        hash: hashResult.hash,
+        algorithm: hashResult.algorithm,
+        duplicateFile: duplicateCheck.duplicateFile
+      };
+
+      // Step 3: Handle duplicate if found
+      if (result.isDuplicate && result.duplicateFile && options.skipDuplicateUpload !== false) {
+        // Notify about duplicate detection
+        options.onDuplicateDetected?.(file, result.duplicateFile);
+
+        // Create file reference instead of uploading
+        const referenceResult = await this.createFileReference(
+          result.duplicateFile.file_id,
+          userId,
+          file.name,
+          options,
+          fileIndex,
+          totalFiles,
+          options.onProgress
+        );
+
+        if (!referenceResult.success) {
+          return { success: false, error: referenceResult.error || 'Reference creation failed' };
+        }
+
+        result.referenceFileId = referenceResult.fileId;
+        
+        console.log('🎯 Deduplication completed - file reference created:', {
+          originalFile: result.duplicateFile.original_filename,
+          newFilename: file.name,
+          referenceFileId: result.referenceFileId,
+          storageSpaceSaved: formatFileSize(file.size)
+        });
+      }
+
+      return { success: true, result };
+
+    } catch (error) {
+      console.error('Error in deduplication process:', error);
+      return { success: false, error: `Deduplication failed: ${error}` };
+    }
+  }
+
+  // ================================
   // MAIN UPLOAD METHODS
   // ================================
 
@@ -486,43 +824,111 @@ export class EnhancedUploadService {
 
         const uploads = presignedResult.uploads;
 
-        // Upload each file
+        // Process each file with deduplication check
         for (let i = 0; i < files.length; i++) {
           const file = files[i];
-          const uploadData = uploads[i];
 
           try {
-            const uploadResult = await this.uploadFileToS3(
+            // Step 1: Check for deduplication
+            const dedupResult = await this.processFileWithDeduplication(
               file,
-              uploadData,
-              sessionToken,
+              userId,
+              options,
               i,
-              files.length,
-              options.onProgress
+              files.length
             );
 
-            if (uploadResult.success) {
-              // Get updated file record
-              const { data: fileRecord } = await supabase
+            if (!dedupResult.success) {
+              console.error(`Deduplication failed for ${file.name}:`, dedupResult.error);
+              failedFiles.push(file.name);
+              continue;
+            }
+
+            const { result: dedupInfo } = dedupResult;
+            let fileRecord: UserFile;
+
+            if (dedupInfo?.isDuplicate && dedupInfo.referenceFileId) {
+              // File is duplicate - get reference file record
+              console.log(`📎 File ${file.name} is duplicate, using reference: ${dedupInfo.referenceFileId}`);
+              
+              const { data: refFileRecord } = await supabase
                 .from('user_files')
                 .select('*')
-                .eq('id', uploadData.fileId)
+                .eq('id', dedupInfo.referenceFileId)
                 .single();
 
-              if (fileRecord) {
-                uploadedFiles.push(fileRecord);
-                options.onFileComplete?.(fileRecord, i);
-
-                // Update session
-                await this.updateUploadSession(sessionToken, {
-                  completed_files: i + 1,
-                  progress_percentage: Math.round(((i + 1) / files.length) * 100)
-                });
+              if (refFileRecord) {
+                fileRecord = refFileRecord;
+              } else {
+                console.error(`Failed to get reference file record for ${file.name}`);
+                failedFiles.push(file.name);
+                continue;
               }
             } else {
-              failedFiles.push(file.name);
+              // File is unique - proceed with upload
+              console.log(`✨ File ${file.name} is unique, proceeding with S3 upload`);
+              
+              const uploadData = uploads[i];
+              
+              // Add hash to file metadata before upload
+              if (dedupInfo?.hash) {
+                await supabase
+                  .from('user_files')
+                  .update({
+                    file_hash: dedupInfo.hash,
+                    metadata: {
+                      ...uploadData.fields,
+                      hash_algorithm: dedupInfo.algorithm,
+                      deduplication_checked: true,
+                      computed_at: new Date().toISOString()
+                    }
+                  })
+                  .eq('id', uploadData.fileId);
+              }
+
+              const uploadResult = await this.uploadFileToS3(
+                file,
+                uploadData,
+                sessionToken,
+                i,
+                files.length,
+                options.onProgress
+              );
+
+              if (uploadResult.success) {
+                // Get updated file record
+                const { data: updatedFileRecord } = await supabase
+                  .from('user_files')
+                  .select('*')
+                  .eq('id', uploadData.fileId)
+                  .single();
+
+                if (updatedFileRecord) {
+                  fileRecord = updatedFileRecord;
+                } else {
+                  console.error(`Failed to get updated file record for ${file.name}`);
+                  failedFiles.push(file.name);
+                  continue;
+                }
+              } else {
+                console.error(`Upload failed for ${file.name}:`, uploadResult.error);
+                failedFiles.push(file.name);
+                await this.updateUploadSession(sessionToken, {
+                  failed_files: session.failed_files + 1
+                });
+                continue;
+              }
+            }
+
+            // File processed successfully (either as duplicate reference or unique upload)
+            if (fileRecord) {
+              uploadedFiles.push(fileRecord);
+              options.onFileComplete?.(fileRecord, i);
+
+              // Update session
               await this.updateUploadSession(sessionToken, {
-                failed_files: session.failed_files + 1
+                completed_files: i + 1,
+                progress_percentage: Math.round(((i + 1) / files.length) * 100)
               });
             }
 

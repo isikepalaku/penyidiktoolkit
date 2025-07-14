@@ -13,6 +13,13 @@ import {
   PlaygroundChatMessage
 } from '@/types/playground';
 import { usePlaygroundStore } from '@/stores/PlaygroundStore';
+import { SimpleDatabaseUploadService } from './simpleDatabaseUploadService';
+import type { 
+  SimpleUploadProgress,
+  SimpleUploadResult,
+  DeduplicationSummary,
+  SimpleUploadOptions 
+} from './simpleDatabaseUploadService';
 
 const API_KEY = import.meta.env.VITE_API_KEY;
 
@@ -33,10 +40,24 @@ let streamEventCallbacks: StreamEventCallback[] = [];
 type ProgressCallback = (progress: { status: string; percent: number }) => void;
 let progressCallbacks: ProgressCallback[] = [];
 
+// Enhanced progress tracking untuk deduplication
+type EnhancedProgressCallback = (progress: SimpleUploadProgress) => void;
+let enhancedProgressCallbacks: EnhancedProgressCallback[] = [];
+
+// Initialize database upload service
+const databaseUploadService = new SimpleDatabaseUploadService();
+
 export const onStreamEvent = (callback: StreamEventCallback) => {
   streamEventCallbacks.push(callback);
   return () => {
     streamEventCallbacks = streamEventCallbacks.filter(cb => cb !== callback);
+  };
+};
+
+export const onEnhancedProgress = (callback: EnhancedProgressCallback) => {
+  enhancedProgressCallbacks.push(callback);
+  return () => {
+    enhancedProgressCallbacks = enhancedProgressCallbacks.filter(cb => cb !== callback);
   };
 };
 
@@ -56,6 +77,18 @@ const emitStreamEvent = (event: RunResponse) => {
 const emitProgress = (progress: { status: string; percent: number }) => {
   progressCallbacks.forEach(callback => {
     callback(progress);
+  });
+};
+
+const emitEnhancedProgress = (progress: SimpleUploadProgress) => {
+  enhancedProgressCallbacks.forEach(callback => {
+    callback(progress);
+  });
+  
+  // Also emit to legacy progress callbacks for backward compatibility
+  emitProgress({ 
+    status: progress.status, 
+    percent: progress.percent 
   });
 };
 
@@ -274,16 +307,102 @@ export const clearStreamingChatHistory = () => {
 export const clearChatHistory = clearStreamingChatHistory;
 
 /**
+ * Enhanced file upload dengan deduplication menggunakan SimpleDatabaseUploadService
+ * @param files Array of files to upload
+ * @param userId User ID for the upload
+ * @param options Upload options
+ * @returns Promise dengan upload results dan summary
+ */
+export const uploadFilesWithDeduplication = async (
+  files: File[],
+  userId: string,
+  options: SimpleUploadOptions = {}
+): Promise<{
+  success: boolean;
+  results: SimpleUploadResult[];
+  summary: DeduplicationSummary;
+  error?: string;
+}> => {
+  console.log('🔄 HUKUM PERDATA: Starting enhanced file upload with deduplication');
+  
+  const enhancedOptions: SimpleUploadOptions = {
+    ...options,
+    category: 'document',
+    folder: '/hukum-perdata',
+    onProgress: (progress) => {
+      console.log(`📊 Upload Progress: ${progress.percent}% - ${progress.status}`, {
+        currentFile: progress.currentFile,
+        isDuplicate: progress.isDuplicate,
+        spaceSaved: progress.spaceSaved
+      });
+      
+      // Emit enhanced progress
+      emitEnhancedProgress(progress);
+      
+      // Call original callback if provided
+      if (options.onProgress) {
+        options.onProgress(progress);
+      }
+    },
+    onFileComplete: (result) => {
+      console.log(`✅ File completed: ${result.isDuplicate ? 'Duplicate' : 'New'} - ${result.message}`);
+      
+      // Call original callback if provided
+      if (options.onFileComplete) {
+        options.onFileComplete(result);
+      }
+    },
+    onAllComplete: (summary) => {
+      console.log('📋 Upload Summary:', {
+        totalFiles: summary.totalFiles,
+        uniqueFiles: summary.uniqueFiles,
+        referencedFiles: summary.referencedFiles,
+        spaceSaved: `${(summary.spaceSaved / 1024 / 1024).toFixed(2)} MB`,
+        spaceSavedPercent: `${summary.spaceSavedPercent.toFixed(1)}%`
+      });
+      
+      // Call original callback if provided
+      if (options.onAllComplete) {
+        options.onAllComplete(summary);
+      }
+    }
+  };
+  
+  try {
+    const result = await databaseUploadService.uploadFiles(files, userId, enhancedOptions);
+    return result;
+  } catch (error: any) {
+    console.error('❌ Enhanced upload failed:', error);
+    return {
+      success: false,
+      results: [],
+      summary: {
+        totalFiles: files.length,
+        uniqueFiles: 0,
+        referencedFiles: 0,
+        totalSize: files.reduce((sum, file) => sum + file.size, 0),
+        actualSize: 0,
+        spaceSaved: 0,
+        spaceSavedPercent: 0
+      },
+      error: error.message
+    };
+  }
+};
+
+/**
  * Mengirim pesan chat ke API menggunakan streaming dengan support file upload
  * @param message Pesan teks yang dikirim pengguna  
  * @param files File opsional yang ingin diupload
  * @param onEvent Callback untuk menangani streaming events
+ * @param enhanced Optional: menggunakan enhanced upload dengan deduplication
  * @returns Promise dengan respons dari API
  */
 export const sendStreamingChatMessage = async (
   message: string, 
   files?: File[],
-  onEvent?: (event: RunResponse) => void
+  onEvent?: (event: RunResponse) => void,
+  enhanced?: boolean
 ): Promise<StreamingChatResponse> => {
   try {
     // Generate or retrieve user ID (required)
@@ -336,16 +455,64 @@ export const sendStreamingChatMessage = async (
     formData.append('user_id', currentUserId);
     formData.append('monitor', 'false');
     
-    // Append files if any
+    // Handle file upload berdasarkan mode
     if (hasFiles) {
-      files!.forEach((file) => {
-        formData.append(`files`, file);
-      });
-      
-      // File upload mode: JSON response  
-      formData.append('stream', 'false');
-      
-      emitProgress({ status: 'uploading', percent: 30 });
+      if (enhanced) {
+        // Enhanced mode: gunakan deduplication service
+        console.log('🔄 HUKUM PERDATA: Using enhanced upload with deduplication');
+        
+        const uploadResult = await uploadFilesWithDeduplication(files!, currentUserId, {
+          onProgress: (progress) => {
+            console.log(`📊 Enhanced Upload Progress: ${progress.percent}% - ${progress.status}`, {
+              currentFile: progress.currentFile,
+              isDuplicate: progress.isDuplicate,
+              spaceSaved: progress.spaceSaved ? `${(progress.spaceSaved / 1024 / 1024).toFixed(2)} MB` : undefined
+            });
+          },
+          onFileComplete: (result) => {
+            console.log(`✅ Enhanced File completed: ${result.isDuplicate ? 'Duplicate' : 'New'} - ${result.message}`);
+          },
+          onAllComplete: (summary) => {
+            console.log('📋 Enhanced Upload Summary:', {
+              totalFiles: summary.totalFiles,
+              uniqueFiles: summary.uniqueFiles,
+              referencedFiles: summary.referencedFiles,
+              spaceSaved: `${(summary.spaceSaved / 1024 / 1024).toFixed(2)} MB`,
+              spaceSavedPercent: `${summary.spaceSavedPercent.toFixed(1)}%`
+            });
+          }
+        });
+        
+        if (!uploadResult.success) {
+          throw new Error(uploadResult.error || 'Enhanced upload failed');
+        }
+        
+        // Siapkan file references untuk API
+        const fileReferences = uploadResult.results.map(result => ({
+          file_id: result.fileId,
+          original_file_id: result.originalFileId,
+          is_duplicate: result.isDuplicate,
+          space_saved: result.spaceSaved
+        }));
+        
+        formData.append('enhanced_mode', 'true');
+        formData.append('file_references', JSON.stringify(fileReferences));
+        
+        // Enhanced mode: JSON response  
+        formData.append('stream', 'false');
+        
+        emitProgress({ status: 'processing', percent: 80 });
+      } else {
+        // Standard mode: direct file upload
+        files!.forEach((file) => {
+          formData.append(`files`, file);
+        });
+        
+        // File upload mode: JSON response  
+        formData.append('stream', 'false');
+        
+        emitProgress({ status: 'uploading', percent: 30 });
+      }
     } else {
       // Chat mode: streaming response
       formData.append('stream', 'true');
@@ -741,4 +908,65 @@ export const convertStreamingEventsToMessages = (
 export const getCurrentStreamingSession = () => ({
   sessionId: currentSessionId,
   userId: currentUserId
-}); 
+});
+
+/**
+ * Get deduplication statistics for current user or all users
+ * @param userId Optional: specific user ID, if not provided uses current user
+ * @returns Promise dengan deduplication statistics
+ */
+export const getDeduplicationStats = async (userId?: string): Promise<{
+  success: boolean;
+  stats?: DeduplicationSummary;
+  error?: string;
+}> => {
+  try {
+    const targetUserId = userId || currentUserId;
+    if (!targetUserId) {
+      return {
+        success: false,
+        error: 'User ID tidak tersedia'
+      };
+    }
+    
+    const result = await databaseUploadService.getDeduplicationStats(targetUserId);
+    return result;
+  } catch (error: any) {
+    console.error('❌ Failed to get deduplication stats:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+/**
+ * Enhanced sendStreamingChatMessage dengan better progress tracking dan deduplication
+ * @param message Pesan teks yang dikirim pengguna
+ * @param files File opsional yang ingin diupload
+ * @param onEvent Callback untuk menangani streaming events
+ * @param onEnhancedProgress Optional: enhanced progress callback dengan deduplication info
+ * @returns Promise dengan respons dari API
+ */
+export const sendEnhancedStreamingChatMessage = async (
+  message: string,
+  files?: File[],
+  onEvent?: (event: RunResponse) => void,
+  progressCallback?: (progress: SimpleUploadProgress) => void
+): Promise<StreamingChatResponse> => {
+  // Register enhanced progress callback if provided
+  let unsubscribe: (() => void) | undefined;
+  if (progressCallback) {
+    unsubscribe = onEnhancedProgress(progressCallback);
+  }
+  
+  try {
+    const result = await sendStreamingChatMessage(message, files, onEvent, true);
+    return result;
+  } finally {
+    // Cleanup callback
+    if (unsubscribe) {
+      unsubscribe();
+    }
+  }
+}; 

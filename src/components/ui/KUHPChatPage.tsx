@@ -3,6 +3,7 @@ import { ArrowLeft, Send, Copy, Check, Loader2, Info, RefreshCw, Paperclip, File
 import { cn } from '@/utils/utils';
 import { Button } from './button';
 import { Textarea } from './textarea';
+import FileUploadModal from './FileUploadModal';
 
 import { formatMessage } from '@/utils/markdownFormatter';
 import { RunEvent } from '@/types/playground';
@@ -15,6 +16,7 @@ import {
   sendStreamingChatMessage
 } from '@/services/ahliHukumPidanaService';
 import { getStorageStats, forceCleanup } from '@/stores/PlaygroundStore';
+import { UserFile } from '@/services/userFileManagementService';
 
 // Imports untuk refactoring - removed legacy imports
 
@@ -110,12 +112,12 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
   const [storageStats, setStorageStats] = useState<StorageStats | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [fileValidationErrors, setFileValidationErrors] = useState<string[]>([]);
+  const [showFileUploadModal, setShowFileUploadModal] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const streamingStatusRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const isSessionInitialized = useRef<boolean>(false);
 
   // Effect untuk inisialisasi session sekali saat komponen di-mount
@@ -230,13 +232,45 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
 
   // File handling functions
   const handleOpenFileDialog = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
+    setShowFileUploadModal(true);
   };
 
   const handleRemoveFile = (indexToRemove: number) => {
     setSelectedFiles(prev => prev.filter((_, index) => index !== indexToRemove));
+  };
+
+  const handleFilesSelected = (files: File[] | UserFile[]) => {
+    console.log('📁 Files selected from modal:', files);
+    
+    // Separate File objects from UserFile objects
+    const fileObjects: File[] = [];
+    const cloudFiles: UserFile[] = [];
+    
+    files.forEach(file => {
+      // Check if it's a File object by looking for File-specific properties
+      if ('lastModified' in file && 'webkitRelativePath' in file) {
+        fileObjects.push(file as File);
+      } else {
+        // It's a UserFile from cloud storage
+        cloudFiles.push(file as UserFile);
+      }
+    });
+    
+    // For now, handle File objects directly
+    // Cloud files (UserFile) will need different handling in streaming service
+    if (fileObjects.length > 0) {
+      setSelectedFiles(fileObjects);
+      console.log(`📋 Added ${fileObjects.length} file(s) from computer`);
+    }
+    
+    if (cloudFiles.length > 0) {
+      console.log(`☁️ Selected ${cloudFiles.length} cloud file(s):`, cloudFiles.map(f => f.original_filename));
+      // TODO: Implement cloud file handling in streaming service
+      // For now, we'll need to download or reference cloud files differently
+      alert('Cloud file support akan segera ditambahkan. Untuk saat ini, silakan gunakan file dari komputer.');
+    }
+    
+    setShowFileUploadModal(false);
   };
 
   // Storage management
@@ -265,74 +299,7 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
 
 
 
-  // Enhanced file change handler
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const errors: string[] = [];
-    const validFiles: File[] = [];
 
-    console.log(`📁 File upload attempt: ${files.length} file(s)`);
-
-    files.forEach((file, index) => {
-      console.log(`📄 File ${index + 1}: ${file.name} (${formatFileSize(file.size)}, MIME: "${file.type}")`);
-      
-      // Check MIME type dan provide additional info untuk backend debugging
-      const extension = file.name.toLowerCase().split('.').pop();
-      
-      // Log detailed MIME type information untuk backend debugging
-      if (!file.type || file.type === 'application/octet-stream') {
-        const extensionMimeMap: { [key: string]: string } = {
-          'pdf': 'application/pdf',
-          'txt': 'text/plain',
-          'png': 'image/png',
-          'jpg': 'image/jpeg',
-          'jpeg': 'image/jpeg',
-          'webp': 'image/webp'
-        };
-
-        if (extension && extensionMimeMap[extension]) {
-          const expectedMimeType = extensionMimeMap[extension];
-          console.log(`⚠️ MIME type issue for ${file.name}:`);
-          console.log(`   Browser detected: "${file.type}"`);
-          console.log(`   Expected for .${extension}: "${expectedMimeType}"`);
-          console.log(`   Backend should use: "${expectedMimeType}" for Google GenAI`);
-        }
-      }
-      
-      const validation = validateFile(file);
-      if (validation.isValid) {
-        validFiles.push(file);
-        console.log(`✅ File ${index + 1} valid: ${file.name} (MIME: "${file.type}")`);
-        
-        // Additional info untuk backend debugging
-        if (extension === 'docx' && (!file.type || file.type === 'application/octet-stream')) {
-          console.log(`📋 Backend Note: ${file.name} should use MIME type "application/vnd.openxmlformats-officedocument.wordprocessingml.document" for Google GenAI`);
-        }
-      } else {
-        errors.push(validation.error!);
-        console.log(`❌ File ${index + 1} invalid: ${validation.error}`);
-      }
-    });
-
-    // Update error state
-    setFileValidationErrors(errors);
-
-    // Only add valid files
-    if (validFiles.length > 0) {
-      setSelectedFiles(prev => [...prev, ...validFiles]);
-      console.log(`📋 Successfully processed ${validFiles.length} valid file(s)`);
-    }
-
-    // Clear the input to allow re-selection of the same file
-    e.target.value = '';
-
-    // Clear errors after 5 seconds
-    if (errors.length > 0) {
-      setTimeout(() => {
-        setFileValidationErrors([]);
-      }, 5000);
-    }
-  };
 
   // Storage Stats Component
   const StorageStatsDisplay = () => {
@@ -1159,15 +1126,7 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
               <Paperclip className="w-4 h-4" />
             </button>
             
-            {/* Hidden file input */}
-            <input 
-              type="file" 
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              className="hidden"
-              multiple
-              accept={ACCEPTED_FILE_TYPES}
-            />
+
             
             <button
               onClick={handleSendMessage}
@@ -1187,6 +1146,19 @@ const KUHPChatPage: React.FC<KUHPChatPageProps> = ({ onBack }) => {
           </p>
         </div>
       </div>
+
+      {/* File Upload Modal */}
+      <FileUploadModal
+        isOpen={showFileUploadModal}
+        onClose={() => setShowFileUploadModal(false)}
+        onFilesSelected={handleFilesSelected}
+        acceptedTypes={ACCEPTED_FILE_TYPES}
+        maxFileSize={MAX_FILE_SIZE}
+        supportedMimeTypes={SUPPORTED_MIME_TYPES}
+        title="Upload File untuk Analisis"
+        description="Pilih file dari komputer atau cloud storage untuk dianalisis oleh Ahli Pidana"
+        allowMultiple={true}
+      />
     </div>
   );
 };

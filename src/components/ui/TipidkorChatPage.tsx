@@ -3,6 +3,8 @@ import { ArrowLeft, Send, Copy, Check, Loader2, Info, RefreshCw, Paperclip, File
 import { cn } from '@/utils/utils';
 import { Button } from './button';
 import { Textarea } from './textarea';
+import FileUploadModal from './FileUploadModal';
+import { UserFile } from '@/services/userFileManagementService';
 
 import { formatMessage } from '@/utils/markdownFormatter';
 import { RunEvent } from '@/types/playground';
@@ -102,12 +104,12 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
   const [storageStats, setStorageStats] = useState<any>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [fileValidationErrors, setFileValidationErrors] = useState<string[]>([]);
+  const [showUploadModal, setShowUploadModal] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const streamingStatusRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const isSessionInitialized = useRef<boolean>(false);
 
   // Effect untuk inisialisasi session dan clear store saat komponen di-mount
@@ -225,55 +227,31 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
 
   // File handling functions
   const handleOpenFileDialog = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
+    setShowUploadModal(true);
+  };
+
+  const handleFilesSelected = (files: File[] | UserFile[]) => {
+    // Convert UserFile to File if needed
+    const processedFiles = files.map(file => {
+      if ('original_filename' in file) {
+        // This is a UserFile from cloud storage
+        // For now, we'll create a mock File object
+        // In real implementation, you'd download the file content from S3
+        const blob = new Blob([], { type: file.file_type });
+        return new (File as any)([blob], file.original_filename, { type: file.file_type });
+      }
+      return file as File;
+    });
+    
+    setSelectedFiles(prev => [...prev, ...processedFiles]);
+    setShowUploadModal(false);
   };
 
   const handleRemoveFile = (indexToRemove: number) => {
     setSelectedFiles(prev => prev.filter((_, index) => index !== indexToRemove));
   };
 
-  // Enhanced file change handler
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const errors: string[] = [];
-    const validFiles: File[] = [];
 
-    console.log(`📁 File upload attempt: ${files.length} file(s)`);
-
-    files.forEach((file, index) => {
-      console.log(`📄 File ${index + 1}: ${file.name} (${formatFileSize(file.size)}, MIME: "${file.type}")`);
-      
-      const validation = validateFile(file);
-      if (validation.isValid) {
-        validFiles.push(file);
-        console.log(`✅ File ${index + 1} valid: ${file.name}`);
-      } else {
-        errors.push(validation.error!);
-        console.log(`❌ File ${index + 1} invalid: ${validation.error}`);
-      }
-    });
-
-    // Update error state
-    setFileValidationErrors(errors);
-
-    // Only add valid files
-    if (validFiles.length > 0) {
-      setSelectedFiles(prev => [...prev, ...validFiles]);
-      console.log(`📋 Successfully processed ${validFiles.length} valid file(s)`);
-    }
-    
-    // Clear the input to allow re-selection of the same file
-    e.target.value = '';
-    
-    // Clear errors after 5 seconds
-    if (errors.length > 0) {
-      setTimeout(() => {
-        setFileValidationErrors([]);
-      }, 5000);
-    }
-  };
 
   const handleStorageCleanup = () => {
     if (window.confirm('Apakah Anda yakin ingin membersihkan data lama? Data yang sudah dihapus tidak bisa dikembalikan.')) {
@@ -426,16 +404,10 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
       // Use TIPIDKOR streaming service
       console.log('🚀 TIPIDKOR: About to call sendTipidkorStreamingChatMessage');
       
-      // Note: Current TIPIDKOR service doesn't support file upload yet
-      // Files will be mentioned in the message content
-      let finalMessage = userMessageContent;
-      if (selectedFiles.length > 0) {
-        const fileInfo = selectedFiles.map(f => `${f.name} (${formatFileSize(f.size)})`).join(', ');
-        finalMessage = `${userMessageContent}\n\n📎 File yang akan dianalisis: ${fileInfo}`;
-      }
-
+      // Now TIPIDKOR service supports file upload
       const result = await sendTipidkorStreamingChatMessage(
-        finalMessage,
+        userMessageContent,
+        selectedFiles.length > 0 ? selectedFiles : undefined,
         (event: any) => {
           // Handle streaming events
           console.log('🎯 TIPIDKOR streaming event received:', {
@@ -1068,14 +1040,17 @@ const TipidkorChatPage: React.FC<TipidkorChatPageProps> = ({ onBack }) => {
               <Paperclip className="w-4 h-4" />
             </button>
             
-            {/* Hidden file input */}
-            <input 
-              type="file" 
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              className="hidden"
-              multiple
-              accept={ACCEPTED_FILE_TYPES}
+            {/* File Upload Modal */}
+            <FileUploadModal
+              isOpen={showUploadModal}
+              onClose={() => setShowUploadModal(false)}
+              onFilesSelected={handleFilesSelected}
+              acceptedTypes={ACCEPTED_FILE_TYPES}
+              maxFileSize={MAX_FILE_SIZE}
+              supportedMimeTypes={SUPPORTED_MIME_TYPES}
+              title="Upload File untuk TIPIDKOR"
+              description="Pilih file dari komputer atau cloud storage untuk dianalisis"
+              allowMultiple={true}
             />
             
             <button
