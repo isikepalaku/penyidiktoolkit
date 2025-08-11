@@ -23,12 +23,11 @@ const Sidebar = () => {
           return;
         }
         
-        // Periksa dari tabel admins
+        // Periksa dari tabel admins (tanpa .single() untuk menghindari error ketika tidak ada data)
         const { data, error } = await supabase
           .from('admins')
           .select('user_id')
-          .eq('user_id', currentUser.id)
-          .single();
+          .eq('user_id', currentUser.id);
           
         if (error) {
           console.error('Error checking admin status:', error);
@@ -36,7 +35,8 @@ const Sidebar = () => {
           return;
         }
         
-        setIsAdmin(!!data);
+        // Jika ada data, berarti user adalah admin
+        setIsAdmin(data && data.length > 0);
       } catch (err) {
         console.error('Error checking admin status:', err);
         setIsAdmin(false);

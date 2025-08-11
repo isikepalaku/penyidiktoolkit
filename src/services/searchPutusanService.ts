@@ -33,10 +33,24 @@ interface SupabaseDocument {
 async function getEmbedding(query: string): Promise<number[]> {
   const processedQuery = query.trim().toLowerCase().replace(/\s+/g, ' ').replace(/[^\w\s]/g, '');
   
+  const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+  
+  // Debug logging (show more characters for verification)
+  console.log('OpenAI API Key loaded:', apiKey ? `${apiKey.slice(0, 12)}...${apiKey.slice(-8)}` : 'MISSING');
+  console.log('Full environment check:', {
+    hasKey: !!apiKey,
+    keyLength: apiKey?.length,
+    startsWithSkProj: apiKey?.startsWith('sk-proj-')
+  });
+  
+  if (!apiKey) {
+    throw new Error('OpenAI API key tidak ditemukan. Pastikan VITE_OPENAI_API_KEY sudah diset di file .env');
+  }
+  
   const response = await fetch('https://api.openai.com/v1/embeddings', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+      'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
@@ -48,15 +62,33 @@ async function getEmbedding(query: string): Promise<number[]> {
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Error response:', errorText);
+    console.error('Error response status:', response.status);
     
     if (response.status === 429) {
       throw new Error('Terlalu banyak permintaan API. Silakan tunggu beberapa saat sebelum mencoba lagi.');
     }
     
-    const error = await response.json() as OpenAIError;
-    throw new Error(`Failed to generate embedding: ${error.error?.message || 'Unknown error'}`);
+    try {
+      const errorText = await response.text();
+      console.error('Error response:', errorText);
+      
+      let errorMessage = 'Unknown error';
+      try {
+        const error = JSON.parse(errorText) as OpenAIError;
+        errorMessage = error.error?.message || errorMessage;
+      } catch {
+        // If it's not JSON, use the raw text
+        errorMessage = errorText;
+      }
+      
+      if (response.status === 401) {
+        throw new Error('API key tidak valid. Periksa konfigurasi VITE_OPENAI_API_KEY di file .env');
+      }
+      
+      throw new Error(`Failed to generate embedding: ${errorMessage}`);
+    } catch (parseError) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
   }
 
   const result = await response.json();

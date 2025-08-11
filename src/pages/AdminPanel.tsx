@@ -110,12 +110,11 @@ export default function AdminPanel() {
           const { data: adminData, error: adminError } = await supabase
             .from('admins')
             .select('*')
-            .eq('user_id', currentUser.id)
-            .single();
+            .eq('user_id', currentUser.id);
             
           console.log("Fallback check result:", { adminData, adminError });
           
-          if (!adminError && adminData) {
+          if (!adminError && adminData && adminData.length > 0) {
             console.log("User is admin based on direct table query");
             if (isMounted) setIsAdmin(true);
             return;
