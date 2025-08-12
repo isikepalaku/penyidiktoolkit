@@ -119,7 +119,7 @@ export default function ProfileMenu() {
             {getInitials()}
           </div>
         )}
-        <span className="text-sm font-medium text-white hidden md:block">
+        <span className="text-sm font-medium text-white block truncate max-w-[8rem] sm:max-w-[12rem]">
           {displayName}
         </span>
       </button>

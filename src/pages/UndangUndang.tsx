@@ -4,8 +4,6 @@ import AgentCard from '../components/AgentCard';
 import KUHPChatPage from '../components/ui/KUHPChatPage';
 import UndangChatPage from '../components/ui/UndangChatPage';
 import P2SKChatPage from '../components/ui/P2SKChatPage';
-import ITEChatPage from '../components/ui/ITEChatPage';
-import CiptaKerjaChatPage from '../components/ui/CiptaKerjaChatPage';
 import HukumPerdataChatPage from '../components/ui/KUHAPChatPage';
 import type { ExtendedAgent } from '../types/index';
 
@@ -65,23 +63,7 @@ export default function UndangUndang() {
       type: 'p2sk_chat',
       status: 'on',
       fields: []
-    },
-    {
-      id: 'ite_001',
-      name: 'ITE AI',
-      description: 'Ahli hukum AI untuk memahami Undang-Undang Informasi dan Transaksi Elektronik',
-      type: 'ite_chat',
-      status: 'on',
-      fields: []
-    },
-    {
-      id: 'ciptakerja_001',
-      name: 'Cipta Kerja AI',
-      description: 'Ahli hukum AI untuk memahami Undang-Undang Cipta Kerja',
-      type: 'ciptakerja_chat',
-      status: 'on',
-      fields: []
-          }
+    }
     ];
 
   const selectedAgentData = selectedAgentId
@@ -127,18 +109,6 @@ export default function UndangUndang() {
             <UndangChatPage onBack={handleBack} />
           </div>
         );
-      case 'ite_chat':
-        return (
-          <div className="fixed inset-0 z-20">
-            <ITEChatPage onBack={handleBack} />
-          </div>
-        );
-      case 'ciptakerja_chat':
-        return (
-          <div className="fixed inset-0 z-20">
-            <CiptaKerjaChatPage onBack={handleBack} />
-          </div>
-                );
       default:
         return null;
     }

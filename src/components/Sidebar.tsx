@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Users, FileText, PanelLeft, PanelRightClose, Search, MessageSquare, Home, Scale, ShieldAlert, Wrench, Shield, FolderKanban } from 'lucide-react';
+import { Users, FileText, PanelLeft, PanelRightClose, Search, Home, Scale, ShieldAlert, Wrench, Shield, FolderKanban } from 'lucide-react';
 import logo from '../static/logoreserse.png';
 import ProfileMenu from './ProfileMenu';
 import { useAuth } from '../auth/AuthContext';
@@ -60,11 +60,6 @@ const Sidebar = () => {
         path: '/agents',
         icon: <Users className="w-5 h-5" />,
         text: 'Agen AI'
-      },
-      {
-        path: '/sop-penyidik',
-        icon: <MessageSquare className="w-5 h-5" />,
-        text: 'SOP Penyidik'
       },
       {
         path: '/penyidik-ai',
